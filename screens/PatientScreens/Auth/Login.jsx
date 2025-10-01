@@ -23,46 +23,78 @@ const Login = ({ navigation }) => {
   const [token, setToken] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const { login, googleLogin } = useContext(AuthContext);
+  const { login, googleLogin, loginWithGoogle } = useContext(AuthContext);
   const [request, response, promptAsync] = useGoogleAuth();
   const [googleHandled, setGoogleHandled] = useState(false);
 
+  // useEffect(() => {
+  //   const doLogin = async () => {
+  //     console.log("👉 useEffect triggered with response:", response);
+
+  //     if (response?.type === "success" && !googleHandled) {
+  //       setGoogleHandled(true); // ✅ mark as handled
+  //       console.log("✅ Google auth success, calling backend once...");
+  //       try {
+  //         const user = await googleLogin(response);
+  //         console.log("✅ googleLogin returned user:", user);
+
+  //         if (user) {
+  //           console.log("👉 Navigating to LandingPage");
+  //           navigation.navigate("LandingPage");
+  //         } else {
+  //           console.log("❌ googleLogin returned null user");
+  //         }
+  //       } catch (error) {
+  //         console.error("❌ Google login error in Login.jsx:", error);
+  //       }
+  //     } else {
+  //       console.log(
+  //         "ℹ️ No success response from Google yet or already handled"
+  //       );
+  //     }
+  //   };
+
+  //   doLogin();
+  // }, [response, navigation, googleHandled]);
+
   useEffect(() => {
-    const doLogin = async () => {
-      console.log("👉 useEffect triggered with response:", response);
-
-      if (response?.type === "success" && !googleHandled) {
-        setGoogleHandled(true); // ✅ mark as handled
-        console.log("✅ Google auth success, calling backend once...");
-        try {
-          const user = await googleLogin(response);
-          console.log("✅ googleLogin returned user:", user);
-
-          if (user) {
-            console.log("👉 Navigating to LandingPage");
-            navigation.navigate("LandingPage");
-          } else {
-            console.log("❌ googleLogin returned null user");
+    if (Platform.OS === "web") {
+      const doLogin = async () => {
+        if (response?.type === "success" && !googleHandled) {
+          setGoogleHandled(true);
+          try {
+            const user = await googleLogin(response);
+            if (user) {
+              navigation.navigate("LandingPage");
+            }
+          } catch (error) {
+            console.error("❌ Google login error (Web):", error);
           }
-        } catch (error) {
-          console.error("❌ Google login error in Login.jsx:", error);
         }
-      } else {
-        console.log(
-          "ℹ️ No success response from Google yet or already handled"
-        );
-      }
-    };
-
-    doLogin();
+      };
+      doLogin();
+    }
   }, [response, navigation, googleHandled]);
 
-  const startGoogleLogin = () => {
-    if (request) {
-      console.log("👉 Starting Google login flow...");
-      promptAsync({ useProxy: false });
-    } else {
-      console.log("❌ Google auth request not ready yet");
+  const startGoogleLogin = async () => {
+    try {
+      if (Platform.OS === "web") {
+        if (request) {
+          console.log("👉 Starting Google login (Web)...");
+          promptAsync({ useProxy: false });
+        } else {
+          console.log("❌ Google auth request not ready yet (Web)");
+        }
+      } else {
+        console.log("👉 Starting Google login (Mobile App)...");
+        const user = await loginWithGoogle(); // calls the native SDK
+        if (user) {
+          await googleLogin(user); // your backend call
+          navigation.navigate("LandingPage");
+        }
+      }
+    } catch (err) {
+      console.error("❌ Google login failed:", err);
     }
   };
 

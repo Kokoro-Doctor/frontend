@@ -6,8 +6,11 @@ import {
   restoreUserState,
   signup,
 } from "../utils/AuthService";
-//import { View } from 'react-native';
+
+import { signInWithGoogleApp } from "../utils/AuthService";
+
 export const AuthContext = createContext();
+
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -55,7 +58,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-
   const loginHandler = async (email, password, navigation) => {
     try {
       const newUser = await login(email, password);
@@ -98,61 +100,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-
-  // const googleLoginHandler = async (response) => {
-  //   console.log("👉 googleLoginHandler called with response:", response);
-
-  //   try {
-  //     const googleUser = await handleGoogleLogin(response);
-  //     console.log("✅ handleGoogleLogin returned:", googleUser);
-
-  //     setUser(googleUser);
-  //     return googleUser; // <-- return so caller gets it
-  //   } catch (error) {
-  //     console.error("❌ Google Login Failed in Context:", error.message);
-  //   }
-  // };
-
-
-const googleLoginHandler = async (response) => {
-  console.log("👉 googleLoginHandler called with response:", response);
-
-  try {
-    const googleResponse = await handleGoogleLogin(response);
-    console.log("✅ handleGoogleLogin returned:", googleResponse);
-
-    if (googleResponse && googleResponse.user) {
-      console.log("👤 Setting user data:", googleResponse.user);
-      console.log("🔍 User name:", googleResponse.user.name);
-      console.log("📧 User email:", googleResponse.user.email);
-      console.log("🖼️ User picture:", googleResponse.user.picture);
-      
-      // Store just the user data, not the full response
-      setUser(googleResponse.user);
-      
-      // Optionally store the access token separately if needed
-      // setAccessToken(googleResponse.access_token);
-      
-      return googleResponse.user; // Return just user data
-    } else {
-      console.error("❌ No user data in Google response:", googleResponse);
-      return null;
+  // ================= Google Login Handler for web =================
+  const googleLoginHandler = async (response) => {
+    try {
+      const googleUser = await handleGoogleLogin(response);
+      setUser(googleUser);
+      navigation.navigate("LandingPage");
+    } catch (error) {
+      console.error(`Google Login Failed: ${error.message}`);
     }
-  } catch (error) {
-    console.error("❌ Google Login Failed in Context:", error.message);
-    return null;
-  }
-};
+  };
 
-
-  // if (isLoading) {
-  //     return (<View><Text>Loading...</Text></View>); // Show loading screen while restoring state
-  // }
+  // ================= Google Login Handler for app =================
+  const loginWithGoogle = async () => {
+    try {
+      const loggedInUser = await signInWithGoogleApp();
+      setUser(loggedInUser);
+    } catch (err) {
+      console.error("Login with Google failed:", err);
+    }
+  };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        loginWithGoogle,
         signup: signupHandler,
         login: loginHandler,
         logout: logoutHandler,
