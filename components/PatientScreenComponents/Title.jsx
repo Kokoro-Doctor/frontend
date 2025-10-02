@@ -23,9 +23,9 @@ const Title = () => {
         </Text>
       </View>
 
-      <View style={{marginRight: 15, marginTop: 2}}>
+      <View style={{marginLeft: 15, marginTop: 2}}>
         <Text style={[styles.tagline, { fontSize: responsiveFontSize }]}>
-          Transforming Cardiac Care with AI
+          Redefining Heart and Reproductive Healthcare with AI
         </Text>
       </View>
     </View>
