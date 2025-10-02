@@ -12,11 +12,11 @@ import {
   StatusBar,
 } from "react-native";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 import Header from "../../../components/PatientScreenComponents/Header";
 
 const AboutUsMain = ({ navigation, route }) => {
-  const {width} = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const scrollViewRef = useRef(null);
   const [expandedSection, setExpandedSection] = useState(null);
 
@@ -37,7 +37,7 @@ const AboutUsMain = ({ navigation, route }) => {
 
   return (
     <>
-      {(Platform.OS==='web' && width>1000) && (
+      {Platform.OS === "web" && width > 1000 && (
         <View style={styles.container}>
           <View style={styles.parent}>
             <View style={styles.Left}>
@@ -54,38 +54,47 @@ const AboutUsMain = ({ navigation, route }) => {
                     Your AI-Powered Heart Health Companion
                   </Text>
                 </View>
-    
+
                 <View style={styles.AboutSection}>
                   <View style={styles.textBox}>
                     <View style={styles.delayedBorder} />
                     <Text style={styles.aboutTitle}>About Us</Text>
                     <Text style={styles.text}>
-                      <Text style={styles.bold}>Kokoro.Doctor</Text> was founded
-                      with a mission to make AI-powered heart health accessible to
-                      everyone. As an I Member at Harvard Innovation Labs, our team
-                      of experts in AI, healthcare, and business is dedicated to
-                      bridging the gap between early detection and life-saving
-                      action. With extensive research and cutting-edge technology,
-                      <Text style={styles.bold}> Kokoro.Doctor </Text>
-                      ensures that patients, doctors, and caregivers receive the
-                      best possible tools for cardiac care. Our commitment to
-                      affordable, data-driven healthcare makes us a leader in the
-                      future of the heart health solution. We envision a world where
-                      no one suffers due to lack of timely heart care. By leveraging
-                      AI, medical expertise, and innovation,{" "}
-                      <Text style={styles.bold}> Kokoro.Doctor </Text> is at the
-                      forefront of the next healthcare revolution.
+                      Kokoro.Doctor was founded with a mission to make
+                      AI-powered healthcare accessible to everyone, starting
+                      with heart health and now extending into womens health and
+                      gynecology. As an i-Lab Member at Harvard Innovation Labs,
+                      our team of experts in AI, healthcare, and business is
+                      dedicated to bridging the gap between early detection and
+                      timely medical action.With extensive research and
+                      cutting-edge technology, Kokoro.Doctor provides patients,
+                      doctors, and caregivers with supportive tools for both
+                      cardiac and gynecological care. While our platform raises
+                      awareness and helps with early insights, we always
+                      encourage users to consult qualified doctors—especially in
+                      case of serious concerns or emergencies.Our commitment to
+                      affordable, data-driven healthcare makes us a leader in
+                      shaping the future of digital health solutions. We
+                      envision a world where no one suffers due to lack of
+                      timely care. By leveraging AI, medical expertise, and
+                      innovation, Kokoro.Doctor is at the forefront of the next
+                      healthcare revolution—bringing better access, inclusivity,
+                      and impact across multiple specialties.
                     </Text>
                   </View>
-    
+
                   <View style={styles.rightSection}>
                     <Text style={styles.urgentNeedTitle}>
                       THE URGENT NEED FOR BETTER HEART CARE
                     </Text>
                     <Text style={styles.urgentNeedText}>
-                      HEART DISEASE IS THE LEADING CAUSE OF DEATH GLOBALLY, YET
-                      MILLIONS STILL LACK QUICK, RELIABLE, AND AFFORDABLE ACCESS TO
-                      CARDIAC CARE.
+                      Heart disease remains the leading cause of death globally,
+                      while millions also struggle with timely access to
+                      gynecological and women’s health services. Quick,
+                      reliable, and affordable healthcare solutions are still
+                      out of reach for many—highlighting the need for supportive
+                      tools that guide individuals toward timely medical
+                      attention.
                     </Text>
                   </View>
                 </View>
@@ -95,126 +104,193 @@ const AboutUsMain = ({ navigation, route }) => {
                       The Urgent Need for Better Heart Care
                     </Text>
                     <Text style={styles.description}>
-                      Heart disease is the leading cause of death globally, yet
-                      millions still lack quick, reliable, and affordable access to
-                      cardiac care.
+                      The Urgent Need for Better Healthcare Heart disease
+                      remains the leading cause of death worldwide, and millions
+                      of women continue to face challenges in accessing timely
+                      gynecological care. Quick, reliable, and affordable
+                      healthcare solutions are still not available to everyone.
                     </Text>
                   </View>
-    
+
                   {/* Background Design */}
                   <View style={styles.circle1} />
                   <View style={styles.circle2} />
-    
+
                   {/* Problem Section */}
                   <Text style={styles.problemTitle}>The Problem:</Text>
                   <View style={styles.problemContainer}>
                     <View style={styles.problemBox}>
                       <Text style={styles.problemText}>
-                        Lack of cardiologists in many cities and towns.
+                        Limited specialist availability — shortage of
+                        cardiologists and gynecologists in many towns and
+                        cities.
                       </Text>
                     </View>
                     <View style={styles.problemBox}>
                       <Text style={styles.problemText}>
-                        Long waiting times for checkups and tests.
+                        Long waiting times — delays in getting appointments,
+                        checkups, and diagnostic tests.
                       </Text>
                     </View>
                     <View style={styles.problemBox}>
                       <Text style={styles.problemText}>
-                        Expensive treatments that many cannot afford.
+                        High costs — advanced treatments and procedures often
+                        remain unaffordable.
                       </Text>
                     </View>
                     <View style={styles.problemBox}>
                       <Text style={styles.problemText}>
-                        Delayed action—many people ignore early warning signs.
+                        Delayed action — early warning signs are frequently
+                        ignored or go undetected.
                       </Text>
                     </View>
                   </View>
                 </View>
-                
+
                 <View style={styles.access}>
-          
-          <Text style={styles.head}>
-            What if you could assess your heart health instantly?
-          </Text>
-          <Text style={styles.subhead}>
-            That’s why we created Kokoro.Doctor.
-          </Text>
-    
-        
-          <TouchableOpacity style={styles.option} onPress={()=>{navigation.navigate("AboutUsWhat")}}>
-            <Text style={styles.optionText}>What is Kokoro.Doctor?</Text>
-            <Ionicons name="chevron-forward" size={20} color="#E57373" />
-          </TouchableOpacity>
-    
-          <TouchableOpacity style={styles.option} onPress={()=>{navigation.navigate("AboutUsHow")}}>
-            <Text style={styles.optionText}>How Kokoro.Doctor Works?</Text>
-            <Ionicons name="chevron-forward" size={20} color="#E57373" />
-          </TouchableOpacity>
-    
-          <TouchableOpacity style={styles.option} onPress={()=>{navigation.navigate("AboutUsWhy")}}>
-            <Text style={styles.optionText}>Why Kokoro.Doctor Stands Out?</Text>
-            <Ionicons name="chevron-forward" size={20} color="#E57373" />
-          </TouchableOpacity>
-        </View>
-                
-                <View style={styles.GlobleMission}>
-                <View style={styles.missionBox}>
-            <Text style={styles.missionHeader}>The Bigger Vision A Global Mission</Text>
-            {/* <View  style={styles.backColor}> */}
-            <Text style={styles.missionSubText}>
-              <Text style={{ fontStyle: "italic" }}>
-                For too long, heart disease has been a silent killer—especially in
-                communities with poor healthcare access.
-              </Text>
-            </Text>
-    
-            {/* Benefits Boxes */}
-            <View style={styles.benefitsContainer}>
-              <View style={styles.benefitBox}>
-                <Text style={styles.benefitText}>No more delayed heart care</Text>
-              </View>
-              <View style={styles.benefitBox}>
-                <Text style={styles.benefitText}>No more preventable heart attacks.</Text>
-              </View>
-              <View style={styles.benefitBox}>
-                <Text style={styles.benefitText}>
-                  No family suffering because they couldn’t get help in time
-                </Text>
-              </View>
-            </View>
-            {/* </View> */}
-          </View>
-    
-          {/* Pricing Section */}
-          <Text style={styles.pricingHeader}>PRICING</Text>
-          <Text style={styles.pricingSubText}>
-            We believe affordable healthcare should be a reality for everyone.
-          </Text>
-    
-          {/* Monthly Plan */}
-          <View style={styles.pricingBox}>
-            <Text style={styles.priceText}>₹1,999</Text>
-            <Text style={styles.priceLabel}>per Month</Text>
-          </View>
-    
-          {/* Yearly Plan with Discount */}
-          <View style={styles.discountContainer}>
-            <TouchableOpacity style={styles.discountBadge}>
-              <Text style={styles.discountText}>SAVE 15 %</Text>
-            </TouchableOpacity>
-            <View style={styles.pricingBox}>
-              <Text style={styles.priceText}>₹9,999</Text>
-              <Text style={styles.priceLabel}>per Year</Text>
-            </View>
-          </View>
-    
-          {/* Terms Note */}
-          <Text style={styles.note}>
-            *This includes unlimited AI heart health assessments, emergency alerts, priority doctor consultations, and secure MediLocker.
-          </Text>
+                  <Text style={styles.head}>
+                    What if you could assess your heart health instantly?
+                  </Text>
+                  <Text style={styles.subhead}>
+                    That’s why we created Kokoro.Doctor.
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.option}
+                    onPress={() => {
+                      navigation.navigate("AboutUsWhat");
+                    }}
+                  >
+                    <Text style={styles.optionText}>
+                      What is Kokoro.Doctor?
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="#E57373"
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.option}
+                    onPress={() => {
+                      navigation.navigate("AboutUsHow");
+                    }}
+                  >
+                    <Text style={styles.optionText}>
+                      How Kokoro.Doctor Works?
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="#E57373"
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.option}
+                    onPress={() => {
+                      navigation.navigate("AboutUsWhy");
+                    }}
+                  >
+                    <Text style={styles.optionText}>
+                      Why Kokoro.Doctor Stands Out?
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="#E57373"
+                    />
+                  </TouchableOpacity>
                 </View>
-    
-                <View style={styles.resolution}>
+
+                <View style={styles.GlobleMission}>
+                  <View style={styles.missionBox}>
+                    <Text style={styles.missionHeader}>
+                      The Bold Vision A Global Mission
+                    </Text>
+                    {/* <View  style={styles.backColor}> */}
+                    <Text style={styles.missionSubText}>
+                      <Text style={{ fontStyle: "italic" }}>
+                        Health should never be out of reach—whether it’s your
+                        heart or your reproductive health.Heart disease has
+                        quietly taken too many lives—particularly in communities
+                        with limited healthcare access.
+                      </Text>
+                    </Text>
+
+                    {/* Benefits Boxes */}
+                    <View style={styles.benefitsContainer}>
+                      <View style={styles.benefitBox}>
+                        <Text style={styles.benefitText}>
+                          No more delayed heart care
+                        </Text>
+                      </View>
+                      <View style={styles.benefitBox}>
+                        <Text style={styles.benefitText}>
+                          No more preventable heart attacks.
+                        </Text>
+                      </View>
+                      <View style={styles.benefitBox}>
+                        <Text style={styles.benefitText}>
+                          No family suffering because they couldn’t get help in
+                          time
+                        </Text>
+                      </View>
+                    </View>
+                    {/* </View> */}
+                    <Text style={styles.womenHealthHeader}>
+                      And for women's health:
+                    </Text>
+                    <View style={styles.womenBenefitsContainer}>
+                      <View style={styles.womenBenefitBox}>
+                        <Text style={styles.womenBenefitText}>
+                          Access expert gynecological care for pregnancy,
+                          reproductive health, and confidential support.
+                        </Text>
+                      </View>
+                      <View style={styles.womenBenefitBox}>
+                        <Text style={styles.womenBenefitText}>
+                          Safe, timely, and personalized care for every stage of
+                          life.
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Pricing Section */}
+                  <Text style={styles.pricingHeader}>PRICING</Text>
+                  <Text style={styles.pricingSubText}>
+                    We believe affordable healthcare should be a reality for
+                    everyone.
+                  </Text>
+
+                  {/* Monthly Plan */}
+                  <View style={styles.pricingBox}>
+                    <Text style={styles.priceText}>₹1,999</Text>
+                    <Text style={styles.priceLabel}>per Month</Text>
+                  </View>
+
+                  {/* Yearly Plan with Discount */}
+                  <View style={styles.discountContainer}>
+                    <TouchableOpacity style={styles.discountBadge}>
+                      <Text style={styles.discountText}>SAVE 15 %</Text>
+                    </TouchableOpacity>
+                    <View style={styles.pricingBox}>
+                      <Text style={styles.priceText}>₹9,999</Text>
+                      <Text style={styles.priceLabel}>per Year</Text>
+                    </View>
+                  </View>
+
+                  {/* Terms Note */}
+                  <Text style={styles.note}>
+                    *This includes unlimited AI heart health assessments,
+                    emergency alerts, priority doctor consultations, and secure
+                    MediLocker.
+                  </Text>
+                </View>
+
+                {/* <View style={styles.resolution}>
                   <Text style={styles.Resheader}>
                     Join the Revolution in Heart Health
                   </Text>
@@ -222,8 +298,8 @@ const AboutUsMain = ({ navigation, route }) => {
                     Over 100,000 users have already taken their first AI-powered
                     heart checkup, and we are just getting started.
                   </Text>
-    
-                  {/* Categories Section */}
+
+                
                   <View style={styles.textContainer}>
                     <Text style={styles.boldText}>
                       Patients :{" "}
@@ -232,7 +308,7 @@ const AboutUsMain = ({ navigation, route }) => {
                       </Text>
                     </Text>
                     <View style={styles.line} />
-    
+
                     <Text style={styles.boldText}>
                       Healthcare Providers :{" "}
                       <Text style={styles.normalText}>
@@ -240,7 +316,7 @@ const AboutUsMain = ({ navigation, route }) => {
                       </Text>
                     </Text>
                     <View style={styles.line} />
-    
+
                     <Text style={styles.boldText}>
                       Investors & Innovators:{" "}
                       <Text style={styles.normalText}>
@@ -249,18 +325,19 @@ const AboutUsMain = ({ navigation, route }) => {
                     </Text>
                     <View style={styles.line} />
                   </View>
-    
-                  
+
                   <View style={styles.ctaBox}>
                     <Text style={styles.ctaText}>
                       Your heart deserves the best care
                     </Text>
-                    
+
                     <TouchableOpacity style={styles.ctaButton}>
-                      <Text style={styles.ctaButtonText}>Check your heart now</Text>
+                      <Text style={styles.ctaButtonText}>
+                        Check your heart now
+                      </Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </View> */}
                 <View style={styles.FinalThought}>
                   <Text style={styles.Heading}>Final Thought</Text>
                   <Text style={styles.SubTitle}>
@@ -271,7 +348,9 @@ const AboutUsMain = ({ navigation, route }) => {
                   </Text>
                   <Text style={styles.content}>
                     With insights from{" "}
-                    <Text style={styles.TextRed}>Harvard Innovation Labs </Text>,
+                    <Text style={styles.TextRed}>Harvard Innovation Labs </Text>
+                    , AI innovation, and a{" "}
+                    <Text style={styles.TextRed}>patient-first design</Text>,
                     Kokoro.Doctor is bridging the gap between{" "}
                     <Text style={styles.TextRed}>
                       early detection and life-saving action.
@@ -289,18 +368,18 @@ const AboutUsMain = ({ navigation, route }) => {
           </View>
         </View>
       )}
-      
-      {(Platform.OS!=='web' || width<1000) && (
+      ;
+      {(Platform.OS !== "web" || width < 1000) && (
         <ScrollView style={styles.appContainer} ref={scrollViewRef}>
-          <StatusBar barStyle="light-content" backgroundColor="#FF6B6B"/>
+          <StatusBar barStyle="light-content" backgroundColor="#FF6B6B" />
           {/* Header Section */}
           <View style={styles.appHeader}>
             <View style={styles.appContentWrapper}>
               {/* Menu and Profile Icons */}
-              <View style={[styles.header, {height: "15%"}]}>
-                <Header navigation={navigation}/>
+              <View style={[styles.header, { height: "15%" }]}>
+                <Header navigation={navigation} />
               </View>
-    
+
               {/* Main Title */}
               <View style={styles.appTitleContainer}>
                 <Text style={styles.appTitle}>Kokoro.Doctor</Text>
@@ -310,18 +389,18 @@ const AboutUsMain = ({ navigation, route }) => {
               </View>
             </View>
           </View>
-    
+
           {/* About Us Section */}
           <View style={styles.appSection}>
             <Text style={styles.appSectionTitle}>About Us</Text>
             <Text style={styles.appParagraph}>
-              <Text style={styles.appBold}>Kokoro.Doctor</Text> was founded with a
-              mission to make AI-powered heart health accessible to everyone. As an
-              I Member at Harvard Innovation Labs, our team of experts in AI,
-              healthcare, and business is dedicated to bridging the gap between
-              early detection and life-saving action.
+              <Text style={styles.appBold}>Kokoro.Doctor</Text> was founded with
+              a mission to make AI-powered heart health accessible to everyone.
+              As an I Member at Harvard Innovation Labs, our team of experts in
+              AI, healthcare, and business is dedicated to bridging the gap
+              between early detection and life-saving action.
             </Text>
-    
+
             {/* Two Vertical Sections */}
             <View style={styles.appRow}>
               {/* Left Side */}
@@ -333,14 +412,14 @@ const AboutUsMain = ({ navigation, route }) => {
                 />
                 <Text style={styles.appParagraph}>
                   With extensive research and cutting-edge technology,
-                  <Text style={styles.appBold}> Kokoro.Doctor</Text> ensures that
-                  patients, doctors, and caregivers receive the best possible tools
-                  for cardiac care. Our commitment to affordable, data-driven
-                  healthcare makes us a leader in the field of heart health
-                  solutions.
+                  <Text style={styles.appBold}> Kokoro.Doctor</Text> ensures
+                  that patients, doctors, and caregivers receive the best
+                  possible tools for cardiac care. Our commitment to affordable,
+                  data-driven healthcare makes us a leader in the field of heart
+                  health solutions.
                 </Text>
               </View>
-    
+
               {/* Right Side */}
               <View style={[styles.appColumn]}>
                 <Image
@@ -350,29 +429,31 @@ const AboutUsMain = ({ navigation, route }) => {
                 />
                 <Text style={styles.appParagraph}>
                   We envision a world where no one suffers due to lack of timely
-                  heart care. By leveraging AI, medical expertise, and innovation,{" "}
-                  <Text style={styles.appBold}> Kokoro.Doctor</Text> is at the
-                  forefront of the next healthcare revolution.
+                  heart care. By leveraging AI, medical expertise, and
+                  innovation, <Text style={styles.appBold}> Kokoro.Doctor</Text>{" "}
+                  is at the forefront of the next healthcare revolution.
                 </Text>
               </View>
             </View>
           </View>
-          
+
           {/* Urgent Need Section */}
           <View style={styles.appUrgentNeedSection}>
-            <Text style={styles.appUrgentNeedTitle}>The Urgent Need for Better</Text>
+            <Text style={styles.appUrgentNeedTitle}>
+              The Urgent Need for Better
+            </Text>
             <Text style={styles.appUrgentNeedTitle}>Heart Care</Text>
             <Text style={styles.appUrgentNeedDescription}>
               Heart disease is the leading cause of death globally, yet millions
               still lack quick, reliable, and affordable access to cardiac care.
             </Text>
-    
+
             {/* Problem Section */}
             <View style={styles.appProblemcontainer}>
               {/* Main Problem Box */}
               <View style={styles.appProblemBox}>
                 <Text style={styles.appProblemTitle}>The Problem</Text>
-    
+
                 {/* Problem Statements */}
                 <View style={styles.appProblemContent}>
                   <Text style={styles.appProblemText}>
@@ -394,36 +475,46 @@ const AboutUsMain = ({ navigation, route }) => {
               </View>
             </View>
           </View>
-    
+
           {/* What If Section */}
           <View style={styles.appWhatIfSection}>
             <Text style={styles.appWhatIfTitle}>
               What if you could assess your heart health instantly?
             </Text>
             <Text style={styles.appWhatIfSubtitle}>
-              That's why we created Kokoro.Doctor.
+              Thats why we created Kokoro.Doctor.
             </Text>
-    
+
             {/* Expandable Options */}
             <TouchableOpacity
               style={styles.appExpandableOption}
-              onPress={() => {navigation.navigate("AboutUsWhat")}}
+              onPress={() => {
+                navigation.navigate("AboutUsWhat");
+              }}
             >
-              <Text style={styles.appExpandableText}>What is Kokoro.Doctor?</Text>
+              <Text style={styles.appExpandableText}>
+                What is Kokoro.Doctor?
+              </Text>
               <Ionicons name="chevron-forward" size={20} color="#E57373" />
             </TouchableOpacity>
-    
+
             <TouchableOpacity
               style={styles.appExpandableOption}
-              onPress={() => {navigation.navigate("AboutUsHow")}}
+              onPress={() => {
+                navigation.navigate("AboutUsHow");
+              }}
             >
-              <Text style={styles.appExpandableText}>How Kokoro.Doctor Works?</Text>
+              <Text style={styles.appExpandableText}>
+                How Kokoro.Doctor Works?
+              </Text>
               <Ionicons name="chevron-forward" size={20} color="#E57373" />
             </TouchableOpacity>
-    
+
             <TouchableOpacity
               style={styles.appExpandableOption}
-              onPress={() => {navigation.navigate("AboutUsWhy")}}
+              onPress={() => {
+                navigation.navigate("AboutUsWhy");
+              }}
             >
               <Text style={styles.appExpandableText}>
                 Why Kokoro.Doctor Stands Out?
@@ -431,7 +522,7 @@ const AboutUsMain = ({ navigation, route }) => {
               <Ionicons name="chevron-forward" size={20} color="#E57373" />
             </TouchableOpacity>
           </View>
-    
+
           {/* Vision Section */}
           <View style={styles.appVisionSection}>
             <Text style={styles.appVisionTitle}>The Bigger Vision</Text>
@@ -440,18 +531,20 @@ const AboutUsMain = ({ navigation, route }) => {
               For too long, heart disease has been a silent killer—especially in
               communities with poor healthcare access.
             </Text>
-    
+
             {/* Benefits Boxes */}
             <ImageBackground
               source={require("../../../assets/Images/heart_background.png")}
               style={styles.appBenefitsContainer}
-              imageStyle={{ opacity: 1.0 }} 
+              imageStyle={{ opacity: 1.0 }}
             >
               <Text style={styles.appBeliefText}>
                 At Kokoro.Doctor, we believe in:
               </Text>
               <View style={[styles.appBenefitBox, styles.appFirstBenefitBox]}>
-                <Text style={styles.appBenefitText}>No more delayed heart care</Text>
+                <Text style={styles.appBenefitText}>
+                  No more delayed heart care
+                </Text>
               </View>
               <View style={[styles.appBenefitBox, styles.appSecondBenefitBox]}>
                 <Text style={styles.appBenefitText}>
@@ -460,43 +553,45 @@ const AboutUsMain = ({ navigation, route }) => {
               </View>
               <View style={[styles.appBenefitBox, styles.appThirdBenefitBox]}>
                 <Text style={styles.appBenefitText}>
-                  No family suffering because they couldn't get help in time
+                  No family suffering because they couldnt get help in time
                 </Text>
               </View>
             </ImageBackground>
           </View>
-    
+
           {/* Pricing Section */}
           <View style={styles.appPricingSection}>
             <Text style={styles.appPricingTitle}>Pricing</Text>
             <Text style={styles.appPricingDescription}>
               We believe affordable healthcare should be a reality for everyone.
             </Text>
-    
+
             {/* Monthly Plan */}
             <View style={styles.appPricingPlan}>
-              <Text style={styles.appPriceAmount}>₹1999</Text>
+              <Text style={styles.appPriceAmount}>₹999</Text>
               <Text style={styles.appPricePeriod}>per month</Text>
             </View>
-    
+
             {/* Yearly Plan */}
             <View style={styles.appYearlyPlanContainer}>
               <View style={styles.appSaveBadge}>
                 <Text style={styles.appSaveText}>SAVE 15%</Text>
               </View>
-              <View style={[styles.appPricingPlan, styles.appSecondPricingPlan]}>
+              <View
+                style={[styles.appPricingPlan, styles.appSecondPricingPlan]}
+              >
                 <Text style={styles.appPriceAmount}>₹4999</Text>
                 <Text style={styles.appPricePeriod}>per year</Text>
               </View>
             </View>
-    
+
             {/* Pricing Note */}
             <Text style={styles.appPricingNote}>
               *This includes unlimited AI heart health assessments, emergency
               alerts, priority doctor consultations, and secure MediLocker.
             </Text>
           </View>
-    
+
           {/* Join Revolution Section */}
           <View style={styles.appJoinSection}>
             <Text style={styles.appJoinTitle}>Join the Revolution in</Text>
@@ -510,7 +605,7 @@ const AboutUsMain = ({ navigation, route }) => {
             <Text style={styles.appJoinDescription}>
               and we are just getting started.
             </Text>
-    
+
             {/* Categories */}
             <View style={styles.appCategoriesContainer}>
               {/* Patients Section */}
@@ -521,7 +616,7 @@ const AboutUsMain = ({ navigation, route }) => {
                   Take charge of your heart health
                 </Text>
               </View>
-    
+
               {/* Healthcare Providers Section */}
               <View style={styles.appCategoryItem}>
                 <Text style={styles.appBoldLeft}>Healthcare Providers:</Text>
@@ -530,7 +625,7 @@ const AboutUsMain = ({ navigation, route }) => {
                   Partner with us for better patient outcomes
                 </Text>
               </View>
-    
+
               {/* Investors & Innovators Section */}
               <View style={styles.appCategoryItem}>
                 <Text style={styles.appBoldLeft}>Investors & Innovators:</Text>
@@ -540,7 +635,7 @@ const AboutUsMain = ({ navigation, route }) => {
                 </Text>
               </View>
             </View>
-    
+
             {/* CTA Box */}
             <View style={styles.appCtaContainer}>
               <Text style={styles.appCtaText}>Your heart deserves the</Text>
@@ -563,7 +658,7 @@ const AboutUsMain = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
           </View>
-    
+
           {/* Final Thoughts Section */}
           <View style={styles.appFinalSection}>
             <Text style={styles.appFinalTitle}>Final Thoughts</Text>
@@ -600,15 +695,16 @@ const AboutUsMain = ({ navigation, route }) => {
                 />
               </View>
             </TouchableOpacity>
-    
+
             {/* Brand Footer */}
             <View style={styles.appBrandFooter}>
               <Text style={styles.appFooterKokoro}>Kokoro</Text>
               <Text style={styles.appFooterDoctor}>Doctor</Text>
             </View>
           </View>
-      </ScrollView>
+        </ScrollView>
       )}
+      ;
     </>
   );
 };
@@ -655,10 +751,10 @@ const styles = StyleSheet.create({
   header: {
     zIndex: 2,
     ...Platform.select({
-      web:{
-        width:"100%",
-      }
-    })
+      web: {
+        width: "100%",
+      },
+    }),
   },
   scrollContainer: {
     flexGrow: 1,
@@ -690,8 +786,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     flexWrap: "wrap",
-    marginTop: 20,
+    marginTop:"1%",
     paddingHorizontal: 10,
+    //borderWidth: 1,
   },
   textBox: {
     backgroundColor: "#FFFFFF",
@@ -705,9 +802,9 @@ const styles = StyleSheet.create({
   delayedBorder: {
     position: "absolute",
     right: 0,
-    top: "15%", 
-    height: "50%", 
-    width: 2, 
+    top: "15%",
+    height: "50%",
+    width: 2,
     backgroundColor: "black",
   },
   aboutTitle: {
@@ -728,23 +825,25 @@ const styles = StyleSheet.create({
   rightSection: {
     width: "30%",
     padding: 15,
-    paddingLeft: 20, 
+    paddingLeft: 20,
     flexShrink: 1,
     maxWidth: "100%",
   },
   urgentNeedTitle: {
-    marginTop: "20%",
+    marginTop: "10%",
     fontSize: 18,
     fontWeight: "bold",
     color: "#000000",
   },
   highlight: {
-    color: "#FFD700", 
+    color: "#FFD700",
   },
   urgentNeedText: {
     fontSize: 14,
     color: "#ed0f0f",
-    marginTop: 5,
+    marginTop: "1%",
+    case: "uppercase",
+    fontWeight: 700,
   },
 
   //---
@@ -762,7 +861,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 16,
-    color: "#666", 
+    color: "#666",
     marginTop: 5,
   },
   problemTitle: {
@@ -821,27 +920,27 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   //----
-  access:{
-padding:15,
-backgroundColor:"#FFFFFF"
+  access: {
+    padding: 15,
+    backgroundColor: "#FFFFFF",
   },
   head: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#000",
     marginBottom: 10,
-    paddingLeft:"5%"
+    paddingLeft: "5%",
   },
   subhead: {
     fontSize: 16,
-    paddingLeft:"5%",
+    paddingLeft: "5%",
     color: "#333",
     marginBottom: 20,
   },
   option: {
     backgroundColor: "#333",
     padding: 15,
-    paddingLeft:"5%",
+    paddingLeft: "5%",
     borderRadius: 8,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -853,116 +952,148 @@ backgroundColor:"#FFFFFF"
     color: "#fff",
     fontWeight: "500",
   },
-//-------
-GlobleMission:{
-  padding:15,
-},
-missionBox: {
-  backgroundColor: "#FFF",
-  padding: 15,
-  borderRadius: 10,
-  borderWidth: 4,
-  borderColor: "#FECF58", // Yellow border
-  width: "100%",
-  // alignItems: "center",
-  marginBottom: 30,
-  paddingBottom:"15%"
-},
-missionHeader: {
-  fontSize: 16,
-  fontWeight: "bold",
-  // textAlign: "center",
-},
+  //-------
+  GlobleMission: {
+    padding: "2%",
+  },
+  missionBox: {
+    backgroundColor: "#FFF",
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 4,
+    borderColor: "#FECF58", // Yellow border
+    width: "100%",
+    // alignItems: "center",
+    marginBottom: 30,
+    paddingBottom: "15%",
+  },
+  missionHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    // textAlign: "center",
+  },
 
-missionSubText: {
-  fontSize: 14,
-  color: "#666",
-  // textAlign: "center",
-  marginTop: 5,
-  marginBottom: 10,
-},
-benefitsContainer: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  width: "100%",
-},
-benefitBox: {
-  backgroundColor: "#E29558", // Orange color
-  padding: 10,
-  borderRadius: 10,
-  width: "30%",
-  alignItems: "center",
-},
-benefitText: {
-  color: "#FFF",
-  fontSize: 12,
-  textAlign: "center",
-},
-pricingHeader: {
-  fontSize: 20,
-  fontWeight: "bold",
-  alignSelf: "flex-start",
-  marginBottom: 5,
-},
-pricingSubText: {
-  fontSize: 22,
-  color: "#666",
-  // textAlign: "center",
-  marginBottom: 20,
-},
-pricingBox: {
-  // backgroundColor: "#",
-  paddingVertical: 10,
-  marginRight:"70%",
-  paddingHorizontal: 20,
-  borderRadius: 10,
-  borderWidth:2,
-  borderColor:"green",
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  marginBottom: 10,
-},
-priceText: {
-  fontSize: 18,
-  fontWeight: "bold",
-  color: "#333",
-},
-priceLabel: {
-  fontSize: 14,
-  color: "#666",
-  marginLeft: 5,
-},
-discountContainer: {
-  marginLeft:"50%",
-  flexDirection: "row",
-  alignItems: "center",
-},
-discountBadge: {
-  backgroundColor: "#4CAF50", // Green Badge
-  paddingVertical: 5,
-  paddingHorizontal: 10,
-  borderRadius: 5,
-  marginRight: 10,
-},
-discountText: {
-  color: "#FFF",
-  fontSize: 12,
-  fontWeight: "bold",
-},
-note: {
-  fontSize: 12,
-  color: "#120909f3",
-  textAlign: "center",
-  marginTop: 10,
-  marginRight:"20%",
-  paddingHorizontal: 10,
-},
+  missionSubText: {
+    fontSize: 14,
+    color: "#666",
+    // textAlign: "center",
+    marginTop: 5,
+    marginBottom: 10,
+  },
+  benefitsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    height: "50%",
+    //borderWidth:1
+  },
+  benefitBox: {
+    backgroundColor: "#E29558", // Orange color
+    padding: "2%",
+    borderRadius: 18,
+    width: "30%",
+    alignItems: "center",
+    height: "100%",
+  },
+  benefitText: {
+    color: "#FFF",
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: "15%",
+  },
+  womenHealthHeader: {
+    marginTop: "2%",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  womenBenefitsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "80%",
+    height: "43%",
+    //borderWidth:1,
+    alignSelf: "center",
+    marginTop: "1%",
+  },
+  womenBenefitBox: {
+    backgroundColor: "#E29558", // Orange color
+    padding: "2%",
+    borderRadius: 18,
+    width: "30%",
+    alignItems: "center",
+    height: "100%",
+  },
+  womenBenefitText: {
+    color: "#FFF",
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: "10%",
+  },
+  pricingHeader: {
+    fontSize: 20,
+    fontWeight: "bold",
+    alignSelf: "flex-start",
+    marginBottom: 5,
+  },
+  pricingSubText: {
+    fontSize: 22,
+    color: "#666",
+    // textAlign: "center",
+    marginBottom: 20,
+  },
+  pricingBox: {
+    // backgroundColor: "#",
+    paddingVertical: 10,
+    marginRight: "70%",
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "green",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  priceText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  priceLabel: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 5,
+  },
+  discountContainer: {
+    marginLeft: "50%",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  discountBadge: {
+    backgroundColor: "#4CAF50", // Green Badge
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  discountText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  note: {
+    fontSize: 12,
+    color: "#120909f3",
+    textAlign: "center",
+    marginTop: 10,
+    marginRight: "20%",
+    paddingHorizontal: 10,
+  },
   //----
   resolution: {
     padding: 15,
     marginRight: "1%",
-    marginHorizontal:"2%",
+    marginHorizontal: "2%",
     backgroundColor: "#FFECC4",
     borderRadius: "2%",
   },
@@ -1084,10 +1215,10 @@ note: {
   appContentWrapper: {
     marginTop: "10%",
     ...Platform.select({
-      web:{
+      web: {
         marginTop: "0%",
-      }
-    })
+      },
+    }),
   },
   appTitleContainer: {
     width: "100%",
@@ -1246,7 +1377,7 @@ note: {
     borderWidth: 1,
     borderColor: "#FECF58",
     margin: "5%",
-    width: "90%",
+    //width: "90%",
   },
   appVisionTitle: {
     fontSize: 20,
@@ -1381,7 +1512,7 @@ note: {
     backgroundColor: "#FFECC4",
     borderRadius: 10,
     margin: "5%",
-    width: "90%",
+    //width: "90%",
   },
   appJoinTitle: {
     fontSize: 24,
