@@ -1,14 +1,14 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-  View,
   Image,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   Platform,
   Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
   useWindowDimensions,
+  View,
 } from "react-native";
 
 const SideBarNavigation = ({ navigation, closeSidebar }) => {
@@ -31,7 +31,7 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
     },
 
     {
-      name: "24/7 Cardiac Support",
+      name: "24/7 AI Support",
       icon: require("../../assets/Icons/cardiacHealth.png"),
     },
 
@@ -60,7 +60,7 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
       navigation.navigate("PatientAppNavigation", {
         screen: "Hospitals",
       });
-    } else if (menu === "24/7 Cardiac Support") {
+    } else if (menu === "24/7 AI Support") {
       navigation.navigate("PatientAppNavigation", {
         screen: "MobileChatbot",
       });
