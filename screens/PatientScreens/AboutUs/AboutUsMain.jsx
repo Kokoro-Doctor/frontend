@@ -149,7 +149,7 @@ const AboutUsMain = ({ navigation, route }) => {
 
                 <View style={styles.access}>
                   <Text style={styles.head}>
-                    What if you could assess your heart health instantly?
+                    What if you could assess your heart & reproductive health instantly?
                   </Text>
                   <Text style={styles.subhead}>
                     That’s why we created Kokoro.Doctor.
@@ -240,7 +240,7 @@ const AboutUsMain = ({ navigation, route }) => {
                     </View>
                     {/* </View> */}
                     <Text style={styles.womenHealthHeader}>
-                      And for women's health:
+                      And for womens health:
                     </Text>
                     <View style={styles.womenBenefitsContainer}>
                       <View style={styles.womenBenefitBox}>
@@ -341,9 +341,9 @@ const AboutUsMain = ({ navigation, route }) => {
                 <View style={styles.FinalThought}>
                   <Text style={styles.Heading}>Final Thought</Text>
                   <Text style={styles.SubTitle}>
-                    This is not just another health app-{" "}
+                    This is not just another health app—{" "}
                     <Text style={styles.TextRed}>
-                      This is a revolution in heart care.{" "}
+                      It’s a step forward in heart care and sexual health.{" "}
                     </Text>
                   </Text>
                   <Text style={styles.content}>

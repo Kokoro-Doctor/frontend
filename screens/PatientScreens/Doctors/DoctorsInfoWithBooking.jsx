@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Image,
@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  FlatList,
   Platform,
   useWindowDimensions,
   Dimensions,
@@ -15,14 +14,14 @@ import {
   ScrollView,
   Pressable,
   SafeAreaView,
-} from "react-native";
+ Linking } from "react-native";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
 import Header from "../../../components/PatientScreenComponents/Header";
 import { API_URL } from "../../../env-vars";
 import { useAuth } from "../../../contexts/AuthContext";
-import { Linking } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+//import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height } = Dimensions.get("window");
 
