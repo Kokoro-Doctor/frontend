@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   View,
   Platform,
-  Dimensions,
   ScrollView,
   Linking,
   useWindowDimensions,
@@ -22,9 +21,9 @@ import SideBarNavigation from "../../../components/PatientScreenComponents/SideB
 import { AuthContext } from "../../../contexts/AuthContext";
 import { payment_api } from "../../../utils/PaymentService";
 import Header from "../../../components/PatientScreenComponents/Header";
-import Icon from "react-native-vector-icons/MaterialIcons";
+//import Icon from "react-native-vector-icons/MaterialIcons";
 import { API_URL } from "../../../env-vars";
-// import Icon from 'react-native-vector-icons/FontAwesome';
+ import Icon from 'react-native-vector-icons/FontAwesome';
 
 const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
   const { setChatbotConfig } = useChatbot();
@@ -924,7 +923,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    backgroundColor: "#fff",
+    //backgroundColor: "#fff",
   },
   sectionTitle: {
     fontSize: 16,
@@ -995,7 +994,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: "2.5%",
     shadowColor: "#000",
-    overflow: "hidden",
+    //overflow: "hidden",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -1049,11 +1048,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     width: "100%",
     shadowColor: "#000",
-    overflow: "hidden",
+    //overflow: "hidden",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    shadowRadius: 3,
+    //shadowRadius: 3,
     elevation: 5,
     backgroundColor: "#fff",
   },

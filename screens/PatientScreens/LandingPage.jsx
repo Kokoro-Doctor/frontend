@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback,} from "react";
 import {
   Image,
   ImageBackground,
@@ -26,7 +26,7 @@ const LandingPage = ({ navigation, route }) => {
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
-    }, [])
+    }, [setChatbotConfig])
   );
 
   return (
@@ -109,7 +109,7 @@ const LandingPage = ({ navigation, route }) => {
                         }}
                       >
                         <Image
-                          source={require("../../assets/Images/twenty-four_Support.png")}
+                          source={require("../../assets/Images/AI_Support.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>

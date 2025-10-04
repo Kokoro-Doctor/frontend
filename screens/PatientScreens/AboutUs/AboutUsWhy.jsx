@@ -81,7 +81,7 @@ const AboutUsWhy = ({ navigation }) => {
 
         <View style={styles.footerContainer}>
           <Text style={styles.footerText}>
-            By combining AI, data science, and medical expertise, Kokoro.Doctor is revolutionizing heart health
+            By combining AI, data science, and medical expertise, Kokoro.Doctor is revolutionizing heart & reproductive health.
           </Text>
         </View>
 

@@ -79,14 +79,15 @@ const AboutUsHow = ({ navigation }) => {
 
         <FeatureItem
           number="01"
-          title="AI Cardiologist"
-          tagline="Your Heart's First Line of Defense"
-          description="Early detection saves lives. Kokoro's AI evaluates your symptoms, lifestyle, and history in minutes."
+          title="AI Health Companion "
+          //tagline="Your Heart's First Line of Defense"
+          description="Whether it’s your heart health or reproductive & wellbeing concerns, Kokoro’s AI assistant is designed to give you instant, reliable insights.
+"
           points={[
-            "Answers any questions related to cardiovascular health",
-            "Receive personalized recommendations based on the latest cardiology research.",
+            "Cardiac Mode → Evaluates symptoms, lifestyle, and history to identify early risks and guide you toward the right cardiology support",
+            "Gyneac & Wellbeing Mode → Provides confidential guidance on women’s health, male wellbeing, and teen concerns—helping address sensitive issues safely and early.",
             {
-              text: "Harvard Innovation Labs research shows AI-driven early detection can significantly reduce heart attack risks.",
+              text: "Designed to support early awareness, reduce hesitation, and encourage timely medical care.",
               isHighlighted: true,
             },
           ]}
@@ -95,7 +96,7 @@ const AboutUsHow = ({ navigation }) => {
         <FeatureItem
           number="02"
           title="Emergency Response"
-          tagline="Because Every Second Counts"
+          //tagline="Because Every Second Counts"
           description="Kokoro identifies high-risk cases and triggers alerts—ensuring help arrives when needed most"
           points={[
             "AI detects critical conditions and helps in booking the nearest hospital",
@@ -117,7 +118,7 @@ const AboutUsHow = ({ navigation }) => {
         <FeatureItem
           number="04"
           title="MediLocker"
-          tagline="Your Digital Health Vault"
+          //tagline="Your Digital Health Vault"
           points={[
             "Store ECGs, prescriptions, and reports securely",
             "Access them anytime, anywhere—even in emergencies",
@@ -132,22 +133,22 @@ const AboutUsHow = ({ navigation }) => {
         <FeatureItem
           number="05"
           title="Senior Doctor Access"
-          tagline="Connect with Experts"
+          //tagline="Expert Care, On Demand"
           points={[
-            "Connect with senior cardiologists near you",
-            "No long hospital waits—book a priority consultation",
-            "Expert-verified insights improve trust and accuracy in diagnosis",
+            "Book consultations with senior cardiologists and gynecologists.",
+            "Skip long hospital waits—get priority access when you need it most.",
+            "Expert-verified insights ensure trust and accuracy in treatment.",
           ]}
         />
 
         <FeatureItem
           number="06"
           title="Multi-Language Support"
-          tagline="Healthcare in Your Language"
+          //tagline="Healthcare in Your Language"
           points={[
-            "AI-powered translation ensures clear, effective communication",
-            "Enables access to heart health guidance in multiple languages",
-            "Research shows local-language healthcare improves patient outcomes by 40%",
+            "AI-powered translation for both heart and women’s health guidance.",
+            "Enables clear, effective communication with patients and doctors.",
+            "Local-language healthcare improves patient outcomes significantly.",
           ]}
         />
 
@@ -258,12 +259,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: "#555",
+    marginTop:"1%"
   },
   highlightedPointText: {
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
     color: "#FF6B6B",
+    marginTop:"1%"
   },
   bottomPadding: {
     height: "20%",

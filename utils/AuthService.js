@@ -4,6 +4,11 @@ import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
 
+import {
+  API_URL,
+  webClientId
+} from "../env-vars";
+
 let GoogleSignin, statusCodes;
 
 if (Platform.OS !== "web") {
@@ -13,11 +18,6 @@ if (Platform.OS !== "web") {
 }
 
 WebBrowser.maybeCompleteAuthSession();
-
-import {
-  API_URL,
-  webClientId
-} from "../env-vars";
 
 
 // ================= signIn With Google Web ===============
