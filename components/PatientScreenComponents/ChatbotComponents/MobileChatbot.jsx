@@ -31,7 +31,7 @@ const MobileChatbot = () => {
     {
       id: "1",
       sender: "bot",
-      text: "Hello, How may I help you today?",
+      text: "Hey there! How are you feeling today? I’m your personal health companion — here to support you every step of the way. Would you like help with your heart health or reproductive health today? And remember, this is a safe and private space, so feel free to ask me anything.",
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -92,7 +92,11 @@ const MobileChatbot = () => {
     setIsLoading(true);
 
     try {
-      const botReply = await askBot(userId, messageToSend, selectedLanguage.value);
+      const botReply = await askBot(
+        userId,
+        messageToSend,
+        selectedLanguage.value
+      );
       if (botReply) {
         const botMessage = {
           id: Date.now().toString(),
@@ -155,7 +159,7 @@ const MobileChatbot = () => {
         console.warn("Speech not available on this device");
         return;
       }
-  
+
       if (playingMessage === index) {
         await Speech.stop();
         setPlayingMessage(null);

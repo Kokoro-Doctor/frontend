@@ -1007,8 +1007,15 @@ const DoctorResultShow = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const [showPromo, setShowPromo] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const categories = ["cardiac wellness", "Reproductive Wellness"];
-  const [selectedCategory, setSelectedCategory] = useState(categories[0]);
+  const categories = [
+    { label: "Select", value: "" },
+    { label: "Cardiac Wellness", value: "cardio" },
+    { label: "Reproductive Wellness", value: "gyano" },
+  ];
+  const [selectedCategory, setSelectedCategory] = useState({
+    label: "Select",
+    value: "",
+  });
 
   useEffect(() => {
     let timeoutId;
@@ -1148,7 +1155,7 @@ const DoctorResultShow = ({ navigation, route }) => {
                           onPress={() => setShowDropdown(!showDropdown)}
                         >
                           <Text style={styles.filterButtonText}>
-                            {selectedCategory}
+                            {selectedCategory.label}
                           </Text>
                           <MaterialIcons
                             name={
@@ -1163,42 +1170,16 @@ const DoctorResultShow = ({ navigation, route }) => {
                       </View>
                     </View>
 
-                    {/* Scrollable doctor list */}
-                    {/* <View style={styles.middlepart}>
-                      <DoctorAppointmentData navigation={navigation} />
-                    </View> */}
-                    {/* Scrollable doctor list / content */}
+                    
                     <View style={styles.middlepart}>
-                      {selectedCategory === "cardiac wellness" ? (
-                        <DoctorAppointmentData navigation={navigation} />
-                      ) : selectedCategory === "Reproductive Wellness" ? (
-                        <View
-                          style={{
-                            flex: 1,
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                          <ImageBackground
-                            source={require("../../../assets/Images/coming_soon.png")}
-                            style={{
-                              width: 300,
-                              height: 300,
-                              resizeMode: "contain",
-                            }}
-                          />
-                        </View>
-                      ) : (
-                        <Text
-                          style={{
-                            fontSize: 18,
-                            color: "#666",
-                            textAlign: "center",
-                          }}
-                        >
-                          Please select a category
-                        </Text>
-                      )}
+                      <DoctorAppointmentData
+                        navigation={navigation}
+                        selectedCategory={selectedCategory}
+                        priorityDoctors={[
+                          "Dr. Kisley Shrivastav",
+                          "Dr. Arpita",
+                        ]}
+                      />
                     </View>
 
                     {/* Dropdown overlay modal */}
@@ -1225,7 +1206,7 @@ const DoctorResultShow = ({ navigation, route }) => {
                                 }}
                               >
                                 <Text style={styles.dropdownItemsText}>
-                                  {cat}
+                                  {cat.label}
                                 </Text>
                               </TouchableOpacity>
                             ))}
@@ -1422,7 +1403,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 6,
     maxHeight: 200,
-    marginTop:"1%"
+    marginTop: "1%",
     // shadowColor: "#000",
     // shadowOffset: { width: 0, height: 2 },
     // shadowOpacity: 0.25,

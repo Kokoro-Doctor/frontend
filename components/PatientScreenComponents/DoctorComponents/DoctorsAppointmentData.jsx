@@ -13,26 +13,78 @@ import {
 } from "react-native";
 import { API_URL } from "../../../env-vars";
 import { useAuth } from "../../../contexts/AuthContext";
-import { useLinkTo } from "@react-navigation/native";
+//import { useLinkTo } from "@react-navigation/native";
 
-const DoctorAppointmentScreen = ({ navigation }) => {
+const DoctorAppointmentScreen = ({
+  navigation,
+  selectedCategory,
+  priorityDoctors,
+}) => {
   const { width } = useWindowDimensions();
-  const [doctors, setDoctors] = useState([]);
+  const [allDoctors, setAllDoctors] = useState([]);
+  const [doctorsToShow, setDoctorsToShow] = useState([]);
   const [loading, setLoading] = useState(true);
+ // const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [subscriberCounts, setSubscriberCounts] = useState({});
   const { user } = useAuth();
-  const linkTo = useLinkTo();
+  //const linkTo = useLinkTo();
   const [showFull, setShowFull] = useState(false);
 
+  // useEffect(() => {
+  //   const fetchDoctors = async () => {
+  //     try {
+  //       const response = await fetch(`${API_URL}/doctorsService/fetchDoctors`, {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({ category: selectedCategory?.value || "" }),
+
+  //       });
+  //       const data = await response.json();
+  //       setDoctors(data.doctors || []);
+  //     } catch (error) {
+  //       console.error("Failed to fetch doctors:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchDoctors();
+  // }, [selectedCategory]);
   useEffect(() => {
     const fetchDoctors = async () => {
+      setLoading(true);
       try {
         const response = await fetch(`${API_URL}/doctorsService/fetchDoctors`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category: "" }), // Fetch all doctors initially
         });
         const data = await response.json();
-        setDoctors(data.doctors || []);
+        //console.log("📦 Raw API response:", data);
+        let fetchedDoctors = data.doctors || [];
+        // console.log("👨‍⚕️ Fetched doctors count:", fetchedDoctors.length);
+        // console.log("👨‍⚕️ Fetched doctors:", fetchedDoctors);
+
+        
+        const sortedDoctors = [
+          ...fetchedDoctors.filter((doc) =>
+            priorityDoctors.includes(doc.doctorname)
+          ),
+          ...fetchedDoctors.filter(
+            (doc) => !priorityDoctors.includes(doc.doctorname)
+          ),
+        ];
+        //console.log("🔝 Sorted doctors count:", sortedDoctors.length);
+
+        setAllDoctors(sortedDoctors);
+        setDoctorsToShow(sortedDoctors);
+
+        // Set subscriber counts
+        const counts = sortedDoctors.reduce((acc, doctor) => {
+          acc[doctor.email] = doctor.subscribers?.length || 0;
+          return acc;
+        }, {});
+        setSubscriberCounts(counts);
       } catch (error) {
         console.error("Failed to fetch doctors:", error);
       } finally {
@@ -41,24 +93,114 @@ const DoctorAppointmentScreen = ({ navigation }) => {
     };
 
     fetchDoctors();
-  }, []);
+  }, [priorityDoctors]);
+
+  // Filter doctors by category whenever doctors or selectedCategory change
+
+  // useEffect(() => {
+  //   if (doctors.length === 0) return;
+
+  //   const normalized = (selectedCategory?.value?.toLowerCase() || "").trim();
+
+  //   const filtered = doctors.filter((doc) =>
+  //     doc.category?.toLowerCase().includes(normalized)
+  //   );
+
+  //   setFilteredDoctors(filtered);
+  // }, [selectedCategory, doctors]);
+
+  // useEffect(() => {
+  //   if (!selectedCategory || !allDoctors.length) return;
+
+  //   if (!selectedCategory.value) {
+  //     // Default: show all doctors (priority on top)
+  //     setDoctorsToShow(allDoctors);
+  //   } else {
+  //     const filtered = allDoctors.filter(doc =>
+  //       doc.category?.toLowerCase().includes(selectedCategory.value.toLowerCase())
+  //     );
+  //     setDoctorsToShow(filtered);
+  //   }
+  // }, [selectedCategory, allDoctors]);
+
+  // useEffect(() => {
+  //   if (!allDoctors.length) return;
+
+  //   const categoryValue = selectedCategory?.value?.toLowerCase().trim();
+  //   const categoryLabel = selectedCategory?.label?.toLowerCase().trim();
+
+  //   // ✅ Default case: show all doctors (with priority sorting separately)
+  //   if (!categoryValue) {
+  //     console.log("✅ Showing all doctors:", allDoctors.length);
+  //     setDoctorsToShow(allDoctors);
+  //     return;
+  //   }
+
+  //   // ✅ Filter logic: match either label OR value against backend category
+  //   const filtered = allDoctors.filter((doc) => {
+  //     const docCategory = doc.category?.toLowerCase().trim();
+  //     return (
+  //       docCategory.includes(categoryLabel) ||
+  //       docCategory.includes(categoryValue)
+  //     );
+  //   });
+
+  //   console.log("✅ Filtered doctors:", filtered.length, "for", categoryLabel);
+  //   console.log(
+  //     "📋 Categories in data:",
+  //     allDoctors.map((d) => d.category)
+  //   );
+  //   console.log("🧩 Selected category:", selectedCategory);
+
+  //   setDoctorsToShow(filtered);
+  // }, [selectedCategory, allDoctors]);
 
   useEffect(() => {
-    if (doctors.length > 0) {
-      const counts = doctors.reduce((acc, doctor) => {
+    if (!allDoctors.length) return;
+
+    const categoryValue = selectedCategory?.value?.toLowerCase().trim() || "";
+
+    // If no category selected or 'Select', show all doctors
+    if (categoryValue === "") {
+      //console.log("🟢 Default category selected — showing all doctors");
+      setDoctorsToShow(allDoctors);
+      return;
+    }
+
+    // Otherwise, filter by category match
+    const filtered = allDoctors.filter((doc) => {
+      const docCategory = doc.category?.toLowerCase().trim() || "";
+      return (
+        docCategory.includes(categoryValue) ||
+        docCategory.includes(selectedCategory?.label?.toLowerCase().trim())
+      );
+    });
+
+    // console.log(
+    //   "✅ Filtered doctors:",
+    //   filtered.length,
+    //   "for",
+    //   selectedCategory.label
+    // );
+    setDoctorsToShow(filtered);
+  }, [selectedCategory, allDoctors]);
+
+  useEffect(() => {
+    if (allDoctors.length > 0) {
+      const counts = allDoctors.reduce((acc, doctor) => {
         acc[doctor.email] = doctor.subscribers?.length || 0;
         return acc;
       }, {});
       setSubscriberCounts(counts);
     }
-  }, [doctors]);
+  }, [allDoctors]);
 
-  // const handleHeartButtonPress = (email) => {
-  //   setSubscriberCounts((prev) => ({
-  //     ...prev,
-  //     [email]: (prev[email] || 0) + 1,
-  //   }));
-  // };
+  const handleHeartButtonPress = (email) => {
+    setSubscriberCounts((prev) => ({
+      ...prev,
+      [email]: (prev[email] || 0) + 1,
+    }));
+  };
 
   const subscribeToDoctor = async (doctorEmail) => {
     try {
@@ -81,7 +223,9 @@ const DoctorAppointmentScreen = ({ navigation }) => {
       }));
 
       // Find the doctor from the list
-      const subscribedDoctor = doctors.find((doc) => doc.email === doctorEmail);
+      const subscribedDoctor = allDoctors.find(
+        (doc) => doc.email === doctorEmail
+      );
 
       // Add updated subscriber count to the doctor object
       const updatedDoctor = {
@@ -112,12 +256,30 @@ const DoctorAppointmentScreen = ({ navigation }) => {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <Text>Loading doctors...</Text>
+      </View>
+    );
+  }
+
+  if (doctorsToShow.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text>
+          No doctors found for {selectedCategory?.label || "this category"}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <>
       {Platform.OS === "web" && width > 1000 && (
         <View style={styles.webContainer}>
           <FlatList
-            data={doctors}
+            data={doctorsToShow}
             keyExtractor={(item, index) => item.email || index.toString()}
             renderItem={({ item }) => (
               <View style={styles.card}>
@@ -233,7 +395,7 @@ const DoctorAppointmentScreen = ({ navigation }) => {
         <View style={styles.appContainer}>
           <View style={{ flex: 1 }}>
             <FlatList
-              data={doctors}
+              data={doctorsToShow}
               keyExtractor={(item, index) => item.email || index.toString()}
               contentContainerStyle={{
                 flexGrow: 1,
@@ -668,7 +830,7 @@ const styles = StyleSheet.create({
     width: "60%",
     height: "100%",
     borderColor: "#adff2f",
-    flexDirection:"column",
+    flexDirection: "column",
     ...Platform.select({
       web: {
         width: windowWidth > 1000 ? "60%" : "65%",
@@ -687,10 +849,10 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  locationText:{
-   fontSize:11,
-   fontWeight:400,
-   color:"#444444"
+  locationText: {
+    fontSize: 11,
+    fontWeight: 400,
+    color: "#444444",
   },
   experience: {
     fontSize: 13,
