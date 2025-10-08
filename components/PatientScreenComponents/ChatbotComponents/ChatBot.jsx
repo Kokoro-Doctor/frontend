@@ -1,31 +1,31 @@
-import React, { useContext, useEffect, useState } from "react";
-import {
-  View,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Platform,
-  TextInput,
-  Keyboard,
-  Text,
-  FlatList,
-  Animated,
-  Dimensions,
-  Pressable,
-} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Picker as RNPickerSelect } from "@react-native-picker/picker";
-import { useChatbot } from "../../../contexts/ChatbotContext";
 import * as Speech from "expo-speech";
+import { useContext, useEffect, useState } from "react";
+import {
+  Alert,
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  Keyboard,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { useChatbot } from "../../../contexts/ChatbotContext";
 import { askBot } from "../../../utils/ChatBotService";
 
 const { width } = Dimensions.get("window");
 
 const ChatBot = () => {
   const { chatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
-  const [userId, setUserId] = useState("dummy_user@gmail.com");
+  const [userId, setUserId] = useState(null);
   const [messages, setMessages] = useState([
     {
       sender: "bot",

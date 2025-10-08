@@ -1,17 +1,38 @@
 import { API_URL } from "../env-vars";
+import { getSessionId } from "./sessionManager";
 
 export const askBot = async (userId, messageToSend, selectedLanguage) => {
   try {
-    const response = await fetch(`${API_URL}/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    let bodyPayload;
+
+    // 🔹 If user is logged in — use their email
+    if (userId) {
+      bodyPayload = {
         user_id: userId,
         message: messageToSend,
         language: selectedLanguage,
-      }),
+      };
+    } else {
+      // 🔹 If anonymous user — use session_id
+      const sessionId = await getSessionId();
+
+      // LOG ADDED HERE to show the retrieved sessionId
+      console.log('Attempting to use sessionId for anonymous user:', sessionId);
+      
+      if (!sessionId) {
+        console.warn('getSessionId() returned no session ID. Check implementation.');
+      }
+      bodyPayload = {
+        session_id: sessionId,
+        message: messageToSend,
+        language: selectedLanguage,
+      };
+    }
+
+    const response = await fetch(`${API_URL}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(bodyPayload),
     });
 
     if (!response.ok) {
