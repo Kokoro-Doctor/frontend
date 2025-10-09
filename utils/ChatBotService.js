@@ -5,7 +5,7 @@ export const askBot = async (userId, messageToSend, selectedLanguage) => {
   try {
     let bodyPayload;
 
-    // 🔹 If user is logged in — use their email
+    // If user is logged in — use their email
     if (userId) {
       bodyPayload = {
         user_id: userId,
@@ -13,11 +13,8 @@ export const askBot = async (userId, messageToSend, selectedLanguage) => {
         language: selectedLanguage,
       };
     } else {
-      // 🔹 If anonymous user — use session_id
+      // If anonymous user — use session_id
       const sessionId = await getSessionId();
-
-      // LOG ADDED HERE to show the retrieved sessionId
-      console.log('Attempting to use sessionId for anonymous user:', sessionId);
       
       if (!sessionId) {
         console.warn('getSessionId() returned no session ID. Check implementation.');

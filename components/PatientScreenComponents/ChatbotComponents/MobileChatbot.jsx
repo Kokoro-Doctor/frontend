@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useContext } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  Pressable,
-  StyleSheet,
-  SafeAreaView,
-  Image,
-  Platform,
-  Keyboard,
-  Animated,
-} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import * as Speech from "expo-speech";
+import { useContext, useEffect, useState } from "react";
+import {
+  Animated,
+  FlatList,
+  Image,
+  Keyboard,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { askBot } from "../../../utils/ChatBotService";
 
@@ -38,7 +38,7 @@ const MobileChatbot = () => {
       }),
     },
   ]);
-  const [userId, setUserId] = useState("dummy_user@gmail.com");
+  const [userId, setUserId] = useState(null);
   const [userMessage, setUserMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [playingMessage, setPlayingMessage] = useState(null);
