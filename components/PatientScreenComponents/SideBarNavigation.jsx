@@ -22,17 +22,16 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
       icon: require("../../assets/Icons/doctorTool.png"),
     },
     {
-      name: "Book Hospital",
-      icon: require("../../assets/Icons/Medical Shield.png"),
-    },
-    {
       name: "Medilocker",
       icon: require("../../assets/Icons/medilockerIcon.png"),
     },
-
     {
       name: "24/7 AI Support",
       icon: require("../../assets/Icons/cardiacHealth.png"),
+    },
+    {
+      name: "Book Hospital",
+      icon: require("../../assets/Icons/Medical Shield.png"),
     },
 
     { name: "About Us", icon: require("../../assets/Icons/CirclesFour.png") },
