@@ -14,6 +14,7 @@ let GoogleSignin, statusCodes;
 if (Platform.OS !== "web") {
   const googleSignInModule = require("@react-native-google-signin/google-signin");
   GoogleSignin = googleSignInModule.GoogleSignin;
+  // eslint-disable-next-line no-unused-vars
   statusCodes = googleSignInModule.statusCodes;
 }
 

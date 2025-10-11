@@ -1,4 +1,4 @@
-import React, { useCallback,} from "react";
+import React, { useCallback } from "react";
 import {
   Image,
   ImageBackground,
@@ -16,12 +16,18 @@ import { useFocusEffect } from "@react-navigation/native";
 import Header from "../../components/PatientScreenComponents/Header";
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
+import { TrackEvent } from "../../utils/TrackEvent";
 
 const { width, height } = Dimensions.get("window");
 const LandingPage = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
   //const [selectedButton, setSelectedButton] = useState(null);
+
+  const handlePress = (eventName, params, navigateTo) => {
+    TrackEvent(eventName, params);
+    navigation.navigate("PatientAppNavigation", { screen: navigateTo });
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -61,11 +67,21 @@ const LandingPage = ({ navigation, route }) => {
                     <View style={styles.centerMiddlePart}>
                       <TouchableOpacity
                         style={styles.cardStyle}
-                        onPress={() => {
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "Doctors",
-                          });
-                        }}
+                        // onPress={() => {
+                        //   navigation.navigate("PatientAppNavigation", {
+                        //     screen: "Doctors",
+                        //   });
+                        // }}
+                        onPress={() =>
+                          handlePress(
+                            "consultation_card_click",
+                            {
+                              clickText: "Consultation",
+                              clickID: "consultation-card",
+                            },
+                            "Doctors"
+                          )
+                        }
                       >
                         <Image
                           source={require("../../assets/Images/Consultation.png")}
@@ -74,14 +90,37 @@ const LandingPage = ({ navigation, route }) => {
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.cardStyle}
+                        // onPress={() => {
+                        //   navigation.navigate("PatientAppNavigation", {
+                        //     screen: "Medilocker",
+                        //   });
+                        // }}
+                        onPress={() =>
+                          handlePress(
+                            "medilocker_card_click",
+                            {
+                              clickText: "Medilocker",
+                              clickID: "medilocker-card",
+                            },
+                            "Medilocker"
+                          )
+                        }
+                      >
+                        <Image
+                          source={require("../../assets/Images/Medilocker.png")}
+                          style={styles.image}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("PatientAppNavigation", {
-                            screen: "Medilocker",
+                            screen: "MobileChatbot",
                           });
                         }}
                       >
                         <Image
-                          source={require("../../assets/Images/Medilocker.png")}
+                          source={require("../../assets/Images/AI_Support.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>
@@ -96,20 +135,6 @@ const LandingPage = ({ navigation, route }) => {
                       >
                         <Image
                           source={require("../../assets/Images/BookHospital.png")}
-                          style={styles.image}
-                        />
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.cardStyle}
-                        onPress={() => {
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "MobileChatbot",
-                          });
-                        }}
-                      >
-                        <Image
-                          source={require("../../assets/Images/AI_Support.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>
