@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   title: {
     width: "70%",
     fontSize: 18,
-    color: "rgba(0, 0, 0, 0.46)",
+    color: "rgba(200, 31, 31, 0.46)",
     fontWeight: "bold",
     marginLeft: 10,
     ...Platform.select({
