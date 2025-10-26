@@ -62,25 +62,35 @@
 
 // export default RootNavigation;
 
-import React, { Suspense, lazy } from "react";
+import React, { Suspense } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Platform } from "react-native";
 import { useRole } from "../contexts/RoleContext";
 import { RegistrationProvider } from "../contexts/RegistrationContext";
 
-// ✅ Import LandingPage directly (since it's first and must be instant)
+// ✅ Direct imports (always needed instantly)
 import LandingPage from "../screens/PatientScreens/LandingPage";
+import Login from "../screens/PatientScreens/Auth/Login";
+import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
 
-// ✅ Lazy load all other heavy screens
-const DoctorPatientLandingPage = lazy(() =>
-  import("../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage")
-);
-const DoctorAppNavigation = lazy(() => import("./DoctorsNavigation"));
-const AppNavigation = lazy(() => import("./PatientNavigation"));
-const Login = lazy(() => import("../screens/PatientScreens/Auth/Login"));
-const MobileChatbot = lazy(() =>
-  import("../components/PatientScreenComponents/ChatbotComponents/MobileChatbot")
-);
+// ✅ Conditionally import heavy screens (works on web + native)
+let DoctorPatientLandingPage;
+let DoctorAppNavigation;
+let AppNavigation;
+
+if (Platform.OS === "web") {
+  // Use lazy loading only for web (Webpack supports import())
+  DoctorPatientLandingPage = React.lazy(() =>
+    import("../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage")
+  );
+  DoctorAppNavigation = React.lazy(() => import("./DoctorsNavigation"));
+  AppNavigation = React.lazy(() => import("./PatientNavigation"));
+} else {
+  // Use static requires for native (Metro bundler limitation)
+  DoctorPatientLandingPage = require("../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage").default;
+  DoctorAppNavigation = require("./DoctorsNavigation").default;
+  AppNavigation = require("./PatientNavigation").default;
+}
 
 const Stack = createNativeStackNavigator();
 
@@ -111,10 +121,10 @@ const RootNavigation = () => {
     <RegistrationProvider>
       <Suspense fallback={<Loader />}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {/* ✅ Direct import → loads instantly */}
+          {/* Always loaded instantly */}
           <Stack.Screen name="LandingPage" component={LandingPage} />
 
-          {/* ⚡ Lazy-loaded screens */}
+          {/* Conditionally lazy/static screens */}
           <Stack.Screen
             name="DoctorPatientLandingPage"
             component={DoctorPatientLandingPage}
@@ -123,7 +133,10 @@ const RootNavigation = () => {
             name="DoctorAppNavigation"
             component={DoctorAppNavigation}
           />
-          <Stack.Screen name="PatientAppNavigation" component={AppNavigation} />
+          <Stack.Screen
+            name="PatientAppNavigation"
+            component={AppNavigation}
+          />
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="MobileChatbot" component={MobileChatbot} />
         </Stack.Navigator>
@@ -133,4 +146,3 @@ const RootNavigation = () => {
 };
 
 export default RootNavigation;
-
