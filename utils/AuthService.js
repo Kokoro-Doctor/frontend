@@ -20,7 +20,6 @@
 
 // WebBrowser.maybeCompleteAuthSession();
 
-
 // // ================= signIn With Google Web ===============
 
 // export const useGoogleAuth = () => {
@@ -54,7 +53,6 @@
 //   }
 //   return null;
 // };
-
 
 // // ================= signIn With Google App ===============
 
@@ -98,7 +96,6 @@
 //     throw error;
 //   }
 // };
-
 
 // // ================= Regular Auth =================
 
@@ -148,7 +145,6 @@
 //     },
 //     body: JSON.stringify({ username, email, password, phoneNumber, location }),
 //   });
-
 
 //   if (!response.ok) {
 //     const data = await response.json(); // Parse error response
@@ -202,8 +198,6 @@
 //   return null;
 // };
 
-
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
@@ -256,13 +250,13 @@ export const initGoogleSignin = () => {
   if (Platform.OS === "web") {
     console.log("✅ Google Sign-in initialized for web.");
   } else {
-    console.log("🚫 Skipping Google Sign-in init (Expo Go / native).");
+    console.log("Skipping Google Sign-in init (Expo Go / native).");
   }
 };
 
 export const signInWithGoogleApp = async () => {
   // This safely does nothing on native
-  console.log("🚫 Google Sign-in not available on native in this setup.");
+  console.log("Google Sign-in not available on native in this setup.");
   return null;
 };
 
@@ -295,29 +289,56 @@ export const registerDoctor = async ({
   return doctor;
 };
 
-export const signup = async (
-  username,
-  email,
-  password,
-  phoneNumber,
-  location
-) => {
+// export const signup = async (
+//   username,
+//   email,
+//   password,
+//   phoneNumber,
+//   location
+// ) => {
+//   const response = await fetch(`${API_URL}/auth/user/signup`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ username, email, password, phoneNumber, location }),
+//   });
+
+//   if (!response.ok) {
+//     const data = await response.json();
+//     throw new Error(data?.detail || `SignUp Failed ${response.status}`);
+//   }
+
+//   const data = await response.json();
+//   const { user } = data;
+//   await AsyncStorage.setItem("@user", JSON.stringify(user));
+//   return user;
+// };
+
+export const signup = async (username, email, password, phoneNumber, location) => {
   const response = await fetch(`${API_URL}/auth/user/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, email, password, phoneNumber, location }),
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data?.detail || `SignUp Failed ${response.status}`);
+    const errorMessage = data?.detail || `SignUp Failed ${response.status}`;
+    throw new Error(errorMessage);
   }
 
-  const data = await response.json();
-  const { user } = data;
-  await AsyncStorage.setItem("@user", JSON.stringify(user));
-  return user;
+  // ✅ Handle both possible response formats
+  const userData = data.user || data;
+
+  if (!userData) {
+    throw new Error("Signup succeeded but no user data found in response.");
+  }
+
+  await AsyncStorage.setItem("@user", JSON.stringify(userData));
+  return userData;
 };
+
+
 
 export const login = async (email, password) => {
   const response = await fetch(`${API_URL}/auth/user/login`, {
@@ -348,4 +369,3 @@ export const restoreUserState = async () => {
   const user = await AsyncStorage.getItem("@user");
   return token && user ? { token, user: JSON.parse(user) } : null;
 };
-

@@ -212,6 +212,8 @@ const ChatBot = () => {
         {
           height: isChatExpanded ? chatbotConfig.height || "50%" : "10%",
           left: chatbotConfig.left || "17%",
+          // height: chatbotConfig.height || "40%",
+          // left: chatbotConfig.left || "17%",
         },
       ]}
     >
@@ -245,6 +247,38 @@ const ChatBot = () => {
             renderItem={renderItem}
             contentContainerStyle={styles.messageList}
           />
+          {/* <View style={styles.chatInner}>
+            <View style={styles.languageSelector}>
+              <Text style={{ alignSelf: "center" }}>
+                Select the language in which you want to chat:
+              </Text>
+              <RNPickerSelect
+                selectedValue={selectedLanguage}
+                onValueChange={(itemValue) => setSelectedLanguage(itemValue)}
+                style={styles.picker}
+              >
+                <RNPickerSelect.Item label="English" value="en" />
+                <RNPickerSelect.Item label="Hindi" value="hi" />
+                <RNPickerSelect.Item label="Spanish" value="es" />
+                <RNPickerSelect.Item label="Telugu" value="te" />
+              </RNPickerSelect>
+              <Pressable onPress={() => handleBlur()} style={styles.closeIcon}>
+                <MaterialIcons name="cancel" size={30} color="#000" />
+              </Pressable>
+            </View>
+
+            <FlatList
+              data={
+                isLoading
+                  ? [...messages, { sender: "bot", text: "" }]
+                  : messages
+              }
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={renderItem}
+              contentContainerStyle={styles.messageList}
+              showsVerticalScrollIndicator={true}
+            />
+          </View> */}
         </>
       )}
 
@@ -296,7 +330,27 @@ const styles = StyleSheet.create({
     bottom: "3%",
     borderRadius: 15,
     padding: 10,
+    // position: "fixed", // stays visible while scrolling
+    // bottom: "2%",
+    // right: "3%", // or use left: "25%" if you prefer center-bottom
+    // width: "80%",
+    // minWidth: 350,
+    // height: "40%",
+    // backgroundColor: "#fff",
+    // borderWidth: 2,
+    // borderColor: "#6495ed",
+    // borderRadius: 20,
+    // padding: 10,
+    // boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+    // zIndex: 1000,
+    // backdropFilter: "blur(6px)",
+    // overflow: "hidden",
   },
+//   chatInner: {
+//   flex: 1,
+//   overflow: "scroll",
+// },
+
   messageList: {
     flexGrow: 1,
     paddingBottom: 60,
