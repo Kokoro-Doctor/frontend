@@ -202,17 +202,17 @@ const LandingPage = ({ navigation, route }) => {
                               height: "100%",
                               justifyContent: "center",
                               alignItems: "center",
-                              overflow: "hidden", // ✅ Keeps image visible within border
+                              overflow: "hidden", // Keeps image visible within border
                               backgroundColor: "transparent",
                               width: "100%",
-                              borderWidth: 4,
+                              borderWidth: 5,
                               borderRadius: 20,
                               borderColor: "rgba(37, 255, 111, 1)",
                               transform: [
                                 {
                                   translateY: borderAnim.interpolate({
                                     inputRange: [0, 0.5, 1],
-                                    outputRange: [0, -20, 0], // ✅ vertical bounce effect
+                                    outputRange: [0, -20, 0], // vertical bounce effect
                                   }),
                                 },
                               ],
