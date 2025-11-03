@@ -121,80 +121,14 @@ const LandingPage = ({ navigation, route }) => {
                             screen: "Medilocker",
                           });
                         }}
-                        // onPress={() =>
-                        //   handlePress(
-                        //     "medilocker_card_click",
-                        //     {
-                        //       clickText: "Medilocker",
-                        //       clickID: "medilocker-card",
-                        //     },
-                        //     "Medilocker"
-                        //   )
-                        // }
                       >
                         <Image
                           source={require("../../assets/Images/Medilocker.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>
-                      {/* <TouchableOpacity
-                        style={styles.cardStyle}
-                        onPress={() => {
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "MobileChatbot",
-                          });
-                        }}
-                      >
-                        <Image
-                          source={require("../../assets/Images/AI_Support.png")}
-                          style={styles.image}
-                        />
-                      </TouchableOpacity> */}
 
-                      {/* <Animated.View
-                        style={[styles.cardStyle, animatedBorderStyle]}
-                      >
-                        <TouchableOpacity
-                          onPress={() => {
-                            navigation.navigate("PatientAppNavigation", {
-                              screen: "MobileChatbot",
-                            });
-                          }}
-                        >
-                          <Image
-                            source={require("../../assets/Images/AI_Support.png")}
-                            style={styles.image}
-                          />
-                        </TouchableOpacity>
-                      </Animated.View>
-
-                      {showLabel && (
-                        <View style={{ marginTop: "35%" }}>
-                          <Text
-                            style={{
-                              color: "#00ffff",
-                              fontWeight: "600",
-                              fontSize: 16,
-                              textShadowColor: "#000",
-                              textShadowOffset: { width: 1, height: 1 },
-                              textShadowRadius: 2,
-                            }}
-                          >
-                            ⬆ Try me for free
-                          </Text>
-                        </View>
-                      )} */}
-
-                      
-                      <View
-                        style={{
-                          alignItems: "center",
-                          justifyContent: "flex-start",
-                          width: "23%",
-                          height: "96%",
-                          marginVertical: "0.5%",
-                        }}
-                      >
+                      <View style={styles.AiCard}>
                         <Animated.View
                           style={[
                             styles.cardStyle,
@@ -240,38 +174,6 @@ const LandingPage = ({ navigation, route }) => {
                           </TouchableOpacity>
                         </Animated.View>
 
-                        {/* {showLabel && (
-                          <Animated.View
-                            style={{
-                              // position: "absolute",
-                              // bottom: -35,
-                              // alignItems: "center",
-                              // opacity: borderAnim,
-                              // width: "100%",
-                              width: "100%",
-                              backgroundColor: "#7CFC00",
-                              alignItems: "center",
-                              paddingVertical: 8,
-                              borderBottomLeftRadius: 15,
-                              borderBottomRightRadius: 15,
-                              opacity: borderAnim,
-                            }}
-                          >
-                            <Text
-                              style={{
-                                color: "white",
-                                fontWeight: "700",
-                                fontSize: 15,
-                                // textShadowColor: "#000",
-                                // textShadowOffset: { width: 1, height: 1 },
-                                // textShadowRadius: 3,
-                                borderWidth: 1,
-                              }}
-                            >
-                              ⬆ Try Me for free
-                            </Text>
-                          </Animated.View>
-                        )} */}
                         {showLabel && (
                           <Animated.View
                             style={{
@@ -378,21 +280,7 @@ const LandingPage = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
             <View style={styles.cardsRow}>
-              <TouchableOpacity
-                style={styles.cardStyle}
-                onPress={() => {
-                  navigation.navigate("PatientAppNavigation", {
-                    screen: "Hospitals",
-                  });
-                }}
-              >
-                <Image
-                  source={require("../../assets/Images/BookHospital.png")}
-                  style={styles.image}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.cardStyle}
                 onPress={() => {
                   navigation.navigate("PatientAppNavigation", {
@@ -403,6 +291,118 @@ const LandingPage = ({ navigation, route }) => {
               >
                 <Image
                   source={require("../../assets/Images/twenty-four_Support.png")}
+                  style={styles.image}
+                />
+              </TouchableOpacity> */}
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  width: "45%",
+                  height: "96%",
+                  marginVertical: "0.5%",
+                }}
+              >
+                <Animated.View
+                  style={[
+                    styles.cardStyle,
+                    {
+                      width: "84%",
+                      height: "100%",
+                      borderWidth: 4,
+                      borderRadius: 18,
+                      borderColor: "rgba(37, 255, 111, 1)",
+                      overflow: "hidden",
+                      backgroundColor: "transparent",
+                      transform: [
+                        {
+                          translateY: borderAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0, -15, 0],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("PatientAppNavigation", {
+                        screen: "MobileChatbot",
+                      })
+                    }
+                    activeOpacity={0.9}
+                    style={{ width: "100%", height: "100%" }}
+                  >
+                    <ImageBackground
+                      source={require("../../assets/Images/AI_Support.png")}
+                      style={{
+                        width: "auto",
+                        height: "100%",
+                        justifyContent: "flex-end",
+                        //padding: 10,
+                      }}
+                      imageStyle={{ borderRadius: 14 }}
+                      resizeMode="cover"
+                    >
+                      
+                    </ImageBackground>
+                  </TouchableOpacity>
+                </Animated.View>
+
+                {showLabel && (
+                  <Animated.View
+                    style={{
+                      width: "100%",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: borderAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1],
+                      }),
+                      
+                    }}
+                  >
+                    <ImageBackground
+                      source={require("../../assets/Images/Union.png")}
+                      style={{
+                        width: 150,
+                        height: "auto",
+                        //alignSelf:"center",
+                        marginVertical:"5%",
+                      }}
+                      resizeMode="stretch"
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontWeight: "700",
+                          fontSize: 14,
+                          textShadowColor: "rgba(0, 0, 0, 0.5)",
+                          textShadowOffset: { width: 1, height: 1 },
+                          textShadowRadius: 2,
+                          alignSelf:"center",
+                          marginTop:"8%",
+                          marginBottom:"3%"
+                        }}
+                      >
+                        Try Me for Free
+                      </Text>
+                    </ImageBackground>
+                  </Animated.View>
+                )}
+              </View>
+
+              <TouchableOpacity
+                style={styles.cardStyle}
+                onPress={() => {
+                  navigation.navigate("PatientAppNavigation", {
+                    screen: "Hospitals",
+                  });
+                }}
+              >
+                <Image
+                  source={require("../../assets/Images/BookHospital.png")}
                   style={styles.image}
                 />
               </TouchableOpacity>
@@ -497,6 +497,13 @@ const styles = StyleSheet.create({
         justifyContent: "center",
       },
     }),
+  },
+  AiCard: {
+    alignItems: "center",
+    justifyContent: "flex-start",
+    width: "23%",
+    height: "96%",
+    marginVertical: "0.5%",
   },
   image: {
     height: "100%",
