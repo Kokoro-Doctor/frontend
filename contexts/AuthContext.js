@@ -5,12 +5,10 @@ import {
   logOut,
   restoreUserState,
   signup,
+  signInWithGoogleApp,
 } from "../utils/AuthService";
 
-import { signInWithGoogleApp } from "../utils/AuthService";
-
 export const AuthContext = createContext();
-
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

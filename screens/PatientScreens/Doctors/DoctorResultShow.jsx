@@ -1170,7 +1170,6 @@ const DoctorResultShow = ({ navigation, route }) => {
                       </View>
                     </View>
 
-                    
                     <View style={styles.middlepart}>
                       <DoctorAppointmentData
                         navigation={navigation}
@@ -1221,7 +1220,7 @@ const DoctorResultShow = ({ navigation, route }) => {
           </View>
         </View>
       )}
-      {(Platform.OS !== "web" || width < 1000) && (
+      {/* {(Platform.OS !== "web" || width < 1000) && (
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={[styles.header, { height: "15%" }]}>
@@ -1235,7 +1234,82 @@ const DoctorResultShow = ({ navigation, route }) => {
             <DoctorAppointmentData navigation={navigation} />
           </View>
         </View>
+      )} */}
+      {(Platform.OS !== "web" || width < 1000) && (
+        <View style={styles.appContainer}>
+          <StatusBar barStyle="light-content" backgroundColor="#fff" />
+          <View style={[styles.header, { height: "15%" }]}>
+            <Header navigation={navigation} />
+          </View>
+
+          {/* Search and Category Section */}
+          <View style={styles.searchSectionApp}>
+            <View style={styles.searchBar}>
+              <SearchBar />
+            </View>
+
+            {/* Category Dropdown for App */}
+            <View style={styles.categoryBox}>
+              <TouchableOpacity
+                style={styles.filterButton}
+                onPress={() => setShowDropdown(!showDropdown)}
+              >
+                <Text style={styles.filterButtonText}>
+                  {selectedCategory.label}
+                </Text>
+                <MaterialIcons
+                  name={
+                    showDropdown ? "keyboard-arrow-up" : "keyboard-arrow-down"
+                  }
+                  size={20}
+                  color="#333"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Doctor List */}
+          <View style={styles.middlepart}>
+            <DoctorAppointmentData
+              navigation={navigation}
+              selectedCategory={selectedCategory}
+              priorityDoctors={["Dr. Kisley Shrivastav", "Dr. Arpita"]}
+            />
+          </View>
+
+          {/* Category Dropdown Modal (same as web) */}
+          <Modal
+            transparent
+            visible={showDropdown}
+            animationType="fade"
+            onRequestClose={() => setShowDropdown(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              activeOpacity={1}
+              onPress={() => setShowDropdown(false)}
+            >
+              <View style={styles.dropdownOverlayWrapper}>
+                <ScrollView style={styles.dropdownScrollView}>
+                  {categories.map((cat, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.dropdownItems}
+                      onPress={() => {
+                        setSelectedCategory(cat);
+                        setShowDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownItemsText}>{cat.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        </View>
       )}
+
       <PromoModal isVisible={showPromo} onClose={() => setShowPromo(false)} />
     </>
   );
@@ -1259,8 +1333,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   searchBar: {
-    marginTop: "4%",
+    marginTop: "2%",
   },
+
   imageContainer: {
     height: "100%",
     width: "100%",
@@ -1315,6 +1390,9 @@ const styles = StyleSheet.create({
     padding: 20,
     flexShrink: 0, // Prevent shrinking
   },
+  searchSectionApp: {
+    flexDirection: "column",
+  },
   mainHeading: {
     fontSize: 24,
     fontWeight: "bold",
@@ -1366,9 +1444,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   categoryBox: {
-    width: "20%",
-    marginVertical: "1%",
+    width: "40%",
+    marginVertical: "3%",
     flexDirection: "column",
+    //borderWidth:1,
+    //height:"20%",
+    marginHorizontal: "4%",
+    ...Platform.select({
+      web: {
+        width: "20%",
+        marginVertical: "1%",
+        flexDirection: "column",
+        marginHorizontal:"0%"
+      },
+    }),
   },
   filterButton: {
     flexDirection: "row",
@@ -1394,21 +1483,46 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingTop: "15%", // Adjust based on your layout
     paddingLeft: "5%", // Align with category button
-    marginHorizontal: "14%",
+    marginHorizontal: "0%",
+    marginVertical:"40%",
+    width:"70%",
+    ...Platform.select({
+      web: {
+        flex: 1,
+        //backgroundColor: "rgba(0, 0, 0, 0.3)",
+        justifyContent: "flex-start",
+        alignItems: "flex-start",
+        paddingTop: "15%", // Adjust based on your layout
+        paddingLeft: "5%", // Align with category button
+        marginHorizontal: "14%",
+        marginVertical:"0%"
+      },
+    }),
   },
   dropdownOverlayWrapper: {
-    width: "20%", // Match category box width
+    width: "80%", // Match category box width
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 6,
     maxHeight: 200,
     marginTop: "1%",
-    // shadowColor: "#000",
-    // shadowOffset: { width: 0, height: 2 },
-    // shadowOpacity: 0.25,
-    // shadowRadius: 3.84,
-    // elevation: 5,
+    ...Platform.select({
+      web: {
+        width: "20%", // Match category box width
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 6,
+        maxHeight: 200,
+        marginTop: "1%",
+        // shadowColor: "#000",
+        // shadowOffset: { width: 0, height: 2 },
+        // shadowOpacity: 0.25,
+        // shadowRadius: 3.84,
+        // elevation: 5,
+      },
+    }),
   },
   dropdownScrollView: {
     flexGrow: 0,

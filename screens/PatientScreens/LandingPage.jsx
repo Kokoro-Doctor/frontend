@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   StatusBar,
+  Animated,
+  Text,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
@@ -22,8 +24,9 @@ const { width, height } = Dimensions.get("window");
 const LandingPage = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
-  //const [selectedButton, setSelectedButton] = useState(null);
-
+  const borderAnim = useRef(new Animated.Value(0)).current;
+  //const [showBorder, setShowBorder] = useState(false);
+  const [showLabel, setShowLabel] = useState(false);
   const handlePress = (eventName, params, navigateTo) => {
     TrackEvent(eventName, params);
     navigation.navigate("PatientAppNavigation", { screen: navigateTo });
@@ -32,6 +35,29 @@ const LandingPage = ({ navigation, route }) => {
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
+      setShowLabel(true); // show text immediately
+      borderAnim.setValue(0);
+      const timer = setTimeout(() => {
+        Animated.loop(
+          // keeps the bounce continuous
+          Animated.sequence([
+            Animated.spring(borderAnim, {
+              toValue: 1,
+              friction: 2,
+              tension: 100,
+              useNativeDriver: true,
+            }),
+            Animated.spring(borderAnim, {
+              toValue: 1,
+              friction: 1,
+              tension: 100,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+      }, 1000);
+
+      return () => clearTimeout(timer);
     }, [setChatbotConfig])
   );
 
@@ -90,40 +116,106 @@ const LandingPage = ({ navigation, route }) => {
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.cardStyle}
-                        // onPress={() => {
-                        //   navigation.navigate("PatientAppNavigation", {
-                        //     screen: "Medilocker",
-                        //   });
-                        // }}
-                        onPress={() =>
-                          handlePress(
-                            "medilocker_card_click",
-                            {
-                              clickText: "Medilocker",
-                              clickID: "medilocker-card",
-                            },
-                            "Medilocker"
-                          )
-                        }
+                        onPress={() => {
+                          navigation.navigate("PatientAppNavigation", {
+                            screen: "Medilocker",
+                          });
+                        }}
                       >
                         <Image
                           source={require("../../assets/Images/Medilocker.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.cardStyle}
-                        onPress={() => {
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "MobileChatbot",
-                          });
-                        }}
-                      >
-                        <Image
-                          source={require("../../assets/Images/AI_Support.png")}
-                          style={styles.image}
-                        />
-                      </TouchableOpacity>
+
+                      <View style={styles.AiCard}>
+                        <Animated.View
+                          style={[
+                            styles.cardStyle,
+                            {
+                              height: "100%",
+                              justifyContent: "center",
+                              alignItems: "center",
+                              overflow: "hidden", // Keeps image visible within border
+                              backgroundColor: "transparent",
+                              width: "100%",
+                              borderWidth: 5,
+                              borderRadius: 20,
+                              borderColor: "rgba(37, 255, 111, 1)",
+                              transform: [
+                                {
+                                  translateY: borderAnim.interpolate({
+                                    inputRange: [0, 0.5, 1],
+                                    outputRange: [0, -20, 0], // vertical bounce effect
+                                  }),
+                                },
+                              ],
+                            },
+                            //animatedBorderStyle,
+                          ]}
+                        >
+                          <TouchableOpacity
+                            onPress={() => {
+                              navigation.navigate("PatientAppNavigation", {
+                                screen: "MobileChatbot",
+                              });
+                            }}
+                            activeOpacity={0.9}
+                            style={{ width: "100%", height: "100%" }}
+                          >
+                            <Image
+                              source={require("../../assets/Images/AI_Support.png")}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                borderRadius: 16,
+                              }}
+                            />
+                          </TouchableOpacity>
+                        </Animated.View>
+
+                        {showLabel && (
+                          <Animated.View
+                            style={{
+                              width: "100%",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              // opacity: borderAnim,
+                              opacity: borderAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.8, 1], // subtle breathing effect
+                              }),
+                            }}
+                          >
+                            <ImageBackground
+                              source={require("../../assets/Images/Union.png")} // rename your uploaded PNG to try_box.png and place it in /assets/Images
+                              style={{
+                                width: "100%",
+                                height: 35, // adjust based on your PNG’s height
+                                justifyContent: "center",
+                                alignItems: "center",
+                                marginVertical: "8%",
+                              }}
+                              resizeMode="stretch" // ensures the green bar stretches evenly
+                            >
+                              <Text
+                                style={{
+                                  color: "#fff",
+                                  fontWeight: "700",
+                                  fontSize: 15,
+                                  //textTransform: "uppercase",
+                                  textShadowColor: "rgba(0, 0, 0, 0.5)",
+                                  textShadowOffset: { width: 1, height: 1 },
+                                  textShadowRadius: 2,
+                                  marginTop: "1%",
+                                }}
+                              >
+                                Try Me for Free
+                              </Text>
+                            </ImageBackground>
+                          </Animated.View>
+                        )}
+                      </View>
 
                       <TouchableOpacity
                         style={styles.cardStyle}
@@ -188,21 +280,7 @@ const LandingPage = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
             <View style={styles.cardsRow}>
-              <TouchableOpacity
-                style={styles.cardStyle}
-                onPress={() => {
-                  navigation.navigate("PatientAppNavigation", {
-                    screen: "Hospitals",
-                  });
-                }}
-              >
-                <Image
-                  source={require("../../assets/Images/BookHospital.png")}
-                  style={styles.image}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.cardStyle}
                 onPress={() => {
                   navigation.navigate("PatientAppNavigation", {
@@ -213,6 +291,118 @@ const LandingPage = ({ navigation, route }) => {
               >
                 <Image
                   source={require("../../assets/Images/twenty-four_Support.png")}
+                  style={styles.image}
+                />
+              </TouchableOpacity> */}
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  width: "45%",
+                  height: "96%",
+                  marginVertical: "0.5%",
+                }}
+              >
+                <Animated.View
+                  style={[
+                    styles.cardStyle,
+                    {
+                      width: "84%",
+                      height: "100%",
+                      borderWidth: 4,
+                      borderRadius: 18,
+                      borderColor: "rgba(37, 255, 111, 1)",
+                      overflow: "hidden",
+                      backgroundColor: "transparent",
+                      transform: [
+                        {
+                          translateY: borderAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0, -15, 0],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("PatientAppNavigation", {
+                        screen: "MobileChatbot",
+                      })
+                    }
+                    activeOpacity={0.9}
+                    style={{ width: "100%", height: "100%" }}
+                  >
+                    <ImageBackground
+                      source={require("../../assets/Images/AI_Support.png")}
+                      style={{
+                        width: "auto",
+                        height: "100%",
+                        justifyContent: "flex-end",
+                        //padding: 10,
+                      }}
+                      imageStyle={{ borderRadius: 14 }}
+                      resizeMode="cover"
+                    >
+                      
+                    </ImageBackground>
+                  </TouchableOpacity>
+                </Animated.View>
+
+                {showLabel && (
+                  <Animated.View
+                    style={{
+                      width: "100%",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: borderAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1],
+                      }),
+                      
+                    }}
+                  >
+                    <ImageBackground
+                      source={require("../../assets/Images/Union.png")}
+                      style={{
+                        width: 150,
+                        height: "auto",
+                        //alignSelf:"center",
+                        marginVertical:"5%",
+                      }}
+                      resizeMode="stretch"
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontWeight: "700",
+                          fontSize: 14,
+                          textShadowColor: "rgba(0, 0, 0, 0.5)",
+                          textShadowOffset: { width: 1, height: 1 },
+                          textShadowRadius: 2,
+                          alignSelf:"center",
+                          marginTop:"8%",
+                          marginBottom:"3%"
+                        }}
+                      >
+                        Try Me for Free
+                      </Text>
+                    </ImageBackground>
+                  </Animated.View>
+                )}
+              </View>
+
+              <TouchableOpacity
+                style={styles.cardStyle}
+                onPress={() => {
+                  navigation.navigate("PatientAppNavigation", {
+                    screen: "Hospitals",
+                  });
+                }}
+              >
+                <Image
+                  source={require("../../assets/Images/BookHospital.png")}
                   style={styles.image}
                 />
               </TouchableOpacity>
@@ -293,6 +483,7 @@ const styles = StyleSheet.create({
     marginHorizontal: "auto",
     flexDirection: "row",
     justifyContent: "space-between",
+    //alignItems: "center",
   },
   cardStyle: {
     width: "45%",
@@ -300,8 +491,19 @@ const styles = StyleSheet.create({
       web: {
         width: width > 1000 ? "23%" : "45%",
         borderColor: "#FFFFFF",
+        borderRadius: 15,
+        alignItems: "center",
+        backgroundColor: "transparent",
+        justifyContent: "center",
       },
     }),
+  },
+  AiCard: {
+    alignItems: "center",
+    justifyContent: "flex-start",
+    width: "23%",
+    height: "96%",
+    marginVertical: "0.5%",
   },
   image: {
     height: "100%",
