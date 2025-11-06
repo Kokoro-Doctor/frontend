@@ -4,9 +4,11 @@ import {
   login,
   logOut,
   restoreUserState,
-  signup,
   signInWithGoogleApp,
+  signup,
 } from "../utils/AuthService";
+import { resetChatCount } from "../utils/chatLimitManager";
+import { clearSession } from "../utils/sessionManager";
 
 export const AuthContext = createContext();
 
@@ -60,6 +62,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const newUser = await login(email, password);
       setUser(newUser?.user);
+      // Clear session and chat counts when user signs in
+      await clearSession();
+      await resetChatCount();
       navigation.navigate("LandingPage");
     } catch (error) {
       // Friendly message (for optional use in UI)
@@ -92,6 +97,9 @@ export const AuthProvider = ({ children }) => {
   const logoutHandler = async () => {
     try {
       await logOut();
+      // Clear session and chat counts when user logs out
+      await clearSession();
+      await resetChatCount();
       setUser(null);
     } catch (error) {
       alert("Logout Failed: Something went wrong!");
@@ -103,6 +111,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const googleUser = await handleGoogleLogin(response);
       setUser(googleUser);
+      // Clear session and chat counts when user signs in
+      await clearSession();
+      await resetChatCount();
       navigation.navigate("LandingPage");
     } catch (error) {
       console.error(`Google Login Failed: ${error.message}`);
@@ -114,6 +125,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const loggedInUser = await signInWithGoogleApp();
       setUser(loggedInUser);
+      // Clear session and chat counts when user signs in
+      await clearSession();
+      await resetChatCount();
     } catch (err) {
       console.error("Login with Google failed:", err);
     }

@@ -17,6 +17,14 @@ import {
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { askBot } from "../../../utils/ChatBotService";
+import {
+  getChatCount,
+  getChatLimit,
+  incrementChatCount,
+  resetChatCount,
+} from "../../../utils/chatLimitManager";
+import { getSessionId } from "../../../utils/sessionManager";
+import SignInPopup from "./SignInPopup";
 
 const languages = [
   { label: "English (In)", value: "en" },
@@ -45,12 +53,14 @@ const MobileChatbot = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [typingText, setTypingText] = useState(".");
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
+  const [showSignInPopup, setShowSignInPopup] = useState(false);
   const { user } = useContext(AuthContext);
 
-  // Set userID
+  // Set userID when user signs in
   useEffect(() => {
     if (user) {
       setUserId(user?.email);
+      // Note: Session and chat count cleanup is handled in AuthContext
     }
   }, [user]);
 
@@ -76,8 +86,92 @@ const MobileChatbot = () => {
 
   const sendMessageToBot = async () => {
     if (!userMessage.trim()) return;
-    const messageToSend = userMessage;
 
+    // Check if user is not signed in and handle chat limit
+    if (!user) {
+      const CHAT_LIMIT = getChatLimit();
+
+      // Check if limit already reached before incrementing
+      const currentCount = await getChatCount();
+      if (currentCount >= CHAT_LIMIT) {
+        setShowSignInPopup(true);
+        return;
+      }
+
+      // Increment chat count for non-signed-in users (session-based)
+      const newCount = await incrementChatCount();
+
+      // Check if we just reached the limit
+      if (newCount >= CHAT_LIMIT) {
+        // Still allow this message but show popup after
+        const messageToSend = userMessage;
+        const newMessage = {
+          id: Date.now().toString(),
+          sender: "user",
+          text: userMessage,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+        setMessages((prev) => [...prev, newMessage]);
+        setUserMessage("");
+        setIsLoading(true);
+
+        try {
+          const botReply = await askBot(
+            userId,
+            messageToSend,
+            selectedLanguage.value
+          );
+          if (botReply) {
+            const botMessage = {
+              id: Date.now().toString(),
+              sender: "bot",
+              text: botReply.text || "Sorry, I couldn't process that.",
+              timestamp: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            };
+            setMessages((prevMessages) => {
+              const updatedMessages = [...prevMessages, botMessage];
+              const newMessageIndex = updatedMessages.length - 1;
+              setPlayingMessage(newMessageIndex);
+              Speech.speak(botReply.text, {
+                language: selectedLanguage.value,
+                onDone: () => setPlayingMessage(null),
+                onStopped: () => setPlayingMessage(null),
+              });
+              return updatedMessages;
+            });
+          }
+          // Show popup after sending the 5th message
+          setShowSignInPopup(true);
+        } catch (error) {
+          console.error("Error sending message:", error);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              sender: "bot",
+              text: error.message,
+              timestamp: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            },
+          ]);
+          setShowSignInPopup(true);
+        } finally {
+          setIsLoading(false);
+          Keyboard.dismiss();
+        }
+        return;
+      }
+    }
+
+    const messageToSend = userMessage;
     const newMessage = {
       id: Date.now().toString(),
       sender: "user",
@@ -101,7 +195,7 @@ const MobileChatbot = () => {
         const botMessage = {
           id: Date.now().toString(),
           sender: "bot",
-          text: botReply.text || "Sorry, I couldn’t process that.",
+          text: botReply.text || "Sorry, I couldn't process that.",
           timestamp: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -328,6 +422,18 @@ const MobileChatbot = () => {
           />
         </Pressable>
       </View>
+
+      <SignInPopup
+        isVisible={showSignInPopup}
+        onClose={() => setShowSignInPopup(false)}
+        onMaybeLater={async () => {
+          // Reset chat count for current session to allow 4 more chats
+          const sessionId = await getSessionId();
+          if (sessionId) {
+            await resetChatCount(sessionId);
+          }
+        }}
+      />
     </SafeAreaView>
   );
 };

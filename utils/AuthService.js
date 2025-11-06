@@ -362,6 +362,8 @@ export const login = async (email, password) => {
 export const logOut = async () => {
   await AsyncStorage.removeItem("@token");
   await AsyncStorage.removeItem("@user");
+  // Note: Session cleanup is handled by the component/AuthContext
+  // when user state changes, but we can clear it here too for safety
 };
 
 export const restoreUserState = async () => {
