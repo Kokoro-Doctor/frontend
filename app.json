@@ -24,7 +24,24 @@
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "name": "Kokoro Doctor - Your Trusted Healthcare Partner",
+      "shortName": "Kokoro",
+      "description": "Kokoro Doctor - Comprehensive healthcare services connecting patients with trusted doctors. Book appointments, access medical records, and get expert medical advice all in one place.",
+      "themeColor": "#ffffff",
+      "backgroundColor": "#ffffff",
+      "meta": {
+        "viewport": "width=device-width, initial-scale=1",
+        "description": "Kokoro Doctor - Comprehensive healthcare services connecting patients with trusted doctors. Book appointments, access medical records, and get expert medical advice all in one place.",
+        "keywords": "healthcare, doctor appointments, medical services, health management, Kokoro Doctor",
+        "og:title": "Kokoro Doctor - Your Trusted Healthcare Partner",
+        "og:description": "Kokoro Doctor - Comprehensive healthcare services connecting patients with trusted doctors. Book appointments, access medical records, and get expert medical advice all in one place.",
+        "og:type": "website",
+        "og:site_name": "Kokoro Doctor",
+        "twitter:card": "summary_large_image",
+        "twitter:title": "Kokoro Doctor - Your Trusted Healthcare Partner",
+        "twitter:description": "Kokoro Doctor - Comprehensive healthcare services connecting patients with trusted doctors. Book appointments, access medical records, and get expert medical advice all in one place."
+      }
     },
     "entryPoint": "./index.js",
     "android": {
