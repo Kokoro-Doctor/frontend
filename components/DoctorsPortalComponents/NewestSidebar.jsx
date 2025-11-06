@@ -12,12 +12,14 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
+const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const [selectedItem, setSelectedItem] = useState(activeItem);
 
   const menuItems = [
+    { name: "Home", 
+      icon: require("../../assets/Icons/HomeProfile.png") },
     {
       name: "Calendar",
       icon: require("../../assets/DoctorsPortal/Icons/calendar.png"),
@@ -41,6 +43,10 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
   ];
 
   const lowerMenuItems = [
+    {
+      name: "Profile",
+      icon: require("../../assets/DoctorsPortal/Icons/profile.png"),
+    },
     {
       name: "Settings",
       icon: require("../../assets/DoctorsPortal/Icons/GearSix.png"),
