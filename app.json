@@ -32,15 +32,16 @@
       "backgroundColor": "#ffffff",
       "meta": {
         "viewport": "width=device-width, initial-scale=1",
-        "description": "Kokoro.Doctor - Comprehensive healthcare services connecting patients with trusted doctors. Book appointments, access medical records, and get expert medical advice all in one place.",
-        "keywords": "healthcare, doctor appointments, medical services, health management, Kokoro.Doctor",
+        "description": "Kokoro.Doctor - Your Trusted Healthcare Partner. Book doctor appointments, access medical records, and get expert medical advice. Comprehensive healthcare services for patients.",
+        "keywords": "healthcare, doctor appointments, medical services, health management, Kokoro.Doctor, online doctor consultation",
+        "robots": "index, follow",
         "og:title": "Kokoro.Doctor - Your Trusted Healthcare Partner",
-        "og:description": "Kokoro.Doctor - Comprehensive healthcare services connecting patients with trusted doctors. Book appointments, access medical records, and get expert medical advice all in one place.",
+        "og:description": "Kokoro.Doctor - Your Trusted Healthcare Partner. Book doctor appointments, access medical records, and get expert medical advice. Comprehensive healthcare services for patients.",
         "og:type": "website",
         "og:site_name": "Kokoro.Doctor",
         "twitter:card": "summary_large_image",
         "twitter:title": "Kokoro.Doctor - Your Trusted Healthcare Partner",
-        "twitter:description": "Kokoro.Doctor - Comprehensive healthcare services connecting patients with trusted doctors. Book appointments, access medical records, and get expert medical advice all in one place."
+        "twitter:description": "Kokoro.Doctor - Your Trusted Healthcare Partner. Book doctor appointments, access medical records, and get expert medical advice. Comprehensive healthcare services for patients."
       }
     },
     "entryPoint": "./index.js",
