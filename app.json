@@ -3,7 +3,7 @@
     "owner": "kokoro_doctor",
     "name": "kokoro.doctor",
     "slug": "kokoro-doctor",
-    "scheme": "kokoro",   
+    "scheme": "kokoro",
     "version": "1.0.0",
     "platforms": [
       "ios",
@@ -23,8 +23,11 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+    
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/Icons/kokoro.png",
+      "indexHtmlPath": "./web/index.html"
     },
     "entryPoint": "./index.js",
     "android": {
