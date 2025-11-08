@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatbot } from "../../../contexts/ChatbotContext";
-import { askBot } from "../../../utils/ChatBotService";
+import { askBot, askBotStream } from "../../../utils/ChatBotService";
 import {
   getChatCount,
   getChatLimit,
@@ -48,6 +48,72 @@ const ChatBot = () => {
   const [typingText, setTypingText] = useState(".");
   const [showSignInPopup, setShowSignInPopup] = useState(false);
   const { user } = useContext(AuthContext);
+
+  const appendStreamingChunk = (chunk) => {
+    if (!chunk) return;
+    setMessages((prevMessages) => {
+      if (!prevMessages.length) return prevMessages;
+      const updated = [...prevMessages];
+      const lastIndex = updated.length - 1;
+      const lastMessage = updated[lastIndex];
+      if (lastMessage?.sender === "bot" && lastMessage?.isStreaming) {
+        updated[lastIndex] = {
+          ...lastMessage,
+          text: (lastMessage.text || "") + chunk,
+        };
+      }
+      return updated;
+    });
+  };
+
+  const removeStreamingPlaceholder = () => {
+    setMessages((prevMessages) => {
+      if (!prevMessages.length) return prevMessages;
+      const updated = [...prevMessages];
+      const lastIndex = updated.length - 1;
+      if (
+        updated[lastIndex]?.sender === "bot" &&
+        updated[lastIndex]?.isStreaming
+      ) {
+        updated.splice(lastIndex, 1);
+      }
+      return updated;
+    });
+  };
+
+  const finalizeBotMessage = (text) => {
+    let messageIndex = null;
+    setMessages((prevMessages) => {
+      const updated = [...prevMessages];
+      if (!updated.length) {
+        updated.push({ sender: "bot", text });
+        messageIndex = updated.length - 1;
+        return updated;
+      }
+
+      const lastIndex = updated.length - 1;
+      const lastMessage = updated[lastIndex];
+      if (lastMessage?.sender === "bot" && lastMessage?.isStreaming) {
+        updated[lastIndex] = { sender: "bot", text };
+        messageIndex = lastIndex;
+      } else {
+        updated.push({ sender: "bot", text });
+        messageIndex = updated.length - 1;
+      }
+      return updated;
+    });
+    return messageIndex;
+  };
+
+  const speakBotMessage = (text, index) => {
+    if (!text || index == null) return;
+    setPlayingMessage(index);
+    Speech.speak(text, {
+      language: selectedLanguage,
+      onDone: () => setPlayingMessage(null),
+      onStopped: () => setPlayingMessage(null),
+    });
+  };
 
   //Set userID when user signs in
   useEffect(() => {
@@ -80,67 +146,20 @@ const ChatBot = () => {
   const sendMessageToBot = async () => {
     if (!userMessage.trim()) return;
 
-    // Check if user is not signed in and handle chat limit
+    let showPopupAfterResponse = false;
+
     if (!user) {
       const CHAT_LIMIT = getChatLimit();
 
-      // Check if limit already reached before incrementing
       const currentCount = await getChatCount();
       if (currentCount >= CHAT_LIMIT) {
         setShowSignInPopup(true);
         return;
       }
 
-      // Increment chat count for non-signed-in users (session-based)
       const newCount = await incrementChatCount();
-
-      // Check if we just reached the limit
       if (newCount >= CHAT_LIMIT) {
-        // Still allow this message but show popup after
-        const messageToSend = userMessage;
-        setUserMessage("");
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { sender: "user", text: messageToSend },
-        ]);
-        setIsLoading(true);
-
-        try {
-          const botReply = await askBot(
-            userId,
-            messageToSend,
-            selectedLanguage
-          );
-          if (botReply) {
-            setMessages((prevMessages) => {
-              const updatedMessages = [
-                ...prevMessages,
-                { sender: "bot", text: botReply.text },
-              ];
-              const newMessageIndex = updatedMessages.length - 1;
-              setPlayingMessage(newMessageIndex);
-              Speech.speak(botReply.text, {
-                language: selectedLanguage,
-                onDone: () => setPlayingMessage(null),
-                onStopped: () => setPlayingMessage(null),
-              });
-              return updatedMessages;
-            });
-          }
-          // Show popup after sending the 5th message
-          setShowSignInPopup(true);
-        } catch (error) {
-          console.error("Error communicating with Bot:", error);
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { sender: "bot", text: error.message },
-          ]);
-          setShowSignInPopup(true);
-        }
-
-        setIsLoading(false);
-        Keyboard.dismiss();
-        return;
+        showPopupAfterResponse = true;
       }
     }
 
@@ -153,35 +172,90 @@ const ChatBot = () => {
     ]);
     setIsLoading(true);
 
+    const tryStreaming = async () => {
+      if (typeof TextDecoder === "undefined") {
+        throw new Error("Streaming not supported in this environment.");
+      }
+
+      const { reader, controller } = await askBotStream(
+        userId,
+        messageToSend,
+        selectedLanguage
+      );
+
+      const decoder = new TextDecoder();
+      let finalText = "";
+
+      try {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "bot", text: "", isStreaming: true },
+        ]);
+        setIsLoading(false);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          if (!chunk) continue;
+          finalText += chunk;
+          appendStreamingChunk(chunk);
+        }
+
+        finalText += decoder.decode();
+      } finally {
+        try {
+          reader.releaseLock();
+        } catch (error) {
+          // Ignore release errors
+        }
+        controller.abort();
+      }
+
+      const messageIndex = finalizeBotMessage(finalText);
+      setIsLoading(false);
+      speakBotMessage(finalText.trim() || finalText, messageIndex);
+      if (showPopupAfterResponse) {
+        setShowSignInPopup(true);
+      }
+      Keyboard.dismiss();
+    };
+
+    try {
+      await tryStreaming();
+      return;
+    } catch (streamError) {
+      console.warn(
+        "Streaming chat failed, falling back to standard response:",
+        streamError
+      );
+      removeStreamingPlaceholder();
+      setIsLoading(true);
+    }
+
     try {
       const botReply = await askBot(userId, messageToSend, selectedLanguage);
 
       if (botReply) {
-        setMessages((prevMessages) => {
-          const updatedMessages = [
-            ...prevMessages,
-            { sender: "bot", text: botReply.text },
-          ];
-          const newMessageIndex = updatedMessages.length - 1; // Get the index of the latest bot message
-          setPlayingMessage(newMessageIndex); // Set playingMessage to the new message index
-          Speech.speak(botReply.text, {
-            language: selectedLanguage,
-            onDone: () => setPlayingMessage(null),
-            onStopped: () => setPlayingMessage(null),
-          });
-          return updatedMessages;
-        });
+        const messageIndex = finalizeBotMessage(botReply.text);
+        setIsLoading(false);
+        speakBotMessage(botReply.text, messageIndex);
+        if (showPopupAfterResponse) {
+          setShowSignInPopup(true);
+        }
+        Keyboard.dismiss();
+        return;
       }
+      throw new Error("Empty response from bot.");
     } catch (error) {
       console.error("Error communicating with Bot:", error);
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { sender: "bot", text: error.message },
-      ]);
+      finalizeBotMessage(error.message);
+      setIsLoading(false);
+      if (showPopupAfterResponse) {
+        setShowSignInPopup(true);
+      }
+      Keyboard.dismiss();
     }
-
-    setIsLoading(false);
-    Keyboard.dismiss();
   };
 
   const toggleTTS = (index, text) => {
@@ -246,7 +320,7 @@ const ChatBot = () => {
           >
             {item.text}
           </Text>
-          {item.sender === "bot" && !isLoading && (
+          {item.sender === "bot" && !item.isStreaming && !isLoading && (
             <View style={styles.botIcons}>
               <TouchableOpacity onPress={() => toggleTTS(index, item.text)}>
                 <MaterialIcons
