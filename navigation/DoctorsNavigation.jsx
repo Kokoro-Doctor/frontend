@@ -22,6 +22,7 @@ import ThemeSettings from "../screens/DoctorScreens/Settings/ThemeSettings";
 import Reminder from "../screens/DoctorScreens/ReminderNewest";
 import LandingPage from "../screens/PatientScreens/LandingPage";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
+import Dashboard from "../screens/DoctorScreens/Dashboard";
 
 const Stack = createNativeStackNavigator();
 
@@ -42,6 +43,11 @@ const DoctorAppNavigation = () => {
         <Stack.Screen
           name="DoctorPatientLandingPage"
           component={DoctorPatientLandingPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Dashboard"
+          component={Dashboard}
           options={{ headerShown: false }}
         />
         <Stack.Screen

@@ -251,6 +251,12 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
           {Platform.OS === "web" && width > 1000 && (
             <View style={styles.authButtonsWeb}>
               <Pressable
+                onPress={() => navigation.navigate("DoctorsSignUp")}
+                style={[styles.doctorButton]}
+              >
+                <Text style={styles.doctorButtonText}>Are you a doctor ?</Text>
+              </Pressable>
+              <Pressable
                 onPress={() => navigation.navigate("Login")}
                 //onPress={() => handleOptionPress("DoctorPatientLandingPage")}
                 style={styles.authButton}
@@ -333,6 +339,15 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                   </View>
 
                   <View style={styles.authButtonsApp}>
+                    <Pressable
+                      onPress={() => navigation.navigate("")}
+                      style={[styles.doctorButtonApp]}
+                    >
+                      <Text style={styles.doctorButtonTextApp}>
+                        Are you a doctor?
+                      </Text>
+                    </Pressable>
+
                     <Pressable
                       style={styles.authButtonBox}
                       onPress={() => setDropdownVisible(!dropdownVisible)}
@@ -473,6 +488,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-end",
     marginRight: 20,
+    //borderWidth:1,
+    justifyContent:"space-around",
+    width:"25%"
   },
   authButtonsApp: {
     flexDirection: "row",
@@ -482,6 +500,21 @@ const styles = StyleSheet.create({
   },
   authButtonBox: {
     //borderWidth:1,
+  },
+  doctorButton:{
+    borderWidth:1,
+    borderRadius:5,
+    width:"50%",
+    height:"60%",
+    alignItems:"center",
+    marginVertical:"3%",
+    backgroundColor:"#fff"
+  },
+  doctorButtonText:{
+    color:" rgba(255, 112, 114, 1)",
+    fontWeight:700,
+    marginVertical:"1%",
+    fontSize:16
   },
   authButton: {
     height: 50,

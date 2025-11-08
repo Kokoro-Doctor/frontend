@@ -23,7 +23,6 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
-    
     "web": {
       "bundler": "metro",
       "favicon": "./assets/Icons/kokoro.png",

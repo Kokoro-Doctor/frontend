@@ -1273,7 +1273,7 @@ const DoctorResultShow = ({ navigation, route }) => {
             <DoctorAppointmentData
               navigation={navigation}
               selectedCategory={selectedCategory}
-              priorityDoctors={["Dr. Kisley Shrivastav", "Dr. Arpita"]}
+              priorityDoctors={["Dr. Kislay Shrivastava", "Dr. Arpita"]}
             />
           </View>
 

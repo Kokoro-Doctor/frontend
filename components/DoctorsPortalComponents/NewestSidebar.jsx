@@ -18,6 +18,7 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
   const [selectedItem, setSelectedItem] = useState(activeItem);
 
   const menuItems = [
+    { name: "Home", icon: require("../../assets/Icons/HomeProfile.png") },
     {
       name: "Calendar",
       icon: require("../../assets/DoctorsPortal/Icons/calendar.png"),
@@ -59,9 +60,11 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
     setSelectedItem(menu);
 
     // Navigate using if/else structure like in code 1
-    if (menu === "Calendar") {
-      navigation.navigate("CalendarView");
-    } else if (menu === "Appointments") {
+    if (menu === "Home") {
+      navigation.navigate("Dashboard");
+    } else if (menu === "Calender") {
+      navigation.navigate("CalenderView");
+    }else if (menu === "Appointments") {
       navigation.navigate("AppointmentsView");
     } else if (menu === "History") {
       navigation.navigate("History");

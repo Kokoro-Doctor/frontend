@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     marginLeft: "30%",
     height: "10%",
     width: "40%",
-    height: 40,
+    //height: 40,
     marginTop: "5%",
     backgroundColor: "#FF7072",
     flexDirection: "row",

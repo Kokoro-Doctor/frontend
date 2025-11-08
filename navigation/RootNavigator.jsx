@@ -72,6 +72,7 @@ import { RegistrationProvider } from "../contexts/RegistrationContext";
 import LandingPage from "../screens/PatientScreens/LandingPage";
 import Login from "../screens/PatientScreens/Auth/Login";
 import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
+import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
 
 // ✅ Conditionally import heavy screens (works on web + native)
 let DoctorPatientLandingPage;
@@ -139,6 +140,7 @@ const RootNavigation = () => {
           />
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="MobileChatbot" component={MobileChatbot} />
+          <Stack.Screen name="DoctorsSignUp" component={DoctorsSignUp} />
         </Stack.Navigator>
       </Suspense>
     </RegistrationProvider>

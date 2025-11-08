@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -10,17 +10,23 @@ import {
   useWindowDimensions,
   ScrollView,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import NewSideNav from "../../../components/DoctorsPortalComponents/NewSideNav";
 import { useNavigation } from "@react-navigation/native";
 import SideImageStyle from "../../../components/DoctorsPortalComponents/SideImageStyle";
-import { registerDoctor } from "../../../utils/AuthService";
+import {
+  registerDoctor,
+  useGoogleAuth,
+  handleGoogleLogin,
+} from "../../../utils/AuthService";
 import Header from "../../../components/PatientScreenComponents/Header";
 
 const DoctorsSignUp = () => {
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
   const [rememberMe, setRememberMe] = useState(false);
+  const [request, response, promptAsync] = useGoogleAuth();
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
@@ -38,6 +44,37 @@ const DoctorsSignUp = () => {
     setRememberMe(!rememberMe);
   };
 
+  useEffect(() => {
+    const handleGoogleResponse = async () => {
+      if (response?.type === "success") {
+        try {
+          const googleUser = await handleGoogleLogin(response);
+          if (googleUser) {
+            // Save Google user as a doctor
+            await AsyncStorage.setItem("@doctor", JSON.stringify(googleUser));
+
+            alert(`Welcome Dr. ${googleUser.name || ""}!`);
+            navigation.navigate("DoctorMedicalRegistration", {
+              email: googleUser.email,
+            });
+          }
+        } catch (error) {
+          console.error("Google doctor login error:", error);
+          alert("Google Sign-In failed. Please try again.");
+        }
+      }
+    };
+    handleGoogleResponse();
+  }, [navigation, response]);
+
+  const triggerGoogleLogin = useCallback(() => {
+    if (request) {
+      promptAsync(); // must be called immediately
+    } else {
+      console.log("Google auth request not ready yet");
+    }
+  }, [request, promptAsync]);
+
   const handleSignup = async () => {
     try {
       await registerDoctor({
@@ -48,7 +85,8 @@ const DoctorsSignUp = () => {
         location: formData.location,
       });
       alert("Doctor registered successfully!");
-      navigation.navigate("DoctorMedicalRegistration", {
+      navigation.navigate("DoctorAppNavigation", {
+        screen: "DoctorMedicalRegistration",
         email: formData.email,
       });
     } catch (error) {
@@ -62,7 +100,7 @@ const DoctorsSignUp = () => {
       {Platform.OS === "web" && width > 1000 && (
         <View style={styles.webContainer}>
           <NewSideNav navigation={navigation} />
-          <View style={styles.Content}>
+          <ScrollView style={styles.Content}>
             <View style={styles.DetailContainer}>
               <Text style={styles.heading}>Sign Up</Text>
               <View style={styles.details}>
@@ -180,14 +218,28 @@ const DoctorsSignUp = () => {
                 <TouchableOpacity
                   style={styles.skipContainer}
                   onPress={() =>
-                    navigation.navigate("DoctorMedicalRegistration")
+                    navigation.navigate("DoctorAppNavigation", {
+                      screen: "DoctorMedicalRegistration",
+                    })
                   }
                 >
                   <Text style={styles.continueText}>Skip</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.googleButton}
+                  onPress={triggerGoogleLogin}
+                >
+                  <Image
+                    source={require("../../../assets/Images/google-icon.png")}
+                    style={styles.googleIcon}
+                  />
+                  <Text style={styles.googleButtonText}>
+                    Sign in with Google
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ScrollView>
           <SideImageStyle />
         </View>
       )}
@@ -333,6 +385,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     backgroundColor: "#FCF5F7",
+    height: "100%",
   },
 
   header: {
@@ -369,7 +422,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FCF5F7",
     ...Platform.select({
       web: {
-        width: "60%",
+        width: "30%",
         height: "auto",
       },
     }),
@@ -389,7 +442,8 @@ const styles = StyleSheet.create({
       web: {
         alignItems: "left",
         width: "100%",
-        //borderWidth:1
+        //borderWidth: 1,
+        //height:"70%"
       },
     }),
   },
@@ -408,9 +462,9 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         fontSize: 30,
-        fontWeight: "500",
+        fontWeight: 500,
         marginBottom: "2%",
-        marginTop: "10%",
+        marginTop: "4%",
       },
     }),
   },
@@ -605,6 +659,28 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 10,
     borderRadius: 12,
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "60%",
+    height: 42,
+    //borderWidth: 1,
+    borderColor: "#151212ff",
+    borderRadius: 4,
+    //marginBottom: "3%",
+    marginTop: "3%",
+    backgroundColor: "#c1bfbfff",
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: "2%",
+  },
+  googleButtonText: {
+    fontSize: 16,
+    color: "#0e0e0eff",
   },
 });
 export default DoctorsSignUp;
