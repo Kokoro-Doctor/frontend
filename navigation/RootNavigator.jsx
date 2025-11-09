@@ -71,6 +71,7 @@ import { RegistrationProvider } from "../contexts/RegistrationContext";
 // ✅ Direct imports (always needed instantly)
 import LandingPage from "../screens/PatientScreens/LandingPage";
 import Login from "../screens/PatientScreens/Auth/Login";
+import VerifyEmail from "../screens/PatientScreens/Auth/VerifyEmail";
 import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
 
 // ✅ Conditionally import heavy screens (works on web + native)
@@ -105,6 +106,17 @@ export const linking = {
   config: {
     screens: {
       LandingPage: "Home",
+      VerifyEmail: {
+        path: "verify-email",
+        parse: {
+          token: (token) => token,
+          email: (email) => email,
+        },
+        stringify: {
+          token: (token) => token,
+          email: (email) => email,
+        },
+      },
       DoctorPatientLandingPage: "Role",
       DoctorAppNavigation: { path: "doctor" },
       PatientAppNavigation: { path: "patient" },
@@ -123,6 +135,7 @@ const RootNavigation = () => {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {/* Always loaded instantly */}
           <Stack.Screen name="LandingPage" component={LandingPage} />
+          <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
 
           {/* Conditionally lazy/static screens */}
           <Stack.Screen
