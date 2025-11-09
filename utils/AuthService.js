@@ -205,6 +205,7 @@ import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
 
 import { API_URL, webClientId } from "../env-vars";
+import { createApiError } from "./errorUtils";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -281,9 +282,7 @@ export const registerDoctor = async ({
     }),
   });
 
-  if (!response.ok) throw new Error("Doctor registration failed");
-
-  const data = await response.json();
+  const data = await parseJsonResponse(response, "Doctor registration failed");
   const { doctor } = data;
   await AsyncStorage.setItem("@doctor", JSON.stringify(doctor));
   return doctor;
@@ -320,12 +319,7 @@ export const signup = async (username, email, password, phoneNumber, location) =
     body: JSON.stringify({ username, email, password, phoneNumber, location }),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    const errorMessage = data?.detail || `SignUp Failed ${response.status}`;
-    throw new Error(errorMessage);
-  }
+  const data = await parseJsonResponse(response, "Sign up failed");
 
   // ✅ Handle both possible response formats
   const userData = data.user || data;
@@ -347,12 +341,7 @@ export const login = async (email, password) => {
     body: JSON.stringify({ email, password }),
   });
 
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data?.detail || `Login failed ${response.status}`);
-  }
-
-  const data = await response.json();
+  const data = await parseJsonResponse(response, "Login failed");
   const { access_token, user } = data;
   await AsyncStorage.setItem("@token", access_token);
   await AsyncStorage.setItem("@user", JSON.stringify(user));
@@ -370,4 +359,16 @@ export const restoreUserState = async () => {
   const token = await AsyncStorage.getItem("@token");
   const user = await AsyncStorage.getItem("@user");
   return token && user ? { token, user: JSON.parse(user) } : null;
+};
+
+const parseJsonResponse = async (response, fallbackMessage) => {
+  const data = await response
+    .json()
+    .catch(() => null);
+
+  if (!response.ok) {
+    throw createApiError({ response, data, fallbackMessage });
+  }
+
+  return data ?? {};
 };

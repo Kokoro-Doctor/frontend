@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useGoogleAuth } from "../../../utils/AuthService";
+import { getErrorMessage } from "../../../utils/errorUtils";
 
 const Login = ({ navigation }) => {
   const { width } = useWindowDimensions();
@@ -26,6 +27,8 @@ const Login = ({ navigation }) => {
   const { login, googleLogin, loginWithGoogle } = useContext(AuthContext);
   const [request, response, promptAsync] = useGoogleAuth();
   const [googleHandled, setGoogleHandled] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // useEffect(() => {
   //   const doLogin = async () => {
@@ -104,6 +107,20 @@ const Login = ({ navigation }) => {
 
   const toggleRememberMe = () => {
     setRememberMe(!rememberMe);
+  };
+
+  const handleLogin = async () => {
+    if (isSubmitting) return;
+    setFormError("");
+    setIsSubmitting(true);
+    try {
+      await login(email, password, navigation);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setFormError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -197,10 +214,17 @@ const Login = ({ navigation }) => {
 
                 <TouchableOpacity
                   style={styles.continueButton}
-                  onPress={() => login(email, password, navigation)}
+                  onPress={handleLogin}
+                  disabled={isSubmitting}
                 >
-                  <Text style={styles.continueButtonText}>Log in</Text>
+                  <Text style={styles.continueButtonText}>
+                    {isSubmitting ? "Logging in..." : "Log in"}
+                  </Text>
                 </TouchableOpacity>
+
+                {formError ? (
+                  <Text style={styles.errorText}>{formError}</Text>
+                ) : null}
 
                 <View style={styles.orContainer}>
                   <View style={styles.orLine} />
@@ -306,10 +330,17 @@ const Login = ({ navigation }) => {
             {/* Sign In Button */}
             <TouchableOpacity
               style={styles.mobileSignInButton}
-              onPress={() => login(email, password, navigation)}
+              onPress={handleLogin}
+              disabled={isSubmitting}
             >
-              <Text style={styles.mobileSignInText}>Log in</Text>
+              <Text style={styles.mobileSignInText}>
+                {isSubmitting ? "Logging in..." : "Log in"}
+              </Text>
             </TouchableOpacity>
+
+            {formError ? (
+              <Text style={styles.mobileErrorText}>{formError}</Text>
+            ) : null}
 
             {/* Or Divider */}
             <View style={styles.mobileOrContainer}>
@@ -484,6 +515,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  errorText: {
+    marginTop: "1.5%",
+    fontSize: 14,
+    color: "#DC2626",
+  },
   orContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -639,6 +675,12 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  mobileErrorText: {
+    marginTop: "2%",
+    fontSize: 14,
+    color: "#DC2626",
+    textAlign: "center",
   },
   mobileOrContainer: {
     flexDirection: "row",

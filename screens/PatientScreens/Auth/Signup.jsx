@@ -16,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useGoogleAuth } from "../../../utils/AuthService";
+import { getErrorMessage } from "../../../utils/errorUtils";
 import { useRole } from "../../../contexts/RoleContext";
 
 const Signup = ({ navigation, route }) => {
@@ -31,6 +32,8 @@ const Signup = ({ navigation, route }) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { setRole } = useRole();
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (response) {
@@ -59,21 +62,33 @@ const Signup = ({ navigation, route }) => {
     }
   };
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!rememberMe) {
       alert("Please go through our privacy policy and check the box.");
       return;
     }
-    const fullName = firstName + " " + lastName;
-    signup(fullName, email, password, phoneNumber, location, navigation)
-      .then(() => {
-        setRole("doctor");
-      })
-      .catch((error) => {
-        // console.log("Signup error:", error);
-        console.log("Signup error:", JSON.stringify(error));
-        Alert.alert("Signup Failed", error?.message || "Something went wrong");
-      });
+    if (isSubmitting) return;
+
+    const fullName = `${firstName} ${lastName}`.trim();
+    setFormError("");
+    setIsSubmitting(true);
+    try {
+      await signup(
+        fullName,
+        email,
+        password,
+        phoneNumber,
+        location,
+        navigation
+      );
+      setRole("doctor");
+    } catch (error) {
+      const message = getErrorMessage(error);
+      console.error("Signup failed:", message, error);
+      setFormError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDetectLocation = () => {
@@ -255,10 +270,16 @@ const Signup = ({ navigation, route }) => {
                     !rememberMe && styles.disabledSignInButton,
                   ]}
                   onPress={handleSignUp}
-                  disabled={!rememberMe}
+                  disabled={!rememberMe || isSubmitting}
                 >
-                  <Text style={styles.signInButtonText}>Sign Up</Text>
+                  <Text style={styles.signInButtonText}>
+                    {isSubmitting ? "Signing up..." : "Sign Up"}
+                  </Text>
                 </TouchableOpacity>
+
+                {formError ? (
+                  <Text style={styles.errorText}>{formError}</Text>
+                ) : null}
 
                 <View style={styles.orContainer}>
                   <View style={styles.orLine} />
@@ -393,9 +414,16 @@ const Signup = ({ navigation, route }) => {
             <TouchableOpacity
               style={styles.signInButton}
               onPress={handleSignUp}
+              disabled={isSubmitting}
             >
-              <Text style={styles.signInButtonText}>Sign Up</Text>
+              <Text style={styles.signInButtonText}>
+                {isSubmitting ? "Signing up..." : "Sign Up"}
+              </Text>
             </TouchableOpacity>
+
+            {formError ? (
+              <Text style={styles.mobileErrorText}>{formError}</Text>
+            ) : null}
 
             {/* <View style={styles.orContainer}>
               <View style={styles.orLine} />
@@ -627,6 +655,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  errorText: {
+    marginTop: "2%",
+    fontSize: 14,
+    color: "#DC2626",
+  },
   orContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -789,6 +822,12 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  mobileErrorText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#DC2626",
+    textAlign: "center",
   },
   orContainer: {
     flexDirection: "row",
