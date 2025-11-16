@@ -15,7 +15,7 @@ import {
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-import Header from "../../components/PatientScreenComponents/Header";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 import { TrackEvent } from "../../utils/TrackEvent";
@@ -83,7 +83,7 @@ const LandingPage = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
                   <View style={styles.title}>
                     <Title />
@@ -242,8 +242,8 @@ const LandingPage = ({ navigation, route }) => {
       {(Platform.OS !== "web" || width < 1000) && (
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
-          <View style={[styles.header, { height: "15%" }]}>
-            <Header navigation={navigation} />
+          <View style={[styles.header, { height: "12%" }]}>
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
 
           <View style={styles.searchBar}>
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     width: "85%",
   },
   header: {
-    // borderWidth: 5,
+     borderWidth: 5,
     // borderColor: "black",
     zIndex: 2,
     ...Platform.select({
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   searchBar: {
-    marginTop: "6%",
+    marginTop: "3%",
   },
   cards: {
     height: "60%",

@@ -340,15 +340,6 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
 
                   <View style={styles.authButtonsApp}>
                     <Pressable
-                      onPress={() => navigation.navigate("")}
-                      style={[styles.doctorButtonApp]}
-                    >
-                      <Text style={styles.doctorButtonTextApp}>
-                        Are you a doctor?
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
                       style={styles.authButtonBox}
                       onPress={() => setDropdownVisible(!dropdownVisible)}
                     >
@@ -365,6 +356,14 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                       <View
                         style={[styles.dropdownMain, styles.dropdownLoggedOut]}
                       >
+                        <Pressable
+                          onPress={() => navigation.navigate("DoctorsSignUp")}
+                          style={[styles.doctorButtonApp]}
+                        >
+                          <Text style={styles.doctorButtonTextApp}>
+                            Are you a doctor?
+                          </Text>
+                        </Pressable>
                         <TouchableOpacity
                           //onPress={() => handleOptionPress("Login")}
                           onPress={() => navigation.navigate("Login")}
@@ -489,8 +488,8 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     marginRight: 20,
     //borderWidth:1,
-    justifyContent:"space-around",
-    width:"25%"
+    justifyContent: "space-around",
+    width: "25%",
   },
   authButtonsApp: {
     flexDirection: "row",
@@ -501,20 +500,33 @@ const styles = StyleSheet.create({
   authButtonBox: {
     //borderWidth:1,
   },
-  doctorButton:{
-    borderWidth:1,
-    borderRadius:5,
-    width:"50%",
-    height:"60%",
-    alignItems:"center",
-    marginVertical:"3%",
-    backgroundColor:"#fff"
-  },
-  doctorButtonText:{
-    color:" rgba(255, 112, 114, 1)",
+  // doctorButtonApp: {
+  //   marginHorizontal: "4%",
+  //   borderWidth: 1,
+  //   width: "60%",
+  //   alignItems: "center",
+  // },
+  doctorButtonTextApp:{
+    fontSize:14,
+    color:"rgba(255, 112, 114, 1)",
     fontWeight:700,
-    marginVertical:"1%",
-    fontSize:16
+    marginTop:"3%"
+  },
+  doctorButton: {
+    borderWidth: 1,
+    borderRadius: 5,
+    width: "50%",
+    height: "60%",
+    alignItems: "center",
+    marginVertical: "3%",
+    backgroundColor: "#fff",
+  },
+  doctorButtonText: {
+    color: " rgba(255, 112, 114, 1)",
+    fontWeight: 700,
+    marginVertical: "1%",
+    fontSize: 17,
+    
   },
   authButton: {
     height: 50,
@@ -591,7 +603,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     zIndex: 100,
-    marginRight: "2%",
+    //marginRight: "6%",
+    width:120
   },
   dropdownLoggedOut: {
     top: 30,
