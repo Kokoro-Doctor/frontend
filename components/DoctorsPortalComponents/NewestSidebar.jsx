@@ -12,12 +12,13 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
+const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const [selectedItem, setSelectedItem] = useState(activeItem);
 
   const menuItems = [
+    { name: "Home", icon: require("../../assets/Icons/HomeProfile.png") },
     {
       name: "Calendar",
       icon: require("../../assets/DoctorsPortal/Icons/calendar.png"),
@@ -25,6 +26,10 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
     {
       name: "Appointments",
       icon: require("../../assets/DoctorsPortal/Icons/appointment.png"),
+    },
+    {
+      name: "Prescription",
+      icon: require("../../assets/DoctorsPortal/Icons/PrescriptionIcon.png"),
     },
     {
       name: "History",
@@ -59,11 +64,15 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
     setSelectedItem(menu);
 
     // Navigate using if/else structure like in code 1
-    if (menu === "Calendar") {
-      navigation.navigate("CalendarView");
-    } else if (menu === "Appointments") {
+    if (menu === "Home") {
+      navigation.navigate("Dashboard");
+    } else if (menu === "Calendar") {
+      navigation.navigate("DrCalendarView");
+    }else if (menu === "Appointments") {
       navigation.navigate("AppointmentsView");
-    } else if (menu === "History") {
+    }else if (menu === "Prescription") {
+      navigation.navigate("Prescription");
+    }else if (menu === "History") {
       navigation.navigate("History");
     } else if (menu === "Reminder") {
       navigation.navigate("ReminderView");
