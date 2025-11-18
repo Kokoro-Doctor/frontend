@@ -312,24 +312,6 @@ export const registerDoctor = async ({
     }),
   });
 
-<<<<<<< HEAD
-  const data = await parseJsonResponse(response, "Doctor registration failed");
-=======
-  let data;
-  try {
-    data = await response.json();
-  } catch (e) {
-    console.error("❌ Failed to parse JSON from doctor signup:", e);
-  }
-
-  if (!response.ok) {
-    console.error("❌ Doctor registration failed:");
-    console.error("Status:", response.status);
-    console.error("Response:", data);
-    throw new Error(data?.detail || "Doctor registration failed");
-  }
-
->>>>>>> 58f0b7a39d689095219b5c7841d068ba07d49b2a
   const { doctor } = data;
   await AsyncStorage.setItem("@doctor", JSON.stringify(doctor));
   return doctor;
