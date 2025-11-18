@@ -52,7 +52,7 @@ const DoctorPatientLandingPage = () => {
                     <Pressable
                       onPress={() =>
                         navigation.navigate("PatientAppNavigation", {
-                          screen: "Signup",
+                          screen: "LandingPage",
                         })
                       }
                       style={({ hovered, pressed }) => [
@@ -72,7 +72,7 @@ const DoctorPatientLandingPage = () => {
                     <Pressable
                       onPress={() =>
                         navigation.navigate("DoctorAppNavigation", {
-                          screen: "DoctorsSignUp",
+                          screen: "Dashboard",
                         })
                       }
                       style={({ hovered, pressed }) => [
@@ -410,13 +410,13 @@ const styles = StyleSheet.create({
     elevation: 5,
     cursor: "pointer",
   },
-  touchableBox: {
-    width: "100%",
-    height: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: "5%",
-  },
+  // touchableBox: {
+  //   width: "100%",
+  //   height: "100%",
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   paddingLeft: "5%",
+  // },
 
   app_boxText: {
     fontStyle: "Montserrat",

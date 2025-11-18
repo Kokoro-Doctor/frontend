@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -12,13 +12,13 @@ import {
   Animated,
   Text,
 } from "react-native";
-import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
+//import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-import Header from "../../components/PatientScreenComponents/Header";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
-import { TrackEvent } from "../../utils/TrackEvent";
+//import { TrackEvent } from "../../utils/TrackEvent";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 
 const { width, height } = Dimensions.get("window");
@@ -28,10 +28,10 @@ const Dashboard = ({ navigation, route }) => {
   const borderAnim = useRef(new Animated.Value(0)).current;
   //const [showBorder, setShowBorder] = useState(false);
   const [showLabel, setShowLabel] = useState(false);
-  const handlePress = (eventName, params, navigateTo) => {
-    TrackEvent(eventName, params);
-    navigation.navigate("PatientAppNavigation", { screen: navigateTo });
-  };
+  // const handlePress = (eventName, params, navigateTo) => {
+  //   TrackEvent(eventName, params);
+  //   navigation.navigate("PatientAppNavigation", { screen: navigateTo });
+  // };
 
   useFocusEffect(
     useCallback(() => {
@@ -59,7 +59,7 @@ const Dashboard = ({ navigation, route }) => {
       }, 1000);
 
       return () => clearTimeout(timer);
-    }, [setChatbotConfig])
+    }, [borderAnim, setChatbotConfig])
   );
 
   return (
@@ -84,7 +84,7 @@ const Dashboard = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
                   <View style={styles.title}>
                     <Title />
@@ -95,27 +95,16 @@ const Dashboard = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "Doctors",
+                          navigation.navigate("DoctorAppNavigation", {
+                            screen: "DoctorsSubscribers",
                           });
                         }}
-                        // onPress={() =>
-                        //   handlePress(
-                        //     "consultation_card_click",
-                        //     {
-                        //       clickText: "Consultation",
-                        //       clickID: "consultation-card",
-                        //     },
-                        //     "Doctors"
-                        //   )
-                        // }
                       >
                         <Image
                           source={require("../../assets/DoctorsPortal/Images/Subscribers.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>
-                      
 
                       <View style={styles.AiCard}>
                         <Animated.View
@@ -209,8 +198,8 @@ const Dashboard = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "Medilocker",
+                          navigation.navigate("DoctorAppNavigation", {
+                            screen: "GeneratePrescription",
                           });
                         }}
                       >
@@ -223,8 +212,8 @@ const Dashboard = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "Hospitals",
+                          navigation.navigate("DoctorAppNavigation", {
+                            screen: "DrCalendarView",
                           });
                         }}
                       >
@@ -246,7 +235,7 @@ const Dashboard = ({ navigation, route }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={[styles.header, { height: "15%" }]}>
-            <Header navigation={navigation} />
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
 
           <View style={styles.searchBar}>
@@ -347,9 +336,7 @@ const Dashboard = ({ navigation, route }) => {
                       }}
                       imageStyle={{ borderRadius: 14 }}
                       resizeMode="cover"
-                    >
-                      
-                    </ImageBackground>
+                    ></ImageBackground>
                   </TouchableOpacity>
                 </Animated.View>
 
@@ -363,7 +350,6 @@ const Dashboard = ({ navigation, route }) => {
                         inputRange: [0, 1],
                         outputRange: [0.8, 1],
                       }),
-                      
                     }}
                   >
                     <ImageBackground
@@ -372,7 +358,7 @@ const Dashboard = ({ navigation, route }) => {
                         width: 150,
                         height: "auto",
                         //alignSelf:"center",
-                        marginVertical:"5%",
+                        marginVertical: "5%",
                       }}
                       resizeMode="stretch"
                     >
@@ -384,9 +370,9 @@ const Dashboard = ({ navigation, route }) => {
                           textShadowColor: "rgba(0, 0, 0, 0.5)",
                           textShadowOffset: { width: 1, height: 1 },
                           textShadowRadius: 2,
-                          alignSelf:"center",
-                          marginTop:"8%",
-                          marginBottom:"3%"
+                          alignSelf: "center",
+                          marginTop: "8%",
+                          marginBottom: "3%",
                         }}
                       >
                         Try Me for Free
@@ -498,6 +484,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "transparent",
         justifyContent: "center",
+        height:"100%"
       },
     }),
   },

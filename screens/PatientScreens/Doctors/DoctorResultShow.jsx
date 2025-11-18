@@ -941,7 +941,7 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useChatbot } from "../../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
-import Header from "../../../components/PatientScreenComponents/Header";
+import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 import SearchBar from "../../../components/PatientScreenComponents/SearchBar";
 import DoctorAppointmentData from "../../../components/PatientScreenComponents/DoctorComponents/DoctorsAppointmentData";
 import PromoModal from "../../../components/PatientScreenComponents/PromoModal";
@@ -1096,8 +1096,8 @@ const DoctorResultShow = ({ navigation, route }) => {
                   <SideBarNavigation navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
-                  <View style={styles.header}>
-                    <Header navigation={navigation} />
+                  <View style={[styles.header, { height: "12%" }]}>
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
 
                   <View style={styles.contentContainer}>
@@ -1238,8 +1238,8 @@ const DoctorResultShow = ({ navigation, route }) => {
       {(Platform.OS !== "web" || width < 1000) && (
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
-          <View style={[styles.header, { height: "15%" }]}>
-            <Header navigation={navigation} />
+          <View style={[styles.header, { height: "12%" }]}>
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
 
           {/* Search and Category Section */}
@@ -1455,7 +1455,7 @@ const styles = StyleSheet.create({
         width: "20%",
         marginVertical: "1%",
         flexDirection: "column",
-        marginHorizontal:"0%"
+        marginHorizontal: "0%",
       },
     }),
   },
@@ -1484,8 +1484,8 @@ const styles = StyleSheet.create({
     paddingTop: "15%", // Adjust based on your layout
     paddingLeft: "5%", // Align with category button
     marginHorizontal: "0%",
-    marginVertical:"40%",
-    width:"70%",
+    marginVertical: "40%",
+    width: "70%",
     ...Platform.select({
       web: {
         flex: 1,
@@ -1495,7 +1495,7 @@ const styles = StyleSheet.create({
         paddingTop: "15%", // Adjust based on your layout
         paddingLeft: "5%", // Align with category button
         marginHorizontal: "14%",
-        marginVertical:"0%"
+        marginVertical: "0%",
       },
     }),
   },

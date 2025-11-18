@@ -1400,7 +1400,7 @@ const styles = StyleSheet.create({
   // ===== Mobile Header =====
   appHeaderContainer: {
     backgroundColor: "#fff",
-    padding: 10,
+    padding: "2%",
   },
   appHeader: {
     flexDirection: "row",
@@ -1412,7 +1412,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   hamburger: {
-    marginRight: 10,
+    marginRight: "2%",
   },
   appName: {
     fontWeight: "800",

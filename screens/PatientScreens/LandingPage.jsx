@@ -462,8 +462,9 @@ const styles = StyleSheet.create({
     width: "85%",
   },
   header: {
-     borderWidth: 5,
+    //borderWidth: 5,
     // borderColor: "black",
+    paddingHorizontal:"2%",
     zIndex: 2,
     ...Platform.select({
       web: {

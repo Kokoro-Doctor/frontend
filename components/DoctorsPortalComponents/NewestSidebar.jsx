@@ -12,7 +12,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
+const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const [selectedItem, setSelectedItem] = useState(activeItem);
@@ -26,6 +26,10 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
     {
       name: "Appointments",
       icon: require("../../assets/DoctorsPortal/Icons/appointment.png"),
+    },
+    {
+      name: "Prescription",
+      icon: require("../../assets/DoctorsPortal/Icons/PrescriptionIcon.png"),
     },
     {
       name: "History",
@@ -62,11 +66,13 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Calendar" }) => {
     // Navigate using if/else structure like in code 1
     if (menu === "Home") {
       navigation.navigate("Dashboard");
-    } else if (menu === "Calender") {
-      navigation.navigate("CalenderView");
+    } else if (menu === "Calendar") {
+      navigation.navigate("DrCalendarView");
     }else if (menu === "Appointments") {
       navigation.navigate("AppointmentsView");
-    } else if (menu === "History") {
+    }else if (menu === "Prescription") {
+      navigation.navigate("Prescription");
+    }else if (menu === "History") {
       navigation.navigate("History");
     } else if (menu === "Reminder") {
       navigation.navigate("ReminderView");
