@@ -16,7 +16,7 @@ import {
 import Header from "../../../components/PatientScreenComponents/Header";
 import NewSideNav from "../../../components/DoctorsPortalComponents/NewSideNav";
 import { useRegistration } from "../../../contexts/RegistrationContext";
-import { AntDesign } from "@expo/vector-icons"; // or use react-native-vector-icons
+//import { AntDesign } from "@expo/vector-icons"; // or use react-native-vector-icons
 
 // const { width, height } = Dimensions.get("window");
 
@@ -25,7 +25,7 @@ const DoctorCongrats = ({ navigation }) => {
 
   useEffect(() => {
     setIsRegistered(true);
-  }, []);
+  }, [setIsRegistered]);
   const { width } = useWindowDimensions();
 
   return (

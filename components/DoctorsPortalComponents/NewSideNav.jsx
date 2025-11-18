@@ -33,7 +33,7 @@ const NewSideNav = () => {
 		// setSelectedItem(menu);  //used for the red color color but is not working as intended
 		if (menu === "Home") {
 			if (isRegistered) {
-				navigation.navigate("CalendarView");
+				navigation.navigate("Dashboard");
 			} else {
 				navigation.navigate("DoctorPatientLandingPage");
 			}

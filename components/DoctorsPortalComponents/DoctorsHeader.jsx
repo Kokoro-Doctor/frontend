@@ -10,17 +10,16 @@ import {
   Modal,
   TextInput,
   Dimensions,
-  TouchableOpacity,
-  SafeAreaView,
 } from "react-native";
 import { AuthContext } from "../../contexts/AuthContext";
 import { MaterialIcons } from "@expo/vector-icons";
-import SideBarNavigation from "./SideBarNavigation";
-import NewestSidebar from "../DoctorsPortalComponents/NewestSidebar";
+import NewSideNav from "./NewSideNav";
+import NewestSidebar from "./NewestSidebar";
+//import DoctorPatientLandingPage from "../../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage1";
 
 const { width, height } = Dimensions.get("window");
 
-const Header = ({ navigation, isDoctorPortal = false }) => {
+const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
   const { user, logout, setRole } = useContext(AuthContext);
   const { width } = useWindowDimensions();
   const [isSideBarVisible, setIsSideBarVisible] = useState(false);
@@ -50,10 +49,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
   // };
 
   return (
-    // <SafeAreaView
-    //   style={[styles.safeArea, Platform.OS === "ios" && styles.iosExtraPadding]}
-    // >
-    <SafeAreaView style={styles.header}>
+    <View style={styles.header}>
       {user ? (
         // Show user info when logged in
         <>
@@ -66,20 +62,6 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                 <Text style={styles.subText}>
                   Here is your sales Medical dashboard
                 </Text>
-              </View>
-
-              {/* Search Bar */}
-              <View style={styles.searchContainer}>
-                <Image
-                  source={require("../../assets/Icons/search.png")}
-                  style={styles.searchIcon}
-                  resizeMode="contain"
-                />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search your query"
-                  placeholderTextColor="rgba(255, 255, 255, 1)"
-                />
               </View>
 
               {/* Notification and Profile Section */}
@@ -108,21 +90,11 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                   </Pressable>
                   {dropdownVisible && (
                     <View style={[styles.dropdownMain, styles.dropdownWeb]}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "Settings",
-                          })
-                        }
-                        style={styles.dropdownItem}
-                      >
+                      <Pressable onPress={() => {}} style={styles.dropdownItem}>
                         <Text style={styles.dropdownText}>Profile</Text>
-                      </TouchableOpacity>
-                      <Pressable onPress={logout} style={styles.dropdownItem}>
-                        <Text style={styles.dropdownText}>Logout</Text>
                       </Pressable>
                       <Pressable onPress={logout} style={styles.dropdownItem}>
-                        <Text style={styles.dropdownText}>Delete Account</Text>
+                        <Text style={styles.dropdownText}>Logout</Text>
                       </Pressable>
                     </View>
                   )}
@@ -140,7 +112,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
               >
                 <View style={styles.modalContainer}>
                   <View style={styles.mobileSidebar}>
-                    <SideBarNavigation
+                    <NewestSidebar
                       navigation={navigation}
                       closeSidebar={() => setIsSideBarVisible(false)}
                     />
@@ -203,11 +175,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                         style={[styles.dropdownMain, styles.dropdownLoggedIn]}
                       >
                         <Pressable
-                          onPress={() =>
-                            navigation.navigate("PatientAppNavigation", {
-                              screen: "Settings",
-                            })
-                          }
+                          onPress={() => {}}
                           style={styles.dropdownItem}
                         >
                           <Text style={styles.dropdownText}>Profile</Text>
@@ -251,12 +219,6 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
           {Platform.OS === "web" && width > 1000 && (
             <View style={styles.authButtonsWeb}>
               <Pressable
-                onPress={() => navigation.navigate("DoctorsSignUp")}
-                style={[styles.doctorButton]}
-              >
-                <Text style={styles.doctorButtonText}>Are you a doctor ?</Text>
-              </Pressable>
-              <Pressable
                 onPress={() => navigation.navigate("Login")}
                 //onPress={() => handleOptionPress("DoctorPatientLandingPage")}
                 style={styles.authButton}
@@ -289,6 +251,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
 
           {(Platform.OS !== "web" || width < 1000) && (
             <>
+
               <Modal
                 visible={isSideBarVisible}
                 transparent={true}
@@ -302,7 +265,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                         closeSidebar={() => setIsSideBarVisible(false)}
                       />
                     ) : (
-                      <SideBarNavigation
+                      <NewestSidebar
                         navigation={navigation}
                         closeSidebar={() => setIsSideBarVisible(false)}
                       />
@@ -340,9 +303,9 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
 
                   <View style={styles.authButtonsApp}>
                     <Pressable
-                      style={styles.authButtonBox}
                       onPress={() => setDropdownVisible(!dropdownVisible)}
                     >
+
                       <MaterialIcons name="person" size={30} color="black" />
                     </Pressable>
                     <Pressable>
@@ -357,20 +320,12 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                         style={[styles.dropdownMain, styles.dropdownLoggedOut]}
                       >
                         <Pressable
-                          onPress={() => navigation.navigate("DoctorsSignUp")}
-                          style={[styles.doctorButtonApp]}
-                        >
-                          <Text style={styles.doctorButtonTextApp}>
-                            Are you a doctor?
-                          </Text>
-                        </Pressable>
-                        <TouchableOpacity
                           //onPress={() => handleOptionPress("Login")}
                           onPress={() => navigation.navigate("Login")}
                           style={styles.dropdownItem}
                         >
                           <Text style={styles.dropdownText}>Login</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                         <Pressable
                           ///onPress={() => handleOptionPress("Signup")}
                           onPress={handleOptionPress}
@@ -379,6 +334,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                           <Text style={styles.dropdownText}>Signup</Text>
                         </Pressable>
                       </View>
+
                     )}
                   </View>
                 </View>
@@ -388,7 +344,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                       style={{
                         fontWeight: "600",
                         color: "#000000",
-                        fontSize: 19,
+                        fontSize: 20,
                       }}
                     >
                       Hello,
@@ -397,7 +353,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                       style={{
                         fontWeight: "800",
                         color: "#000000",
-                        fontSize: 19,
+                        fontSize: 20,
                       }}
                     >
                       {" "}
@@ -410,22 +366,16 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
           )}
         </>
       )}
-    </SafeAreaView>
-    // </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    //backgroundColor: "#fff",
-  },
-  iosExtraPadding: {
-    paddingTop: "0%",
-  },
   header: {
     //height: "100%",
-    marginTop: "0%",
+    marginTop: "2%",
     justifyContent: "center",
+    //alignItems: "center",
     ...Platform.select({
       web: {
         marginTop: 5,
@@ -441,15 +391,11 @@ const styles = StyleSheet.create({
   },
   appHeader: {
     width: "100%",
-    height: 65,
+    height: 70,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: "4%",
-    // borderWidth: 1,
-    marginTop: "0%",
-    // boxShadow:
-    //   "rgba(235, 152, 157, 0.23) 0px 30px 60px -12px inset, rgba(199, 196, 196, 0.3) 0px 18px 36px -18px inset",
+    paddingHorizontal: 15,
     ...Platform.select({
       web: {
         //gap: 100,
@@ -457,7 +403,7 @@ const styles = StyleSheet.create({
     }),
   },
   hamburger: {
-    marginHorizontal: "2%",
+    marginHorizontal: 5,
   },
   overlay: {
     position: "absolute",
@@ -472,7 +418,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    width: "60%",
+    width: "70%",
     height: "100%",
     backgroundColor: "#fff",
     zIndex: 51,
@@ -487,46 +433,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-end",
     marginRight: 20,
-    //borderWidth:1,
-    justifyContent: "space-around",
-    width: "25%",
   },
   authButtonsApp: {
     flexDirection: "row",
     alignItems: "center",
     gap: 15,
-    marginRight: "3%",
-  },
-  authButtonBox: {
-    //borderWidth:1,
-  },
-  // doctorButtonApp: {
-  //   marginHorizontal: "4%",
-  //   borderWidth: 1,
-  //   width: "60%",
-  //   alignItems: "center",
-  // },
-  doctorButtonTextApp:{
-    fontSize:14,
-    color:"rgba(255, 112, 114, 1)",
-    fontWeight:700,
-    marginTop:"3%"
-  },
-  doctorButton: {
-    borderWidth: 1,
-    borderRadius: 5,
-    width: "50%",
-    height: "60%",
-    alignItems: "center",
-    marginVertical: "3%",
-    backgroundColor: "#fff",
-  },
-  doctorButtonText: {
-    color: " rgba(255, 112, 114, 1)",
-    fontWeight: 700,
-    marginVertical: "1%",
-    fontSize: 17,
-    
+    marginRight: "5%",
   },
   authButton: {
     height: 50,
@@ -555,8 +467,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   userInfoWeb: {
-    width: "100%",
-    justifyContent: "space-around",
+    width: "93%",
+    justifyContent: "space-between",
+    marginHorizontal: "auto",
   },
   userInfoApp: {},
   userIcon: {
@@ -571,8 +484,7 @@ const styles = StyleSheet.create({
   },
   usernameApp: {
     flexDirection: "row",
-    marginLeft: "6%",
-    marginTop: "0%",
+    marginLeft: 20,
   },
   logoutButton: {
     padding: 8,
@@ -603,8 +515,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     zIndex: 100,
-    //marginRight: "6%",
-    width:120
   },
   dropdownLoggedOut: {
     top: 30,
@@ -616,13 +526,13 @@ const styles = StyleSheet.create({
   },
   dropdownWeb: {
     top: 40,
-    right: "2%",
+    right: -70,
   },
   dropdownItem: {
     padding: 10,
   },
   dropdownText: {
-    fontSize: 14,
+    fontSize: 16,
   },
   welcomeContainer: {},
   welcomeText: {
@@ -634,33 +544,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#ddd",
     marginTop: "1%",
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignSelf: "center",
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    height: "80%",
-    width: "30%",
-    marginHorizontal: "10%",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.66)",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  searchIcon: {
-    width: 16,
-    height: 16,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    color: "#fff",
-    fontSize: 16,
-    borderWidth: 0,
-    backgroundColor: "transparent",
-    paddingVertical: 0,
-    outlineStyle: "none",
   },
   iconsContainer: {
     flexDirection: "row",
@@ -688,4 +571,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Header;
+export default DoctorsHeader;

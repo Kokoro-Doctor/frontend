@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -10,17 +10,25 @@ import {
   useWindowDimensions,
   ScrollView,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import NewSideNav from "../../../components/DoctorsPortalComponents/NewSideNav";
 import { useNavigation } from "@react-navigation/native";
 import SideImageStyle from "../../../components/DoctorsPortalComponents/SideImageStyle";
-import { registerDoctor } from "../../../utils/AuthService";
+import {
+  registerDoctor,
+  useGoogleAuth,
+  handleGoogleLogin,
+} from "../../../utils/AuthService";
 import Header from "../../../components/PatientScreenComponents/Header";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const DoctorsSignUp = () => {
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
   const [rememberMe, setRememberMe] = useState(false);
+  const [request, response, promptAsync] = useGoogleAuth();
+  const { doctorsSignup } = useAuth();
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
@@ -38,6 +46,71 @@ const DoctorsSignUp = () => {
     setRememberMe(!rememberMe);
   };
 
+  useEffect(() => {
+    const handleGoogleResponse = async () => {
+      if (response?.type === "success") {
+        try {
+          const googleUser = await handleGoogleLogin(response);
+          if (googleUser) {
+            // Save Google user as a doctor
+            await AsyncStorage.setItem("@doctor", JSON.stringify(googleUser));
+            // setDoctor({
+            //   doctorname: googleUser.doctorname,
+            //   email: googleUser.email,
+            // });
+            alert(`Welcome Dr. ${googleUser.doctorname || ""}!`);
+            navigation.navigate("DoctorMedicalRegistration", {
+              email: googleUser.email,
+              doctorname:googleUser.name,
+            });
+          }
+        } catch (error) {
+          console.error("Google doctor login error:", error);
+          alert("Google Sign-In failed. Please try again.");
+        }
+      }
+      // if (response?.type === "success") {
+      //   try {
+      //     const googleUser = await handleGoogleLogin(response);
+      //     if (googleUser) {
+      //       // ✅ Auto-register doctor in backend (with placeholder password)
+      //       // const doctorData = await registerDoctor({
+      //       //   doctorname: googleUser.name || "Doctor",
+      //       //   email: googleUser.email,
+      //       //   password: "google-auth-password", // required by backend (≥5 chars)
+      //       //   phoneNumber: "0000000000", // placeholder, can be updated later
+      //       //   location: "Not specified",
+      //       // });
+
+      //       // ✅ Save locally
+      //       await AsyncStorage.setItem("@doctor", JSON.stringify(doctorData));
+
+      //       // ✅ Navigate to medical registration
+      //       alert(
+      //         `Welcome Dr. ${doctorData.doctorname || googleUser.name || ""}!`
+      //       );
+      //       navigation.navigate("DoctorMedicalRegistration", {
+      //         email: doctorData.email,
+      //         doctorname: doctorData.doctorname,
+      //       });
+      //     }
+      //   } catch (error) {
+      //     console.error("Google doctor signup error:", error);
+      //     alert(error.message || "Google Sign-Up failed. Please try again.");
+      //   }
+      // }
+    };
+    handleGoogleResponse();
+  }, [navigation, response]);
+
+  const triggerGoogleLogin = useCallback(() => {
+    if (request) {
+      promptAsync(); // must be called immediately
+    } else {
+      console.log("Google auth request not ready yet");
+    }
+  }, [request, promptAsync]);
+
   const handleSignup = async () => {
     try {
       await registerDoctor({
@@ -47,8 +120,10 @@ const DoctorsSignUp = () => {
         phoneNumber: formData.phoneNumber,
         location: formData.location,
       });
+
       alert("Doctor registered successfully!");
-      navigation.navigate("DoctorMedicalRegistration", {
+      navigation.navigate("DoctorAppNavigation", {
+        screen: "DoctorMedicalRegistration",
         email: formData.email,
       });
     } catch (error) {
@@ -62,7 +137,7 @@ const DoctorsSignUp = () => {
       {Platform.OS === "web" && width > 1000 && (
         <View style={styles.webContainer}>
           <NewSideNav navigation={navigation} />
-          <View style={styles.Content}>
+          <ScrollView style={styles.Content}>
             <View style={styles.DetailContainer}>
               <Text style={styles.heading}>Sign Up</Text>
               <View style={styles.details}>
@@ -180,14 +255,28 @@ const DoctorsSignUp = () => {
                 <TouchableOpacity
                   style={styles.skipContainer}
                   onPress={() =>
-                    navigation.navigate("DoctorMedicalRegistration")
+                    navigation.navigate("DoctorAppNavigation", {
+                      screen: "DoctorMedicalRegistration",
+                    })
                   }
                 >
                   <Text style={styles.continueText}>Skip</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.googleButton}
+                  onPress={triggerGoogleLogin}
+                >
+                  <Image
+                    source={require("../../../assets/Images/google-icon.png")}
+                    style={styles.googleIcon}
+                  />
+                  <Text style={styles.googleButtonText}>
+                    Sign in with Google
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ScrollView>
           <SideImageStyle />
         </View>
       )}
@@ -333,6 +422,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     backgroundColor: "#FCF5F7",
+    height: "100%",
   },
 
   header: {
@@ -350,11 +440,11 @@ const styles = StyleSheet.create({
   headContainer: {
     height: 70,
     marginBottom: "10%",
-
     width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
+    //justifyContent: "space-evenly",
+    //alignItems: "center",
     zIndex: 2,
+    //borderWidth: 1,
   },
   appContainer: {
     // flex: 1,
@@ -369,7 +459,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FCF5F7",
     ...Platform.select({
       web: {
-        width: "60%",
+        width: "100%",
         height: "auto",
       },
     }),
@@ -389,14 +479,22 @@ const styles = StyleSheet.create({
       web: {
         alignItems: "left",
         width: "100%",
-        //borderWidth:1
+        //borderWidth: 1,
+        //height:"70%"
       },
     }),
   },
 
   inputWrapper: {
     width: "100%",
-    maxWidth: 400,
+    //borderWidth: 1,
+    ...Platform.select({
+      web: {
+        //width: "100%",
+        maxWidth: 800,
+        //borderWidth: 1,
+      },
+    }),
   },
 
   heading: {
@@ -408,9 +506,9 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         fontSize: 30,
-        fontWeight: "500",
+        fontWeight: 500,
         marginBottom: "2%",
-        marginTop: "10%",
+        marginTop: "4%",
       },
     }),
   },
@@ -460,7 +558,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         fontSize: 14,
         paddingHorizontal: 5,
-        //width: "30%",
+        width: "100%",
         backgroundColor: "#fff",
         marginBottom: 10,
         shadowColor: "#000",
@@ -524,7 +622,8 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignSelf: "center",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: "2%",
+    //borderWidth:1
   },
 
   continueContainer: {
@@ -539,7 +638,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     ...Platform.select({
       web: {
-        width: "60%",
+        width: "100%",
         height: 42,
         backgroundColor: "#1FBF86",
         borderRadius: 5,
@@ -587,7 +686,7 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         marginLeft: "15%",
-        width: "30%",
+        width: "40%",
       },
     }),
   },
@@ -605,6 +704,28 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 10,
     borderRadius: 12,
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "60%",
+    height: 42,
+    //borderWidth: 1,
+    borderColor: "#151212ff",
+    borderRadius: 4,
+    //marginBottom: "3%",
+    marginTop: "3%",
+    backgroundColor: "#c1bfbfff",
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: "2%",
+  },
+  googleButtonText: {
+    fontSize: 16,
+    color: "#0e0e0eff",
   },
 });
 export default DoctorsSignUp;

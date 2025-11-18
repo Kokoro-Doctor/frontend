@@ -104,7 +104,7 @@ const Signup = ({ navigation, route }) => {
                 resizeMode="cover"
               >
                 <Text style={styles.quoteText}>
-                  "Nurture Your Heart. It Will Nurture You."
+                  Nurture Your Heart. It Will Nurture You
                 </Text>
               </ImageBackground>
             </View>

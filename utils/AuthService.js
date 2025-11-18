@@ -198,6 +198,9 @@
 //   return null;
 // };
 
+
+
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
@@ -262,6 +265,33 @@ export const signInWithGoogleApp = async () => {
 
 // ================= Regular Auth =================
 
+// export const registerDoctor = async ({
+//   doctorname,
+//   email,
+//   password,
+//   phoneNumber,
+//   location,
+// }) => {
+//   const response = await fetch(`${API_URL}/auth/doctor/signup`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({
+//       doctorname,
+//       email,
+//       password,
+//       phoneNumber,
+//       location,
+//     }),
+//   });
+
+//   if (!response.ok) throw new Error("Doctor registration failed");
+
+//   const data = await response.json();
+//   const { doctor } = data;
+//   await AsyncStorage.setItem("@doctor", JSON.stringify(doctor));
+//   return doctor;
+// };
+
 export const registerDoctor = async ({
   doctorname,
   email,
@@ -281,9 +311,20 @@ export const registerDoctor = async ({
     }),
   });
 
-  if (!response.ok) throw new Error("Doctor registration failed");
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    console.error("❌ Failed to parse JSON from doctor signup:", e);
+  }
 
-  const data = await response.json();
+  if (!response.ok) {
+    console.error("❌ Doctor registration failed:");
+    console.error("Status:", response.status);
+    console.error("Response:", data);
+    throw new Error(data?.detail || "Doctor registration failed");
+  }
+
   const { doctor } = data;
   await AsyncStorage.setItem("@doctor", JSON.stringify(doctor));
   return doctor;
@@ -313,7 +354,13 @@ export const registerDoctor = async ({
 //   return user;
 // };
 
-export const signup = async (username, email, password, phoneNumber, location) => {
+export const signup = async (
+  username,
+  email,
+  password,
+  phoneNumber,
+  location
+) => {
   const response = await fetch(`${API_URL}/auth/user/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -337,8 +384,6 @@ export const signup = async (username, email, password, phoneNumber, location) =
   await AsyncStorage.setItem("@user", JSON.stringify(userData));
   return userData;
 };
-
-
 
 export const login = async (email, password) => {
   const response = await fetch(`${API_URL}/auth/user/login`, {
