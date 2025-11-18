@@ -10,12 +10,19 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
+import { useLoginModal } from "../../../contexts/LoginModalContext";
 
 const { width, height } = Dimensions.get("window");
 
 const PrivacyPolicy = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const [selectedButton, setSelectedButton] = useState(null);
+  const { triggerLoginModal } = useLoginModal();
+
+  const openSignupModal = () => {
+    triggerLoginModal({ mode: "signup" });
+    navigation.navigate("LandingPage");
+  };
 
   const BulletItem = (
     { children, level = 0 } // Added level prop for nested bullets
@@ -420,7 +427,10 @@ const PrivacyPolicy = ({ navigation, route }) => {
                 <Text style={styles.policyText}>{"\n"}13. Contact Us </Text>
                 <BulletItem>Email: business.support@profcess.org</BulletItem>
                 <BulletItem>Phone: +91 7470472725</BulletItem>
-                <BulletItem>Registered Office: 1st floor Harvard Innovation Lab, Cambridge, USA</BulletItem>
+                <BulletItem>
+                  Registered Office: 1st floor Harvard Innovation Lab,
+                  Cambridge, USA
+                </BulletItem>
                 <Text style={styles.policyText}>{"\n"}14. Disclaimer </Text>
                 <Text style={styles.policyText}>
                   Kokoro.Doctor is a technology platform designed to facilitate
@@ -446,7 +456,7 @@ const PrivacyPolicy = ({ navigation, route }) => {
                 ]}
                 onPress={() => {
                   setSelectedButton("decline");
-                  navigation.navigate("Signup");
+                  openSignupModal();
                 }}
               >
                 <Text
@@ -466,7 +476,7 @@ const PrivacyPolicy = ({ navigation, route }) => {
                 ]}
                 onPress={() => {
                   setSelectedButton("agree");
-                  navigation.navigate("Signup", { agreedToPolicy: true });
+                  openSignupModal();
                 }}
               >
                 <Text
@@ -503,7 +513,7 @@ const PrivacyPolicy = ({ navigation, route }) => {
                   />
                 </View>
                 <Text style={styles.appPrivacyHeader}>
-                Privacy Policy – Kokoro.Doctor
+                  Privacy Policy – Kokoro.Doctor
                 </Text>
                 {/* <Text style={styles.appPrivacyWelcome}>Welcome</Text>
                 <Text style={styles.appPrivacyDate}>
@@ -887,7 +897,10 @@ const PrivacyPolicy = ({ navigation, route }) => {
                 <Text style={styles.appPolicyText}>{"\n"}13. Contact Us </Text>
                 <BulletItem>Email: business.support@profcess.org</BulletItem>
                 <BulletItem>Phone: +91 7470472725</BulletItem>
-                <BulletItem>Registered Office: 1st floor Harvard Innovation Lab, Cambridge, USA</BulletItem>
+                <BulletItem>
+                  Registered Office: 1st floor Harvard Innovation Lab,
+                  Cambridge, USA
+                </BulletItem>
                 <Text style={styles.appPolicyText}>{"\n"}14. Disclaimer </Text>
                 <Text style={styles.appPolicyText}>
                   Kokoro.Doctor is a technology platform designed to facilitate
@@ -912,7 +925,7 @@ const PrivacyPolicy = ({ navigation, route }) => {
                 ]}
                 onPress={() => {
                   setSelectedButton("decline");
-                  navigation.navigate("Signup");
+                  openSignupModal();
                 }}
               >
                 <Text
@@ -942,7 +955,7 @@ const PrivacyPolicy = ({ navigation, route }) => {
                 ]}
                 onPress={() => {
                   setSelectedButton("agree");
-                  navigation.navigate("Signup", { agreedToPolicy: true });
+                  openSignupModal();
                 }}
               >
                 <Text

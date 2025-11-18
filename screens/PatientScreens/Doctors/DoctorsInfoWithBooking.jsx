@@ -36,6 +36,9 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
   const [isReady, setIsReady] = useState(false); // Delay rendering
 
   const { user } = useAuth();
+  const doctorIdentifier =
+    doctors?.doctor_id || doctors?.id || doctors?.email || null;
+  const userIdentifier = user?.user_id || user?.email || null;
 
   useEffect(() => {
     const tryParseDoctorFromUrl = () => {
@@ -97,7 +100,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              doctor_id: doctors.id || doctors.email,
+              doctor_id: doctorIdentifier,
               date: dateString,
             }),
           });
@@ -139,11 +142,11 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
       }
     };
 
-    if (doctors?.id || doctors?.email) {
-      console.log("Doctor ID:", doctors.id || doctors.email);
+    if (doctorIdentifier) {
+      console.log("Doctor ID:", doctorIdentifier);
       getDatesAndSlots();
     }
-  }, [doctors]);
+  }, [doctorIdentifier]);
 
   const handleDateSelect = (dateStr) => {
     const selected = availableDates.find((d) => d.date === dateStr);
@@ -160,12 +163,20 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
       return;
     }
 
+    if (!doctorIdentifier) {
+      Alert.alert("Error", "Doctor information is missing.");
+      return;
+    }
+    if (!userIdentifier) {
+      Alert.alert("Please sign in", "Log in to book a slot.");
+      return;
+    }
     try {
       console.log("Booking request payload:", {
-        doctor_id: doctors.email,
+        doctor_id: doctorIdentifier,
         date: selectedDate,
         start: selectedTimeSlot,
-        user_id: user.email,
+        user_id: userIdentifier,
       });
 
       const res = await fetch(`${API_URL}/doctorBookings/book`, {
@@ -175,10 +186,10 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
           ...(user.token && { Authorization: `Bearer ${user.token}` }),
         },
         body: JSON.stringify({
-          doctor_id: doctors.email,
+          doctor_id: doctorIdentifier,
           date: selectedDate,
           start: selectedTimeSlot,
-          user_id: user.email,
+          user_id: userIdentifier,
           platform: Platform.OS === "web" ? "web" : "mobile",
         }),
       });

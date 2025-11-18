@@ -1,4 +1,3 @@
-import { useNavigation } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import React from "react";
 import {
@@ -9,26 +8,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useLoginModal } from "../../../contexts/LoginModalContext";
 
 const SignInPopup = ({ isVisible, onClose, onMaybeLater }) => {
-  const navigation = useNavigation();
+  const { triggerLoginModal } = useLoginModal();
 
   const handleLogin = () => {
     onClose();
-    navigation.navigate("Login");
+    triggerLoginModal({ mode: "login" });
   };
 
   const handleSignUp = () => {
     onClose();
-    // Navigate to Signup screen using nested navigation
-    // Since Signup is inside PatientAppNavigation, we need to navigate to the nested route
-    // Get root navigator to ensure navigation works from any context
-    const rootNavigation = navigation.getParent() || navigation;
-
-    // Use nested navigation pattern - this works from both root and nested navigator contexts
-    rootNavigation.navigate("PatientAppNavigation", {
-      screen: "Signup",
-    });
+    triggerLoginModal({ mode: "signup" });
   };
 
   const handleStayLoggedOut = () => {

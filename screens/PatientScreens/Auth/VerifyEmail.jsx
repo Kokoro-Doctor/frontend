@@ -8,7 +8,9 @@ import {
   View,
 } from "react-native";
 import * as Linking from "expo-linking";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../../env-vars";
+import { useLoginModal } from "../../../contexts/LoginModalContext";
 
 const VerifyEmail = ({ route, navigation }) => {
   const [status, setStatus] = useState("verifying"); // verifying | success | failed
@@ -16,13 +18,20 @@ const VerifyEmail = ({ route, navigation }) => {
   const [email, setEmail] = useState("");
   const [isResending, setIsResending] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
+  const [verificationToken, setVerificationToken] = useState("");
+  const { triggerLoginModal } = useLoginModal();
+
+  const navigateToLandingAndOpen = (mode) => {
+    triggerLoginModal({ mode });
+    navigation.navigate("LandingPage");
+  };
 
   const performVerification = useCallback(async (targetEmail, token) => {
     setStatus("verifying");
     setMessage("");
 
     try {
-      const response = await fetch(`${API_URL}/auth/verify`, {
+      const response = await fetch(`${API_URL}/auth/verify-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: targetEmail, token }),
@@ -31,6 +40,22 @@ const VerifyEmail = ({ route, navigation }) => {
 
       if (!response.ok) {
         throw new Error(data?.detail || data?.message || "Verification failed.");
+      }
+
+      if (data?.verification_token) {
+        setVerificationToken(data.verification_token);
+        try {
+          await AsyncStorage.setItem(
+            "@signupVerification",
+            JSON.stringify({
+              token: data.verification_token,
+              email: targetEmail,
+              timestamp: Date.now(),
+            })
+          );
+        } catch (storageError) {
+          console.error("Failed to persist verification token", storageError);
+        }
       }
 
       setStatus("success");
@@ -122,9 +147,17 @@ const VerifyEmail = ({ route, navigation }) => {
           <>
             <Text style={[styles.title, styles.success]}>Email verified 🎉</Text>
             <Text style={styles.subtitle}>{message}</Text>
+            {verificationToken ? (
+              <TouchableOpacity
+                style={[styles.primaryButton, styles.secondaryButton]}
+                onPress={() => navigateToLandingAndOpen("signup")}
+              >
+                <Text style={styles.secondaryButtonText}>Continue signup</Text>
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity
               style={styles.primaryButton}
-              onPress={() => navigation.navigate("Login")}
+              onPress={() => navigateToLandingAndOpen("login")}
             >
               <Text style={styles.primaryButtonText}>Go to login</Text>
             </TouchableOpacity>

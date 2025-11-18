@@ -25,6 +25,7 @@ import {
 } from "../../../utils/chatLimitManager";
 import { getSessionId } from "../../../utils/sessionManager";
 import SignInPopup from "./SignInPopup";
+import FormattedMessageText from "./FormattedMessageText";
 
 const languages = [
   { label: "English (In)", value: "en" },
@@ -59,8 +60,10 @@ const MobileChatbot = () => {
   // Set userID when user signs in
   useEffect(() => {
     if (user) {
-      setUserId(user?.email);
+      setUserId(user?.user_id || user?.email);
       // Note: Session and chat count cleanup is handled in AuthContext
+    } else {
+      setUserId(null);
     }
   }, [user]);
 
@@ -310,7 +313,7 @@ const MobileChatbot = () => {
               : styles.botMessageBox
           }
         >
-          <Text style={styles.messageText}>{item.text}</Text>
+          <FormattedMessageText sender={item.sender} text={item.text} />
           <Text style={styles.timestamp}>{item.timestamp}</Text>
           {item.sender === "bot" && !isLoading && (
             <View style={styles.botIcons}>
@@ -555,9 +558,6 @@ const styles = StyleSheet.create({
   },
   messageContent: {
     maxWidth: "70%",
-  },
-  messageText: {
-    fontSize: 16,
   },
   timestamp: {
     fontSize: 12,

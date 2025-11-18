@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -16,9 +16,10 @@ import NewSideNav from "../../../components/DoctorsPortalComponents/NewSideNav";
 import { useNavigation } from "@react-navigation/native";
 import SideImageStyle from "../../../components/DoctorsPortalComponents/SideImageStyle";
 import {
-  registerDoctor,
   useGoogleAuth,
   handleGoogleLogin,
+  initiateDoctorSignupVerification,
+  verifyMobileOtp,
 } from "../../../utils/AuthService";
 import Header from "../../../components/PatientScreenComponents/Header";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -29,6 +30,10 @@ const DoctorsSignUp = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [request, response, promptAsync] = useGoogleAuth();
   const { doctorsSignup } = useAuth();
+  const isPhoneValid = formData.phoneNumber?.trim()?.length >= 8;
+  const canSendOtp =
+    isPhoneValid && otpCountdown === 0 && otpStatus !== "sending" && otpStatus !== "verified";
+  const isOtpComplete = otpValue.trim().length === 6;
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
@@ -38,6 +43,11 @@ const DoctorsSignUp = () => {
     password: "",
     otp: ["", "", "", ""],
   });
+  const [verificationToken, setVerificationToken] = useState("");
+  const [otpValue, setOtpValue] = useState("");
+  const [otpStatus, setOtpStatus] = useState("idle");
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const otpIntervalRef = useRef(null);
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -103,6 +113,44 @@ const DoctorsSignUp = () => {
     handleGoogleResponse();
   }, [navigation, response]);
 
+  useEffect(() => {
+    if (otpCountdown <= 0) {
+      if (otpIntervalRef.current) {
+        clearInterval(otpIntervalRef.current);
+        otpIntervalRef.current = null;
+      }
+      return;
+    }
+
+    otpIntervalRef.current = setInterval(() => {
+      setOtpCountdown((prev) => {
+        if (prev <= 1) {
+          if (otpIntervalRef.current) {
+            clearInterval(otpIntervalRef.current);
+            otpIntervalRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (otpIntervalRef.current) {
+        clearInterval(otpIntervalRef.current);
+        otpIntervalRef.current = null;
+      }
+    };
+  }, [otpCountdown]);
+
+  useEffect(() => {
+    return () => {
+      if (otpIntervalRef.current) {
+        clearInterval(otpIntervalRef.current);
+      }
+    };
+  }, []);
+
   const triggerGoogleLogin = useCallback(() => {
     if (request) {
       promptAsync(); // must be called immediately
@@ -111,14 +159,62 @@ const DoctorsSignUp = () => {
     }
   }, [request, promptAsync]);
 
-  const handleSignup = async () => {
+  const handleSendOtp = async () => {
+    if (!isPhoneValid) {
+      alert("Please enter a valid phone number to receive OTP.");
+      return;
+    }
+    setOtpStatus("sending");
     try {
-      await registerDoctor({
-        doctorname: `${formData.firstname} ${formData.lastname}`,
+      await initiateDoctorSignupVerification({
+        phoneNumber: formData.phoneNumber.trim(),
+      });
+      setOtpStatus("sent");
+      setOtpCountdown(60);
+      alert("OTP sent to your phone number.");
+    } catch (error) {
+      console.error("Failed to send OTP:", error);
+      alert(error.message || "Failed to send OTP. Please try again.");
+      setOtpStatus("idle");
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!isOtpComplete) {
+      alert("Please enter the 6-digit OTP.");
+      return;
+    }
+    setOtpStatus("verifying");
+    try {
+      const response = await verifyMobileOtp({
+        phoneNumber: formData.phoneNumber.trim(),
+        otp: otpValue.trim(),
+      });
+      if (response?.verification_token) {
+        setVerificationToken(response.verification_token);
+      }
+      setOtpStatus("verified");
+      alert("Phone number verified successfully.");
+    } catch (error) {
+      console.error("Failed to verify OTP:", error);
+      alert(error.message || "Failed to verify OTP.");
+      setOtpStatus("sent");
+    }
+  };
+
+  const handleSignup = async () => {
+    if (!verificationToken) {
+      alert("Please verify your phone number before continuing.");
+      return;
+    }
+    try {
+      await doctorsSignup({
+        doctorname: `${formData.firstname} ${formData.lastname}`.trim(),
         email: formData.email,
         password: formData.password,
         phoneNumber: formData.phoneNumber,
         location: formData.location,
+        verificationToken,
       });
 
       alert("Doctor registered successfully!");
@@ -127,7 +223,7 @@ const DoctorsSignUp = () => {
         email: formData.email,
       });
     } catch (error) {
-      alert(error.message);
+      alert(error.message || "Doctor registration failed.");
       console.error("Doctor registration error:", error);
     }
   };
@@ -193,20 +289,87 @@ const DoctorsSignUp = () => {
                   value={formData.location}
                   onChangeText={(val) => handleChange("location", val)}
                 />
-                <Text style={styles.inputHeading}>Phone No</Text>
-                <TextInput
-                  placeholder="Enter your phone number..."
-                  placeholderTextColor="#c0c0c0"
-                  keyboardType="phone-pad"
-                  style={[
-                    styles.inputContainer,
-                    Platform.OS === "web" &&
-                      width > 1000 && { width: "60%", height: 36 },
-                    { color: formData.phoneNumber ? "black" : "#c0c0c0" },
-                  ]}
-                  value={formData.phone}
-                  onChangeText={(val) => handleChange("phoneNumber", val)}
-                />
+                <Text style={styles.inputHeading}>Phone Number</Text>
+                <View style={styles.phoneInputRow}>
+                  <TextInput
+                    placeholder="Enter your phone number..."
+                    placeholderTextColor="#c0c0c0"
+                    keyboardType="phone-pad"
+                    style={[
+                      styles.inputContainer,
+                      styles.phoneInput,
+                      Platform.OS === "web" &&
+                        width > 1000 && { width: "60%", height: 36 },
+                      { color: formData.phoneNumber ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.phoneNumber}
+                    onChangeText={(val) => handleChange("phoneNumber", val)}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.sendOtpButton,
+                      (!canSendOtp && otpStatus !== "verified") && styles.disabledOtpButton,
+                      otpStatus === "verified" && styles.verifiedBadge,
+                    ]}
+                    onPress={handleSendOtp}
+                    disabled={!canSendOtp}
+                  >
+                    <Text style={styles.sendOtpButtonText}>
+                      {otpStatus === "verified"
+                        ? "Verified"
+                        : otpStatus === "sending"
+                        ? "Sending..."
+                        : otpCountdown > 0
+                        ? `Resend in ${otpCountdown}s`
+                        : "Send OTP"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {(otpStatus !== "idle" || verificationToken) && (
+                  <View style={styles.otpRow}>
+                    <TextInput
+                      placeholder="6-digit OTP"
+                      placeholderTextColor="#c0c0c0"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      style={[styles.inputContainer, styles.otpInput]}
+                      value={otpValue}
+                      onChangeText={(value) =>
+                        setOtpValue(value.replace(/[^0-9]/g, ""))
+                      }
+                    />
+                    <TouchableOpacity
+                      style={[
+                        styles.verifyOtpButton,
+                        (!isOtpComplete || otpStatus === "verified") && styles.disabledOtpButton,
+                      ]}
+                      onPress={handleVerifyOtp}
+                      disabled={
+                        !isOtpComplete ||
+                        otpStatus === "verifying" ||
+                        otpStatus === "verified"
+                      }
+                    >
+                      <Text style={styles.verifyOtpButtonText}>
+                        {otpStatus === "verified"
+                          ? "Verified"
+                          : otpStatus === "verifying"
+                          ? "Verifying..."
+                          : "Verify OTP"}
+                      </Text>
+                    </TouchableOpacity>
+                    {otpStatus === "verified" && (
+                      <Text style={styles.verificationMessage}>
+                        Phone verified successfully.
+                      </Text>
+                    )}
+                    {otpCountdown > 0 && otpStatus !== "verified" && (
+                      <Text style={styles.otpHelper}>
+                        Resend available in {otpCountdown}s
+                      </Text>
+                    )}
+                  </View>
+                )}
                 <Text style={styles.inputHeading}>Password</Text>
                 <TextInput
                   placeholder="Enter your password..."
@@ -243,8 +406,12 @@ const DoctorsSignUp = () => {
                 </View>
 
                 <TouchableOpacity
-                  style={styles.continueContainer}
+                  style={[
+                    styles.continueContainer,
+                    !verificationToken && { backgroundColor: "#94A3B8" },
+                  ]}
                   onPress={handleSignup}
+                  disabled={!verificationToken}
                 >
                   <Text style={styles.continueText}>Sign in</Text>
                   <Image
@@ -332,20 +499,85 @@ const DoctorsSignUp = () => {
                   />
                 </View>
 
-                <Text style={styles.inputHeading}>Phone No</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={styles.inputHeading}>Phone Number</Text>
+                <View style={[styles.inputWrapper, styles.phoneInputRow]}>
                   <TextInput
                     placeholder="Enter your phone number..."
                     placeholderTextColor="#c0c0c0"
                     keyboardType="phone-pad"
                     style={[
                       styles.inputContainer,
+                      styles.phoneInput,
                       { color: formData.phoneNumber ? "black" : "#c0c0c0" },
                     ]}
                     value={formData.phoneNumber}
                     onChangeText={(val) => handleChange("phoneNumber", val)}
                   />
+                  <TouchableOpacity
+                    style={[
+                      styles.sendOtpButton,
+                      (!canSendOtp && otpStatus !== "verified") && styles.disabledOtpButton,
+                      otpStatus === "verified" && styles.verifiedBadge,
+                    ]}
+                    onPress={handleSendOtp}
+                    disabled={!canSendOtp}
+                  >
+                    <Text style={styles.sendOtpButtonText}>
+                      {otpStatus === "verified"
+                        ? "Verified"
+                        : otpStatus === "sending"
+                        ? "Sending..."
+                        : otpCountdown > 0
+                        ? `Resend in ${otpCountdown}s`
+                        : "Send OTP"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
+                {(otpStatus !== "idle" || verificationToken) && (
+                  <View style={[styles.inputWrapper, styles.otpRow]}>
+                    <TextInput
+                      placeholder="6-digit OTP"
+                      placeholderTextColor="#c0c0c0"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      style={[styles.inputContainer, styles.otpInput]}
+                      value={otpValue}
+                      onChangeText={(value) =>
+                        setOtpValue(value.replace(/[^0-9]/g, ""))
+                      }
+                    />
+                    <TouchableOpacity
+                      style={[
+                        styles.verifyOtpButton,
+                        (!isOtpComplete || otpStatus === "verified") && styles.disabledOtpButton,
+                      ]}
+                      onPress={handleVerifyOtp}
+                      disabled={
+                        !isOtpComplete ||
+                        otpStatus === "verifying" ||
+                        otpStatus === "verified"
+                      }
+                    >
+                      <Text style={styles.verifyOtpButtonText}>
+                        {otpStatus === "verified"
+                          ? "Verified"
+                          : otpStatus === "verifying"
+                          ? "Verifying..."
+                          : "Verify OTP"}
+                      </Text>
+                    </TouchableOpacity>
+                    {otpStatus === "verified" && (
+                      <Text style={styles.verificationMessage}>
+                        Phone verified successfully.
+                      </Text>
+                    )}
+                    {otpCountdown > 0 && otpStatus !== "verified" && (
+                      <Text style={styles.otpHelper}>
+                        Resend available in {otpCountdown}s
+                      </Text>
+                    )}
+                  </View>
+                )}
 
                 <Text style={styles.inputHeading}>Password</Text>
                 <View style={styles.inputWrapper}>
@@ -379,10 +611,14 @@ const DoctorsSignUp = () => {
                 </View>
 
                 <View style={styles.btns}>
-                  <TouchableOpacity
-                    style={styles.continueContainer}
-                    onPress={handleSignup}
-                  >
+                <TouchableOpacity
+                  style={[
+                    styles.continueContainer,
+                    !verificationToken && { backgroundColor: "#94A3B8" },
+                  ]}
+                  onPress={handleSignup}
+                  disabled={!verificationToken}
+                >
                     <Text style={styles.continueText}>Sign in</Text>
                     <Text>{"\n"}</Text>
                   </TouchableOpacity>
@@ -423,6 +659,65 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: "#FCF5F7",
     height: "100%",
+  },
+  phoneInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  sendOtpButton: {
+    backgroundColor: "#1FBF86",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    justifyContent: "center",
+  },
+  sendOtpButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  disabledOtpButton: {
+    backgroundColor: "#D1D5DB",
+  },
+  verifiedBadge: {
+    backgroundColor: "#16A34A",
+  },
+  otpRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    marginTop: 8,
+  },
+  otpInput: {
+    flex: 1,
+  },
+  verifyOtpButton: {
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    justifyContent: "center",
+  },
+  verifyOtpButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  verificationMessage: {
+    color: "#047857",
+    fontSize: 13,
+    marginTop: 6,
+  },
+  otpHelper: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginTop: 4,
   },
 
   header: {

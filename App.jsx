@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import ChatBotOverlay from "./components/PatientScreenComponents/ChatbotComponents/ChatbotOverlay";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ChatbotProvider } from "./contexts/ChatbotContext";
+import { LoginModalProvider } from "./contexts/LoginModalContext";
 import { RoleProvider } from "./contexts/RoleContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import RootNavigation, { linking } from "./navigation/RootNavigator";
@@ -57,10 +58,12 @@ const App = () => {
       <ThemeProvider>
         <ChatbotProvider>
           <RoleProvider>
-            <NavigationContainer linking={linking} ref={navigationRef}>
-              <RootNavigation />
-              <ChatBotOverlay navigationRef={navigationRef} />
-            </NavigationContainer>
+            <LoginModalProvider>
+              <NavigationContainer linking={linking} ref={navigationRef}>
+                <RootNavigation />
+                <ChatBotOverlay navigationRef={navigationRef} />
+              </NavigationContainer>
+            </LoginModalProvider>
           </RoleProvider>
         </ChatbotProvider>
       </ThemeProvider>

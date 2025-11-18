@@ -10,13 +10,16 @@ import {
   Platform,
   useWindowDimensions,
 } from "react-native";
+import { useLoginModal } from "../../../contexts/LoginModalContext";
 import { Ionicons } from "@expo/vector-icons";
 
 const PasswordSuccess = ({ navigation }) => {
   const { width } = useWindowDimensions();
+  const { triggerLoginModal } = useLoginModal();
 
   const handleBackToLogin = () => {
-    navigation.navigate("Login");
+    triggerLoginModal({ mode: "login" });
+    navigation.navigate("LandingPage");
   };
 
   return (

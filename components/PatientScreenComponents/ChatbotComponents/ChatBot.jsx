@@ -28,6 +28,7 @@ import {
 } from "../../../utils/chatLimitManager";
 import { getSessionId } from "../../../utils/sessionManager";
 import SignInPopup from "./SignInPopup";
+import FormattedMessageText from "./FormattedMessageText";
 
 const { width } = Dimensions.get("window");
 
@@ -52,8 +53,10 @@ const ChatBot = () => {
   //Set userID when user signs in
   useEffect(() => {
     if (user) {
-      setUserId(user?.email);
+      setUserId(user?.user_id || user?.email);
       // Note: Session and chat count cleanup is handled in AuthContext
+    } else {
+      setUserId(null);
     }
   }, [user]);
 
@@ -237,15 +240,7 @@ const ChatBot = () => {
               : styles.botMessageBox
           }
         >
-          <Text
-            style={
-              item.sender === "user"
-                ? styles.userMessageText
-                : styles.botMessageText
-            }
-          >
-            {item.text}
-          </Text>
+          <FormattedMessageText sender={item.sender} text={item.text} />
           {item.sender === "bot" && !isLoading && (
             <View style={styles.botIcons}>
               <TouchableOpacity onPress={() => toggleTTS(index, item.text)}>
@@ -489,14 +484,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
     backgroundColor: "#f9f9f9",
-  },
-  userMessageText: {
-    fontSize: 14,
-    color: "#000",
-  },
-  botMessageText: {
-    fontSize: 14,
-    color: "#333",
   },
   botIcons: {
     flexDirection: "row",

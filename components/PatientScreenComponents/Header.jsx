@@ -14,6 +14,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { AuthContext } from "../../contexts/AuthContext";
+import { useLoginModal } from "../../contexts/LoginModalContext";
 import { MaterialIcons } from "@expo/vector-icons";
 import SideBarNavigation from "./SideBarNavigation";
 import NewestSidebar from "../DoctorsPortalComponents/NewestSidebar";
@@ -22,6 +23,7 @@ const { width, height } = Dimensions.get("window");
 
 const Header = ({ navigation, isDoctorPortal = false }) => {
   const { user, logout, setRole } = useContext(AuthContext);
+  const { triggerLoginModal } = useLoginModal();
   const { width } = useWindowDimensions();
   const [isSideBarVisible, setIsSideBarVisible] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -257,7 +259,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                 <Text style={styles.doctorButtonText}>Are you a doctor ?</Text>
               </Pressable>
               <Pressable
-                onPress={() => navigation.navigate("Login")}
+                onPress={() => triggerLoginModal({ mode: "login" })}
                 //onPress={() => handleOptionPress("DoctorPatientLandingPage")}
                 style={styles.authButton}
               >
@@ -366,7 +368,7 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                         </Pressable>
                         <TouchableOpacity
                           //onPress={() => handleOptionPress("Login")}
-                          onPress={() => navigation.navigate("Login")}
+                          onPress={() => triggerLoginModal({ mode: "login" })}
                           style={styles.dropdownItem}
                         >
                           <Text style={styles.dropdownText}>Login</Text>

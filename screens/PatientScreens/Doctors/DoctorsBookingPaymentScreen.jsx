@@ -33,6 +33,8 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
   const [consultationFee, setConsultationFee] = useState(0);
   const params = route?.params || {};
   const doctors = params.doctor;
+  const doctorIdentifier =
+    doctors?.doctor_id || doctors?.id || doctors?.email || null;
   const selectedDate = params.selectedDate;
   const selectedTimeSlot = params.selectedTimeSlot
     ? typeof params.selectedTimeSlot === "string"
@@ -45,13 +47,16 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
 
     const fetchDoctorBookings = async () => {
       try {
+        if (!doctorIdentifier) {
+          return;
+        }
         const res = await fetch(`${API_URL}/doctorBookings/fetchBookings`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            id: doctors.email,
+            id: doctorIdentifier,
             type: "doctor",
             days: 3,
           }),
@@ -69,7 +74,7 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
     };
 
     fetchDoctorBookings();
-  }, [doctors]);
+  }, [doctorIdentifier]);
 
   useFocusEffect(
     useCallback(() => {
