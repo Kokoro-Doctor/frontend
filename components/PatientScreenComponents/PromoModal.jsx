@@ -356,7 +356,9 @@ const PromoModal = ({ isVisible, onClose }) => {
                     onPress={() => {
                       handleClose();
                       setTimeout(() => {
-                        navigation.navigate("Medilocker");
+                        navigation.navigate("PatientAppNavigation", {
+                          screen: "Medilocker",
+                        });
                       }, 300);
                     }}
                   >

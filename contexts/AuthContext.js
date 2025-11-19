@@ -1,17 +1,17 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useState } from "react";
 import {
+  completeDoctorSignup,
   handleGoogleLogin,
   login,
   logOut,
   restoreUserState,
   signInWithGoogleApp,
-  signup,
+  signup
 } from "../utils/AuthService";
-import { ensureError, getErrorMessage } from "../utils/errorUtils";
 import { resetChatCount } from "../utils/chatLimitManager";
+import { ensureError, getErrorMessage } from "../utils/errorUtils";
 import { clearSession } from "../utils/sessionManager";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
 
 export const AuthContext = createContext();
 
@@ -54,18 +54,9 @@ export const AuthProvider = ({ children }) => {
     initializeUser();
   }, []);
 
-  const signupHandler = async (
-    username,
-    email,
-    password,
-    phoneNumber,
-    location,
-    navigation
-  ) => {
+  const signupHandler = async (payload) => {
     try {
-      await signup(username, email, password, phoneNumber, location);
-      alert("Signup successful! Please verify your email from your inbox before logging in.");
-      navigation.navigate("Login");
+      return await signup(payload);
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Signup error:", message, error);
@@ -73,45 +64,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ========== DOCTOR SIGNUP (auto-login) ==========
-  const doctorSignupHandler = async (
-    username,
-    email,
-    password,
-    phoneNumber,
-    location,
-    navigation
-  ) => {
+  const doctorSignupHandler = async (payload) => {
     try {
-      const newDoctor = await signup(
-        username,
-        email,
-        password,
-        phoneNumber,
-        location
-      );
-
-      // Auto-login doctor
-      setUser(newDoctor?.user);
-      setRole("doctor");
-      await AsyncStorage.setItem("role", "doctor");
-
-      // Move to the next doctor flow screen
-      navigation.navigate("DoctorMedicalRegistration");
+      return await completeDoctorSignup(payload);
     } catch (error) {
-      alert(`Signup Failed: ${error.message || "Something went wrong!"}`);
-      console.error("Doctor signup error:", error);
+      const message = getErrorMessage(error);
+      console.error("Doctor signup error:", message, error);
+      throw ensureError(error);
     }
   };
 
-  const loginHandler = async (email, password, navigation) => {
+  const loginHandler = async ({ email, phoneNumber, password }, navigation) => {
     try {
-      const newUser = await login(email, password);
+      const newUser = await login({ email, phoneNumber, password });
       setUser(newUser?.user);
       // Clear session and chat counts when user signs in
       await clearSession();
       await resetChatCount();
-      navigation.navigate("LandingPage");
+      navigation?.navigate("LandingPage");
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Login failed:", message, error);

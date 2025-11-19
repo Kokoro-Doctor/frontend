@@ -55,6 +55,10 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
       navigation.navigate("PatientAppNavigation", {
         screen: "Doctors",
       });
+    } else if (menu === "Medilocker") {
+      navigation.navigate("PatientAppNavigation", {
+        screen: "Medilocker",
+      });
     } else if (menu === "Book Hospital") {
       navigation.navigate("PatientAppNavigation", {
         screen: "Hospitals",

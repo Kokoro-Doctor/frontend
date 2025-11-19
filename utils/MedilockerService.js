@@ -11,7 +11,7 @@ export const FetchFromServer = async(email) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              email: email,
+              user_id: email,
             }),
         });
     
@@ -39,7 +39,15 @@ export const upload = async (payload) => {
         });
     
         if (!response.ok) {
-            throw new Error("File upload failed");
+            let errorMessage = "File upload failed";
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.detail || errorData.message || errorMessage;
+            } catch (e) {
+                // If response is not JSON, use status text
+                errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
         }
     
         const data = await response.json();
@@ -48,6 +56,7 @@ export const upload = async (payload) => {
     } catch (err) {
         alert(`Error: ${err.message}`);
         Alert.alert(`Error: ${err.message}`);
+        throw err; // Re-throw so caller can handle if needed
     }
 };
 
@@ -59,7 +68,7 @@ export const download = async (email, fileName) => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                email: email,
+                user_id: email,
                 filename: fileName,
             }),
         });
@@ -85,7 +94,7 @@ export const remove = async (email, fileName) => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                email: email,
+                user_id: email,
                 filename: fileName,
             }),
         });

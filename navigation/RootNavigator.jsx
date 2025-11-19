@@ -70,8 +70,10 @@ import { RegistrationProvider } from "../contexts/RegistrationContext";
 
 // ✅ Direct imports (always needed instantly)
 import LandingPage from "../screens/PatientScreens/LandingPage";
-import Login from "../screens/PatientScreens/Auth/Login";
 import VerifyEmail from "../screens/PatientScreens/Auth/VerifyEmail";
+import ForgotPassword from "../screens/PatientScreens/Auth/ForgotPassword";
+import ResetPassword from "../screens/PatientScreens/Auth/ResetPassword";
+import PasswordSuccess from "../screens/PatientScreens/Auth/PasswordSuccess";
 import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
 
@@ -118,6 +120,9 @@ export const linking = {
           email: (email) => email,
         },
       },
+      ForgotPassword: "forgot-password",
+      ResetPassword: "reset-password",
+      PasswordSuccess: "password-success",
       DoctorPatientLandingPage: "Role",
       DoctorAppNavigation: { path: "doctor" },
       PatientAppNavigation: { path: "patient" },
@@ -137,6 +142,9 @@ const RootNavigation = () => {
           {/* Always loaded instantly */}
           <Stack.Screen name="LandingPage" component={LandingPage} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+          <Stack.Screen name="ResetPassword" component={ResetPassword} />
+          <Stack.Screen name="PasswordSuccess" component={PasswordSuccess} />
 
           {/* Conditionally lazy/static screens */}
           <Stack.Screen
@@ -151,7 +159,6 @@ const RootNavigation = () => {
             name="PatientAppNavigation"
             component={AppNavigation}
           />
-          <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="MobileChatbot" component={MobileChatbot} />
           <Stack.Screen name="DoctorsSignUp" component={DoctorsSignUp} />
         </Stack.Navigator>
