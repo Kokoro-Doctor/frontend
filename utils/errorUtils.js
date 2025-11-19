@@ -119,3 +119,46 @@ export const ensureError = (error) => {
   return new Error(getErrorMessage(error));
 };
 
+/**
+ * Check if an error is a rate limit error (HTTP 429)
+ * @param {Error|APIError} error - The error object to check
+ * @returns {boolean} True if the error is a rate limit error
+ */
+export const isRateLimitError = (error) => {
+  if (!error) return false;
+  
+  // Check APIError status
+  if (error instanceof APIError && error.status === 429) {
+    return true;
+  }
+  
+  // Check error.response status (for axios-style errors)
+  if (error.response && error.response.status === 429) {
+    return true;
+  }
+  
+  // Check error.status directly
+  if (error.status === 429) {
+    return true;
+  }
+  
+  return false;
+};
+
+/**
+ * Get a user-friendly rate limit message with optional retry suggestion
+ * @param {Error|APIError} error - The rate limit error
+ * @returns {string} User-friendly message
+ */
+export const getRateLimitMessage = (error) => {
+  const message = getErrorMessage(error);
+  
+  // If the backend already provided a good message, use it
+  if (message && !message.includes("Request failed with status")) {
+    return message;
+  }
+  
+  // Fallback message
+  return "Too many requests. Please wait a few minutes before trying again.";
+};
+
