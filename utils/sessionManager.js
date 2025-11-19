@@ -1,12 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_URL } from '../env-vars';
+import { cleanupSessionChatCount } from './chatLimitManager';
 
-
+/**
+ * Get or create a session ID for anonymous users
+ * @returns {Promise<string|null>} The session ID or null if user is logged in
+ */
 export async function getSessionId() {
   try {
     // If logged-in user, we won't use session
-    const user = await AsyncStorage.getItem("user");
+    const user = await AsyncStorage.getItem("@user");
     if (user) return null;
 
     // Check if session already exists
@@ -27,5 +31,38 @@ export async function getSessionId() {
   } catch (error) {
     console.error("Error getting session:", error);
     return null;
+  }
+}
+
+/**
+ * Clear the session and associated data (called on sign-in or logout)
+ */
+export async function clearSession() {
+  try {
+    const sessionId = await AsyncStorage.getItem("session_id");
+    
+    // Clean up session-specific chat count before clearing session
+    if (sessionId) {
+      await cleanupSessionChatCount(sessionId);
+    }
+    
+    // Remove session ID
+    await AsyncStorage.removeItem("session_id");
+  } catch (error) {
+    console.error("Error clearing session:", error);
+  }
+}
+
+/**
+ * Check if a session exists
+ * @returns {Promise<boolean>} True if session exists, false otherwise
+ */
+export async function hasSession() {
+  try {
+    const sessionId = await AsyncStorage.getItem("session_id");
+    return !!sessionId;
+  } catch (error) {
+    console.error("Error checking session:", error);
+    return false;
   }
 }

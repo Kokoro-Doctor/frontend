@@ -208,6 +208,7 @@ import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
 
 import { API_URL, webClientId } from "../env-vars";
+import { createApiError } from "./errorUtils";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -311,20 +312,7 @@ export const registerDoctor = async ({
     }),
   });
 
-  let data;
-  try {
-    data = await response.json();
-  } catch (e) {
-    console.error("❌ Failed to parse JSON from doctor signup:", e);
-  }
-
-  if (!response.ok) {
-    console.error("❌ Doctor registration failed:");
-    console.error("Status:", response.status);
-    console.error("Response:", data);
-    throw new Error(data?.detail || "Doctor registration failed");
-  }
-
+  const data = await parseJsonResponse(response, "Doctor registration failed");
   const { doctor } = data;
   await AsyncStorage.setItem("@doctor", JSON.stringify(doctor));
   return doctor;
@@ -367,12 +355,7 @@ export const signup = async (
     body: JSON.stringify({ username, email, password, phoneNumber, location }),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    const errorMessage = data?.detail || `SignUp Failed ${response.status}`;
-    throw new Error(errorMessage);
-  }
+  const data = await parseJsonResponse(response, "Sign up failed");
 
   // ✅ Handle both possible response formats
   const userData = data.user || data;
@@ -392,12 +375,7 @@ export const login = async (email, password) => {
     body: JSON.stringify({ email, password }),
   });
 
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data?.detail || `Login failed ${response.status}`);
-  }
-
-  const data = await response.json();
+  const data = await parseJsonResponse(response, "Login failed");
   const { access_token, user } = data;
   await AsyncStorage.setItem("@token", access_token);
   await AsyncStorage.setItem("@user", JSON.stringify(user));
@@ -407,10 +385,24 @@ export const login = async (email, password) => {
 export const logOut = async () => {
   await AsyncStorage.removeItem("@token");
   await AsyncStorage.removeItem("@user");
+  // Note: Session cleanup is handled by the component/AuthContext
+  // when user state changes, but we can clear it here too for safety
 };
 
 export const restoreUserState = async () => {
   const token = await AsyncStorage.getItem("@token");
   const user = await AsyncStorage.getItem("@user");
   return token && user ? { token, user: JSON.parse(user) } : null;
+};
+
+const parseJsonResponse = async (response, fallbackMessage) => {
+  const data = await response
+    .json()
+    .catch(() => null);
+
+  if (!response.ok) {
+    throw createApiError({ response, data, fallbackMessage });
+  }
+
+  return data ?? {};
 };

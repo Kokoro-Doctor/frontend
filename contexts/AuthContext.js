@@ -4,9 +4,12 @@ import {
   login,
   logOut,
   restoreUserState,
-  signup,
   signInWithGoogleApp,
+  signup,
 } from "../utils/AuthService";
+import { ensureError, getErrorMessage } from "../utils/errorUtils";
+import { resetChatCount } from "../utils/chatLimitManager";
+import { clearSession } from "../utils/sessionManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
 
@@ -60,18 +63,13 @@ export const AuthProvider = ({ children }) => {
     navigation
   ) => {
     try {
-      const newUser = await signup(
-        username,
-        email,
-        password,
-        phoneNumber,
-        location
-      );
-      alert("Signup successful! Now you can login.");
+      await signup(username, email, password, phoneNumber, location);
+      alert("Signup successful! Please verify your email from your inbox before logging in.");
       navigation.navigate("Login");
     } catch (error) {
-      alert(`Signup Failed: ${error.message || "Something went wrong!"}`);
-      console.error("Signup error:", error); // optional debug log
+      const message = getErrorMessage(error);
+      console.error("Signup error:", message, error);
+      throw ensureError(error);
     }
   };
 
@@ -110,38 +108,23 @@ export const AuthProvider = ({ children }) => {
     try {
       const newUser = await login(email, password);
       setUser(newUser?.user);
+      // Clear session and chat counts when user signs in
+      await clearSession();
+      await resetChatCount();
       navigation.navigate("LandingPage");
     } catch (error) {
-      // Friendly message (for optional use in UI)
-      let message = "Something went wrong!";
-
-      // Detailed debugging info
-      if (error.response) {
-        console.error("❌ Login Failed - Server responded with error:");
-        console.error("Status:", error.response.status);
-        console.error("Data:", error.response.data);
-
-        if (error.response.data?.detail) {
-          message = error.response.data.detail;
-        } else if (error.response.data?.message) {
-          message = error.response.data.message;
-        }
-      } else if (error.request) {
-        console.error("📡 No response received from server:");
-        console.error(error.request);
-      } else {
-        console.error("💥 Unexpected error occurred:");
-        console.error(error.message);
-      }
-
-      // Final error message (can be shown to user or used for fallback UI)
-      console.error("Login Failed:", message);
+      const message = getErrorMessage(error);
+      console.error("Login failed:", message, error);
+      throw ensureError(error);
     }
   };
 
   const logoutHandler = async () => {
     try {
       await logOut();
+      // Clear session and chat counts when user logs out
+      await clearSession();
+      await resetChatCount();
       setUser(null);
     } catch (error) {
       alert("Logout Failed: Something went wrong!");
@@ -153,6 +136,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const googleUser = await handleGoogleLogin(response);
       setUser(googleUser);
+      // Clear session and chat counts when user signs in
+      await clearSession();
+      await resetChatCount();
       navigation.navigate("LandingPage");
     } catch (error) {
       console.error(`Google Login Failed: ${error.message}`);
@@ -164,6 +150,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const loggedInUser = await signInWithGoogleApp();
       setUser(loggedInUser);
+      // Clear session and chat counts when user signs in
+      await clearSession();
+      await resetChatCount();
     } catch (err) {
       console.error("Login with Google failed:", err);
     }

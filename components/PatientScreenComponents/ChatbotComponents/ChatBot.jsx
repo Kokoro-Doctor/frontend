@@ -20,6 +20,14 @@ import {
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatbot } from "../../../contexts/ChatbotContext";
 import { askBot } from "../../../utils/ChatBotService";
+import {
+  getChatCount,
+  getChatLimit,
+  incrementChatCount,
+  resetChatCount,
+} from "../../../utils/chatLimitManager";
+import { getSessionId } from "../../../utils/sessionManager";
+import SignInPopup from "./SignInPopup";
 
 const { width } = Dimensions.get("window");
 
@@ -38,12 +46,14 @@ const ChatBot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const typingDots = new Animated.Value(0);
   const [typingText, setTypingText] = useState(".");
+  const [showSignInPopup, setShowSignInPopup] = useState(false);
   const { user } = useContext(AuthContext);
 
-  //Set userID
+  //Set userID when user signs in
   useEffect(() => {
     if (user) {
       setUserId(user?.email);
+      // Note: Session and chat count cleanup is handled in AuthContext
     }
   }, [user]);
 
@@ -69,6 +79,71 @@ const ChatBot = () => {
 
   const sendMessageToBot = async () => {
     if (!userMessage.trim()) return;
+
+    // Check if user is not signed in and handle chat limit
+    if (!user) {
+      const CHAT_LIMIT = getChatLimit();
+
+      // Check if limit already reached before incrementing
+      const currentCount = await getChatCount();
+      if (currentCount >= CHAT_LIMIT) {
+        setShowSignInPopup(true);
+        return;
+      }
+
+      // Increment chat count for non-signed-in users (session-based)
+      const newCount = await incrementChatCount();
+
+      // Check if we just reached the limit
+      if (newCount >= CHAT_LIMIT) {
+        // Still allow this message but show popup after
+        const messageToSend = userMessage;
+        setUserMessage("");
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "user", text: messageToSend },
+        ]);
+        setIsLoading(true);
+
+        try {
+          const botReply = await askBot(
+            userId,
+            messageToSend,
+            selectedLanguage
+          );
+          if (botReply) {
+            setMessages((prevMessages) => {
+              const updatedMessages = [
+                ...prevMessages,
+                { sender: "bot", text: botReply.text },
+              ];
+              const newMessageIndex = updatedMessages.length - 1;
+              setPlayingMessage(newMessageIndex);
+              Speech.speak(botReply.text, {
+                language: selectedLanguage,
+                onDone: () => setPlayingMessage(null),
+                onStopped: () => setPlayingMessage(null),
+              });
+              return updatedMessages;
+            });
+          }
+          // Show popup after sending the 5th message
+          setShowSignInPopup(true);
+        } catch (error) {
+          console.error("Error communicating with Bot:", error);
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { sender: "bot", text: error.message },
+          ]);
+          setShowSignInPopup(true);
+        }
+
+        setIsLoading(false);
+        Keyboard.dismiss();
+        return;
+      }
+    }
+
     const messageToSend = userMessage;
     setUserMessage("");
 
@@ -314,6 +389,18 @@ const ChatBot = () => {
           />
         </TouchableOpacity>
       </View>
+
+      <SignInPopup
+        isVisible={showSignInPopup}
+        onClose={() => setShowSignInPopup(false)}
+        onMaybeLater={async () => {
+          // Reset chat count for current session to allow 4 more chats
+          const sessionId = await getSessionId();
+          if (sessionId) {
+            await resetChatCount(sessionId);
+          }
+        }}
+      />
     </View>
   );
 };
@@ -346,10 +433,10 @@ const styles = StyleSheet.create({
     // backdropFilter: "blur(6px)",
     // overflow: "hidden",
   },
-//   chatInner: {
-//   flex: 1,
-//   overflow: "scroll",
-// },
+  //   chatInner: {
+  //   flex: 1,
+  //   overflow: "scroll",
+  // },
 
   messageList: {
     flexGrow: 1,
