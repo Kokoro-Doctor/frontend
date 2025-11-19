@@ -351,6 +351,13 @@ export const signup = async ({
       phoneNumber,
       email,
       location,
+    }),
+  });
+
+  const data = await parseJsonResponse(response, "Doctor registration failed");
+  const { doctor } = data;
+  await AsyncStorage.setItem("@doctor", JSON.stringify(doctor));
+  return doctor;
     },
     "Failed to complete signup"
   );

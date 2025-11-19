@@ -1,13 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useState } from "react";
 import {
+  completeDoctorSignup,
   handleGoogleLogin,
   login,
   logOut,
   restoreUserState,
   signInWithGoogleApp,
-  signup,
-  completeDoctorSignup,
+  signup
 } from "../utils/AuthService";
 import { resetChatCount } from "../utils/chatLimitManager";
 import { ensureError, getErrorMessage } from "../utils/errorUtils";
