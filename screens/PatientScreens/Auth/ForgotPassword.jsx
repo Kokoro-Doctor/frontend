@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { requestPasswordReset } from "../../../utils/AuthService";
-import { getErrorMessage } from "../../../utils/errorUtils";
+import { getErrorMessage, isRateLimitError, getRateLimitMessage } from "../../../utils/errorUtils";
 import { useLoginModal } from "../../../contexts/LoginModalContext";
 
 const CONTACT_METHODS = {
@@ -64,7 +64,12 @@ const ForgotPassword = ({ navigation }) => {
         : "OTP sent to your mobile number. Please enter it on the reset screen.";
       setStatusMessage(response?.message ?? fallbackMessage);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      // Use rate limit specific message if it's a 429 error
+      if (isRateLimitError(error)) {
+        setErrorMessage(getRateLimitMessage(error));
+      } else {
+        setErrorMessage(getErrorMessage(error));
+      }
     } finally {
       setIsSubmitting(false);
     }

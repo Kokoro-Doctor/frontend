@@ -11,6 +11,7 @@ import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../../env-vars";
 import { useLoginModal } from "../../../contexts/LoginModalContext";
+import { isRateLimitError, getRateLimitMessage } from "../../../utils/errorUtils";
 
 const VerifyEmail = ({ route, navigation }) => {
   const [status, setStatus] = useState("verifying"); // verifying | success | failed
@@ -120,7 +121,12 @@ const VerifyEmail = ({ route, navigation }) => {
 
       setResendMessage("A new verification email has been sent. Please check your inbox.");
     } catch (error) {
-      setResendMessage(error.message || "Unable to resend the verification email.");
+      // Use rate limit specific message if it's a 429 error
+      if (isRateLimitError(error)) {
+        setResendMessage(getRateLimitMessage(error));
+      } else {
+        setResendMessage(error.message || "Unable to resend the verification email.");
+      }
     } finally {
       setIsResending(false);
     }
