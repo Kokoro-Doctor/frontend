@@ -927,7 +927,13 @@
 //   },
 // });
 
-import React, { useState, useRef, useEffect, useContext } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useContext,
+  useCallback,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
@@ -1075,7 +1081,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
       };
       handleGoogleResponse();
     }
-  }, [response, googleHandled, googleLogin, visible]);
+  }, [response, googleHandled, googleLogin, visible, closeModal]);
 
   // Detect mobile devices (native app or small web screens)
   const isApp = Platform.OS === "ios" || Platform.OS === "android";
@@ -1187,7 +1193,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only register once on mount
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     if (Platform.OS !== "web") {
       Animated.timing(bottomAnim, {
         toValue: Dimensions.get("window").height,
@@ -1205,7 +1211,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
       resetFlow();
       setStep(0);
     }
-  };
+  });
 
   useEffect(() => {
     if (!visible) {
@@ -2198,7 +2204,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
                       <>
                         <Text style={styles.titleHead}>Check your email!</Text>
                         <Text style={styles.title}>
-                          We've sent a verification link to {signupEmail}
+                          We&apos;ve sent a verification link to {signupEmail}
                         </Text>
                         <Text
                           style={{
@@ -2256,7 +2262,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
                           disabled={step !== 1 || isPrimaryDisabled}
                         >
                           <Text style={styles.btnText}>
-                            I've verified my email
+                            I&apos;ve verified my email
                           </Text>
                         </TouchableOpacity>
                       </>

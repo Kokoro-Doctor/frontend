@@ -34,7 +34,7 @@ const DoctorsSubscribers = ({ navigation, route }) => {
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
-    }, [])
+    }, [setChatbotConfig])
   );
 
   return (
@@ -145,16 +145,22 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                     </View>
 
                     <View style={styles.lowerPart}>
-                      <ScrollView>
+                      {/* <ScrollView> */}
+                      {/* <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                      </ScrollView>
+                        <SubscriberCard></SubscriberCard> */}
+                      <View style={styles.lowerCenterSection}>
+                        <Image
+                          source={require("../../assets/DoctorsPortal/Images/subscriberIcon.png")}
+                          style={styles.subscriberIcon}
+                        />
+                      </View>
+                      {/* </ScrollView> */}
                     </View>
                   </View>
                 </View>
@@ -322,6 +328,19 @@ const styles = StyleSheet.create({
 
   lowerPart: {
     height: "70%",
+  },
+  lowerCenterSection: {
+    borderWidth: 1,
+    height: "80%",
+    width: "40%",
+    alignSelf: "center",
+    alignItems: "center",
+  },
+  subscriberIcon: {
+    height: 125,
+    width: 100,
+    alignSelf:"center",
+    marginVertical:"10%"
   },
 });
 
