@@ -20,10 +20,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { payment_api } from "../../../utils/PaymentService";
-import Header from "../../../components/PatientScreenComponents/Header";
-//import Icon from "react-native-vector-icons/MaterialIcons";
+import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 import { API_URL } from "../../../env-vars";
- import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
   const { setChatbotConfig } = useChatbot();
@@ -138,7 +137,7 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
                 <View style={styles.Right}>
                   {/* Header section */}
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
 
                   {/* Main content area */}

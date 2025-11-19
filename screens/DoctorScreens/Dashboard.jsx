@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -12,25 +12,26 @@ import {
   Animated,
   Text,
 } from "react-native";
-import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
+//import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
-import { TrackEvent } from "../../utils/TrackEvent";
+//import { TrackEvent } from "../../utils/TrackEvent";
+import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 
 const { width, height } = Dimensions.get("window");
-const LandingPage = ({ navigation, route }) => {
+const Dashboard = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
   const borderAnim = useRef(new Animated.Value(0)).current;
   //const [showBorder, setShowBorder] = useState(false);
   const [showLabel, setShowLabel] = useState(false);
-  const handlePress = (eventName, params, navigateTo) => {
-    TrackEvent(eventName, params);
-    navigation.navigate("PatientAppNavigation", { screen: navigateTo });
-  };
+  // const handlePress = (eventName, params, navigateTo) => {
+  //   TrackEvent(eventName, params);
+  //   navigation.navigate("PatientAppNavigation", { screen: navigateTo });
+  // };
 
   useFocusEffect(
     useCallback(() => {
@@ -58,7 +59,7 @@ const LandingPage = ({ navigation, route }) => {
       }, 1000);
 
       return () => clearTimeout(timer);
-    }, [setChatbotConfig])
+    }, [borderAnim, setChatbotConfig])
   );
 
   return (
@@ -67,7 +68,7 @@ const LandingPage = ({ navigation, route }) => {
         <View style={styles.webContainer}>
           <View style={styles.imageContainer}>
             <ImageBackground
-              source={require("../../assets/Images/main_background.jpg")}
+              source={require("../../assets/DoctorsPortal/Images/DoctorDashboard.png")}
               style={styles.imageBackground}
               resizeMode="cover"
             >
@@ -79,7 +80,7 @@ const LandingPage = ({ navigation, route }) => {
               />
               <View style={styles.parent}>
                 <View style={styles.Left}>
-                  <SideBarNavigation navigation={navigation} />
+                  <NewestSidebar navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
@@ -93,37 +94,14 @@ const LandingPage = ({ navigation, route }) => {
                     <View style={styles.centerMiddlePart}>
                       <TouchableOpacity
                         style={styles.cardStyle}
-                        // onPress={() => {
-                        //   navigation.navigate("PatientAppNavigation", {
-                        //     screen: "Doctors",
-                        //   });
-                        // }}
-                        onPress={() =>
-                          handlePress(
-                            "consultation_card_click",
-                            {
-                              clickText: "Consultation",
-                              clickID: "consultation-card",
-                            },
-                            "Doctors"
-                          )
-                        }
-                      >
-                        <Image
-                          source={require("../../assets/Images/Consultation.png")}
-                          style={styles.image}
-                        />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.cardStyle}
                         onPress={() => {
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "Medilocker",
+                          navigation.navigate("DoctorAppNavigation", {
+                            screen: "DoctorsSubscribers",
                           });
                         }}
                       >
                         <Image
-                          source={require("../../assets/Images/Medilocker.png")}
+                          source={require("../../assets/DoctorsPortal/Images/Subscribers.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>
@@ -164,7 +142,7 @@ const LandingPage = ({ navigation, route }) => {
                             style={{ width: "100%", height: "100%" }}
                           >
                             <Image
-                              source={require("../../assets/Images/AI_Support.png")}
+                              source={require("../../assets/DoctorsPortal/Images/DrBuddy.png")}
                               style={{
                                 width: "100%",
                                 height: "100%",
@@ -220,13 +198,27 @@ const LandingPage = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "Hospitals",
+                          navigation.navigate("DoctorAppNavigation", {
+                            screen: "GeneratePrescription",
                           });
                         }}
                       >
                         <Image
-                          source={require("../../assets/Images/BookHospital.png")}
+                          source={require("../../assets/DoctorsPortal/Images/Prescription.png")}
+                          style={styles.image}
+                        />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.cardStyle}
+                        onPress={() => {
+                          navigation.navigate("DoctorAppNavigation", {
+                            screen: "DrCalendarView",
+                          });
+                        }}
+                      >
+                        <Image
+                          source={require("../../assets/DoctorsPortal/Images/Calender.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>
@@ -242,7 +234,7 @@ const LandingPage = ({ navigation, route }) => {
       {(Platform.OS !== "web" || width < 1000) && (
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
-          <View style={[styles.header, { height: "12%" }]}>
+          <View style={[styles.header, { height: "15%" }]}>
             <HeaderLoginSignUp navigation={navigation} />
           </View>
 
@@ -344,9 +336,7 @@ const LandingPage = ({ navigation, route }) => {
                       }}
                       imageStyle={{ borderRadius: 14 }}
                       resizeMode="cover"
-                    >
-                      
-                    </ImageBackground>
+                    ></ImageBackground>
                   </TouchableOpacity>
                 </Animated.View>
 
@@ -360,7 +350,6 @@ const LandingPage = ({ navigation, route }) => {
                         inputRange: [0, 1],
                         outputRange: [0.8, 1],
                       }),
-                      
                     }}
                   >
                     <ImageBackground
@@ -369,7 +358,7 @@ const LandingPage = ({ navigation, route }) => {
                         width: 150,
                         height: "auto",
                         //alignSelf:"center",
-                        marginVertical:"5%",
+                        marginVertical: "5%",
                       }}
                       resizeMode="stretch"
                     >
@@ -381,9 +370,9 @@ const LandingPage = ({ navigation, route }) => {
                           textShadowColor: "rgba(0, 0, 0, 0.5)",
                           textShadowOffset: { width: 1, height: 1 },
                           textShadowRadius: 2,
-                          alignSelf:"center",
-                          marginTop:"8%",
-                          marginBottom:"3%"
+                          alignSelf: "center",
+                          marginTop: "8%",
+                          marginBottom: "3%",
                         }}
                       >
                         Try Me for Free
@@ -462,9 +451,8 @@ const styles = StyleSheet.create({
     width: "85%",
   },
   header: {
-    //borderWidth: 5,
+    // borderWidth: 5,
     // borderColor: "black",
-    paddingHorizontal:"2%",
     zIndex: 2,
     ...Platform.select({
       web: {
@@ -496,6 +484,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "transparent",
         justifyContent: "center",
+        height:"100%"
       },
     }),
   },
@@ -513,7 +502,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   searchBar: {
-    marginTop: "3%",
+    marginTop: "6%",
   },
   cards: {
     height: "60%",
@@ -531,4 +520,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LandingPage;
+export default Dashboard;

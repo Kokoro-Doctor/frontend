@@ -12,7 +12,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 
-const CalendarView = ({ navigation }) => {
+const Calendar = ({ navigation }) => {
   const [viewMode, setViewMode] = useState("Week"); // Set default to Week view
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -958,4 +958,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CalendarView;
+export default Calendar;

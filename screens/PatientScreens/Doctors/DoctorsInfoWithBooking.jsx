@@ -14,10 +14,11 @@ import {
   ScrollView,
   Pressable,
   SafeAreaView,
- Linking } from "react-native";
+  Linking,
+} from "react-native";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
-import Header from "../../../components/PatientScreenComponents/Header";
+import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 import { API_URL } from "../../../env-vars";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -296,8 +297,8 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                 </View>
 
                 <View style={styles.Right}>
-                  <View style={styles.header}>
-                    <Header navigation={navigation} />
+                  <View style={[styles.header, { height: "12%" }]}>
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
 
                   <View style={styles.contentContainer}>
