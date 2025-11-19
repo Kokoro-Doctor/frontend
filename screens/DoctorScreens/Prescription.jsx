@@ -13,8 +13,8 @@ import {
 
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-import DoctorsHeader from "../../components/DoctorsPortalComponents/DoctorsHeader";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 //import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
 //import DoctorCard from "../../components/DoctorsPortalComponents/DoctorCard";
 //import ChatBot from "../../components/PatientScreenComponents/ChatbotComponents/ChatBot";
@@ -47,7 +47,7 @@ const Prescription = ({ navigation, route }) => {
                   <NewestSidebar navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
-                  <DoctorsHeader navigation={navigation} />
+                  <HeaderLoginSignUp navigation={navigation} />
                   {/* <View style={styles.firstTextBox}>
                     <View>
                       <Text style={styles.firstText}>
