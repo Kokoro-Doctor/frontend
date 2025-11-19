@@ -342,7 +342,7 @@ export const signup = async ({
     throw new Error("Verification token is required to complete signup.");
   }
 
-  return postJson(
+  const data = await postJson(
     "/auth/user/signup",
     {
       username,
@@ -351,16 +351,13 @@ export const signup = async ({
       phoneNumber,
       email,
       location,
-    }),
-  });
-
-  const data = await parseJsonResponse(response, "Doctor registration failed");
-  const { doctor } = data;
-  await AsyncStorage.setItem("@doctor", JSON.stringify(doctor));
-  return doctor;
     },
     "Failed to complete signup"
   );
+
+  const { doctor } = data;
+  await AsyncStorage.setItem("@doctor", JSON.stringify(doctor));
+  return doctor;
 };
 
 export const login = async ({ email, phoneNumber, password }) => {
