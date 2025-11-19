@@ -1081,7 +1081,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
       };
       handleGoogleResponse();
     }
-  }, [response, googleHandled, googleLogin, visible, closeModal]);
+  }, [response, googleHandled, googleLogin, visible]);
 
   // Detect mobile devices (native app or small web screens)
   const isApp = Platform.OS === "ios" || Platform.OS === "android";
@@ -1193,7 +1193,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only register once on mount
 
-  const closeModal = useCallback(() => {
+  const closeModal =(() => {
     if (Platform.OS !== "web") {
       Animated.timing(bottomAnim, {
         toValue: Dimensions.get("window").height,
