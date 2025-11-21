@@ -23,7 +23,8 @@ import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
-import DoctorSuggestion from "../../components/DoctorsPortalComponents/DoctorSuggestion";
+import DoctorCard from "../../components/DoctorsPortalComponents/DoctorCard";
+
 
 const { width, height } = Dimensions.get("window");
 const DoctorsSubscribers = ({ navigation, route }) => {
@@ -155,6 +156,41 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
+                        {/* <DoctorCard
+                          doctor={{
+                            name: "Dr Kislay Shrivasatva",
+                            degree: "MD, MS",
+                            experience: 22,
+                            location: "Bhopal, Madhya Pradesh",
+                            likes: 1009,
+                            rating: 4.9,
+                            image: require("../../assets/Images/dr_kislay.jpg"),
+                          }}
+                        />
+
+                        <DoctorCard
+                          doctor={{
+                            name: "Dr. KIslay",
+                            degree: "MD, Mhfuh",
+                            experience: 22,
+                            location: "Bhopal, Madhya Pradesh",
+                            likes: 1009,
+                            rating: 4.9,
+                            image: require("../../assets/Images/dr_kislay.jpg"),
+                          }}
+                        />
+
+                        <DoctorCard
+                          doctor={{
+                            name: "Dr. Abhishek",
+                            degree: "MD, MS",
+                            experience: 22,
+                            location: "Bihar, patna",
+                            likes: 1009,
+                            rating: 4.9,
+                            image: require("../../assets/Images/dr_kislay.jpg"),
+                          }}
+                        /> */}
 
                       
                       </ScrollView>
@@ -171,6 +207,56 @@ const DoctorsSubscribers = ({ navigation, route }) => {
         </View>
       )}
 
+      {(Platform.OS !== "web" || width < 1000) && (
+        <View style={styles.appContainer}>
+          <View style={{flexDirection:"row" , width:"100%" , paddingTop:"3%"}}>
+            <View style={{ width :"100%"}}>
+              <DoctorsHeader navigation={navigation} />
+            </View>
+
+            
+              
+            
+          </View>
+
+          <View style={{marginLeft:"2%"}}>
+            <Text style={styles.containerText}>Your Subscribers</Text>
+          </View>
+          <TouchableOpacity style={styles.searchBox}>
+                <Image
+                source={require("../../assets/DoctorsPortal/Icons/search__Icon.png")}
+                style={styles.searchImage}
+                />
+                <TextInput
+                style={styles.searchText}
+                placeholder="Search Patients"
+                value={searchText}
+                onChangeText={setSearchText}
+                />
+                <View style={styles.filterIconn}>
+                  <Image
+                source={require("../../assets/DoctorsPortal/Icons/filter__Icon.png")}
+                style={styles.filterImage}
+                />
+                </View>
+                
+            </TouchableOpacity>
+
+            <View style={styles.cardText}>
+              <Text style={styles.lastTextcard}>
+                Your registration is incomplete .
+              </Text>
+              <View style={{marginTop:"5%"}}>
+                <Text style={styles.lastTextcard}>
+                Please complete the registration to 
+              </Text>
+              <Text style={styles.lastTextcard}>view your subscribers.</Text>
+              </View>
+            </View>
+
+        </View>
+      )}
+
       
     </>
   );
@@ -184,7 +270,74 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     flexDirection: "row",
   },
+  appContainer:{
+    flex:1,
+    height:"100%",
+    width:"100%",
+    backgroundColor:"#fff",
+    
+  },
+  searchBox:{
+    marginTop:"2%",
+    flexDirection:"row" , 
+    height:"auto" , 
+    width:"88%" , 
+    
+    shadowColor:"#00000040",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+    
+    marginLeft:"6%",
+    borderRadius:6,
+    outlineStyle:"none" , 
+  },
+  searchImage:{
+    marginLeft:"5%",
+    marginTop:"2%",
+    height:25,
+    width:25,
+  },
+  searchText:{
+    marginLeft:"2%",
   
+  width:"78%",
+  },
+  filterIconn:{
+    marginTop:"4%",
+
+  
+  },
+  filterImage:{
+    height:15,
+    width:10,
+    
+
+  },
+  cardText:{
+    marginTop:"6%",
+    
+    height:"65%",
+    width:"89%",
+    marginLeft:"6%",
+    backgroundColor:"#EEEEEE",
+    shadowColor: "#00000040",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+    borderRadius:6,
+    paddingTop:"20%",
+    paddingLeft:"6%",
+    
+  },
+  lastTextcard:{
+    fontSize:16,
+    color:"#000000",
+    fontWeight:"700",
+
+  },
   imageContainer: {
     borderColor: "#00ffff",
     height: "100%",
@@ -259,6 +412,12 @@ const styles = StyleSheet.create({
     color:"#000000",
     paddingTop:"2%",
     marginLeft:"4%",
+    ...Platform.select({
+      android: {
+        fontSize:20,
+        
+      },
+    }),
   },
   upperBox:{
     flexDirection:'row',
