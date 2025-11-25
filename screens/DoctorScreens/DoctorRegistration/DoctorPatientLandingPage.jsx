@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import NewSideNav from "../../../components/DoctorsPortalComponents/NewSideNav";
 import {
   StyleSheet,
@@ -11,10 +12,227 @@ import {
   Pressable,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useRole } from "../../../contexts/RoleContext";
 
 const DoctorPatientLandingPage = () => {
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
+  //const [loggedInUser, setLoggedInUser] = useState(null);
+
+  // 1.// useEffect(() => {
+  //   const loadUser = async () => {
+  //     const stored = await AsyncStorage.getItem("userDetails");
+
+  //     let firstTime = await AsyncStorage.getItem("isFirstTimeUser");
+  //     if (firstTime === null) firstTime = "true"; // ⭐ default set here
+
+  //     if (!stored) return; // No user → stay on this page
+
+  //     const user = JSON.parse(stored);
+  //     setLoggedInUser(user);
+
+  //     // ⭐ FIRST TIME USER SHOULD NOT REDIRECT ⭐
+  //     if (firstTime === "true") {
+  //       return;
+  //     }
+
+  //     // ⭐ RETURNING USER — AUTO REDIRECT
+  //     if (user.role === "patient") {
+  //       navigation.replace("PatientAppNavigation", { screen: "LandingPage" });
+  //     } else if (user.role === "doctor") {
+  //       navigation.replace("DoctorAppNavigation", { screen: "Dashboard" });
+  //     }
+  //   };
+
+  //   loadUser();
+  // }, [navigation]);
+
+  //2.//   useEffect(() => {
+  //   const loadUser = async () => {
+  //     try {
+  //       const storedUser = await AsyncStorage.getItem("userDetails");
+  //       const storedRole = await AsyncStorage.getItem("userRole");
+  //       const firstTime = await AsyncStorage.getItem("isFirstTimeUser");
+
+  //       // No user → stay here
+  //       if (!storedUser) return;
+
+  //       const user = JSON.parse(storedUser);
+  //       setLoggedInUser(user);
+
+  //       // ⚡ FIRST TIME USER → STAY HERE AND LET USER CHOOSE ROLE
+  //       if (firstTime === "true") return;
+
+  //       // ⚡ RETURNING USER → AUTO REDIRECT BASED ON ROLE
+  //       if (storedRole === "patient") {
+  //         navigation.replace("PatientAppNavigation", { screen: "LandingPage" });
+  //       }
+  //       else if (storedRole === "doctor") {
+  //         navigation.replace("DoctorAppNavigation", { screen: "Dashboard" });
+  //       }
+
+  //     } catch (err) {
+  //       console.log("LOAD USER ERROR:", err);
+  //     }
+  //   };
+
+  //   loadUser();
+  // }, []);
+
+  // useEffect(() => {
+  //   const loadUser = async () => {
+  //     try {
+  //       const storedUser = await AsyncStorage.getItem("userDetails");
+  //       const storedRole = await AsyncStorage.getItem("userRole");
+  //       const firstTime = await AsyncStorage.getItem("isFirstTimeUser");
+
+  //       if (!storedUser) return;  // no user = stay here
+
+  //       const user = JSON.parse(storedUser);
+  //       setLoggedInUser(user);
+
+  //       // First time user → stay here
+  //       if (firstTime === "true") return;
+
+  //       // Auto redirect for returning users
+  //       if (storedRole === "patient") {
+  //         navigation.replace("PatientAppNavigation", { screen: "LandingPage" });
+  //       } else if (storedRole === "doctor") {
+  //         navigation.replace("DoctorAppNavigation", { screen: "Dashboard" });
+  //       }
+  //     } catch (err) {
+  //       console.log("LOAD USER ERROR:", err);
+  //     }
+  //   };
+
+  //   loadUser();
+  // }, []);
+
+  // useEffect(() => {
+  //   const loadUser = async () => {
+  //     try {
+  //       console.log("🔵 Checking AsyncStorage...");
+
+  //       const storedUser = await AsyncStorage.getItem("userDetails");
+  //       const storedRole = await AsyncStorage.getItem("userRole");
+  //       const firstTime = await AsyncStorage.getItem("isFirstTimeUser");
+
+  //       console.log("📦 storedUser:", storedUser);
+  //       console.log("📦 storedRole:", storedRole);
+  //       console.log("📦 isFirstTimeUser:", firstTime);
+
+  //       // No user = don't redirect
+  //       if (!storedUser) {
+  //         console.log("❌ No stored user, staying on role selection page");
+  //         return;
+  //       }
+
+  //       const user = JSON.parse(storedUser);
+  //       setLoggedInUser(user);
+
+  //       console.log("✅ Logged in user:", user);
+
+  //       if (firstTime === "true") {
+  //         console.log("🟡 First time user, staying here");
+  //         return;
+  //       }
+
+  //       if (storedRole === "patient") {
+  //         console.log("➡ Redirecting PATIENT to LandingPage...");
+  //         navigation.replace("PatientAppNavigation", { screen: "LandingPage" });
+  //         return;
+  //       }
+
+  //       if (storedRole === "doctor") {
+  //         console.log("➡ Redirecting DOCTOR to Dashboard...");
+  //         navigation.replace("DoctorAppNavigation", { screen: "Dashboard" });
+  //         return;
+  //       }
+
+  //       console.log("⚠ No valid role found in storage.");
+  //     } catch (err) {
+  //       console.log("❌ LOAD USER ERROR:", err);
+  //     }
+  //   };
+
+  //   loadUser();
+  // }, []);
+
+  // const { role, saveRole } = useRole();
+  // const [user, setUser] = useState(null);
+
+  // useEffect(() => {
+  //   const loadData = async () => {
+  //     const storedUser = await AsyncStorage.getItem("userDetails");
+  //     const firstTime = await AsyncStorage.getItem("isFirstTimeUser");
+
+  //     if (!storedUser) return;
+
+  //     setUser(JSON.parse(storedUser));
+
+  //     if (firstTime === "true") return;
+
+  //     if (role === "patient") {
+  //       navigation.replace("PatientAppNavigation", { screen: "LandingPage" });
+  //     }
+  //     else if (role === "doctor") {
+  //       navigation.replace("DoctorAppNavigation", { screen: "Dashboard" });
+  //     }
+  //   };
+
+  //   loadData();
+  // }, [navigation, role]);
+
+  const { role, setRole } = useRole();
+
+  // Local state
+  const [user, setUser] = useState(null);
+
+  // ============= LOAD USER & REDIRECT =============
+  useEffect(() => {
+    const loadData = async () => {
+      const storedUser = await AsyncStorage.getItem("userDetails");
+      const firstTime = await AsyncStorage.getItem("isFirstTimeUser");
+
+      // No user logged in → stay here
+      if (!storedUser) return;
+
+      setUser(JSON.parse(storedUser));
+
+      // First-time user → stay here so they select role
+      if (firstTime === "true") return;
+
+      // Returning user → auto redirect using role
+      if (role === "patient") {
+        navigation.replace("PatientAppNavigation", { screen: "LandingPage" });
+      } else if (role === "doctor") {
+        navigation.replace("DoctorAppNavigation", { screen: "Dashboard" });
+      }
+    };
+
+    loadData();
+  }, [navigation, role]);
+
+  // ============= HANDLE ROLE SELECTION =============
+  const handleSelectRole = async (selectedRole) => {
+    console.log("Selected Role:", selectedRole);
+
+    // Save to RoleContext
+    setRole(selectedRole);
+
+    // Save to AsyncStorage (this fixes your login NULL role issue)
+    await AsyncStorage.setItem("userRole", selectedRole);
+
+    // Mark this user as NOT first time anymore
+    await AsyncStorage.setItem("isFirstTimeUser", "false");
+
+    // Redirect based on selection
+    if (selectedRole === "doctor") {
+      navigation.replace("DoctorAppNavigation", { screen: "Dashboard" });
+    } else {
+      navigation.replace("PatientAppNavigation", { screen: "LandingPage" });
+    }
+  };
 
   return (
     <>
@@ -50,11 +268,20 @@ const DoctorPatientLandingPage = () => {
                 <View style={styles.content_body}>
                   <View style={styles.box}>
                     <Pressable
-                      onPress={() =>
-                        navigation.navigate("PatientAppNavigation", {
-                          screen: "LandingPage",
-                        })
-                      }
+                      // onPress={() =>
+                      //   navigation.navigate("PatientAppNavigation", {
+                      //     screen: "LandingPage",
+                      //   })
+                      // }
+                      // onPress={async () => {
+                      //   await AsyncStorage.setItem("userRole", "patient");
+                      //   await AsyncStorage.setItem("isFirstTimeUser", "false");
+
+                      //   navigation.replace("PatientAppNavigation", {
+                      //     screen: "LandingPage",
+                      //   });
+                      // }}
+                      onPress={() => handleSelectRole("patient")}
                       style={({ hovered, pressed }) => [
                         styles.touchableBox,
                         hovered || pressed ? styles.selectedBox : null,
@@ -70,11 +297,20 @@ const DoctorPatientLandingPage = () => {
 
                   <View style={styles.box}>
                     <Pressable
-                      onPress={() =>
-                        navigation.navigate("DoctorAppNavigation", {
-                          screen: "Dashboard",
-                        })
-                      }
+                      // onPress={() =>
+                      //   navigation.navigate("DoctorAppNavigation", {
+                      //     screen: "Dashboard",
+                      //   })
+                      // }
+                      // onPress={async () => {
+                      //   await AsyncStorage.setItem("userRole", "doctor");
+                      //   await AsyncStorage.setItem("isFirstTimeUser", "false");
+
+                      //   navigation.replace("DoctorAppNavigation", {
+                      //     screen: "Dashboard",
+                      //   });
+                      // }}
+                      onPress={() => handleSelectRole("doctor")}
                       style={({ hovered, pressed }) => [
                         styles.touchableBox,
                         hovered || pressed ? styles.selectedBox : null,
@@ -155,7 +391,6 @@ const DoctorPatientLandingPage = () => {
         <View style={styles.app_wrapper}>
           <View style={styles.app_HeadingContainer}>
             <View style={styles.text_container}>
-              
               <Text style={styles.app_headingText}>
                 Register as a Patient or Doctor
               </Text>

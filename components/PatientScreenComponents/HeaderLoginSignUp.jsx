@@ -966,7 +966,7 @@ import { useRole } from "../../contexts/RoleContext";
 
 WebBrowser.maybeCompleteAuthSession();
 
-export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
+export default function HeaderLoginSignUp({ isDoctorPortal = false }) {
   const [visible, setVisible] = useState(false);
   const [isSideBarVisible, setIsSideBarVisible] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -1004,9 +1004,14 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
     loginWithGoogle,
   } = useContext(AuthContext);
   const { setRole } = useRole();
+  const [selectedRole, setSelectedRole] = useState(null);
   const { registerOpenModal } = useLoginModal();
   const [request, response, promptAsync] = useGoogleAuth();
   const [googleHandled, setGoogleHandled] = useState(false);
+  const { user: loggedInUser, setUser } = useContext(AuthContext);
+  const { role, saveRole } = useRole();
+
+  //const [loggedInUser, setLoggedInUser] = useState(null);
 
   const [cardWidth, setCardWidth] = useState(null);
 
@@ -1193,7 +1198,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only register once on mount
 
-  const closeModal =(() => {
+  const closeModal = () => {
     if (Platform.OS !== "web") {
       Animated.timing(bottomAnim, {
         toValue: Dimensions.get("window").height,
@@ -1211,7 +1216,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
       resetFlow();
       setStep(0);
     }
-  });
+  };
 
   useEffect(() => {
     if (!visible) {
@@ -1325,119 +1330,618 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
     }
   };
 
+  // const handleCompleteProfile = async () => {
+  //   if (!firstName.trim()) {
+  //     setErrorMessage("Please enter your first name.");
+  //     return;
+  //   }
+  //   if (!hasValidPassword) {
+  //     setErrorMessage("Password must be at least 5 characters.");
+  //     return;
+  //   }
+  //   if (!verificationToken) {
+  //     setErrorMessage(
+  //       signupMethod === "email"
+  //         ? "Please verify your email first."
+  //         : "Please verify your phone number first."
+  //     );
+  //     return;
+  //   }
+  //   setErrorMessage("");
+  //   setInfoMessage("");
+  //   setIsSigningUp(true);
+  //   setIsProcessing(true);
+
+  //   try {
+  //     const fullName = `${firstName} ${lastName}`.trim();
+  //     const userData = await signupHandler({
+  //       username: fullName,
+  //       password,
+  //       verificationToken,
+  //       phoneNumber: signupMethod === "phone" ? buildPhoneNumber() : undefined,
+  //       email:
+  //         signupMethod === "email"
+  //           ? signupEmail.trim().toLowerCase()
+  //           : undefined,
+  //       role: setRole, // Add role input from user earlier
+  //       location: "",
+  //     });
+
+  //     // Store user & role persistently
+  //     setUser(userData);
+  //     setRole(setRole);
+  //     await AsyncStorage.setItem("userRole", setRole);
+  //     await AsyncStorage.setItem("userDetails", JSON.stringify(userData));
+
+  //     // ⭐ VERY IMPORTANT — STORE FIRST TIME USER FLAG
+  //     await AsyncStorage.setItem("isFirstTimeUser", "true");
+
+  //     // Clear cached verification token
+  //     await AsyncStorage.removeItem("@signupVerification");
+
+  //     setInfoMessage("Signup successful! Redirecting...");
+
+  //     // setTimeout(() => {
+  //     //   closeModal();
+  //     //   if (setRole === "doctor") {
+  //     //     navigation.navigate("Dashboard");
+  //     //   } else if (userData.role === "patient") {
+  //     //     navigation.navigate("LandingPage");
+  //     //   } else {
+  //     //     navigation.navigate("DoctorPatientLandingPage"); // handle unexpected case
+  //     //   }
+  //     // }, 1500);
+  //     setTimeout(() => {
+  //       closeModal();
+
+  //       // ALWAYS redirect to Doctor/Patient choose page
+  //       navigation.reset({
+  //         index: 0,
+  //         routes: [{ name: "DoctorPatientLandingPage" }],
+  //       });
+  //     }, 800);
+  //   } catch (error) {
+  //     setErrorMessage(getErrorMessage(error));
+  //     setIsSigningUp(false);
+  //     setIsProcessing(false);
+  //   }
+  // };
+
+  // const handleCompleteProfile = async () => {
+  //   if (!firstName.trim()) {
+  //     setErrorMessage("Please enter your first name.");
+  //     return;
+  //   }
+  //   if (!hasValidPassword) {
+  //     setErrorMessage("Password must be at least 5 characters.");
+  //     return;
+  //   }
+  //   if (!verificationToken) {
+  //     setErrorMessage(
+  //       signupMethod === "email"
+  //         ? "Please verify your email first."
+  //         : "Please verify your phone number first."
+  //     );
+  //     return;
+  //   }
+
+  //   setErrorMessage("");
+  //   setIsSigningUp(true);
+  //   setIsProcessing(true);
+
+  //   try {
+  //     const fullName = `${firstName} ${lastName}`.trim();
+
+  //     const userData = await signupHandler({
+  //       username: fullName,
+  //       password,
+  //       verificationToken,
+  //       phoneNumber: signupMethod === "phone" ? buildPhoneNumber() : undefined,
+  //       email:
+  //         signupMethod === "email"
+  //           ? signupEmail.trim().toLowerCase()
+  //           : undefined,
+  //       role: selectedRole,
+  //       location: "",
+  //     });
+
+  //     // setUser(userData);
+
+  //     // // SAVE role
+  //     // setRole(selectedRole);
+  //     // await AsyncStorage.setItem("userRole", selectedRole);
+
+  //     // // FIRST TIME USER FLAG
+  //     // await AsyncStorage.setItem("isFirstTimeUser", "true");
+
+  //     // // Save full user
+  //     // await AsyncStorage.setItem("userDetails", JSON.stringify(userData));
+
+  //     // await AsyncStorage.removeItem("@signupVerification");
+
+  //     // setTimeout(() => {
+  //     //   closeModal();
+  //     //   navigation.reset({
+  //     //     index: 0,
+  //     //     routes: [{ name: "DoctorPatientLandingPage" }],
+  //     //   });
+  //     // }, 800);
+  //     setUser({
+  //       ...userData,
+  //       role: selectedRole,
+  //     });
+
+  //     // SAVE ROLE
+  //     setRole(selectedRole);
+  //     await AsyncStorage.setItem("userRole", selectedRole);
+
+  //     // MARK FIRST TIME USER
+  //     await AsyncStorage.setItem("isFirstTimeUser", "true");
+
+  //     // SAVE FULL USER
+  //     await AsyncStorage.setItem(
+  //       "userDetails",
+  //       JSON.stringify({
+  //         ...userData,
+  //         role: selectedRole,
+  //       })
+  //     );
+
+  //     await AsyncStorage.removeItem("@signupVerification");
+
+  //     // redirect
+  //     setTimeout(() => {
+  //       closeModal();
+  //       navigation.reset({
+  //         index: 0,
+  //         routes: [{ name: "DoctorPatientLandingPage" }],
+  //       });
+  //     }, 800);
+  //   } catch (error) {
+  //     setErrorMessage(getErrorMessage(error));
+  //     setIsSigningUp(false);
+  //     setIsProcessing(false);
+  //   }
+  // };
+
+
   const handleCompleteProfile = async () => {
-    if (!firstName.trim()) {
-      setErrorMessage("Please enter your first name.");
-      return;
-    }
+  console.log("=== SIGNUP: handleCompleteProfile() CALLED ===");
+  console.log("First Name:", firstName);
+  console.log("Last Name:", lastName);
+  console.log("Password Valid:", hasValidPassword);
+  console.log("Verification Token:", verificationToken);
+  console.log("Signup Method:", signupMethod);
+  console.log("Selected Role:", selectedRole);
 
-    if (!hasValidPassword) {
-      setErrorMessage("Password must be at least 5 characters.");
-      return;
-    }
+  if (!firstName.trim()) {
+    console.log("❌ ERROR: First name missing");
+    setErrorMessage("Please enter your first name.");
+    return;
+  }
+  if (!hasValidPassword) {
+    console.log("❌ ERROR: Password invalid");
+    setErrorMessage("Password must be at least 5 characters.");
+    return;
+  }
+  if (!verificationToken) {
+    console.log("❌ ERROR: Verification token missing");
+    setErrorMessage(
+      signupMethod === "email"
+        ? "Please verify your email first."
+        : "Please verify your phone number first."
+    );
+    return;
+  }
 
-    if (!verificationToken) {
-      setErrorMessage(
-        signupMethod === "email"
-          ? "Please verify your email first."
-          : "Please verify your phone number first."
-      );
-      return;
-    }
+  console.log("✔ Validation passed. Starting signup…");
 
+  setErrorMessage("");
+  setIsSigningUp(true);
+  setIsProcessing(true);
+
+  try {
     const fullName = `${firstName} ${lastName}`.trim();
+    console.log("Full Name:", fullName);
 
-    setErrorMessage("");
-    setInfoMessage("");
-    setIsSigningUp(true);
-    setIsProcessing(true);
+    const payload = {
+      username: fullName,
+      password,
+      verificationToken,
+      phoneNumber: signupMethod === "phone" ? buildPhoneNumber() : undefined,
+      email:
+        signupMethod === "email"
+          ? signupEmail.trim().toLowerCase()
+          : undefined,
+      role: selectedRole,
+      location: "",
+    };
 
-    try {
-      // Call the signup API directly
-      await signupHandler({
-        username: fullName,
-        password,
-        verificationToken,
-        phoneNumber: signupMethod === "phone" ? buildPhoneNumber() : undefined,
-        email:
-          signupMethod === "email"
-            ? signupEmail.trim().toLowerCase()
-            : undefined,
-        location: "", // Optional - can be empty
+    console.log("📤 Signup Payload:", payload);
+
+    const userData = await signupHandler(payload);
+    console.log("📥 Signup Response:", userData);
+
+    // Set user locally
+    setUser({ ...userData, role: selectedRole });
+    console.log("✔ User state updated.");
+
+    // Save role
+    setRole(selectedRole);
+    await AsyncStorage.setItem("userRole", selectedRole);
+    console.log("✔ Role saved:", selectedRole);
+
+    // Mark first time
+    await AsyncStorage.setItem("isFirstTimeUser", "true");
+    console.log("✔ First time user flag saved");
+
+    // Save full user
+    await AsyncStorage.setItem(
+      "userDetails",
+      JSON.stringify({ ...userData, role: selectedRole })
+    );
+    console.log("✔ User details saved in AsyncStorage");
+
+    await AsyncStorage.removeItem("@signupVerification");
+    console.log("✔ Temp signup data removed");
+
+    console.log("➡ Redirecting to DoctorPatientLandingPage…");
+
+    setTimeout(() => {
+      closeModal();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "DoctorPatientLandingPage" }],
       });
+    }, 800);
 
-      // Clear cached verification token
-      try {
-        await AsyncStorage.removeItem("@signupVerification");
-      } catch (error) {
-        console.warn("Failed to clear cached verification token", error);
-      }
+  } catch (error) {
+    console.log("❌ SIGNUP ERROR:", error);
+    setErrorMessage(getErrorMessage(error));
+    setIsSigningUp(false);
+    setIsProcessing(false);
+  }
+};
 
-      // Set role and navigate
-      setRole("patient");
-      await AsyncStorage.setItem("userRole", "patient");
 
-      setInfoMessage("Signup successful! Redirecting to login...");
+  // const handleLogin = async () => {
+  //   if (isProcessing) return;
 
-      setTimeout(() => {
-        setMode("login");
-        closeModal();
-      }, 1500);
-    } catch (error) {
-      const message = getErrorMessage(error);
-      setErrorMessage(message);
-      setIsSigningUp(false);
-      setIsProcessing(false);
+  //   const identifier = loginMethod === "email" ? email.trim() : mobile.trim();
+  //   if (!identifier) {
+  //     setErrorMessage(
+  //       loginMethod === "email"
+  //         ? "Please enter your email address."
+  //         : "Please enter your phone number."
+  //     );
+  //     return;
+  //   }
+
+  //   if (!password.trim()) {
+  //     setErrorMessage("Please enter your password.");
+  //     return;
+  //   }
+
+  //   setErrorMessage("");
+  //   setInfoMessage("");
+  //   setIsProcessing(true);
+
+  //   try {
+  //     const normalizedPhoneNumber =
+  //       loginMethod === "phone" ? buildPhoneNumber() : undefined;
+
+  //     const userData = await loginHandler(
+  //       {
+  //         email: loginMethod === "email" ? identifier : undefined,
+  //         phoneNumber: normalizedPhoneNumber,
+  //         password,
+  //       },
+  //       navigation
+  //     );
+
+  //     // if (userData) {
+  //     //   await AsyncStorage.setItem("userDetails", JSON.stringify(userData));
+  //     //   await AsyncStorage.setItem("userRole", userData.role); // Save role persistently
+  //     //   setUser(userData);
+  //     //   setRole(userData.role);
+
+  //     //   setInfoMessage("Login successful! Redirecting...");
+
+  //     //   setTimeout(() => {
+  //     //     closeModal();
+  //     //     if (userData.role === "doctor") {
+  //     //       navigation.navigate("Dashboard");
+  //     //     } else if (userData.role === "patient") {
+  //     //       navigation.navigate("LandingPage");
+  //     //     } else {
+  //     //       navigation.navigate("DoctorPatientLandingPage"); // handle unexpected case
+  //     //     }
+  //     //   }, 1000);
+  //     // }
+  //     if (!userData.role) {
+  //       navigation.reset({
+  //         index: 0,
+  //         routes: [{ name: "DoctorPatientLandingPage" }],
+  //       });
+  //       return;
+  //     }
+
+  //     if (userData.role === "doctor") {
+  //       navigation.reset({
+  //         index: 0,
+  //         routes: [{ name: "Dashboard" }],
+  //       });
+  //     } else {
+  //       navigation.reset({
+  //         index: 0,
+  //         routes: [{ name: "LandingPage" }],
+  //       });
+  //     }
+  //   } catch (error) {
+  //     const message = getErrorMessage(error);
+  //     setErrorMessage(message);
+  //   } finally {
+  //     setIsProcessing(false);
+  //   }
+  // };
+
+  // const handleLogin = async () => {
+  //   if (isProcessing) return;
+
+  //   const identifier = loginMethod === "email" ? email.trim() : mobile.trim();
+
+  //   if (!identifier) {
+  //     setErrorMessage(
+  //       loginMethod === "email"
+  //         ? "Please enter your email address."
+  //         : "Please enter your phone number."
+  //     );
+  //     return;
+  //   }
+
+  //   if (!password.trim()) {
+  //     setErrorMessage("Please enter your password.");
+  //     return;
+  //   }
+
+  //   setErrorMessage("");
+  //   setInfoMessage("");
+  //   setIsProcessing(true);
+
+  //   try {
+  //     const normalizedPhoneNumber =
+  //       loginMethod === "phone" ? buildPhoneNumber() : undefined;
+
+  //     const userData = await loginHandler(
+  //       {
+  //         email: loginMethod === "email" ? identifier : undefined,
+  //         phoneNumber: normalizedPhoneNumber,
+  //         password,
+  //       },
+  //       navigation
+  //     );
+
+  //     // ⭐ SAVE USER
+  //     await AsyncStorage.setItem("userDetails", JSON.stringify(userData));
+
+  //     // await AsyncStorage.setItem("userRole", userData.role);
+  //     // setUser(userData);
+  //     // setRole(userData.role);
+
+  //     await AsyncStorage.setItem(
+  //       "userRole",
+  //       userData?.role ? userData.role : "unknown"
+  //     );
+
+  //     setUser(userData);
+  //     setRole(userData?.role || "unknown"); // fallback
+
+  //     // ⭐ VERY IMPORTANT — FIRST TIME FLAG
+  //     await AsyncStorage.setItem("isFirstTimeUser", "false"); // login = returning user
+
+  //     // ⭐ CLOSE MODAL
+  //     setVisible(false);
+
+  //     // ⭐ REDIRECT
+  //     if (!userData.role) {
+  //       navigation.reset({
+  //         index: 0,
+  //         routes: [{ name: "DoctorPatientLandingPage" }],
+  //       });
+  //       return;
+  //     }
+
+  //     if (userData.role === "doctor") {
+  //       navigation.reset({
+  //         index: 0,
+  //         routes: [{ name: "Dashboard" }],
+  //       });
+  //     } else {
+  //       navigation.reset({
+  //         index: 0,
+  //         routes: [{ name: "LandingPage" }],
+  //       });
+  //     }
+  //   } catch (error) {
+  //     setErrorMessage(getErrorMessage(error));
+  //   } finally {
+  //     setIsProcessing(false);
+  //   }
+  // };
+
+//   const handleLogin = async () => {
+//   if (isProcessing) return;
+
+//   const identifier = loginMethod === "email" ? email.trim() : mobile.trim();
+
+//   if (!identifier) {
+//     setErrorMessage(
+//       loginMethod === "email"
+//         ? "Please enter your email address."
+//         : "Please enter your phone number."
+//     );
+//     return;
+//   }
+
+//   if (!password.trim()) {
+//     setErrorMessage("Please enter your password.");
+//     return;
+//   }
+
+//   setErrorMessage("");
+//   setInfoMessage("");
+//   setIsProcessing(true);
+
+//   try {
+//     const normalizedPhoneNumber =
+//       loginMethod === "phone" ? buildPhoneNumber() : undefined;
+
+//     // ⭐ This already sets user, role, and saves AsyncStorage in AuthContext
+//     const userData = await loginHandler({
+//       email: loginMethod === "email" ? identifier : undefined,
+//       phoneNumber: normalizedPhoneNumber,
+//       password,
+//     });
+
+//     // ⭐ Read role saved by AuthContext
+//     const savedRole = await AsyncStorage.getItem("userRole");
+
+//     // If STILL no role → go to doctor/patient screen
+//     if (!savedRole || savedRole === "unknown") {
+//       navigation.reset({
+//         index: 0,
+//         routes: [{ name: "DoctorPatientLandingPage" }],
+//       });
+//       return;
+//     }
+
+//     // ⭐ This is not a first-time user anymore
+//     await AsyncStorage.setItem("isFirstTimeUser", "false");
+
+//     // Close modal
+//     setVisible(false);
+
+//     // ⭐ Redirect based on role
+//     if (savedRole === "doctor") {
+//       navigation.reset({
+//         index: 0,
+//         routes: [{ name: "Dashboard" }],
+//       });
+//     } else {
+//       navigation.reset({
+//         index: 0,
+//         routes: [{ name: "LandingPage" }],
+//       });
+//     }
+
+//   } catch (error) {
+//     setErrorMessage(getErrorMessage(error));
+//   } finally {
+//     setIsProcessing(false);
+//   }
+// };
+
+
+const handleLogin = async () => {
+  console.log("=== LOGIN: handleLogin() CALLED ===");
+
+  if (isProcessing) {
+    console.log("⚠ Login blocked: already processing");
+    return;
+  }
+
+  const identifier = loginMethod === "email" ? email.trim() : mobile.trim();
+
+  console.log("Login Method:", loginMethod);
+  console.log("Identifier:", identifier);
+
+  if (!identifier) {
+    console.log("❌ ERROR: Identifier missing");
+    setErrorMessage(
+      loginMethod === "email"
+        ? "Please enter your email address."
+        : "Please enter your phone number."
+    );
+    return;
+  }
+
+  if (!password.trim()) {
+    console.log("❌ ERROR: Password missing");
+    setErrorMessage("Please enter your password.");
+    return;
+  }
+
+  setErrorMessage("");
+  setInfoMessage("");
+  setIsProcessing(true);
+
+  try {
+    const normalizedPhoneNumber =
+      loginMethod === "phone" ? buildPhoneNumber() : undefined;
+
+    console.log("📤 Login Payload:", {
+      email: loginMethod === "email" ? identifier : undefined,
+      phoneNumber: normalizedPhoneNumber,
+      password,
+    });
+
+    const userData = await loginHandler({
+      email: loginMethod === "email" ? identifier : undefined,
+      phoneNumber: normalizedPhoneNumber,
+      password,
+    });
+
+    console.log("📥 Login Response:", userData);
+
+        // ⭐ IMPORTANT: Save role immediately after successful login
+    if (userData?.role) {
+      await AsyncStorage.setItem("userRole", userData.role);
+      saveRole(userData.role);
+      console.log("⭐ Role saved:", userData.role);
     }
-  };
 
-  const handleLogin = async () => {
-    if (isProcessing) return;
+    const savedRole = await AsyncStorage.getItem("userRole");
+    console.log("Role Read From AsyncStorage:", savedRole);
 
-    const identifier = loginMethod === "email" ? email.trim() : mobile.trim();
-    if (!identifier) {
-      setErrorMessage(
-        loginMethod === "email"
-          ? "Please enter your email address."
-          : "Please enter your phone number."
-      );
+    if (!savedRole || savedRole === "unknown") {
+      console.log("⚠ No role found → redirecting to role selection");
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "DoctorPatientLandingPage" }],
+      });
       return;
     }
 
-    if (!password.trim()) {
-      setErrorMessage("Please enter your password.");
-      return;
+    await AsyncStorage.setItem("isFirstTimeUser", "false");
+    console.log("✔ Marked as returning user");
+
+    setVisible(false);
+    console.log("✔ Login modal closed");
+
+    console.log("➡ Redirecting based on role:", savedRole);
+
+    if (savedRole === "doctor") {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      });
+    } else {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "LandingPage" }],
+      });
     }
 
-    setErrorMessage("");
-    setInfoMessage("");
-    setIsProcessing(true);
+  } catch (error) {
+    console.log("❌ LOGIN ERROR:", error);
+    setErrorMessage(getErrorMessage(error));
+  } finally {
+    setIsProcessing(false);
+    console.log("=== LOGIN COMPLETE ===");
+  }
+};
 
-    try {
-      // Normalize phone number if logging in with phone
-      const normalizedPhoneNumber =
-        loginMethod === "phone" ? buildPhoneNumber() : undefined;
 
-      await loginHandler(
-        {
-          email: loginMethod === "email" ? identifier : undefined,
-          phoneNumber: normalizedPhoneNumber,
-          password,
-        },
-        navigation
-      );
-
-      setInfoMessage("Login successful! Redirecting...");
-      setTimeout(() => {
-        closeModal();
-      }, 1000);
-    } catch (error) {
-      const message = getErrorMessage(error);
-      setErrorMessage(message);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleForgotPassword = () => {
     const params =
@@ -1493,14 +1997,67 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
     await handleSendOtp();
   };
 
+  // const handleLogout = async () => {
+  //   try {
+  //     await logoutHandler();
+  //     await AsyncStorage.removeItem("userDetails");
+  //     await AsyncStorage.removeItem("userRole");   // <-- MISSING (fix)
+  //     await AsyncStorage.removeItem("isFirstTimeUser");
+
+  //     setUser(null); // <-- FIX
+  //     setRole(null);
+  //     setDropdownVisible(false);
+  //   } catch (error) {
+  //     console.error("Logout failed:", error);
+  //   }
+  // };
+
+  // const handleLogout = async () => {
+  //   try {
+  //     await logoutHandler();
+  //     await AsyncStorage.removeItem("userDetails");
+  //     await AsyncStorage.removeItem("userRole"); // <-- required
+  //     await AsyncStorage.removeItem("isFirstTimeUser");
+
+  //     setUser(null);
+  //     setRole(null);
+  //     setDropdownVisible(false);
+
+  //     navigation.reset({
+  //       index: 0,
+  //       routes: [{ name: "DoctorPatientLandingPage" }],
+  //     });
+  //   } catch (error) {
+  //     console.error("Logout failed:", error);
+  //   }
+  // };
+
   const handleLogout = async () => {
-    try {
-      await logoutHandler();
-      setDropdownVisible(false);
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+  try {
+    console.log("🚪 Logging out from Header...");
+
+    // Call AuthContext logout
+    await logoutHandler();
+
+    // Clear all local storage keys (safety)
+    await AsyncStorage.removeItem("userDetails");
+    // await AsyncStorage.removeItem("userRole");
+    // await AsyncStorage.removeItem("isFirstTimeUser");
+
+    // Reset contexts
+    setUser(null); 
+    
+    // setRole(null);
+
+    // Close dropdown
+    setDropdownVisible(false);
+
+    console.log("✅ Logout complete (Role preserved)");
+  } catch (error) {
+    console.error("❌ Logout failed:", error);
+  }
+};
+
 
   const handleGoogleLogin = async () => {
     if (isProcessing) return;
@@ -1646,16 +2203,16 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
 
                 {dropdownVisible && (
                   <View style={styles.dropdownMain}>
-                    {user ? (
+                    {loggedInUser ? (
                       // Logged in - show user info and logout
                       <>
                         <View style={styles.userInfoContainer}>
                           <Text style={styles.userNameText}>
-                            {user?.name || "User"}
+                            {loggedInUser?.name || "User"}
                           </Text>
-                          {user?.email && (
+                          {loggedInUser?.email && (
                             <Text style={styles.userEmailText}>
-                              {user.email}
+                              {loggedInUser.email}
                             </Text>
                           )}
                         </View>
@@ -1728,7 +2285,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
                 }}
               >
                 {" "}
-                {user?.name ? user?.name : "User"}!
+                {loggedInUser?.name ? loggedInUser?.name : "User"}!
               </Text>
             </View>
           )}
@@ -1736,64 +2293,7 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
       ) : (
         /* ================= WEB HEADER ================= */
         <>
-          {user ? (
-            // Logged in - show user profile with dropdown
-            <View style={{ position: "relative" }}>
-              <Animated.View
-                style={[
-                  styles.headerBtn,
-                  {
-                    backgroundColor: isHovered ? "#f96166" : "#fff",
-                    borderColor: isHovered ? "#f96166" : "#DDD",
-                    transform: [{ scale: scaleAnim }],
-                  },
-                ]}
-                onMouseEnter={onHoverIn}
-                onMouseLeave={onHoverOut}
-              >
-                <TouchableOpacity
-                  onPress={() => setDropdownVisible(!dropdownVisible)}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.headerBtnText,
-                      {
-                        color: isHovered ? "#fff" : "#333",
-                      },
-                    ]}
-                  >
-                    {user?.name || "User"}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-              {dropdownVisible && (
-                <>
-                  <Pressable
-                    style={styles.dropdownOverlay}
-                    onPress={() => setDropdownVisible(false)}
-                  />
-                  <View style={styles.webDropdown}>
-                    <View style={styles.userInfoContainer}>
-                      <Text style={styles.userNameText}>
-                        {user?.name || "User"}
-                      </Text>
-                      {user?.email && (
-                        <Text style={styles.userEmailText}>{user.email}</Text>
-                      )}
-                    </View>
-                    <TouchableOpacity
-                      onPress={handleLogout}
-                      style={styles.logoutButton}
-                    >
-                      <Text style={styles.logoutButtonText}>Logout</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-            </View>
-          ) : (
-            // Not logged in - show login/signup button
+          {!loggedInUser ? (
             <Animated.View
               style={[
                 styles.headerBtn,
@@ -1810,17 +2310,100 @@ export default function HeaderLoginSignUp({ isDoctorPortal = false, user }) {
                 <Text
                   style={[
                     styles.headerBtnText,
-                    {
-                      color: isHovered ? "#fff" : "#333",
-                    },
+                    { color: isHovered ? "#fff" : "#333" },
                   ]}
                 >
                   Login / Signup
                 </Text>
               </TouchableOpacity>
             </Animated.View>
+          ) : (
+            <></>
           )}
         </>
+      )}
+
+      {/* ================= SHOW DASHBOARD TOP BAR WHEN LOGGED IN ================= */}
+      {loggedInUser && (
+        <View style={[styles.userInfo, styles.userInfoWeb]}>
+          <View style={styles.welcomeContainer}>
+            <Text style={styles.welcomeText}>
+              Welcome {loggedInUser?.username ? loggedInUser.username : "User"}!
+            </Text>
+            {/* {loggedInUser?.username ? (
+              <Text style={styles.welcomeText}>
+                Welcome {loggedInUser?.name}
+              </Text>
+            ) : (
+              <Text style={styles.welcomeText}>Welcome</Text>
+            )} */}
+            <Text style={styles.subText}>
+              Here is your medical sales dashboard
+            </Text>
+          </View>
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <Image
+              source={require("../../assets/Icons/search.png")}
+              style={styles.searchIcon}
+              resizeMode="contain"
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search your query"
+              placeholderTextColor="rgba(255, 255, 255, 1)"
+            />
+          </View>
+
+          {/* Notification + Profile */}
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Pressable style={styles.iconsContainer}>
+              <Image
+                source={require("../../assets/Icons/notification1.png")}
+                style={styles.notificationIcon}
+                resizeMode="contain"
+              />
+            </Pressable>
+
+            {/* Profile Dropdown */}
+            <View style={styles.profileWrapper}>
+              <Pressable onPress={() => setDropdownVisible(!dropdownVisible)}>
+                <Image
+                  source={
+                    loggedInUser?.picture
+                      ? { uri: loggedInUser.picture }
+                      : require("../../assets/Images/user-icon.jpg")
+                  }
+                  style={styles.userIcon}
+                />
+              </Pressable>
+
+              {dropdownVisible && (
+                <View style={[styles.dropdownMain, styles.dropdownWeb]}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("PatientAppNavigation", {
+                        screen: "Settings",
+                      })
+                    }
+                    style={styles.dropdownItem}
+                  >
+                    <Text style={styles.dropdownText}>Profile</Text>
+                  </TouchableOpacity>
+
+                  <Pressable onPress={handleLogout} style={styles.dropdownItem}>
+                    <Text style={styles.dropdownText}>Logout</Text>
+                  </Pressable>
+
+                  <Pressable onPress={handleLogout} style={styles.dropdownItem}>
+                    <Text style={styles.dropdownText}>Delete Account</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
       )}
 
       {/* ============= LOGIN/SIGNUP MODAL (shared web + mobile) ============= */}
@@ -2440,6 +3023,145 @@ const styles = StyleSheet.create({
     color: "#333",
   },
 
+  userInfo: {
+    marginTop: "1%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+  },
+  userInfoWeb: {
+    width: "100%",
+    justifyContent: "space-around",
+  },
+  userInfoApp: {},
+  userIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 20,
+  },
+  username: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  usernameApp: {
+    flexDirection: "row",
+    marginLeft: "6%",
+    marginTop: "0%",
+  },
+  logoutButton: {
+    padding: 8,
+    backgroundColor: "#FF7072",
+    borderRadius: 5,
+  },
+  logoutText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+  },
+  logo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dropdownImage: {
+    width: 50,
+    height: 50,
+  },
+  // dropdownMain: {
+  //   position: "absolute",
+  //   backgroundColor: "#fff",
+  //   borderWidth: 1,
+  //   borderColor: "#ccc",
+  //   borderRadius: 5,
+  //   elevation: 5,
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.25,
+  //   shadowRadius: 3.84,
+  //   zIndex: 100,
+  //   //marginRight: "6%",
+  //   width:120
+  // },
+  dropdownLoggedOut: {
+    top: 30,
+    right: 0,
+  },
+  dropdownLoggedIn: {
+    top: 40,
+    right: 0,
+  },
+  dropdownWeb: {
+    top: 40,
+    right: "2%",
+  },
+  // dropdownItem: {
+  //   padding: 10,
+  // },
+  // dropdownText: {
+  //   fontSize: 14,
+  // },
+  welcomeText: {
+    fontSize: 25,
+    fontWeight: "bold",
+    color: "#eab0b0ff",
+  },
+  subText: {
+    fontSize: 13,
+    color: "#ddd",
+    marginTop: "1%",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignSelf: "center",
+    borderRadius: 8,
+    paddingHorizontal: "3%",
+    height: "70%",
+    width: "30%",
+    marginHorizontal: "10%",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.66)",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  searchIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: "#fff",
+    fontSize: 16,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    paddingVertical: 0,
+    outlineStyle: "none",
+  },
+  iconsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  notificationIcon: {
+    marginRight: 20,
+  },
+  profileWrapper: {
+    height: "60%",
+    width: "10%",
+    borderColor: "#fff",
+    alignSelf: "center",
+  },
+  profileContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 5,
+    borderRadius: 8,
+  },
+  profileIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 20,
+  },
+
   // ===== Mobile Header =====
   appHeaderContainer: {
     backgroundColor: "#fff",
@@ -2455,10 +3177,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  logo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  // logo: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  // },
   hamburger: {
     marginRight: "2%",
   },
@@ -2515,10 +3237,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#000",
   },
-  usernameApp: {
-    marginTop: 5,
-    flexDirection: "row",
-  },
+  // usernameApp: {
+  //   marginTop: 5,
+  //   flexDirection: "row",
+  // },
 
   // ===== Modal Login =====
   overlay: {
@@ -2859,10 +3581,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6B7280",
   },
-  logoutButton: {
-    padding: 12,
-    alignItems: "center",
-  },
+  // logoutButton: {
+  //   padding: 12,
+  //   alignItems: "center",
+  // },
   logoutButtonText: {
     fontSize: 14,
     fontWeight: "600",
@@ -2911,3 +3633,152 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
+
+// const handleCompleteProfile = async () => {
+//   if (!firstName.trim()) {
+//     setErrorMessage("Please enter your first name.");
+//     return;
+//   }
+
+//   if (!hasValidPassword) {
+//     setErrorMessage("Password must be at least 5 characters.");
+//     return;
+//   }
+
+//   if (!verificationToken) {
+//     setErrorMessage(
+//       signupMethod === "email"
+//         ? "Please verify your email first."
+//         : "Please verify your phone number first."
+//     );
+//     return;
+//   }
+
+//   const fullName = `${firstName} ${lastName}`.trim();
+
+//   setErrorMessage("");
+//   setInfoMessage("");
+//   setIsSigningUp(true);
+//   setIsProcessing(true);
+
+//   try {
+//     // Call the signup API directly
+//     await signupHandler({
+//       username: fullName,
+//       password,
+//       verificationToken,
+//       phoneNumber: signupMethod === "phone" ? buildPhoneNumber() : undefined,
+//       email:
+//         signupMethod === "email"
+//           ? signupEmail.trim().toLowerCase()
+//           : undefined,
+//       location: "", // Optional - can be empty
+//     });
+
+//     // Clear cached verification token
+//     try {
+//       await AsyncStorage.removeItem("@signupVerification");
+//     } catch (error) {
+//       console.warn("Failed to clear cached verification token", error);
+//     }
+
+//     // Set role and navigate
+//     setRole("patient");
+//     await AsyncStorage.setItem("userRole", "patient");
+
+//     setInfoMessage("Signup successful! Redirecting...");
+
+//     setTimeout(() => {
+//       closeModal();
+//       navigation.navigate("DoctorPatientLandingPage");
+//     }, 1500);
+//   } catch (error) {
+//     const message = getErrorMessage(error);
+//     setErrorMessage(message);
+//     setIsSigningUp(false);
+//     setIsProcessing(false);
+//   }
+// };
+
+// const handleLogout = async () => {
+//   try {
+//     await logoutHandler();
+//     setDropdownVisible(false);
+//   } catch (error) {
+//     console.error("Logout failed:", error);
+//   }
+// };
+
+// const handleLogout = async () => {
+//   try {
+//     await logoutHandler();
+
+//     // ✅ Clear storage
+//     await AsyncStorage.removeItem("userDetails");
+
+//     // ✅ Clear state so header updates
+//     setUser(null);
+
+//     // Close dropdown
+//     setDropdownVisible(false);
+//   } catch (error) {
+//     console.error("Logout failed:", error);
+//   }
+// };
+
+// const handleLogin = async () => {
+//   if (isProcessing) return;
+
+//   const identifier = loginMethod === "email" ? email.trim() : mobile.trim();
+//   if (!identifier) {
+//     setErrorMessage(
+//       loginMethod === "email"
+//         ? "Please enter your email address."
+//         : "Please enter your phone number."
+//     );
+//     return;
+//   }
+
+//   if (!password.trim()) {
+//     setErrorMessage("Please enter your password.");
+//     return;
+//   }
+
+//   setErrorMessage("");
+//   setInfoMessage("");
+//   setIsProcessing(true);
+
+//   try {
+//     const normalizedPhoneNumber =
+//       loginMethod === "phone" ? buildPhoneNumber() : undefined;
+
+//     const userData = await loginHandler(
+//       {
+//         email: loginMethod === "email" ? identifier : undefined,
+//         phoneNumber: normalizedPhoneNumber,
+//         password,
+//       },
+//       navigation
+//     );
+
+//     // ✅ store user in storage
+//     if (userData) {
+//       await AsyncStorage.setItem("userDetails", JSON.stringify(userData));
+
+//       // ✅ Update global auth context
+//       setUser(userData);
+//     }
+
+//     setInfoMessage("Login successful! Redirecting...");
+
+//     setTimeout(() => {
+//       closeModal();
+//       navigation.navigate("DoctorPatientLandingPage");
+//     }, 1000);
+//   } catch (error) {
+//     const message = getErrorMessage(error);
+//     setErrorMessage(message);
+//   } finally {
+//     setIsProcessing(false);
+//   }
+// };
