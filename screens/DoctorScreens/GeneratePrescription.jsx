@@ -10,22 +10,18 @@ import {
   useWindowDimensions,
   Text,
   TextInput,
-  ScrollView
+  ScrollView,
 } from "react-native";
 
-// import { MaterialIcons } from "@expo/vector-icons";
-// import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-import DoctorsHeader from "../../components/DoctorsPortalComponents/DoctorsHeader";
-// import Title from "../../components/PatientScreenComponents/Title";
-// import SearchBar from "../../components/PatientScreenComponents/SearchBar";
+//import DoctorsHeader from "../../components/DoctorsPortalComponents/DoctorsHeader";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
-// import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
-// import DoctorCard from "../../components/DoctorsPortalComponents/DoctorCard";
 import MedilockerUsers from "../../components/DoctorsPortalComponents/MedilockerUsers";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 
 const { width, height } = Dimensions.get("window");
+
 const GeneratePrescription = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const [searchText, setSearchText] = useState("");
@@ -53,7 +49,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                   <NewestSidebar navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
-                  <DoctorsHeader navigation={navigation} />
+                  <HeaderLoginSignUp navigation={navigation} />
                   {/* <View style={styles.firstTextBox}>
                     <View>
                       <Text style={styles.firstText}>

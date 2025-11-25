@@ -10,9 +10,9 @@ import {
   StatusBar,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
-import Header from "../../components/PatientScreenComponents/Header";
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 
 const Settings = ({ navigation, route }) => {
   const {width} = useWindowDimensions();
@@ -38,7 +38,7 @@ const Settings = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
                   <View style={styles.title}>
                     <Title />
@@ -61,7 +61,7 @@ const Settings = ({ navigation, route }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={[styles.header, { height: "15%" }]}>
-            <Header navigation={navigation} />
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
 
           <View style={styles.searchBar}>

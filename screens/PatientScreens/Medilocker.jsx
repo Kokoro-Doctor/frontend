@@ -21,7 +21,6 @@ import SideBarNavigation from "../../components/PatientScreenComponents/SideBarN
 import * as DocumentPicker from "expo-document-picker";
 import * as WebBrowser from "expo-web-browser";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import Header from "../../components/PatientScreenComponents/Header";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { AntDesign, FontAwesome, Entypo } from "@expo/vector-icons";
@@ -34,6 +33,7 @@ import {
   remove,
   shortenUrl,
 } from "../../utils/MedilockerService";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 const { width, height } = Dimensions.get("window");
 
 const Medilocker = ({ navigation }) => {
@@ -297,7 +297,7 @@ const Medilocker = ({ navigation }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
 
                   <View style={styles.right_middle}>
@@ -429,7 +429,7 @@ const Medilocker = ({ navigation }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={styles.appHeader}>
-            <Header navigation={navigation} />
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
           <View style={styles.appMedilockerContainer}>
             <Text style={styles.appTitle}>Medilocker</Text>
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     padding: 15,
     borderRadius: 50,
-    elevation: 5,
+    //elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
