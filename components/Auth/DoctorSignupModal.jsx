@@ -17,14 +17,13 @@ import { getErrorMessage } from "../../utils/errorUtils";
 
 const DoctorSignupModal = ({ visible, onRequestClose }) => {
   const navigation = useNavigation();
-  const { doctorsSignup, requestSignupOtp, verifySignupOtp } = useAuth();
+  const { doctorsSignup, requestSignupOtp } = useAuth();
   const [doctorFullName, setDoctorFullName] = useState("");
   const [doctorPhone, setDoctorPhone] = useState("");
   const [doctorSpecialization, setDoctorSpecialization] = useState("");
   const [doctorExperience, setDoctorExperience] = useState("");
   const [doctorEmail, setDoctorEmail] = useState("");
   const [doctorOtp, setDoctorOtp] = useState("");
-  const [doctorVerificationToken, setDoctorVerificationToken] = useState("");
   const [doctorOtpStatus, setDoctorOtpStatus] = useState("idle");
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -64,7 +63,6 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     setDoctorExperience("");
     setDoctorEmail("");
     setDoctorOtp("");
-    setDoctorVerificationToken("");
     setDoctorOtpStatus("idle");
     setOtpCountdown(0);
     setIsProcessing(false);
@@ -183,32 +181,11 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     setIsProcessing(true);
     setErrorMessage("");
     try {
-      const response = await verifySignupOtp({
-        phoneNumber,
-        otp: doctorOtp.trim(),
-        role: "doctor",
-      });
-      if (response?.verification_token) {
-        setDoctorVerificationToken(response.verification_token);
-        setDoctorOtpStatus("verified");
-        // Don't close modal yet - wait for signup to complete
-        try {
-          // Call signup with the verification token
-          await handleDoctorSignup(response.verification_token);
-          // Only close modal after successful signup
-          setShowOtpModal(false);
-          return true;
-        } catch (signupError) {
-          // Keep modal open so user can see the error
-          setDoctorOtpStatus("sent");
-          setIsProcessing(false);
-          return false;
-        }
-      }
-      setErrorMessage("Verification failed. Please try again.");
-      setDoctorOtpStatus("sent");
-      setIsProcessing(false);
-      return false;
+      // Directly call signup with phone + OTP (no separate verify step)
+      await handleDoctorSignup(phoneNumber, doctorOtp.trim());
+      setDoctorOtpStatus("verified");
+      setShowOtpModal(false);
+      return true;
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
       setDoctorOtpStatus("sent");
@@ -217,35 +194,40 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     }
   };
 
-  const handleDoctorSignup = async (verificationTokenOverride) => {
+  const handleDoctorSignup = async (phoneNumberOverride, otpOverride) => {
     if (!validateDoctorDetails()) {
-      return;
+      throw new Error("Validation failed");
     }
     if (!doctorFullName.trim()) {
       setErrorMessage("Please enter your full name.");
-      return;
+      throw new Error("Name required");
     }
     if (!doctorSpecialization.trim()) {
       setErrorMessage("Please enter your specialization.");
-      return;
+      throw new Error("Specialization required");
     }
     if (!doctorExperience.trim()) {
       setErrorMessage("Please enter your years of experience.");
-      return;
+      throw new Error("Experience required");
     }
     const parsedExperience = parseInt(doctorExperience, 10);
     if (Number.isNaN(parsedExperience) || parsedExperience < 0) {
       setErrorMessage("Experience must be a valid number.");
-      return;
+      throw new Error("Invalid experience");
     }
 
-    const verificationToken =
-      verificationTokenOverride || doctorVerificationToken;
+    const phoneNumber = phoneNumberOverride || buildDoctorPhoneNumber();
+    const otpToUse = otpOverride || doctorOtp.trim();
+
+    if (!phoneNumber || !otpToUse) {
+      setErrorMessage("Phone number and OTP are required.");
+      throw new Error("Phone/OTP required");
+    }
 
     if (doctorPassword.trim().length < 6) {
       setDoctorPasswordTouched(true);
       setErrorMessage("Password must be at least 6 characters.");
-      return;
+      throw new Error("Password too short");
     }
 
     setIsProcessing(true);
@@ -254,7 +236,8 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
 
     try {
       await doctorsSignup({
-        verificationToken,
+        phoneNumber,
+        otp: otpToUse,
         name: doctorFullName.trim(),
         specialization: doctorSpecialization.trim(),
         experience: parsedExperience,
@@ -272,6 +255,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       }, 1500);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
+      throw error; // Re-throw so caller knows signup failed
     } finally {
       setIsProcessing(false);
     }
@@ -734,7 +718,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#FEE2E2",
+    // backgroundColor: "#FEE2E2",
     borderRadius: 8,
     width: "100%",
   },
@@ -745,7 +729,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#dcfce7",
+    // backgroundColor: "#dcfce7",
     borderRadius: 8,
     width: "100%",
   },

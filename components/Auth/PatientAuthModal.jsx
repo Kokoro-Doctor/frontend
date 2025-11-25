@@ -30,7 +30,6 @@ const PatientAuthModal = ({
   const {
     signup: signupHandler,
     requestSignupOtp: requestSignupOtpHandler,
-    verifySignupOtp: verifySignupOtpHandler,
     requestLoginOtp: requestLoginOtpHandler,
     initiateLogin: initiateLoginHandler,
     loginWithPassword: loginWithPasswordHandler,
@@ -47,7 +46,6 @@ const PatientAuthModal = ({
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpStatus, setOtpStatus] = useState("idle");
   const [otpCountdown, setOtpCountdown] = useState(0);
-  const [verificationToken, setVerificationToken] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -164,12 +162,6 @@ const PatientAuthModal = ({
     if (!trimmed) {
       setSignupIdentifier("");
       setMobile("");
-      if (verificationToken) {
-        setVerificationToken("");
-        setPassword("");
-        setPasswordTouched(false);
-        setPasswordVisible(false);
-      }
       return;
     }
 
@@ -179,12 +171,6 @@ const PatientAuthModal = ({
 
     setSignupIdentifier(normalized);
     setMobile(normalized);
-    if (verificationToken) {
-      setVerificationToken("");
-      setPassword("");
-      setPasswordTouched(false);
-      setPasswordVisible(false);
-    }
   };
 
   const clearOtpTimer = () => {
@@ -213,7 +199,6 @@ const PatientAuthModal = ({
     clearOtpTimer();
     setOtpStatus("idle");
     setOtpCountdown(0);
-    setVerificationToken("");
     setErrorMessage("");
     setInfoMessage("");
     setIsProcessing(false);
@@ -310,35 +295,21 @@ const PatientAuthModal = ({
     setOtpStatus("verifying");
     try {
       if (otpFlow === "signup") {
-        const response = await verifySignupOtpHandler({
-          phoneNumber: otpTargetPhone,
-          otp: otp.trim(),
-          role: "user",
-        });
-        if (response?.verification_token) {
-          setVerificationToken(response.verification_token);
+        // Directly call signup with phone + OTP (no separate verify step)
+        try {
+          await handleCompleteProfile(otpTargetPhone, otp.trim());
           setOtpStatus("verified");
-          // Don't close modal yet - wait for signup to complete
-          // Call complete profile with the verification token directly
-          try {
-            await handleCompleteProfile(response.verification_token);
-            // Only close modal and reset state after successful signup
-            setOtpFlow(null);
-            setOtpTargetPhone("");
-            setShowOtpModal(false);
-            return response.verification_token;
-          } catch (profileError) {
-            // handleCompleteProfile already handles its own errors
-            // Keep modal open so user can see the error
-            setOtpStatus("sent");
-            setIsProcessing(false);
-            return null;
-          }
+          setOtpFlow(null);
+          setOtpTargetPhone("");
+          setShowOtpModal(false);
+          return true;
+        } catch (profileError) {
+          // handleCompleteProfile already handles its own errors
+          // Keep modal open so user can see the error
+          setOtpStatus("sent");
+          setIsProcessing(false);
+          return null;
         }
-        setErrorMessage("Verification failed. Please try again.");
-        setOtpStatus("sent");
-        setIsProcessing(false);
-        return null;
       }
 
       if (otpFlow === "login") {
@@ -367,11 +338,15 @@ const PatientAuthModal = ({
     }
   };
 
-  const handleCompleteProfile = async (verificationTokenOverride = null) => {
+  const handleCompleteProfile = async (
+    phoneNumberOverride = null,
+    otpOverride = null
+  ) => {
     const nameToUse = fullName.trim();
     const passwordToUse = password.trim();
-    const verificationTokenToUse =
-      verificationTokenOverride || verificationToken;
+    const phoneNumberToUse =
+      phoneNumberOverride || otpTargetPhone || buildPhoneNumber();
+    const otpToUse = otpOverride || otp.trim();
 
     if (!nameToUse) {
       setErrorMessage("Please enter your full name.");
@@ -380,6 +355,10 @@ const PatientAuthModal = ({
     if (passwordToUse.length < 6) {
       setPasswordTouched(true);
       setErrorMessage("Password must be at least 6 characters.");
+      return;
+    }
+    if (!phoneNumberToUse || !otpToUse) {
+      setErrorMessage("Phone number and OTP are required.");
       return;
     }
 
@@ -391,16 +370,11 @@ const PatientAuthModal = ({
     try {
       await signupHandler({
         name: nameToUse,
-        verificationToken: verificationTokenToUse,
+        phoneNumber: phoneNumberToUse,
+        otp: otpToUse,
         email: email.trim() || undefined,
         password: passwordToUse,
       });
-
-      try {
-        await AsyncStorage.removeItem("@signupVerification");
-      } catch (error) {
-        console.warn("Failed to clear cached verification token", error);
-      }
 
       setRole("patient");
       await AsyncStorage.setItem("userRole", "patient");
@@ -417,6 +391,7 @@ const PatientAuthModal = ({
       setErrorMessage(message);
       setIsSigningUp(false);
       setIsProcessing(false);
+      throw error; // Re-throw so caller knows signup failed
     }
   };
 
@@ -509,12 +484,8 @@ const PatientAuthModal = ({
       return;
     }
 
-    if (!verificationToken) {
-      await handleSendSignupOtp();
-      return;
-    }
-
-    await handleCompleteProfile();
+    // Send OTP for signup - verification happens in OTP modal
+    await handleSendSignupOtp();
   };
 
   const handleResendOtp = async () => {
@@ -556,7 +527,6 @@ const PatientAuthModal = ({
   const showSignupPhoneError =
     signupIdentifier.trim().length > 0 && !signupDigitsValid;
   const baseSignupValid = fullName.trim() && signupDigitsValid && passwordValid;
-  const canCompleteSignup = verificationToken && baseSignupValid;
 
   const isLoginActionDisabled =
     loginStage === "phone"
@@ -566,11 +536,7 @@ const PatientAuthModal = ({
       : isProcessing;
 
   const isPrimaryDisabled =
-    mode === "login"
-      ? isLoginActionDisabled
-      : verificationToken
-      ? !canCompleteSignup || isProcessing || isSigningUp
-      : !baseSignupValid || isProcessing;
+    mode === "login" ? isLoginActionDisabled : !baseSignupValid || isProcessing;
 
   if (cardWidth === null) {
     return null;
@@ -866,13 +832,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled || isProcessing}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing
-                        ? verificationToken
-                          ? "Creating..."
-                          : "Sending..."
-                        : verificationToken
-                        ? "Create Account"
-                        : "Send OTP"}
+                      {isProcessing ? "Sending..." : "Send OTP"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1171,7 +1131,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#FEE2E2",
+    // backgroundColor: "#FEE2E2",
     borderRadius: 8,
     width: "100%",
   },
@@ -1182,7 +1142,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#dcfce7",
+    // backgroundColor: "#dcfce7",
     borderRadius: 8,
     width: "100%",
   },
