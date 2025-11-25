@@ -31,7 +31,6 @@ const PatientAuthModal = ({
     signup: signupHandler,
     requestSignupOtp: requestSignupOtpHandler,
     requestLoginOtp: requestLoginOtpHandler,
-    initiateLogin: initiateLoginHandler,
     loginWithPassword: loginWithPasswordHandler,
     loginWithOtp: loginWithOtpHandler,
   } = useContext(AuthContext);
@@ -54,11 +53,10 @@ const PatientAuthModal = ({
   const [signupIdentifier, setSignupIdentifier] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [loginStage, setLoginStage] = useState("phone");
   const [loginPassword, setLoginPassword] = useState("");
-  const [loginPhoneNumber, setLoginPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [loginPasswordVisible, setLoginPasswordVisible] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [otpFlow, setOtpFlow] = useState(null);
   const [otpTargetPhone, setOtpTargetPhone] = useState("");
@@ -145,11 +143,6 @@ const PatientAuthModal = ({
   };
 
   const handleLoginIdentifierChange = (value) => {
-    if (loginStage !== "phone") {
-      setLoginStage("phone");
-      setLoginPassword("");
-      setInfoMessage("");
-    }
     setLoginIdentifier(value);
     const detectedType = detectInputType(value);
     if (detectedType === "phone") {
@@ -211,10 +204,9 @@ const PatientAuthModal = ({
     setFullName("");
     setPassword("");
     setPasswordVisible(false);
+    setLoginPasswordVisible(false);
     setPasswordTouched(false);
     setLoginPassword("");
-    setLoginStage("phone");
-    setLoginPhoneNumber("");
     setOtpFlow(null);
     setOtpTargetPhone("");
     setShowOtpModal(false);
@@ -410,6 +402,11 @@ const PatientAuthModal = ({
       return;
     }
 
+    if (!loginPassword.trim()) {
+      setErrorMessage("Please enter your password.");
+      return;
+    }
+
     const phoneNumber = buildPhoneNumber(identifier);
     if (!phoneNumber) {
       setErrorMessage("Please enter a valid mobile number.");
@@ -417,42 +414,12 @@ const PatientAuthModal = ({
     }
 
     setMobile(identifier);
-    setLoginPhoneNumber(phoneNumber);
-    setErrorMessage("");
-    setInfoMessage("");
-    setIsProcessing(true);
-    try {
-      const response = await initiateLoginHandler({ phoneNumber });
-      if (response?.has_password) {
-        setLoginStage("password");
-        setInfoMessage("Enter your password to continue.");
-      } else {
-        setLoginStage("otp");
-        await sendOtpForFlow({ phoneNumber, flow: "login" });
-      }
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handlePasswordLogin = async () => {
-    if (!loginPassword.trim()) {
-      setErrorMessage("Please enter your password.");
-      return;
-    }
-    if (!loginPhoneNumber) {
-      setErrorMessage("Please enter your mobile number.");
-      return;
-    }
-
     setErrorMessage("");
     setInfoMessage("");
     setIsProcessing(true);
     try {
       await loginWithPasswordHandler({
-        phoneNumber: loginPhoneNumber,
+        phoneNumber: phoneNumber,
         password: loginPassword.trim(),
       });
       setInfoMessage("Login successful! Redirecting...");
@@ -460,7 +427,10 @@ const PatientAuthModal = ({
         onRequestClose();
       }, 1000);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      const errorMsg = getErrorMessage(error);
+      setErrorMessage(errorMsg);
+      // If password login fails and user doesn't have password, offer OTP option
+      // This is a fallback for edge cases
     } finally {
       setIsProcessing(false);
     }
@@ -470,13 +440,7 @@ const PatientAuthModal = ({
     if (isProcessing) return;
 
     if (mode === "login") {
-      if (loginStage === "phone") {
-        await handleLogin();
-      } else if (loginStage === "password") {
-        await handlePasswordLogin();
-      } else if (loginStage === "otp" && loginPhoneNumber) {
-        await sendOtpForFlow({ phoneNumber: loginPhoneNumber, flow: "login" });
-      }
+      await handleLogin();
       return;
     }
 
@@ -529,11 +493,7 @@ const PatientAuthModal = ({
   const baseSignupValid = fullName.trim() && signupDigitsValid && passwordValid;
 
   const isLoginActionDisabled =
-    loginStage === "phone"
-      ? !canLogin || isProcessing
-      : loginStage === "password"
-      ? !loginPassword.trim() || isProcessing
-      : isProcessing;
+    !canLogin || !loginPassword.trim() || isProcessing;
 
   const isPrimaryDisabled =
     mode === "login" ? isLoginActionDisabled : !baseSignupValid || isProcessing;
@@ -632,67 +592,40 @@ const PatientAuthModal = ({
                     keyboardType="phone-pad"
                     autoCapitalize="none"
                     style={styles.input}
-                    editable={loginStage === "phone"}
-                    selectTextOnFocus={loginStage === "phone"}
                     value={loginIdentifier}
                     onChangeText={handleLoginIdentifierChange}
                   />
-                  {showLoginPhoneError && loginStage === "phone" ? (
+                  {showLoginPhoneError ? (
                     <Text style={styles.inlineErrorText}>
                       Please enter a valid 10-digit mobile number.
                     </Text>
                   ) : null}
 
-                  {loginStage === "password" && (
-                    <>
-                      <View
-                        style={{
-                          backgroundColor: "#dbeafe",
-                          padding: 12,
-                          borderRadius: 8,
-                          marginTop: 12,
-                          marginBottom: 16,
-                          borderWidth: 1,
-                          borderColor: "#3b82f6",
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: "#1e40af",
-                            fontWeight: "600",
-                            fontSize: 14,
-                            textAlign: "center",
-                          }}
-                        >
-                          Enter your password to continue
-                        </Text>
-                      </View>
-                      <Text style={styles.inputLabel}>
-                        Password <Text style={styles.requiredIndicator}>*</Text>
-                      </Text>
-                      <TextInput
-                        placeholder="Enter your password"
-                        placeholderTextColor="#d3d3d3"
-                        secureTextEntry
-                        style={styles.input}
-                        value={loginPassword}
-                        onChangeText={setLoginPassword}
-                        autoFocus
+                  <Text style={styles.inputLabel}>
+                    Password <Text style={styles.requiredIndicator}>*</Text>
+                  </Text>
+                  <View style={styles.passwordField}>
+                    <TextInput
+                      placeholder="Enter your password"
+                      placeholderTextColor="#d3d3d3"
+                      secureTextEntry={!loginPasswordVisible}
+                      style={styles.passwordInput}
+                      value={loginPassword}
+                      onChangeText={setLoginPassword}
+                    />
+                    <TouchableOpacity
+                      style={styles.passwordToggle}
+                      onPress={() =>
+                        setLoginPasswordVisible((prevVisible) => !prevVisible)
+                      }
+                    >
+                      <Ionicons
+                        name={loginPasswordVisible ? "eye-off" : "eye"}
+                        size={18}
+                        color="#6B7280"
                       />
-                      <TouchableOpacity
-                        onPress={() => {
-                          setLoginStage("phone");
-                          setLoginPassword("");
-                          setInfoMessage("");
-                        }}
-                        style={{ marginBottom: 8 }}
-                      >
-                        <Text style={{ color: "#f96166", fontWeight: "600" }}>
-                          Use a different number
-                        </Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
+                    </TouchableOpacity>
+                  </View>
 
                   <TouchableOpacity
                     style={[
@@ -703,16 +636,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled}
                   >
                     <Text style={styles.btnText}>
-                      {(() => {
-                        if (isProcessing) {
-                          if (loginStage === "phone") return "Checking...";
-                          if (loginStage === "password") return "Logging in...";
-                          return "Sending...";
-                        }
-                        if (loginStage === "phone") return "Continue";
-                        if (loginStage === "password") return "Login";
-                        return "Enter OTP";
-                      })()}
+                      {isProcessing ? "Logging in..." : "Login"}
                     </Text>
                   </TouchableOpacity>
                 </View>
