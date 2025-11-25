@@ -25,10 +25,10 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useChatbot } from "../../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
-import Header from "../../../components/PatientScreenComponents/Header";
 import SearchBar from "../../../components/PatientScreenComponents/SearchBar";
 // import AppHospitalCard from "../../components/AppHospitalCard";
 import HospitalCard from "../../../components/PatientScreenComponents/HospitalComponents/HospitalCard";
+import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 
 const hospitals = [
   { id: "1" },
@@ -137,7 +137,7 @@ const AllHospitals = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
 
                   {/* {bodyVisible && */}
@@ -333,7 +333,7 @@ const AllHospitals = ({ navigation, route }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={styles.headContainer}>
-            <Header style={styles.header} navigation={navigation} />
+            <HeaderLoginSignUp style={styles.header} navigation={navigation} />
           </View>
           <View style={styles.searchBarConatiner}>
             <SearchBar style={styles.searchinput} />

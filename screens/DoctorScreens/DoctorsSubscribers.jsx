@@ -14,15 +14,12 @@ import {
 } from "react-native";
 
 import { MaterialIcons } from "@expo/vector-icons";
-//import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-import DoctorsHeader from "../../components/DoctorsPortalComponents/DoctorsHeader";
-//import Title from "../../components/PatientScreenComponents/Title";
-//import SearchBar from "../../components/PatientScreenComponents/SearchBar";
+//import DoctorsHeader from "../../components/DoctorsPortalComponents/DoctorsHeader";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
-import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
-//import DoctorSuggestion from "../../components/DoctorsPortalComponents/DoctorSuggestion";
+//import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 
 const { width, height } = Dimensions.get("window");
 const DoctorsSubscribers = ({ navigation, route }) => {
@@ -34,7 +31,7 @@ const DoctorsSubscribers = ({ navigation, route }) => {
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
-    }, [])
+    }, [setChatbotConfig])
   );
 
   return (
@@ -52,7 +49,7 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                   <NewestSidebar navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
-                  <DoctorsHeader navigation={navigation} />
+                  <HeaderLoginSignUp navigation={navigation} />
                   {/* <View style={styles.firstTextBox}>
                     <View>
                       <Text style={styles.firstText}>
@@ -145,16 +142,23 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                     </View>
 
                     <View style={styles.lowerPart}>
-                      <ScrollView>
+                      {/* <ScrollView> */}
+                      {/* <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                      </ScrollView>
+                        <SubscriberCard></SubscriberCard> */}
+                      <View style={styles.lowerCenterSection}>
+                        <Image
+                          source={require("../../assets/DoctorsPortal/Images/subscriberIcon.png")}
+                          style={styles.subscriberIcon}
+                        />
+                        
+                      </View>
+                      {/* </ScrollView> */}
                     </View>
                   </View>
                 </View>
@@ -322,6 +326,19 @@ const styles = StyleSheet.create({
 
   lowerPart: {
     height: "70%",
+  },
+  lowerCenterSection: {
+    borderWidth: 1,
+    height: "80%",
+    width: "40%",
+    alignSelf: "center",
+    alignItems: "center",
+  },
+  subscriberIcon: {
+    height: 125,
+    width: 100,
+    alignSelf:"center",
+    marginVertical:"10%"
   },
 });
 
