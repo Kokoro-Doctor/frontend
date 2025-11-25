@@ -15,12 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import NewSideNav from "../../../components/DoctorsPortalComponents/NewSideNav";
 import { useNavigation } from "@react-navigation/native";
 import SideImageStyle from "../../../components/DoctorsPortalComponents/SideImageStyle";
-import {
-  useGoogleAuth,
-  handleGoogleLogin,
-  initiateDoctorSignupVerification,
-  verifyMobileOtp,
-} from "../../../utils/AuthService";
+import { useGoogleAuth, handleGoogleLogin } from "../../../utils/AuthService";
 import Header from "../../../components/PatientScreenComponents/Header";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -29,18 +24,21 @@ const DoctorsSignUp = () => {
   const navigation = useNavigation();
   const [rememberMe, setRememberMe] = useState(false);
   const [request, response, promptAsync] = useGoogleAuth();
-  const { doctorsSignup } = useAuth();
-  const isPhoneValid = formData.phoneNumber?.trim()?.length >= 8;
-  const canSendOtp =
-    isPhoneValid && otpCountdown === 0 && otpStatus !== "sending" && otpStatus !== "verified";
-  const isOtpComplete = otpValue.trim().length === 6;
+  const {
+    doctorsSignup,
+    requestSignupOtp,
+    verifySignupOtp,
+  } = useAuth();
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
     email: "",
     location: "",
+    specialization: "",
+    experience: "",
     phoneNumber: "",
     password: "",
+    confirmPassword: "",
     otp: ["", "", "", ""],
   });
   const [verificationToken, setVerificationToken] = useState("");
@@ -48,12 +46,93 @@ const DoctorsSignUp = () => {
   const [otpStatus, setOtpStatus] = useState("idle");
   const [otpCountdown, setOtpCountdown] = useState(0);
   const otpIntervalRef = useRef(null);
+  const sanitizeDigits = useCallback(
+    (value = "") => value.replace(/\D/g, ""),
+    []
+  );
+  const normalizePhoneNumber = useCallback(
+    (value = formData.phoneNumber) => {
+      if (!value || !value.trim()) return "";
+      const trimmed = value.trim();
+      const digitsOnly = sanitizeDigits(trimmed);
+      if (!digitsOnly) return "";
+      if (trimmed.startsWith("+")) {
+        return `+${digitsOnly}`;
+      }
+      const localDigits = digitsOnly.slice(-10);
+      return localDigits ? `+91${localDigits}` : "";
+    },
+    [formData.phoneNumber, sanitizeDigits]
+  );
+
+  const isPhoneValid = sanitizeDigits(formData.phoneNumber).length >= 10;
+  const passwordValid = formData.password.trim().length >= 6;
+  const passwordsMatch =
+    formData.password.trim() &&
+    formData.password.trim() === formData.confirmPassword.trim();
+  const essentialDetailsFilled =
+    formData.firstname.trim() &&
+    formData.lastname.trim() &&
+    formData.specialization.trim() &&
+    formData.experience.trim() &&
+    formData.phoneNumber.trim();
+  const canSendOtp =
+    essentialDetailsFilled &&
+    passwordValid &&
+    passwordsMatch &&
+    isPhoneValid &&
+    otpCountdown === 0 &&
+    otpStatus !== "sending" &&
+    otpStatus !== "verified";
+  const isOtpComplete = otpValue.trim().length === 4;
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
   const toggleRememberMe = () => {
     setRememberMe(!rememberMe);
+  };
+
+  const validateDoctorForm = () => {
+    if (!formData.firstname.trim()) {
+      alert("Please enter your first name.");
+      return false;
+    }
+    if (!formData.lastname.trim()) {
+      alert("Please enter your last name.");
+      return false;
+    }
+    if (!formData.specialization.trim()) {
+      alert("Please enter your specialization.");
+      return false;
+    }
+    if (!formData.experience.trim()) {
+      alert("Please enter your years of experience.");
+      return false;
+    }
+    const experienceValue = parseInt(formData.experience, 10);
+    if (Number.isNaN(experienceValue) || experienceValue < 0) {
+      alert("Experience must be a valid number.");
+      return false;
+    }
+    if (!formData.phoneNumber.trim()) {
+      alert("Please enter your mobile number.");
+      return false;
+    }
+    const digitsOnly = sanitizeDigits(formData.phoneNumber);
+    if (digitsOnly.length < 10) {
+      alert("Please enter a valid mobile number.");
+      return false;
+    }
+    if (formData.password.trim().length < 6) {
+      alert("Password must be at least 6 characters.");
+      return false;
+    }
+    if (formData.password.trim() !== formData.confirmPassword.trim()) {
+      alert("Passwords do not match.");
+      return false;
+    }
+    return true;
   };
 
   useEffect(() => {
@@ -71,7 +150,7 @@ const DoctorsSignUp = () => {
             alert(`Welcome Dr. ${googleUser.doctorname || ""}!`);
             navigation.navigate("DoctorMedicalRegistration", {
               email: googleUser.email,
-              doctorname:googleUser.name,
+              doctorname: googleUser.name,
             });
           }
         } catch (error) {
@@ -160,14 +239,23 @@ const DoctorsSignUp = () => {
   }, [request, promptAsync]);
 
   const handleSendOtp = async () => {
+    if (!validateDoctorForm()) {
+      return;
+    }
     if (!isPhoneValid) {
+      alert("Please enter a valid phone number to receive OTP.");
+      return;
+    }
+    const phoneNumber = normalizePhoneNumber();
+    if (!phoneNumber) {
       alert("Please enter a valid phone number to receive OTP.");
       return;
     }
     setOtpStatus("sending");
     try {
-      await initiateDoctorSignupVerification({
-        phoneNumber: formData.phoneNumber.trim(),
+      await requestSignupOtp({
+        phoneNumber,
+        role: "doctor",
       });
       setOtpStatus("sent");
       setOtpCountdown(60);
@@ -181,20 +269,28 @@ const DoctorsSignUp = () => {
 
   const handleVerifyOtp = async () => {
     if (!isOtpComplete) {
-      alert("Please enter the 6-digit OTP.");
+      alert("Please enter the 4-digit OTP.");
+      return;
+    }
+    const phoneNumber = normalizePhoneNumber();
+    if (!phoneNumber) {
+      alert("Please enter a valid phone number before verifying OTP.");
       return;
     }
     setOtpStatus("verifying");
     try {
-      const response = await verifyMobileOtp({
-        phoneNumber: formData.phoneNumber.trim(),
+      const response = await verifySignupOtp({
+        phoneNumber,
         otp: otpValue.trim(),
+        role: "doctor",
       });
       if (response?.verification_token) {
         setVerificationToken(response.verification_token);
+        alert("Phone verified. Complete the signup form.");
+      } else {
+        alert("OTP verified.");
       }
       setOtpStatus("verified");
-      alert("Phone number verified successfully.");
     } catch (error) {
       console.error("Failed to verify OTP:", error);
       alert(error.message || "Failed to verify OTP.");
@@ -203,18 +299,42 @@ const DoctorsSignUp = () => {
   };
 
   const handleSignup = async () => {
+    if (!validateDoctorForm()) {
+      return;
+    }
     if (!verificationToken) {
       alert("Please verify your phone number before continuing.");
       return;
     }
+    if (!formData.specialization.trim()) {
+      alert("Please enter your specialization.");
+      return;
+    }
+    if (!formData.experience.trim()) {
+      alert("Please enter your years of experience.");
+      return;
+    }
+    const experienceValue = parseInt(formData.experience, 10);
+    if (Number.isNaN(experienceValue) || experienceValue < 0) {
+      alert("Experience must be a valid number.");
+      return;
+    }
+    if (formData.password.trim().length < 6) {
+      alert("Password must be at least 6 characters.");
+      return;
+    }
+    if (formData.password.trim() !== formData.confirmPassword.trim()) {
+      alert("Passwords do not match.");
+      return;
+    }
     try {
       await doctorsSignup({
-        doctorname: `${formData.firstname} ${formData.lastname}`.trim(),
-        email: formData.email,
-        password: formData.password,
-        phoneNumber: formData.phoneNumber,
-        location: formData.location,
         verificationToken,
+        name: `${formData.firstname} ${formData.lastname}`.trim(),
+        specialization: formData.specialization.trim(),
+        experience: experienceValue,
+        email: formData.email,
+        password: formData.password.trim(),
       });
 
       alert("Doctor registered successfully!");
@@ -237,7 +357,9 @@ const DoctorsSignUp = () => {
             <View style={styles.DetailContainer}>
               <Text style={styles.heading}>Sign Up</Text>
               <View style={styles.details}>
-                <Text style={styles.inputHeading}>First Name</Text>
+                <Text style={styles.inputHeading}>
+                  First Name <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <TextInput
                   placeholder="Enter your first name..."
                   placeholderTextColor="#c0c0c0"
@@ -247,10 +369,12 @@ const DoctorsSignUp = () => {
                       width > 1000 && { width: "60%", height: 36 },
                     { color: formData.firstname ? "black" : "#c0c0c0" },
                   ]}
-                  value={formData.name}
+                  value={formData.firstname}
                   onChangeText={(val) => handleChange("firstname", val)}
                 />
-                <Text style={styles.inputHeading}>Last Name</Text>
+                <Text style={styles.inputHeading}>
+                  Last Name <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <TextInput
                   placeholder="Enter your last name..."
                   placeholderTextColor="#c0c0c0"
@@ -260,36 +384,12 @@ const DoctorsSignUp = () => {
                       width > 1000 && { width: "60%", height: 36 },
                     { color: formData.lastname ? "black" : "#c0c0c0" },
                   ]}
-                  value={formData.name}
+                  value={formData.lastname}
                   onChangeText={(val) => handleChange("lastname", val)}
                 />
-                <Text style={styles.inputHeading}>Email Id</Text>
-                <TextInput
-                  placeholder="Enter your email..."
-                  placeholderTextColor="#c0c0c0"
-                  style={[
-                    styles.inputContainer,
-                    Platform.OS === "web" &&
-                      width > 1000 && { width: "60%", height: 36 },
-                    { color: formData.email ? "black" : "#c0c0c0" },
-                  ]}
-                  value={formData.email}
-                  onChangeText={(val) => handleChange("email", val)}
-                />
-                <Text style={styles.inputHeading}>Establishment Location</Text>
-                <TextInput
-                  placeholder="Enter your location..."
-                  placeholderTextColor="#c0c0c0"
-                  style={[
-                    styles.inputContainer,
-                    Platform.OS === "web" &&
-                      width > 1000 && { width: "60%", height: 36 },
-                    { color: formData.location ? "black" : "#c0c0c0" },
-                  ]}
-                  value={formData.location}
-                  onChangeText={(val) => handleChange("location", val)}
-                />
-                <Text style={styles.inputHeading}>Phone Number</Text>
+                <Text style={styles.inputHeading}>
+                  Phone Number <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <View style={styles.phoneInputRow}>
                   <TextInput
                     placeholder="Enter your phone number..."
@@ -308,7 +408,9 @@ const DoctorsSignUp = () => {
                   <TouchableOpacity
                     style={[
                       styles.sendOtpButton,
-                      (!canSendOtp && otpStatus !== "verified") && styles.disabledOtpButton,
+                      !canSendOtp &&
+                        otpStatus !== "verified" &&
+                        styles.disabledOtpButton,
                       otpStatus === "verified" && styles.verifiedBadge,
                     ]}
                     onPress={handleSendOtp}
@@ -328,10 +430,10 @@ const DoctorsSignUp = () => {
                 {(otpStatus !== "idle" || verificationToken) && (
                   <View style={styles.otpRow}>
                     <TextInput
-                      placeholder="6-digit OTP"
+                      placeholder="4-digit OTP"
                       placeholderTextColor="#c0c0c0"
                       keyboardType="number-pad"
-                      maxLength={6}
+                      maxLength={4}
                       style={[styles.inputContainer, styles.otpInput]}
                       value={otpValue}
                       onChangeText={(value) =>
@@ -341,7 +443,8 @@ const DoctorsSignUp = () => {
                     <TouchableOpacity
                       style={[
                         styles.verifyOtpButton,
-                        (!isOtpComplete || otpStatus === "verified") && styles.disabledOtpButton,
+                        (!isOtpComplete || otpStatus === "verified") &&
+                          styles.disabledOtpButton,
                       ]}
                       onPress={handleVerifyOtp}
                       disabled={
@@ -370,20 +473,125 @@ const DoctorsSignUp = () => {
                     )}
                   </View>
                 )}
-                <Text style={styles.inputHeading}>Password</Text>
+                <Text style={styles.inputHeading}>
+                  Specialization <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <TextInput
-                  placeholder="Enter your password..."
+                  placeholder="e.g. Cardiologist"
                   placeholderTextColor="#c0c0c0"
-                  secureTextEntry
                   style={[
                     styles.inputContainer,
                     Platform.OS === "web" &&
                       width > 1000 && { width: "60%", height: 36 },
-                    { color: formData.password ? "black" : "#c0c0c0" },
+                    { color: formData.specialization ? "black" : "#c0c0c0" },
                   ]}
+                  value={formData.specialization}
+                  onChangeText={(val) => handleChange("specialization", val)}
+                />
+                <Text style={styles.inputHeading}>
+                  Years of Experience{" "}
+                  <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <TextInput
+                  placeholder="e.g. 5"
+                  placeholderTextColor="#c0c0c0"
+                  keyboardType="numeric"
+                  style={[
+                    styles.inputContainer,
+                    Platform.OS === "web" &&
+                      width > 1000 && { width: "60%", height: 36 },
+                    { color: formData.experience ? "black" : "#c0c0c0" },
+                  ]}
+                  value={formData.experience}
+                  onChangeText={(val) => handleChange("experience", val)}
+                />
+                <Text style={styles.inputHeading}>
+                  Establishment Location{" "}
+                  <Text style={styles.optionalIndicator}>(optional)</Text>
+                </Text>
+                <TextInput
+                  placeholder="Enter your location..."
+                  placeholderTextColor="#c0c0c0"
+                  style={[
+                    styles.inputContainer,
+                    Platform.OS === "web" &&
+                      width > 1000 && { width: "60%", height: 36 },
+                    { color: formData.location ? "black" : "#c0c0c0" },
+                  ]}
+                  value={formData.location}
+                  onChangeText={(val) => handleChange("location", val)}
+                />
+                <Text style={styles.inputHeading}>
+                  Email Id{" "}
+                  <Text style={styles.optionalIndicator}>(optional)</Text>
+                </Text>
+                <TextInput
+                  placeholder="Enter your email..."
+                  placeholderTextColor="#c0c0c0"
+                  style={[
+                    styles.inputContainer,
+                    Platform.OS === "web" &&
+                      width > 1000 && { width: "60%", height: 36 },
+                    { color: formData.email ? "black" : "#c0c0c0" },
+                  ]}
+                  value={formData.email}
+                  onChangeText={(val) => handleChange("email", val)}
+                />
+                <Text style={styles.inputHeading}>
+                  Password <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <TextInput
+                  placeholder="Create a password (min. 6 characters)..."
+                  placeholderTextColor="#c0c0c0"
+                  style={[
+                    styles.inputContainer,
+                    Platform.OS === "web" &&
+                      width > 1000 && { width: "60%", height: 36 },
+                  ]}
+                  secureTextEntry
                   value={formData.password}
                   onChangeText={(val) => handleChange("password", val)}
                 />
+                <Text style={styles.inputHeading}>
+                  Confirm Password{" "}
+                  <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <TextInput
+                  placeholder="Re-enter password..."
+                  placeholderTextColor="#c0c0c0"
+                  style={[
+                    styles.inputContainer,
+                    Platform.OS === "web" &&
+                      width > 1000 && { width: "60%", height: 36 },
+                  ]}
+                  secureTextEntry
+                  value={formData.confirmPassword}
+                  onChangeText={(val) =>
+                    handleChange("confirmPassword", val)
+                  }
+                />
+                {verificationToken ? (
+                  <View
+                    style={{
+                      backgroundColor: "#dcfce7",
+                      padding: 12,
+                      borderRadius: 8,
+                      marginTop: 12,
+                      borderWidth: 1,
+                      borderColor: "#16a34a",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#16a34a",
+                        fontWeight: "600",
+                        textAlign: "center",
+                      }}
+                    >
+                      ✓ Phone verified! Click “Sign in” to complete signup.
+                    </Text>
+                  </View>
+                ) : null}
                 <View style={styles.rememberForgotRow}>
                   <View style={styles.rememberMeContainer}>
                     <TouchableOpacity
@@ -457,7 +665,9 @@ const DoctorsSignUp = () => {
             <View style={styles.DetailContainer}>
               <Text style={styles.heading}>Sign Up</Text>
               <View style={styles.details}>
-                <Text style={styles.inputHeading}>First Name</Text>
+                <Text style={styles.inputHeading}>
+                  First Name <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     placeholder="Enter your first name..."
@@ -471,7 +681,9 @@ const DoctorsSignUp = () => {
                   />
                 </View>
 
-                <Text style={styles.inputHeading}>Last Name</Text>
+                <Text style={styles.inputHeading}>
+                  Last Name <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     placeholder="Enter your last name..."
@@ -485,21 +697,9 @@ const DoctorsSignUp = () => {
                   />
                 </View>
 
-                <Text style={styles.inputHeading}>Email Id</Text>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    placeholder="Enter your email..."
-                    placeholderTextColor="#c0c0c0"
-                    style={[
-                      styles.inputContainer,
-                      { color: formData.email ? "black" : "#c0c0c0" },
-                    ]}
-                    value={formData.email}
-                    onChangeText={(val) => handleChange("email", val)}
-                  />
-                </View>
-
-                <Text style={styles.inputHeading}>Phone Number</Text>
+                <Text style={styles.inputHeading}>
+                  Phone Number <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <View style={[styles.inputWrapper, styles.phoneInputRow]}>
                   <TextInput
                     placeholder="Enter your phone number..."
@@ -516,7 +716,9 @@ const DoctorsSignUp = () => {
                   <TouchableOpacity
                     style={[
                       styles.sendOtpButton,
-                      (!canSendOtp && otpStatus !== "verified") && styles.disabledOtpButton,
+                      !canSendOtp &&
+                        otpStatus !== "verified" &&
+                        styles.disabledOtpButton,
                       otpStatus === "verified" && styles.verifiedBadge,
                     ]}
                     onPress={handleSendOtp}
@@ -536,10 +738,10 @@ const DoctorsSignUp = () => {
                 {(otpStatus !== "idle" || verificationToken) && (
                   <View style={[styles.inputWrapper, styles.otpRow]}>
                     <TextInput
-                      placeholder="6-digit OTP"
+                      placeholder="4-digit OTP"
                       placeholderTextColor="#c0c0c0"
                       keyboardType="number-pad"
-                      maxLength={6}
+                      maxLength={4}
                       style={[styles.inputContainer, styles.otpInput]}
                       value={otpValue}
                       onChangeText={(value) =>
@@ -549,7 +751,8 @@ const DoctorsSignUp = () => {
                     <TouchableOpacity
                       style={[
                         styles.verifyOtpButton,
-                        (!isOtpComplete || otpStatus === "verified") && styles.disabledOtpButton,
+                        (!isOtpComplete || otpStatus === "verified") &&
+                          styles.disabledOtpButton,
                       ]}
                       onPress={handleVerifyOtp}
                       disabled={
@@ -579,10 +782,79 @@ const DoctorsSignUp = () => {
                   </View>
                 )}
 
-                <Text style={styles.inputHeading}>Password</Text>
+                <Text style={styles.inputHeading}>
+                  Specialization <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <View style={styles.inputWrapper}>
                   <TextInput
-                    placeholder="Enter your password..."
+                    placeholder="e.g. Cardiologist"
+                    placeholderTextColor="#c0c0c0"
+                    style={[
+                      styles.inputContainer,
+                      { color: formData.specialization ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.specialization}
+                    onChangeText={(val) => handleChange("specialization", val)}
+                  />
+                </View>
+                <Text style={styles.inputHeading}>
+                  Years of Experience{" "}
+                  <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="e.g. 5"
+                    placeholderTextColor="#c0c0c0"
+                    keyboardType="numeric"
+                    style={[
+                      styles.inputContainer,
+                      { color: formData.experience ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.experience}
+                    onChangeText={(val) => handleChange("experience", val)}
+                  />
+                </View>
+
+                <Text style={styles.inputHeading}>
+                  Establishment Location{" "}
+                  <Text style={styles.optionalIndicator}>(optional)</Text>
+                </Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="Enter your location..."
+                    placeholderTextColor="#c0c0c0"
+                    style={[
+                      styles.inputContainer,
+                      { color: formData.location ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.location}
+                    onChangeText={(val) => handleChange("location", val)}
+                  />
+                </View>
+
+                <Text style={styles.inputHeading}>
+                  Email Id{" "}
+                  <Text style={styles.optionalIndicator}>(optional)</Text>
+                </Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="Enter your email..."
+                    placeholderTextColor="#c0c0c0"
+                    style={[
+                      styles.inputContainer,
+                      { color: formData.email ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.email}
+                    onChangeText={(val) => handleChange("email", val)}
+                  />
+                </View>
+
+                <Text style={styles.inputHeading}>
+                  Password <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="Create a password (min. 6 characters)..."
                     placeholderTextColor="#c0c0c0"
                     secureTextEntry
                     style={[
@@ -593,6 +865,48 @@ const DoctorsSignUp = () => {
                     onChangeText={(val) => handleChange("password", val)}
                   />
                 </View>
+                <Text style={styles.inputHeading}>
+                  Confirm Password <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="Re-enter password..."
+                    placeholderTextColor="#c0c0c0"
+                    secureTextEntry
+                    style={[
+                      styles.inputContainer,
+                      {
+                        color: formData.confirmPassword ? "black" : "#c0c0c0",
+                      },
+                    ]}
+                    value={formData.confirmPassword}
+                    onChangeText={(val) =>
+                      handleChange("confirmPassword", val)
+                    }
+                  />
+                </View>
+                {verificationToken ? (
+                  <View
+                    style={{
+                      backgroundColor: "#dcfce7",
+                      padding: 12,
+                      borderRadius: 8,
+                      marginTop: 12,
+                      borderWidth: 1,
+                      borderColor: "#16a34a",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#16a34a",
+                        fontWeight: "600",
+                        textAlign: "center",
+                      }}
+                    >
+                      ✓ Phone verified! Tap “Sign in” to complete signup.
+                    </Text>
+                  </View>
+                ) : null}
 
                 <View style={styles.rememberForgotRow}>
                   <TouchableOpacity
@@ -611,14 +925,14 @@ const DoctorsSignUp = () => {
                 </View>
 
                 <View style={styles.btns}>
-                <TouchableOpacity
-                  style={[
-                    styles.continueContainer,
-                    !verificationToken && { backgroundColor: "#94A3B8" },
-                  ]}
-                  onPress={handleSignup}
-                  disabled={!verificationToken}
-                >
+                  <TouchableOpacity
+                    style={[
+                      styles.continueContainer,
+                      !verificationToken && { backgroundColor: "#94A3B8" },
+                    ]}
+                    onPress={handleSignup}
+                    disabled={!verificationToken}
+                  >
                     <Text style={styles.continueText}>Sign in</Text>
                     <Text>{"\n"}</Text>
                   </TouchableOpacity>
@@ -1021,6 +1335,18 @@ const styles = StyleSheet.create({
   googleButtonText: {
     fontSize: 16,
     color: "#0e0e0eff",
+  },
+  requiredIndicator: {
+    color: "#EF4444",
+    fontSize: 12,
+    fontWeight: "bold",
+    marginLeft: 2,
+  },
+  optionalIndicator: {
+    color: "#6B7280",
+    fontSize: 14,
+    fontWeight: "normal",
+    marginLeft: 4,
   },
 });
 export default DoctorsSignUp;

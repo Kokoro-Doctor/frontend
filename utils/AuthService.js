@@ -232,12 +232,15 @@ const postJson = async (path, body, fallbackMessage) => {
   return parseJsonResponse(response, fallbackMessage);
 };
 
-const persistUserSession = async ({ access_token, user }) => {
+const persistUserSession = async ({ access_token, profile, role }) => {
   if (access_token) {
     await AsyncStorage.setItem("@token", access_token);
   }
-  if (user) {
-    await AsyncStorage.setItem("@user", JSON.stringify(user));
+  if (profile) {
+    await AsyncStorage.setItem("@user", JSON.stringify(profile));
+  }
+  if (role) {
+    await AsyncStorage.setItem("role", role);
   }
 };
 
@@ -290,53 +293,92 @@ export const signInWithGoogleApp = async () => {
   return null;
 };
 
-// ================= Signup Verification Helpers =================
+// ================= OTP & Login Flow Helpers =================
 
-export const initiateUserSignupVerification = async ({ email, phoneNumber }) => {
-  if (!email && !phoneNumber) {
-    throw new Error("Please provide an email or phone number.");
+export const requestSignupOtp = async ({ phoneNumber, role = "user" }) => {
+  if (!phoneNumber) {
+    throw new Error("Please provide a mobile number.");
   }
-  return postJson(
-    "/auth/user/signup/initiate",
-    { email, phoneNumber },
-    "Failed to initiate signup"
-  );
+  const endpoint =
+    role === "doctor"
+      ? "/auth/doctor/request-signup-otp"
+      : "/auth/user/request-signup-otp";
+  return postJson(endpoint, { phoneNumber }, "Failed to send OTP");
 };
 
-export const initiateDoctorSignupVerification = async ({
-  email,
-  phoneNumber,
-}) => {
-  if (!email && !phoneNumber) {
-    throw new Error("Please provide an email or phone number.");
-  }
-  return postJson(
-    "/auth/doctor/signup/initiate",
-    { email, phoneNumber },
-    "Failed to initiate doctor signup"
-  );
-};
 
-export const verifyMobileOtp = async ({ phoneNumber, otp, userId }) => {
+export const verifySignupOtp = async ({ phoneNumber, otp, role = "user" }) => {
   if (!phoneNumber || !otp) {
     throw new Error("OTP and phone number are required.");
   }
   return postJson(
-    "/auth/verify-mobile-otp",
-    { phoneNumber, otp, user_id: userId },
+    "/auth/verify-otp",
+    { phoneNumber, otp, role },
     "Failed to verify OTP"
   );
 };
 
-// ================= User Auth =================
 
-export const signup = async ({
-  username,
-  password,
+export const requestLoginOtp = async ({ phoneNumber }) => {
+  if (!phoneNumber) {
+    throw new Error("Please provide a mobile number.");
+  }
+  return postJson("/auth/request-otp", { phoneNumber }, "Failed to send OTP");
+};
+
+
+export const initiateLogin = async ({ phoneNumber }) => {
+  if (!phoneNumber) {
+    throw new Error("Please provide a mobile number.");
+  }
+  return postJson("/auth/login", { phoneNumber }, "Failed to start login");
+};
+
+
+const handleLoginResponse = async (data) => {
+  if (data?.access_token && data?.profile) {
+    await persistUserSession({
+      access_token: data.access_token,
+      profile: data.profile,
+      role: data.role,
+    });
+  }
+  return data;
+};
+
+
+export const loginWithPassword = async ({ phoneNumber, password }) => {
+  if (!phoneNumber || !password) {
+    throw new Error("Phone number and password are required.");
+  }
+  const data = await postJson(
+    "/auth/login",
+    { phoneNumber, password },
+    "Login failed"
+  );
+  return handleLoginResponse(data);
+};
+
+
+export const loginWithOtp = async ({ phoneNumber, otp }) => {
+  if (!phoneNumber || !otp) {
+    throw new Error("Phone number and OTP are required.");
+  }
+  const data = await postJson(
+    "/auth/login",
+    { phoneNumber, otp },
+    "OTP login failed"
+  );
+  return handleLoginResponse(data);
+};
+
+// ================= Profile Creation =================
+
+export const completeUserSignup = async ({
   verificationToken,
-  phoneNumber,
+  name,
   email,
-  location,
+  password,
 }) => {
   if (!verificationToken) {
     throw new Error("Verification token is required to complete signup.");
@@ -344,121 +386,64 @@ export const signup = async ({
 
   const data = await postJson(
     "/auth/user/signup",
-    {
-      username,
-      password,
-      verificationToken,
-      phoneNumber,
-      email,
-      location,
-    },
+    { verificationToken, name, email, password },
     "Failed to complete signup"
   );
 
-  const { doctor } = data;
-  await AsyncStorage.setItem("@doctor", JSON.stringify(doctor));
-  return doctor;
-};
+  await persistUserSession({
+    access_token: data.access_token,
+    profile: data.profile,
+    role: "user",
+  });
 
-export const login = async ({ email, phoneNumber, password }) => {
-  if (!password) {
-    throw new Error("Password is required.");
-  }
-  if (!email && !phoneNumber) {
-    throw new Error("Please provide an email or phone number.");
-  }
-
-  const data = await postJson(
-    "/auth/user/login",
-    { email, phoneNumber, password },
-    "Login failed"
-  );
-
-  await persistUserSession(data);
   return data;
 };
 
-export const requestPasswordReset = async ({ email, phoneNumber }) => {
-  if (!email && !phoneNumber) {
-    throw new Error("Please enter your email or mobile number.");
-  }
-  if (email && phoneNumber) {
-    throw new Error("Please use either email or mobile number, not both.");
-  }
-
-  return postJson(
-    "/auth/request-password-reset",
-    { email, phoneNumber },
-    "Failed to request password reset"
-  );
-};
-
-export const confirmPasswordReset = async ({
-  email,
-  phoneNumber,
-  token,
-  newPassword,
-}) => {
-  if (!token || !newPassword) {
-    throw new Error("Reset code and new password are required.");
-  }
-  if (!email && !phoneNumber) {
-    throw new Error("Please provide the email or mobile number you used.");
-  }
-  if (email && phoneNumber) {
-    throw new Error("Please use either email or mobile number, not both.");
-  }
-
-  return postJson(
-    "/auth/reset-password",
-    { email, phoneNumber, token, new_password: newPassword },
-    "Failed to reset password"
-  );
-};
-
-// ================= Doctor Auth =================
-
 export const completeDoctorSignup = async ({
-  doctorname,
-  password,
   verificationToken,
-  phoneNumber,
+  name,
+  specialization,
+  experience,
   email,
-  location,
+  password,
 }) => {
   if (!verificationToken) {
     throw new Error("Verification token is required to complete signup.");
   }
 
-  return postJson(
+  const data = await postJson(
     "/auth/doctor/signup",
     {
-      doctorname,
-      password,
       verificationToken,
-      phoneNumber,
+      name,
+      specialization,
+      experience,
       email,
-      location,
+      password,
     },
     "Failed to complete doctor signup"
   );
+
+  await persistUserSession({
+    access_token: data.access_token,
+    profile: data.profile,
+    role: "doctor",
+  });
+
+  return data;
 };
 
-// Backwards compatibility
-export const registerDoctor = completeDoctorSignup;
+// ================= Deprecated Password Helpers =================
 
-export const loginDoctor = async ({ email, phoneNumber, password }) => {
-  if (!password) {
-    throw new Error("Password is required.");
-  }
-  if (!email && !phoneNumber) {
-    throw new Error("Please provide an email or phone number.");
-  }
+export const requestPasswordReset = async () => {
+  throw new Error(
+    "Password resets are no longer supported. Please log in using your mobile number and OTP."
+  );
+};
 
-  return postJson(
-    "/auth/doctor/login",
-    { email, phoneNumber, password },
-    "Doctor login failed"
+export const confirmPasswordReset = async () => {
+  throw new Error(
+    "Password resets are no longer supported. Please log in using your mobile number and OTP."
   );
 };
 
@@ -467,12 +452,14 @@ export const loginDoctor = async ({ email, phoneNumber, password }) => {
 export const logOut = async () => {
   await AsyncStorage.removeItem("@token");
   await AsyncStorage.removeItem("@user");
+  await AsyncStorage.removeItem("role");
 };
 
 export const restoreUserState = async () => {
   const token = await AsyncStorage.getItem("@token");
   const user = await AsyncStorage.getItem("@user");
-  return token && user ? { token, user: JSON.parse(user) } : null;
+  const role = await AsyncStorage.getItem("role");
+  return token && user ? { token, user: JSON.parse(user), role } : null;
 };
 
 // ================= Utilities =================
