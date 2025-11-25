@@ -375,18 +375,19 @@ export const loginWithOtp = async ({ phoneNumber, otp }) => {
 // ================= Profile Creation =================
 
 export const completeUserSignup = async ({
-  verificationToken,
+  phoneNumber,
+  otp,
   name,
   email,
   password,
 }) => {
-  if (!verificationToken) {
-    throw new Error("Verification token is required to complete signup.");
+  if (!phoneNumber || !otp) {
+    throw new Error("Phone number and OTP are required to complete signup.");
   }
 
   const data = await postJson(
     "/auth/user/signup",
-    { verificationToken, name, email, password },
+    { phoneNumber, otp, name, email, password },
     "Failed to complete signup"
   );
 
@@ -400,21 +401,23 @@ export const completeUserSignup = async ({
 };
 
 export const completeDoctorSignup = async ({
-  verificationToken,
+  phoneNumber,
+  otp,
   name,
   specialization,
   experience,
   email,
   password,
 }) => {
-  if (!verificationToken) {
-    throw new Error("Verification token is required to complete signup.");
+  if (!phoneNumber || !otp) {
+    throw new Error("Phone number and OTP are required to complete signup.");
   }
 
   const data = await postJson(
     "/auth/doctor/signup",
     {
-      verificationToken,
+      phoneNumber,
+      otp,
       name,
       specialization,
       experience,
