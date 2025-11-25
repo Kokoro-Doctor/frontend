@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useState } from "react";
+import React, { createContext, useContext, useRef, useState, useCallback } from "react";
 
 const LoginModalContext = createContext(null);
 
@@ -6,22 +6,22 @@ export const LoginModalProvider = ({ children }) => {
   const [openLoginModal, setOpenLoginModal] = useState(null);
   const pendingOptionsRef = useRef(null);
 
-  const registerOpenModal = (openFn) => {
+  const registerOpenModal = useCallback((openFn) => {
     setOpenLoginModal(() => openFn);
     if (pendingOptionsRef.current) {
       const pending = pendingOptionsRef.current;
       pendingOptionsRef.current = null;
       openFn(pending);
     }
-  };
+  }, []);
 
-  const triggerLoginModal = (options = {}) => {
+  const triggerLoginModal = useCallback((options = {}) => {
     if (openLoginModal) {
       openLoginModal(options);
     } else {
       pendingOptionsRef.current = options;
     }
-  };
+  }, [openLoginModal]);
 
   return (
     <LoginModalContext.Provider value={{ registerOpenModal, triggerLoginModal }}>

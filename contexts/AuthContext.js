@@ -1,13 +1,17 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useState } from "react";
 import {
   completeDoctorSignup,
+  completeUserSignup,
   handleGoogleLogin,
-  login,
+  initiateLogin as initiateLoginApi,
+  loginWithOtp as loginWithOtpApi,
+  loginWithPassword as loginWithPasswordApi,
   logOut,
+  requestLoginOtp as requestLoginOtpApi,
+  requestSignupOtp as requestSignupOtpApi,
   restoreUserState,
   signInWithGoogleApp,
-  signup
+  verifySignupOtp as verifySignupOtpApi,
 } from "../utils/AuthService";
 import { resetChatCount } from "../utils/chatLimitManager";
 import { ensureError, getErrorMessage } from "../utils/errorUtils";
@@ -42,9 +46,8 @@ export const AuthProvider = ({ children }) => {
     const initializeUser = async () => {
       try {
         const storedState = await restoreUserState();
-        const storedRole = await AsyncStorage.getItem("role");
         if (storedState?.user) setUser(storedState.user);
-        if (storedRole) setRole(storedRole);
+        if (storedState?.role) setRole(storedState.role);
       } catch (error) {
         console.error("Failed to restore user state:", error);
       } finally {
@@ -54,37 +57,98 @@ export const AuthProvider = ({ children }) => {
     initializeUser();
   }, []);
 
-  const signupHandler = async (payload) => {
+  const syncSession = async (result, fallbackRole = null) => {
+    if (result?.profile) {
+      setUser(result.profile);
+      setRole(result.role ?? fallbackRole ?? "user");
+      await clearSession();
+      await resetChatCount();
+    }
+    return result;
+  };
+
+  const requestSignupOtpHandler = async (payload) => {
     try {
-      return await signup(payload);
+      return await requestSignupOtpApi(payload);
     } catch (error) {
       const message = getErrorMessage(error);
-      console.error("Signup error:", message, error);
+      console.error("Signup OTP request failed:", message, error);
+      throw ensureError(error);
+    }
+  };
+
+  const verifySignupOtpHandler = async (payload) => {
+    try {
+      return await verifySignupOtpApi(payload);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      console.error("Signup OTP verification failed:", message, error);
+      throw ensureError(error);
+    }
+  };
+
+  const requestLoginOtpHandler = async (payload) => {
+    try {
+      return await requestLoginOtpApi(payload);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      console.error("Login OTP request failed:", message, error);
+      throw ensureError(error);
+    }
+  };
+
+  const initiateLoginHandler = async (payload) => {
+    try {
+      return await initiateLoginApi(payload);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      console.error("Login initiation failed:", message, error);
+      throw ensureError(error);
+    }
+  };
+
+  const loginWithPasswordHandler = async (payload) => {
+    try {
+      const result = await loginWithPasswordApi(payload);
+      return await syncSession(result);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      console.error("Password login failed:", message, error);
+      throw ensureError(error);
+    }
+  };
+
+  const loginWithOtpHandler = async (payload) => {
+    try {
+      const result = await loginWithOtpApi(payload);
+      return await syncSession(result);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      console.error("OTP login failed:", message, error);
+      throw ensureError(error);
+    }
+  };
+
+  const completePatientSignup = async (payload) => {
+    try {
+      const result = await completeUserSignup(payload);
+      await syncSession(result, "user");
+      return result;
+    } catch (error) {
+      const message = getErrorMessage(error);
+      console.error("Patient signup error:", message, error);
       throw ensureError(error);
     }
   };
 
   const doctorSignupHandler = async (payload) => {
     try {
-      return await completeDoctorSignup(payload);
+      const result = await completeDoctorSignup(payload);
+      await syncSession(result, "doctor");
+      return result;
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Doctor signup error:", message, error);
-      throw ensureError(error);
-    }
-  };
-
-  const loginHandler = async ({ email, phoneNumber, password }, navigation) => {
-    try {
-      const newUser = await login({ email, phoneNumber, password });
-      setUser(newUser?.user);
-      // Clear session and chat counts when user signs in
-      await clearSession();
-      await resetChatCount();
-      navigation?.navigate("LandingPage");
-    } catch (error) {
-      const message = getErrorMessage(error);
-      console.error("Login failed:", message, error);
       throw ensureError(error);
     }
   };
@@ -96,6 +160,7 @@ export const AuthProvider = ({ children }) => {
       await clearSession();
       await resetChatCount();
       setUser(null);
+      setRole(null);
     } catch (error) {
       alert("Logout Failed: Something went wrong!");
     }
@@ -133,10 +198,16 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         role,
+        isLoading,
         loginWithGoogle,
-        doctorsSignup:doctorSignupHandler,
-        signup: signupHandler,
-        login: loginHandler,
+        doctorsSignup: doctorSignupHandler,
+        signup: completePatientSignup,
+        requestSignupOtp: requestSignupOtpHandler,
+        verifySignupOtp: verifySignupOtpHandler,
+        requestLoginOtp: requestLoginOtpHandler,
+        initiateLogin: initiateLoginHandler,
+        loginWithPassword: loginWithPasswordHandler,
+        loginWithOtp: loginWithOtpHandler,
         logout: logoutHandler,
         googleLogin: googleLoginHandler,
       }}
