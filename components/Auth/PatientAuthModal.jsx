@@ -317,22 +317,26 @@ const PatientAuthModal = ({
         });
         if (response?.verification_token) {
           setVerificationToken(response.verification_token);
-          // Automatically complete signup after verification
           setOtpStatus("verified");
-          setOtpFlow(null);
-          setOtpTargetPhone("");
-          setShowOtpModal(false);
-          // Don't reset processing here - let handleCompleteProfile manage it
-          // Call complete profile with the verification token
+          // Don't close modal yet - wait for signup to complete
+          // Call complete profile with the verification token directly
           try {
-            await handleCompleteProfile();
+            await handleCompleteProfile(response.verification_token);
+            // Only close modal and reset state after successful signup
+            setOtpFlow(null);
+            setOtpTargetPhone("");
+            setShowOtpModal(false);
+            return response.verification_token;
           } catch (profileError) {
             // handleCompleteProfile already handles its own errors
+            // Keep modal open so user can see the error
+            setOtpStatus("sent");
             setIsProcessing(false);
+            return null;
           }
-          return response.verification_token;
         }
         setErrorMessage("Verification failed. Please try again.");
+        setOtpStatus("sent");
         setIsProcessing(false);
         return null;
       }
@@ -363,15 +367,12 @@ const PatientAuthModal = ({
     }
   };
 
-  const handleCompleteProfile = async () => {
+  const handleCompleteProfile = async (verificationTokenOverride = null) => {
     const nameToUse = fullName.trim();
     const passwordToUse = password.trim();
-    const verificationTokenToUse = verificationToken;
+    const verificationTokenToUse =
+      verificationTokenOverride || verificationToken;
 
-    if (!verificationTokenToUse) {
-      setErrorMessage("Please verify your phone number first.");
-      return;
-    }
     if (!nameToUse) {
       setErrorMessage("Please enter your full name.");
       return;
@@ -546,9 +547,14 @@ const PatientAuthModal = ({
   };
 
   const canLogin = sanitizeDigits(loginIdentifier).length >= 10;
+  const loginDigitsValid = sanitizeDigits(loginIdentifier).length >= 10;
+  const showLoginPhoneError =
+    loginIdentifier.trim().length > 0 && !loginDigitsValid;
   const signupDigitsValid = sanitizeDigits(signupIdentifier).length >= 10;
   const passwordValid = password.trim().length >= 6;
   const showSignupPasswordError = passwordTouched && !passwordValid;
+  const showSignupPhoneError =
+    signupIdentifier.trim().length > 0 && !signupDigitsValid;
   const baseSignupValid = fullName.trim() && signupDigitsValid && passwordValid;
   const canCompleteSignup = verificationToken && baseSignupValid;
 
@@ -665,6 +671,11 @@ const PatientAuthModal = ({
                     value={loginIdentifier}
                     onChangeText={handleLoginIdentifierChange}
                   />
+                  {showLoginPhoneError && loginStage === "phone" ? (
+                    <Text style={styles.inlineErrorText}>
+                      Please enter a valid 10-digit mobile number.
+                    </Text>
+                  ) : null}
 
                   {loginStage === "password" && (
                     <>
@@ -788,6 +799,11 @@ const PatientAuthModal = ({
                     value={signupIdentifier}
                     onChangeText={handleSignupIdentifierChange}
                   />
+                  {showSignupPhoneError ? (
+                    <Text style={styles.inlineErrorText}>
+                      Please enter a valid 10-digit mobile number.
+                    </Text>
+                  ) : null}
 
                   <Text style={styles.inputLabel}>
                     Email{" "}

@@ -190,20 +190,30 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       });
       if (response?.verification_token) {
         setDoctorVerificationToken(response.verification_token);
-        // Automatically complete signup after verification
-        setShowOtpModal(false);
         setDoctorOtpStatus("verified");
-        // Call signup with the verification token
-        await handleDoctorSignup(response.verification_token);
-        return true;
+        // Don't close modal yet - wait for signup to complete
+        try {
+          // Call signup with the verification token
+          await handleDoctorSignup(response.verification_token);
+          // Only close modal after successful signup
+          setShowOtpModal(false);
+          return true;
+        } catch (signupError) {
+          // Keep modal open so user can see the error
+          setDoctorOtpStatus("sent");
+          setIsProcessing(false);
+          return false;
+        }
       }
       setErrorMessage("Verification failed. Please try again.");
+      setDoctorOtpStatus("sent");
+      setIsProcessing(false);
       return false;
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
-      return false;
-    } finally {
+      setDoctorOtpStatus("sent");
       setIsProcessing(false);
+      return false;
     }
   };
 
@@ -231,10 +241,6 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
 
     const verificationToken =
       verificationTokenOverride || doctorVerificationToken;
-    if (!verificationToken) {
-      setErrorMessage("Please verify your phone number first.");
-      return;
-    }
 
     if (doctorPassword.trim().length < 6) {
       setDoctorPasswordTouched(true);
@@ -294,6 +300,10 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
   const isDoctorPasswordValid = doctorPassword.trim().length >= 6;
   const showDoctorPasswordError =
     doctorPasswordTouched && !isDoctorPasswordValid;
+  const doctorPhoneDigits = sanitizeDigits(doctorPhone);
+  const isDoctorPhoneValid = doctorPhoneDigits.length >= 10;
+  const showDoctorPhoneError =
+    doctorPhone.trim().length > 0 && !isDoctorPhoneValid;
 
   return (
     <>
@@ -350,6 +360,11 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                 value={doctorPhone}
                 onChangeText={handleDoctorPhoneChange}
               />
+              {showDoctorPhoneError ? (
+                <Text style={styles.inlineErrorText}>
+                  Please enter a valid 10-digit mobile number.
+                </Text>
+              ) : null}
 
               <Text style={styles.inputLabel}>
                 Specialization <Text style={styles.requiredIndicator}>*</Text>
@@ -431,7 +446,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                   styles.btn,
                   (isProcessing ||
                     !doctorFullName.trim() ||
-                    !doctorPhone.trim() ||
+                    !isDoctorPhoneValid ||
                     !doctorSpecialization.trim() ||
                     !doctorExperience.trim() ||
                     !isDoctorPasswordValid) &&
@@ -441,7 +456,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                 disabled={
                   isProcessing ||
                   !doctorFullName.trim() ||
-                  !doctorPhone.trim() ||
+                  !isDoctorPhoneValid ||
                   !doctorSpecialization.trim() ||
                   !doctorExperience.trim() ||
                   !isDoctorPasswordValid
