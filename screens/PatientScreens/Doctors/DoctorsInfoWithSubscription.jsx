@@ -34,7 +34,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   // const doctors = route?.params?.doctors || {};
   const [doctors, setDoctors] = useState(route.params?.doctors || null);
   const [isReady, setIsReady] = useState(false); // Delay rendering
-  const { loggedInUser } = useAuth();
+  const { user } = useAuth();
   const { triggerLoginModal } = useLoginModal();
 
   useEffect(() => {
@@ -100,15 +100,18 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   };
 
   const handleSubscribeClick = () => {
-    if (!loggedInUser) {
+    if (!user) {
       // opens the actual login modal controlled by HeaderLoginSignUp
       triggerLoginModal({ mode: "login" });
       return;
     }
 
     // already logged in → go to payment
-    navigation.navigate("DoctorAppNavigation", {
-      screen: "DoctorsSubscriptionPaymentScreen",
+    // navigation.navigate("PatientAppNavigation", {
+    //   screen: "DoctorsSubscriptionPaymentScreen",
+    //   params: { doctors },
+    // });
+    navigation.navigate("DoctorsSubscriptionPaymentScreen", {
       params: { doctors },
     });
   };
