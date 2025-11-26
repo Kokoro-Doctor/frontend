@@ -30,9 +30,6 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
   const [showOtpModal, setShowOtpModal] = useState(false);
-  const [doctorPassword, setDoctorPassword] = useState("");
-  const [doctorPasswordVisible, setDoctorPasswordVisible] = useState(false);
-  const [doctorPasswordTouched, setDoctorPasswordTouched] = useState(false);
 
   useEffect(() => {
     if (!visible) {
@@ -69,9 +66,6 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     setErrorMessage("");
     setInfoMessage("");
     setShowOtpModal(false);
-    setDoctorPassword("");
-    setDoctorPasswordVisible(false);
-    setDoctorPasswordTouched(false);
   };
 
   const validateDoctorDetails = () => {
@@ -95,11 +89,6 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     const digitsOnly = sanitizeDigits(doctorPhone);
     if (digitsOnly.length < 10) {
       setErrorMessage("Please enter a valid mobile number.");
-      return false;
-    }
-    if (doctorPassword.trim().length < 6) {
-      setDoctorPasswordTouched(true);
-      setErrorMessage("Password must be at least 6 characters.");
       return false;
     }
     return true;
@@ -198,36 +187,14 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     if (!validateDoctorDetails()) {
       throw new Error("Validation failed");
     }
-    if (!doctorFullName.trim()) {
-      setErrorMessage("Please enter your full name.");
-      throw new Error("Name required");
-    }
-    if (!doctorSpecialization.trim()) {
-      setErrorMessage("Please enter your specialization.");
-      throw new Error("Specialization required");
-    }
-    if (!doctorExperience.trim()) {
-      setErrorMessage("Please enter your years of experience.");
-      throw new Error("Experience required");
-    }
-    const parsedExperience = parseInt(doctorExperience, 10);
-    if (Number.isNaN(parsedExperience) || parsedExperience < 0) {
-      setErrorMessage("Experience must be a valid number.");
-      throw new Error("Invalid experience");
-    }
 
+    const parsedExperience = parseInt(doctorExperience, 10);
     const phoneNumber = phoneNumberOverride || buildDoctorPhoneNumber();
     const otpToUse = otpOverride || doctorOtp.trim();
 
     if (!phoneNumber || !otpToUse) {
       setErrorMessage("Phone number and OTP are required.");
       throw new Error("Phone/OTP required");
-    }
-
-    if (doctorPassword.trim().length < 6) {
-      setDoctorPasswordTouched(true);
-      setErrorMessage("Password must be at least 6 characters.");
-      throw new Error("Password too short");
     }
 
     setIsProcessing(true);
@@ -242,7 +209,6 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
         specialization: doctorSpecialization.trim(),
         experience: parsedExperience,
         email: doctorEmail.trim() || undefined,
-        password: doctorPassword.trim(),
       });
 
       setInfoMessage("Doctor registration successful! Redirecting...");
@@ -281,9 +247,6 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     }
   };
 
-  const isDoctorPasswordValid = doctorPassword.trim().length >= 6;
-  const showDoctorPasswordError =
-    doctorPasswordTouched && !isDoctorPasswordValid;
   const doctorPhoneDigits = sanitizeDigits(doctorPhone);
   const isDoctorPhoneValid = doctorPhoneDigits.length >= 10;
   const showDoctorPhoneError =
@@ -388,43 +351,6 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                 onChangeText={setDoctorEmail}
               />
 
-              <Text style={styles.inputLabel}>
-                Create Password <Text style={styles.requiredIndicator}>*</Text>
-              </Text>
-              <View style={styles.passwordField}>
-                <TextInput
-                  placeholder="Minimum 6 characters"
-                  placeholderTextColor="#d3d3d3"
-                  style={styles.passwordInput}
-                  secureTextEntry={!doctorPasswordVisible}
-                  value={doctorPassword}
-                  onChangeText={(value) => {
-                    setDoctorPassword(value);
-                    if (!doctorPasswordTouched) {
-                      setDoctorPasswordTouched(true);
-                    }
-                  }}
-                  onBlur={() => setDoctorPasswordTouched(true)}
-                />
-                <TouchableOpacity
-                  style={styles.passwordToggle}
-                  onPress={() =>
-                    setDoctorPasswordVisible((prevVisible) => !prevVisible)
-                  }
-                >
-                  <Ionicons
-                    name={doctorPasswordVisible ? "eye-off" : "eye"}
-                    size={18}
-                    color="#6B7280"
-                  />
-                </TouchableOpacity>
-              </View>
-              {showDoctorPasswordError ? (
-                <Text style={styles.inlineErrorText}>
-                  Password must be at least 6 characters.
-                </Text>
-              ) : null}
-
               <TouchableOpacity
                 style={[
                   styles.btn,
@@ -432,8 +358,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                     !doctorFullName.trim() ||
                     !isDoctorPhoneValid ||
                     !doctorSpecialization.trim() ||
-                    !doctorExperience.trim() ||
-                    !isDoctorPasswordValid) &&
+                    !doctorExperience.trim()) &&
                     styles.disabledBtn,
                 ]}
                 onPress={handleSendVerification}
@@ -442,8 +367,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                   !doctorFullName.trim() ||
                   !isDoctorPhoneValid ||
                   !doctorSpecialization.trim() ||
-                  !doctorExperience.trim() ||
-                  !isDoctorPasswordValid
+                  !doctorExperience.trim()
                 }
               >
                 <Text style={styles.btnText}>
@@ -649,28 +573,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#333",
     paddingVertical: 14,
-  },
-  passwordField: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 8,
-    marginTop: 2,
-    marginBottom: 6,
-    backgroundColor: "#FFFFFF",
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: "#333",
-  },
-  passwordToggle: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
   },
   btn: {
     backgroundColor: "#1FBF86",

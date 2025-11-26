@@ -5,7 +5,6 @@ import {
   handleGoogleLogin,
   initiateLogin as initiateLoginApi,
   loginWithOtp as loginWithOtpApi,
-  loginWithPassword as loginWithPasswordApi,
   logOut,
   requestLoginOtp as requestLoginOtpApi,
   requestSignupOtp as requestSignupOtpApi,
@@ -107,17 +106,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginWithPasswordHandler = async (payload) => {
-    try {
-      const result = await loginWithPasswordApi(payload);
-      return await syncSession(result);
-    } catch (error) {
-      const message = getErrorMessage(error);
-      console.error("Password login failed:", message, error);
-      throw ensureError(error);
-    }
-  };
-
   const loginWithOtpHandler = async (payload) => {
     try {
       const result = await loginWithOtpApi(payload);
@@ -206,7 +194,6 @@ export const AuthProvider = ({ children }) => {
         verifySignupOtp: verifySignupOtpHandler,
         requestLoginOtp: requestLoginOtpHandler,
         initiateLogin: initiateLoginHandler,
-        loginWithPassword: loginWithPasswordHandler,
         loginWithOtp: loginWithOtpHandler,
         logout: logoutHandler,
         googleLogin: googleLoginHandler,

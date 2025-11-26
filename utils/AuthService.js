@@ -347,19 +347,6 @@ const handleLoginResponse = async (data) => {
 };
 
 
-export const loginWithPassword = async ({ phoneNumber, password }) => {
-  if (!phoneNumber || !password) {
-    throw new Error("Phone number and password are required.");
-  }
-  const data = await postJson(
-    "/auth/login",
-    { phoneNumber, password },
-    "Login failed"
-  );
-  return handleLoginResponse(data);
-};
-
-
 export const loginWithOtp = async ({ phoneNumber, otp }) => {
   if (!phoneNumber || !otp) {
     throw new Error("Phone number and OTP are required.");
@@ -379,7 +366,6 @@ export const completeUserSignup = async ({
   otp,
   name,
   email,
-  password,
 }) => {
   if (!phoneNumber || !otp) {
     throw new Error("Phone number and OTP are required to complete signup.");
@@ -387,7 +373,7 @@ export const completeUserSignup = async ({
 
   const data = await postJson(
     "/auth/user/signup",
-    { phoneNumber, otp, name, email, password },
+    { phoneNumber, otp, name, email },
     "Failed to complete signup"
   );
 
@@ -407,7 +393,6 @@ export const completeDoctorSignup = async ({
   specialization,
   experience,
   email,
-  password,
 }) => {
   if (!phoneNumber || !otp) {
     throw new Error("Phone number and OTP are required to complete signup.");
@@ -422,7 +407,6 @@ export const completeDoctorSignup = async ({
       specialization,
       experience,
       email,
-      password,
     },
     "Failed to complete doctor signup"
   );
