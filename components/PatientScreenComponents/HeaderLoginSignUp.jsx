@@ -20,6 +20,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import PatientAuthModal from "../Auth/PatientAuthModal";
 import DoctorSignupModal from "../Auth/DoctorSignupModal";
 
+const defaultAvatar = require("../../assets/Images/user-icon.jpg");
+
 const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const navigation = useNavigation();
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -34,6 +36,17 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const user = userOverride ?? contextUser;
   const displayName = user?.name || user?.fullName || user?.username || "User";
   const displayEmail = user?.email || user?.emailId || "";
+  const avatarUri =
+    user?.picture ||
+    user?.avatar ||
+    user?.avatarUrl ||
+    user?.profileImage ||
+    user?.image ||
+    user?.photoUrl;
+  const avatarSource =
+    avatarUri && typeof avatarUri === "string"
+      ? { uri: avatarUri }
+      : defaultAvatar;
 
   const isApp = Platform.OS === "ios" || Platform.OS === "android";
   const isSmallScreen =
@@ -71,6 +84,12 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
       friction: 5,
       useNativeDriver: true,
     }).start();
+  };
+
+  const handleProfile = () => {
+    setDropdownVisible(false);
+    // TODO: Navigate to user profile page
+    // navigation.navigate("UserProfile");
   };
 
   const handleLogout = async () => {
@@ -137,21 +156,25 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                   style={styles.authButtonBox}
                   onPress={() => setDropdownVisible(!dropdownVisible)}
                 >
-                  <MaterialIcons name="person" size={30} color="black" />
+                  <Image source={avatarSource} style={styles.avatarSmall} />
                 </Pressable>
 
                 {dropdownVisible && (
                   <View style={styles.dropdownMain}>
                     {user ? (
                       <>
-                        <View style={styles.userInfoContainer}>
-                          <Text style={styles.userNameText}>{displayName}</Text>
-                          {displayEmail ? (
-                            <Text style={styles.userEmailText}>
-                              {displayEmail}
-                            </Text>
-                          ) : null}
-                        </View>
+                        <TouchableOpacity
+                          onPress={handleProfile}
+                          style={styles.dropdownItem}
+                        >
+                          <MaterialIcons
+                            name="person"
+                            size={18}
+                            color="#111827"
+                            style={{ marginRight: 8 }}
+                          />
+                          <Text style={styles.dropdownText}>User Profile</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity
                           onPress={handleLogout}
                           style={styles.logoutButton}
@@ -206,13 +229,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
               style={styles.webProfileButton}
               onPress={() => setDropdownVisible(!dropdownVisible)}
             >
-              <Text style={styles.profileName}>{displayName}</Text>
-              <MaterialIcons
-                name="keyboard-arrow-down"
-                size={22}
-                color="#222"
-                style={{ marginLeft: 8 }}
-              />
+              <Image source={avatarSource} style={styles.avatar} />
             </TouchableOpacity>
             {dropdownVisible && (
               <>
@@ -221,6 +238,13 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                   onPress={() => setDropdownVisible(false)}
                 />
                 <View style={styles.webDropdownMenu}>
+                  <TouchableOpacity
+                    onPress={handleProfile}
+                    style={styles.dropdownAction}
+                  >
+                    <MaterialIcons name="person" size={18} color="#111827" />
+                    <Text style={styles.dropdownActionText}>User Profile</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     onPress={handleLogout}
                     style={styles.dropdownAction}
@@ -354,15 +378,30 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   webProfileButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    cursor: "pointer",
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  avatarSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  profileMeta: {
+    marginHorizontal: 10,
+    flexShrink: 1,
   },
   profileName: {
     fontSize: 15,
     fontWeight: "600",
     color: "#111827",
+  },
+  profileEmail: {
+    fontSize: 12,
+    color: "#6B7280",
   },
   authButtonsApp: {
     flexDirection: "row",
@@ -391,6 +430,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
