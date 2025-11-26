@@ -505,9 +505,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useState } from "react";
 import {
   completeDoctorSignup,
+  completeUserSignup,
   handleGoogleLogin,
-  login,
+  initiateLogin as initiateLoginApi,
+  loginWithOtp as loginWithOtpApi,
+  loginWithPassword as loginWithPasswordApi,
   logOut,
+  requestLoginOtp as requestLoginOtpApi,
+  requestSignupOtp as requestSignupOtpApi,
   restoreUserState,
   signInWithGoogleApp,
   signup,
