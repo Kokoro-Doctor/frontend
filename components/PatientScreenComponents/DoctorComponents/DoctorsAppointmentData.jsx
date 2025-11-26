@@ -203,13 +203,13 @@ const DoctorAppointmentScreen = ({
     }
   }, [allDoctors]);
 
-  const handleHeartButtonPress = (doctorId) => {
-    if (!doctorId) return;
-    setSubscriberCounts((prev) => ({
-      ...prev,
-      [doctorId]: (prev[doctorId] || 0) + 1,
-    }));
-  };
+  // const handleHeartButtonPress = (doctorId) => {
+  //   if (!doctorId) return;
+  //   setSubscriberCounts((prev) => ({
+  //     ...prev,
+  //     [doctorId]: (prev[doctorId] || 0) + 1,
+  //   }));
+  // };
 
   const subscribeToDoctor = async (doctorId) => {
     if (!doctorId) {
@@ -301,12 +301,12 @@ const DoctorAppointmentScreen = ({
               getDoctorKey(item) || index.toString()
             }
             renderItem={({ item }) => (
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("DoctorsInfoWithSubscription", {
-                    doctors: item,
-                  })
-                }
+              <View
+                // onPress={() =>
+                //   navigation.navigate("DoctorsInfoWithSubscription", {
+                //     doctors: item,
+                //   })
+                // }
                 style={styles.card}
               >
                 <View style={styles.cardRow}>
@@ -361,17 +361,17 @@ const DoctorAppointmentScreen = ({
                       </View>
                       <View style={styles.subscriberCount}>
                         <View style={styles.countBox}>
-                          <TouchableOpacity
+                          <View
                             style={styles.heartButtonBox}
-                            onPress={() =>
-                              handleHeartButtonPress(getDoctorKey(item))
-                            }
+                            // onPress={() =>
+                            //   handleHeartButtonPress(getDoctorKey(item))
+                            // }
                           >
                             <Image
                               source={require("../../../assets/Icons/heart1.png")}
                               style={styles.heartImage}
                             />
-                          </TouchableOpacity>
+                          </View>
                           <Text style={styles.numberText}>
                             {subscriberCounts[getDoctorKey(item)] || 0}
                           </Text>
@@ -396,17 +396,23 @@ const DoctorAppointmentScreen = ({
                       <Text style={styles.feeText}>| Subscription Fee</Text>
                     </View>
                     <Pressable
-                      style={[
-                        styles.button,
-                        !userIdentifier && { backgroundColor: "gray" },
-                      ]}
-                      onPress={() => {
-                        if (!userIdentifier) {
-                          alert("You must be logged in to subscribe.");
-                        } else {
-                          subscribeToDoctor(getDoctorKey(item));
-                        }
-                      }}
+                      // style={[
+                      //   styles.button,
+                      //   !userIdentifier && { backgroundColor: "gray" },
+                      // ]}
+                      style={styles.button}
+                      // onPress={() => {
+                      //   if (!userIdentifier) {
+                      //     alert("You must be logged in to subscribe.");
+                      //   } else {
+                      //     subscribeToDoctor(getDoctorKey(item));
+                      //   }
+                      // }}
+                      onPress={() =>
+                        navigation.navigate("DoctorsInfoWithSubscription", {
+                          doctors: item,
+                        })
+                      }
                     >
                       <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
                         Subscribe
@@ -414,7 +420,7 @@ const DoctorAppointmentScreen = ({
                     </Pressable>
                   </View>
                 </View>
-              </TouchableOpacity>
+              </View>
             )}
           />
         </View>
@@ -476,17 +482,17 @@ const DoctorAppointmentScreen = ({
                       </View>
                       <View style={styles.rightContainer}>
                         <View style={styles.countBox}>
-                          <TouchableOpacity
+                          <View
                             style={styles.heartButtonBox}
-                            onPress={() =>
-                              handleHeartButtonPress(getDoctorKey(item))
-                            }
+                            // onPress={() =>
+                            //   handleHeartButtonPress(getDoctorKey(item))
+                            // }
                           >
                             <Image
                               source={require("../../../assets/Icons/heart1.png")}
                               style={styles.heartImage}
                             />
-                          </TouchableOpacity>
+                          </View>
                           <Text style={styles.numberText}>
                             {subscriberCounts[getDoctorKey(item)] || 0}
                           </Text>

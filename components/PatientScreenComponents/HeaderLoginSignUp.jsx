@@ -16,7 +16,6 @@ import { useNavigation } from "@react-navigation/native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import { useLoginModal } from "../../contexts/LoginModalContext";
-// eslint-disable-next-line import/namespace
 import { useAuth } from "../../contexts/AuthContext";
 import PatientAuthModal from "../Auth/PatientAuthModal";
 import DoctorSignupModal from "../Auth/DoctorSignupModal";

@@ -18,6 +18,9 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
 import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 import { payment_api } from "../../../utils/PaymentService";
+import { useLoginModal } from "../../../contexts/LoginModalContext";
+import { useAuth } from "../../../contexts/AuthContext";
+
 const { width, height } = Dimensions.get("window");
 
 const features = [
@@ -31,6 +34,8 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   // const doctors = route?.params?.doctors || {};
   const [doctors, setDoctors] = useState(route.params?.doctors || null);
   const [isReady, setIsReady] = useState(false); // Delay rendering
+  const { loggedInUser } = useAuth();
+  const { triggerLoginModal } = useLoginModal();
 
   useEffect(() => {
     const tryParseDoctorFromUrl = () => {
@@ -92,6 +97,20 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
     } catch (error) {
       Alert.alert("Payment Failed", error.message);
     }
+  };
+
+  const handleSubscribeClick = () => {
+    if (!loggedInUser) {
+      // opens the actual login modal controlled by HeaderLoginSignUp
+      triggerLoginModal({ mode: "login" });
+      return;
+    }
+
+    // already logged in → go to payment
+    navigation.navigate("DoctorsAppNavigation", {
+      screen: "DoctorsSubscriptionPaymentScreen",
+      params: { doctors },
+    });
   };
 
   return (
@@ -227,17 +246,12 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                         <TouchableOpacity
                           style={styles.subscribeButton}
                           // onPress={() =>
-                          //   navigation.navigate(
-                          //     "DoctorsSubscriptionPaymentScreen",
-                          //     { doctors }
-                          //   )
+                          //   navigation.navigate("Doctors", {
+                          //     screen: "DoctorsSubscriptionPaymentScreen",
+                          //     params: { doctors },
+                          //   })
                           // }
-                          onPress={() =>
-                            navigation.navigate("Doctors", {
-                              screen: "DoctorsSubscriptionPaymentScreen",
-                              params: { doctors },
-                            })
-                          }
+                          onPress={handleSubscribeClick}
                         >
                           <Text style={styles.subscribeButtonText}>
                             Subscribe Doctor
