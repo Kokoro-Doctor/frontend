@@ -30,9 +30,7 @@ const PatientAuthModal = ({
   const {
     signup: signupHandler,
     requestSignupOtp: requestSignupOtpHandler,
-    verifySignupOtp: verifySignupOtpHandler,
     requestLoginOtp: requestLoginOtpHandler,
-    initiateLogin: initiateLoginHandler,
     loginWithPassword: loginWithPasswordHandler,
     loginWithOtp: loginWithOtpHandler,
   } = useContext(AuthContext);
@@ -47,7 +45,6 @@ const PatientAuthModal = ({
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpStatus, setOtpStatus] = useState("idle");
   const [otpCountdown, setOtpCountdown] = useState(0);
-  const [verificationToken, setVerificationToken] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -56,11 +53,10 @@ const PatientAuthModal = ({
   const [signupIdentifier, setSignupIdentifier] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [loginStage, setLoginStage] = useState("phone");
   const [loginPassword, setLoginPassword] = useState("");
-  const [loginPhoneNumber, setLoginPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [loginPasswordVisible, setLoginPasswordVisible] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [otpFlow, setOtpFlow] = useState(null);
   const [otpTargetPhone, setOtpTargetPhone] = useState("");
@@ -147,11 +143,6 @@ const PatientAuthModal = ({
   };
 
   const handleLoginIdentifierChange = (value) => {
-    if (loginStage !== "phone") {
-      setLoginStage("phone");
-      setLoginPassword("");
-      setInfoMessage("");
-    }
     setLoginIdentifier(value);
     const detectedType = detectInputType(value);
     if (detectedType === "phone") {
@@ -164,12 +155,6 @@ const PatientAuthModal = ({
     if (!trimmed) {
       setSignupIdentifier("");
       setMobile("");
-      if (verificationToken) {
-        setVerificationToken("");
-        setPassword("");
-        setPasswordTouched(false);
-        setPasswordVisible(false);
-      }
       return;
     }
 
@@ -179,12 +164,6 @@ const PatientAuthModal = ({
 
     setSignupIdentifier(normalized);
     setMobile(normalized);
-    if (verificationToken) {
-      setVerificationToken("");
-      setPassword("");
-      setPasswordTouched(false);
-      setPasswordVisible(false);
-    }
   };
 
   const clearOtpTimer = () => {
@@ -213,7 +192,6 @@ const PatientAuthModal = ({
     clearOtpTimer();
     setOtpStatus("idle");
     setOtpCountdown(0);
-    setVerificationToken("");
     setErrorMessage("");
     setInfoMessage("");
     setIsProcessing(false);
@@ -226,10 +204,9 @@ const PatientAuthModal = ({
     setFullName("");
     setPassword("");
     setPasswordVisible(false);
+    setLoginPasswordVisible(false);
     setPasswordTouched(false);
     setLoginPassword("");
-    setLoginStage("phone");
-    setLoginPhoneNumber("");
     setOtpFlow(null);
     setOtpTargetPhone("");
     setShowOtpModal(false);
@@ -310,31 +287,21 @@ const PatientAuthModal = ({
     setOtpStatus("verifying");
     try {
       if (otpFlow === "signup") {
-        const response = await verifySignupOtpHandler({
-          phoneNumber: otpTargetPhone,
-          otp: otp.trim(),
-          role: "user",
-        });
-        if (response?.verification_token) {
-          setVerificationToken(response.verification_token);
-          // Automatically complete signup after verification
+        // Directly call signup with phone + OTP (no separate verify step)
+        try {
+          await handleCompleteProfile(otpTargetPhone, otp.trim());
           setOtpStatus("verified");
           setOtpFlow(null);
           setOtpTargetPhone("");
           setShowOtpModal(false);
-          // Don't reset processing here - let handleCompleteProfile manage it
-          // Call complete profile with the verification token
-          try {
-            await handleCompleteProfile();
-          } catch (profileError) {
-            // handleCompleteProfile already handles its own errors
-            setIsProcessing(false);
-          }
-          return response.verification_token;
+          return true;
+        } catch (profileError) {
+          // handleCompleteProfile already handles its own errors
+          // Keep modal open so user can see the error
+          setOtpStatus("sent");
+          setIsProcessing(false);
+          return null;
         }
-        setErrorMessage("Verification failed. Please try again.");
-        setIsProcessing(false);
-        return null;
       }
 
       if (otpFlow === "login") {
@@ -363,15 +330,16 @@ const PatientAuthModal = ({
     }
   };
 
-  const handleCompleteProfile = async () => {
+  const handleCompleteProfile = async (
+    phoneNumberOverride = null,
+    otpOverride = null
+  ) => {
     const nameToUse = fullName.trim();
     const passwordToUse = password.trim();
-    const verificationTokenToUse = verificationToken;
+    const phoneNumberToUse =
+      phoneNumberOverride || otpTargetPhone || buildPhoneNumber();
+    const otpToUse = otpOverride || otp.trim();
 
-    if (!verificationTokenToUse) {
-      setErrorMessage("Please verify your phone number first.");
-      return;
-    }
     if (!nameToUse) {
       setErrorMessage("Please enter your full name.");
       return;
@@ -379,6 +347,10 @@ const PatientAuthModal = ({
     if (passwordToUse.length < 6) {
       setPasswordTouched(true);
       setErrorMessage("Password must be at least 6 characters.");
+      return;
+    }
+    if (!phoneNumberToUse || !otpToUse) {
+      setErrorMessage("Phone number and OTP are required.");
       return;
     }
 
@@ -390,16 +362,11 @@ const PatientAuthModal = ({
     try {
       await signupHandler({
         name: nameToUse,
-        verificationToken: verificationTokenToUse,
+        phoneNumber: phoneNumberToUse,
+        otp: otpToUse,
         email: email.trim() || undefined,
         password: passwordToUse,
       });
-
-      try {
-        await AsyncStorage.removeItem("@signupVerification");
-      } catch (error) {
-        console.warn("Failed to clear cached verification token", error);
-      }
 
       setRole("patient");
       await AsyncStorage.setItem("userRole", "patient");
@@ -416,6 +383,7 @@ const PatientAuthModal = ({
       setErrorMessage(message);
       setIsSigningUp(false);
       setIsProcessing(false);
+      throw error; // Re-throw so caller knows signup failed
     }
   };
 
@@ -434,6 +402,11 @@ const PatientAuthModal = ({
       return;
     }
 
+    if (!loginPassword.trim()) {
+      setErrorMessage("Please enter your password.");
+      return;
+    }
+
     const phoneNumber = buildPhoneNumber(identifier);
     if (!phoneNumber) {
       setErrorMessage("Please enter a valid mobile number.");
@@ -441,42 +414,12 @@ const PatientAuthModal = ({
     }
 
     setMobile(identifier);
-    setLoginPhoneNumber(phoneNumber);
-    setErrorMessage("");
-    setInfoMessage("");
-    setIsProcessing(true);
-    try {
-      const response = await initiateLoginHandler({ phoneNumber });
-      if (response?.has_password) {
-        setLoginStage("password");
-        setInfoMessage("Enter your password to continue.");
-      } else {
-        setLoginStage("otp");
-        await sendOtpForFlow({ phoneNumber, flow: "login" });
-      }
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handlePasswordLogin = async () => {
-    if (!loginPassword.trim()) {
-      setErrorMessage("Please enter your password.");
-      return;
-    }
-    if (!loginPhoneNumber) {
-      setErrorMessage("Please enter your mobile number.");
-      return;
-    }
-
     setErrorMessage("");
     setInfoMessage("");
     setIsProcessing(true);
     try {
       await loginWithPasswordHandler({
-        phoneNumber: loginPhoneNumber,
+        phoneNumber: phoneNumber,
         password: loginPassword.trim(),
       });
       setInfoMessage("Login successful! Redirecting...");
@@ -484,7 +427,10 @@ const PatientAuthModal = ({
         onRequestClose();
       }, 1000);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      const errorMsg = getErrorMessage(error);
+      setErrorMessage(errorMsg);
+      // If password login fails and user doesn't have password, offer OTP option
+      // This is a fallback for edge cases
     } finally {
       setIsProcessing(false);
     }
@@ -494,13 +440,7 @@ const PatientAuthModal = ({
     if (isProcessing) return;
 
     if (mode === "login") {
-      if (loginStage === "phone") {
-        await handleLogin();
-      } else if (loginStage === "password") {
-        await handlePasswordLogin();
-      } else if (loginStage === "otp" && loginPhoneNumber) {
-        await sendOtpForFlow({ phoneNumber: loginPhoneNumber, flow: "login" });
-      }
+      await handleLogin();
       return;
     }
 
@@ -508,12 +448,8 @@ const PatientAuthModal = ({
       return;
     }
 
-    if (!verificationToken) {
-      await handleSendSignupOtp();
-      return;
-    }
-
-    await handleCompleteProfile();
+    // Send OTP for signup - verification happens in OTP modal
+    await handleSendSignupOtp();
   };
 
   const handleResendOtp = async () => {
@@ -546,25 +482,21 @@ const PatientAuthModal = ({
   };
 
   const canLogin = sanitizeDigits(loginIdentifier).length >= 10;
+  const loginDigitsValid = sanitizeDigits(loginIdentifier).length >= 10;
+  const showLoginPhoneError =
+    loginIdentifier.trim().length > 0 && !loginDigitsValid;
   const signupDigitsValid = sanitizeDigits(signupIdentifier).length >= 10;
   const passwordValid = password.trim().length >= 6;
   const showSignupPasswordError = passwordTouched && !passwordValid;
+  const showSignupPhoneError =
+    signupIdentifier.trim().length > 0 && !signupDigitsValid;
   const baseSignupValid = fullName.trim() && signupDigitsValid && passwordValid;
-  const canCompleteSignup = verificationToken && baseSignupValid;
 
   const isLoginActionDisabled =
-    loginStage === "phone"
-      ? !canLogin || isProcessing
-      : loginStage === "password"
-      ? !loginPassword.trim() || isProcessing
-      : isProcessing;
+    !canLogin || !loginPassword.trim() || isProcessing;
 
   const isPrimaryDisabled =
-    mode === "login"
-      ? isLoginActionDisabled
-      : verificationToken
-      ? !canCompleteSignup || isProcessing || isSigningUp
-      : !baseSignupValid || isProcessing;
+    mode === "login" ? isLoginActionDisabled : !baseSignupValid || isProcessing;
 
   if (cardWidth === null) {
     return null;
@@ -660,62 +592,40 @@ const PatientAuthModal = ({
                     keyboardType="phone-pad"
                     autoCapitalize="none"
                     style={styles.input}
-                    editable={loginStage === "phone"}
-                    selectTextOnFocus={loginStage === "phone"}
                     value={loginIdentifier}
                     onChangeText={handleLoginIdentifierChange}
                   />
+                  {showLoginPhoneError ? (
+                    <Text style={styles.inlineErrorText}>
+                      Please enter a valid 10-digit mobile number.
+                    </Text>
+                  ) : null}
 
-                  {loginStage === "password" && (
-                    <>
-                      <View
-                        style={{
-                          backgroundColor: "#dbeafe",
-                          padding: 12,
-                          borderRadius: 8,
-                          marginTop: 12,
-                          marginBottom: 16,
-                          borderWidth: 1,
-                          borderColor: "#3b82f6",
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: "#1e40af",
-                            fontWeight: "600",
-                            fontSize: 14,
-                            textAlign: "center",
-                          }}
-                        >
-                          Enter your password to continue
-                        </Text>
-                      </View>
-                      <Text style={styles.inputLabel}>
-                        Password <Text style={styles.requiredIndicator}>*</Text>
-                      </Text>
-                      <TextInput
-                        placeholder="Enter your password"
-                        placeholderTextColor="#d3d3d3"
-                        secureTextEntry
-                        style={styles.input}
-                        value={loginPassword}
-                        onChangeText={setLoginPassword}
-                        autoFocus
+                  <Text style={styles.inputLabel}>
+                    Password <Text style={styles.requiredIndicator}>*</Text>
+                  </Text>
+                  <View style={styles.passwordField}>
+                    <TextInput
+                      placeholder="Enter your password"
+                      placeholderTextColor="#d3d3d3"
+                      secureTextEntry={!loginPasswordVisible}
+                      style={styles.passwordInput}
+                      value={loginPassword}
+                      onChangeText={setLoginPassword}
+                    />
+                    <TouchableOpacity
+                      style={styles.passwordToggle}
+                      onPress={() =>
+                        setLoginPasswordVisible((prevVisible) => !prevVisible)
+                      }
+                    >
+                      <Ionicons
+                        name={loginPasswordVisible ? "eye-off" : "eye"}
+                        size={18}
+                        color="#6B7280"
                       />
-                      <TouchableOpacity
-                        onPress={() => {
-                          setLoginStage("phone");
-                          setLoginPassword("");
-                          setInfoMessage("");
-                        }}
-                        style={{ marginBottom: 8 }}
-                      >
-                        <Text style={{ color: "#f96166", fontWeight: "600" }}>
-                          Use a different number
-                        </Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
+                    </TouchableOpacity>
+                  </View>
 
                   <TouchableOpacity
                     style={[
@@ -726,16 +636,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled}
                   >
                     <Text style={styles.btnText}>
-                      {(() => {
-                        if (isProcessing) {
-                          if (loginStage === "phone") return "Checking...";
-                          if (loginStage === "password") return "Logging in...";
-                          return "Sending...";
-                        }
-                        if (loginStage === "phone") return "Continue";
-                        if (loginStage === "password") return "Login";
-                        return "Enter OTP";
-                      })()}
+                      {isProcessing ? "Logging in..." : "Login"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -788,6 +689,11 @@ const PatientAuthModal = ({
                     value={signupIdentifier}
                     onChangeText={handleSignupIdentifierChange}
                   />
+                  {showSignupPhoneError ? (
+                    <Text style={styles.inlineErrorText}>
+                      Please enter a valid 10-digit mobile number.
+                    </Text>
+                  ) : null}
 
                   <Text style={styles.inputLabel}>
                     Email{" "}
@@ -850,13 +756,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled || isProcessing}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing
-                        ? verificationToken
-                          ? "Creating..."
-                          : "Sending..."
-                        : verificationToken
-                        ? "Create Account"
-                        : "Send OTP"}
+                      {isProcessing ? "Sending..." : "Send OTP"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1155,7 +1055,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#FEE2E2",
+    // backgroundColor: "#FEE2E2",
     borderRadius: 8,
     width: "100%",
   },
@@ -1166,7 +1066,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#dcfce7",
+    // backgroundColor: "#dcfce7",
     borderRadius: 8,
     width: "100%",
   },

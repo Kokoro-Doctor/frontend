@@ -24,11 +24,7 @@ const DoctorsSignUp = () => {
   const navigation = useNavigation();
   const [rememberMe, setRememberMe] = useState(false);
   const [request, response, promptAsync] = useGoogleAuth();
-  const {
-    doctorsSignup,
-    requestSignupOtp,
-    verifySignupOtp,
-  } = useAuth();
+  const { doctorsSignup, requestSignupOtp } = useAuth();
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
@@ -41,7 +37,6 @@ const DoctorsSignUp = () => {
     confirmPassword: "",
     otp: ["", "", "", ""],
   });
-  const [verificationToken, setVerificationToken] = useState("");
   const [otpValue, setOtpValue] = useState("");
   const [otpStatus, setOtpStatus] = useState("idle");
   const [otpCountdown, setOtpCountdown] = useState(0);
@@ -267,7 +262,7 @@ const DoctorsSignUp = () => {
     }
   };
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyAndSignup = async () => {
     if (!isOtpComplete) {
       alert("Please enter the 4-digit OTP.");
       return;
@@ -277,33 +272,7 @@ const DoctorsSignUp = () => {
       alert("Please enter a valid phone number before verifying OTP.");
       return;
     }
-    setOtpStatus("verifying");
-    try {
-      const response = await verifySignupOtp({
-        phoneNumber,
-        otp: otpValue.trim(),
-        role: "doctor",
-      });
-      if (response?.verification_token) {
-        setVerificationToken(response.verification_token);
-        alert("Phone verified. Complete the signup form.");
-      } else {
-        alert("OTP verified.");
-      }
-      setOtpStatus("verified");
-    } catch (error) {
-      console.error("Failed to verify OTP:", error);
-      alert(error.message || "Failed to verify OTP.");
-      setOtpStatus("sent");
-    }
-  };
-
-  const handleSignup = async () => {
     if (!validateDoctorForm()) {
-      return;
-    }
-    if (!verificationToken) {
-      alert("Please verify your phone number before continuing.");
       return;
     }
     if (!formData.specialization.trim()) {
@@ -327,9 +296,13 @@ const DoctorsSignUp = () => {
       alert("Passwords do not match.");
       return;
     }
+
+    setOtpStatus("verifying");
     try {
+      // Directly signup with phone + OTP (no separate verify step)
       await doctorsSignup({
-        verificationToken,
+        phoneNumber,
+        otp: otpValue.trim(),
         name: `${formData.firstname} ${formData.lastname}`.trim(),
         specialization: formData.specialization.trim(),
         experience: experienceValue,
@@ -337,14 +310,16 @@ const DoctorsSignUp = () => {
         password: formData.password.trim(),
       });
 
+      setOtpStatus("verified");
       alert("Doctor registered successfully!");
       navigation.navigate("DoctorAppNavigation", {
         screen: "DoctorMedicalRegistration",
         email: formData.email,
       });
     } catch (error) {
-      alert(error.message || "Doctor registration failed.");
       console.error("Doctor registration error:", error);
+      alert(error.message || "Doctor registration failed.");
+      setOtpStatus("sent");
     }
   };
 
@@ -427,7 +402,7 @@ const DoctorsSignUp = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
-                {(otpStatus !== "idle" || verificationToken) && (
+                {otpStatus !== "idle" && (
                   <View style={styles.otpRow}>
                     <TextInput
                       placeholder="4-digit OTP"
@@ -446,7 +421,7 @@ const DoctorsSignUp = () => {
                         (!isOtpComplete || otpStatus === "verified") &&
                           styles.disabledOtpButton,
                       ]}
-                      onPress={handleVerifyOtp}
+                      onPress={handleVerifyAndSignup}
                       disabled={
                         !isOtpComplete ||
                         otpStatus === "verifying" ||
@@ -455,10 +430,10 @@ const DoctorsSignUp = () => {
                     >
                       <Text style={styles.verifyOtpButtonText}>
                         {otpStatus === "verified"
-                          ? "Verified"
+                          ? "Signed Up!"
                           : otpStatus === "verifying"
-                          ? "Verifying..."
-                          : "Verify OTP"}
+                          ? "Signing Up..."
+                          : "Verify & Sign Up"}
                       </Text>
                     </TouchableOpacity>
                     {otpStatus === "verified" && (
@@ -566,32 +541,8 @@ const DoctorsSignUp = () => {
                   ]}
                   secureTextEntry
                   value={formData.confirmPassword}
-                  onChangeText={(val) =>
-                    handleChange("confirmPassword", val)
-                  }
+                  onChangeText={(val) => handleChange("confirmPassword", val)}
                 />
-                {verificationToken ? (
-                  <View
-                    style={{
-                      backgroundColor: "#dcfce7",
-                      padding: 12,
-                      borderRadius: 8,
-                      marginTop: 12,
-                      borderWidth: 1,
-                      borderColor: "#16a34a",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "#16a34a",
-                        fontWeight: "600",
-                        textAlign: "center",
-                      }}
-                    >
-                      ✓ Phone verified! Click “Sign in” to complete signup.
-                    </Text>
-                  </View>
-                ) : null}
                 <View style={styles.rememberForgotRow}>
                   <View style={styles.rememberMeContainer}>
                     <TouchableOpacity
@@ -613,20 +564,6 @@ const DoctorsSignUp = () => {
                   </View>
                 </View>
 
-                <TouchableOpacity
-                  style={[
-                    styles.continueContainer,
-                    !verificationToken && { backgroundColor: "#94A3B8" },
-                  ]}
-                  onPress={handleSignup}
-                  disabled={!verificationToken}
-                >
-                  <Text style={styles.continueText}>Sign in</Text>
-                  <Image
-                    style={styles.arrowIcon}
-                    source={require("../../../assets/DoctorsPortal/Icons/ArrowIcon.png")}
-                  />
-                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.skipContainer}
                   onPress={() =>
@@ -735,7 +672,7 @@ const DoctorsSignUp = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
-                {(otpStatus !== "idle" || verificationToken) && (
+                {otpStatus !== "idle" && (
                   <View style={[styles.inputWrapper, styles.otpRow]}>
                     <TextInput
                       placeholder="4-digit OTP"
@@ -754,7 +691,7 @@ const DoctorsSignUp = () => {
                         (!isOtpComplete || otpStatus === "verified") &&
                           styles.disabledOtpButton,
                       ]}
-                      onPress={handleVerifyOtp}
+                      onPress={handleVerifyAndSignup}
                       disabled={
                         !isOtpComplete ||
                         otpStatus === "verifying" ||
@@ -763,10 +700,10 @@ const DoctorsSignUp = () => {
                     >
                       <Text style={styles.verifyOtpButtonText}>
                         {otpStatus === "verified"
-                          ? "Verified"
+                          ? "Signed Up!"
                           : otpStatus === "verifying"
-                          ? "Verifying..."
-                          : "Verify OTP"}
+                          ? "Signing Up..."
+                          : "Verify & Sign Up"}
                       </Text>
                     </TouchableOpacity>
                     {otpStatus === "verified" && (
@@ -866,7 +803,8 @@ const DoctorsSignUp = () => {
                   />
                 </View>
                 <Text style={styles.inputHeading}>
-                  Confirm Password <Text style={styles.requiredIndicator}>*</Text>
+                  Confirm Password{" "}
+                  <Text style={styles.requiredIndicator}>*</Text>
                 </Text>
                 <View style={styles.inputWrapper}>
                   <TextInput
@@ -880,34 +818,9 @@ const DoctorsSignUp = () => {
                       },
                     ]}
                     value={formData.confirmPassword}
-                    onChangeText={(val) =>
-                      handleChange("confirmPassword", val)
-                    }
+                    onChangeText={(val) => handleChange("confirmPassword", val)}
                   />
                 </View>
-                {verificationToken ? (
-                  <View
-                    style={{
-                      backgroundColor: "#dcfce7",
-                      padding: 12,
-                      borderRadius: 8,
-                      marginTop: 12,
-                      borderWidth: 1,
-                      borderColor: "#16a34a",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "#16a34a",
-                        fontWeight: "600",
-                        textAlign: "center",
-                      }}
-                    >
-                      ✓ Phone verified! Tap “Sign in” to complete signup.
-                    </Text>
-                  </View>
-                ) : null}
-
                 <View style={styles.rememberForgotRow}>
                   <TouchableOpacity
                     style={styles.checkboxContainer}
@@ -925,22 +838,11 @@ const DoctorsSignUp = () => {
                 </View>
 
                 <View style={styles.btns}>
-                  <TouchableOpacity
-                    style={[
-                      styles.continueContainer,
-                      !verificationToken && { backgroundColor: "#94A3B8" },
-                    ]}
-                    onPress={handleSignup}
-                    disabled={!verificationToken}
-                  >
-                    <Text style={styles.continueText}>Sign in</Text>
-                    <Text>{"\n"}</Text>
-                  </TouchableOpacity>
                   <Text style={styles.orOption}>Or</Text>
 
                   <TouchableOpacity
                     style={styles.continueWithGoogle}
-                    onPress={handleSignup}
+                    onPress={() => promptAsync()}
                   >
                     <Image
                       style={styles.googleIcon}
