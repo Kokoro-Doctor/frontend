@@ -107,7 +107,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
     }
 
     // already logged in → go to payment
-    navigation.navigate("DoctorsAppNavigation", {
+    navigation.navigate("DoctorAppNavigation", {
       screen: "DoctorsSubscriptionPaymentScreen",
       params: { doctors },
     });
