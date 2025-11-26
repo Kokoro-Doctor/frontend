@@ -24,7 +24,7 @@ const DoctorAppointmentScreen = ({
   const [allDoctors, setAllDoctors] = useState([]);
   const [doctorsToShow, setDoctorsToShow] = useState([]);
   const [loading, setLoading] = useState(true);
- // const [filteredDoctors, setFilteredDoctors] = useState([]);
+  // const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [subscriberCounts, setSubscriberCounts] = useState({});
   const { user } = useAuth();
   const userIdentifier = user?.user_id || user?.email || null;
@@ -68,7 +68,6 @@ const DoctorAppointmentScreen = ({
         // console.log("👨‍⚕️ Fetched doctors count:", fetchedDoctors.length);
         // console.log("👨‍⚕️ Fetched doctors:", fetchedDoctors);
 
-        
         const sortedDoctors = [
           ...fetchedDoctors.filter((doc) =>
             priorityDoctors.includes(doc.doctorname)
@@ -193,24 +192,24 @@ const DoctorAppointmentScreen = ({
 
   useEffect(() => {
     if (allDoctors.length > 0) {
-    const counts = allDoctors.reduce((acc, doctor) => {
-      const key = getDoctorKey(doctor);
-      if (key) {
-        acc[key] = doctor.subscribers?.length || 0;
-      }
-      return acc;
-    }, {});
+      const counts = allDoctors.reduce((acc, doctor) => {
+        const key = getDoctorKey(doctor);
+        if (key) {
+          acc[key] = doctor.subscribers?.length || 0;
+        }
+        return acc;
+      }, {});
       setSubscriberCounts(counts);
     }
   }, [allDoctors]);
 
-  const handleHeartButtonPress = (doctorId) => {
-    if (!doctorId) return;
-    setSubscriberCounts((prev) => ({
-      ...prev,
-      [doctorId]: (prev[doctorId] || 0) + 1,
-    }));
-  };
+  // const handleHeartButtonPress = (doctorId) => {
+  //   if (!doctorId) return;
+  //   setSubscriberCounts((prev) => ({
+  //     ...prev,
+  //     [doctorId]: (prev[doctorId] || 0) + 1,
+  //   }));
+  // };
 
   const subscribeToDoctor = async (doctorId) => {
     if (!doctorId) {
@@ -298,9 +297,18 @@ const DoctorAppointmentScreen = ({
         <View style={styles.webContainer}>
           <FlatList
             data={doctorsToShow}
-            keyExtractor={(item, index) => getDoctorKey(item) || index.toString()}
+            keyExtractor={(item, index) =>
+              getDoctorKey(item) || index.toString()
+            }
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <View
+                // onPress={() =>
+                //   navigation.navigate("DoctorsInfoWithSubscription", {
+                //     doctors: item,
+                //   })
+                // }
+                style={styles.card}
+              >
                 <View style={styles.cardRow}>
                   {/* Left Section - Doctor Details */}
                   <View style={styles.row}>
@@ -353,17 +361,17 @@ const DoctorAppointmentScreen = ({
                       </View>
                       <View style={styles.subscriberCount}>
                         <View style={styles.countBox}>
-                          <TouchableOpacity
+                          <View
                             style={styles.heartButtonBox}
-                            onPress={() =>
-                              handleHeartButtonPress(getDoctorKey(item))
-                            }
+                            // onPress={() =>
+                            //   handleHeartButtonPress(getDoctorKey(item))
+                            // }
                           >
                             <Image
                               source={require("../../../assets/Icons/heart1.png")}
                               style={styles.heartImage}
                             />
-                          </TouchableOpacity>
+                          </View>
                           <Text style={styles.numberText}>
                             {subscriberCounts[getDoctorKey(item)] || 0}
                           </Text>
@@ -388,17 +396,23 @@ const DoctorAppointmentScreen = ({
                       <Text style={styles.feeText}>| Subscription Fee</Text>
                     </View>
                     <Pressable
-                      style={[
-                        styles.button,
-                        !userIdentifier && { backgroundColor: "gray" },
-                      ]}
-                      onPress={() => {
-                        if (!userIdentifier) {
-                          alert("You must be logged in to subscribe.");
-                        } else {
-                          subscribeToDoctor(getDoctorKey(item));
-                        }
-                      }}
+                      // style={[
+                      //   styles.button,
+                      //   !userIdentifier && { backgroundColor: "gray" },
+                      // ]}
+                      style={styles.button}
+                      // onPress={() => {
+                      //   if (!userIdentifier) {
+                      //     alert("You must be logged in to subscribe.");
+                      //   } else {
+                      //     subscribeToDoctor(getDoctorKey(item));
+                      //   }
+                      // }}
+                      onPress={() =>
+                        navigation.navigate("DoctorsInfoWithSubscription", {
+                          doctors: item,
+                        })
+                      }
                     >
                       <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
                         Subscribe
@@ -468,17 +482,17 @@ const DoctorAppointmentScreen = ({
                       </View>
                       <View style={styles.rightContainer}>
                         <View style={styles.countBox}>
-                          <TouchableOpacity
+                          <View
                             style={styles.heartButtonBox}
-                            onPress={() =>
-                              handleHeartButtonPress(getDoctorKey(item))
-                            }
+                            // onPress={() =>
+                            //   handleHeartButtonPress(getDoctorKey(item))
+                            // }
                           >
                             <Image
                               source={require("../../../assets/Icons/heart1.png")}
                               style={styles.heartImage}
                             />
-                          </TouchableOpacity>
+                          </View>
                           <Text style={styles.numberText}>
                             {subscriberCounts[getDoctorKey(item)] || 0}
                           </Text>
@@ -533,17 +547,17 @@ const DoctorAppointmentScreen = ({
                         //     doctors: item,
                         //   })
                         // }
-                      style={[
-                        styles.button,
-                        !userIdentifier && { backgroundColor: "gray" },
-                      ]}
-                      onPress={() => {
-                        if (!userIdentifier) {
-                          alert("You must be logged in to subscribe.");
-                        } else {
-                          subscribeToDoctor(getDoctorKey(item));
-                        }
-                      }}
+                        style={[
+                          styles.button,
+                          !userIdentifier && { backgroundColor: "gray" },
+                        ]}
+                        onPress={() => {
+                          if (!userIdentifier) {
+                            alert("You must be logged in to subscribe.");
+                          } else {
+                            subscribeToDoctor(getDoctorKey(item));
+                          }
+                        }}
                       >
                         <Text style={styles.buttonText}>Subscribe</Text>
                         <Image
@@ -746,7 +760,7 @@ const styles = StyleSheet.create({
         marginBottom: "0.5%",
         paddingVertical: "0.5%",
         borderRadius: 5,
-        //borderWidth: 2,
+        borderWidth: 2,
         borderColor: "#000000",
         height: "97%",
         boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px",

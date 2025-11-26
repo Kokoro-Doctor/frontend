@@ -216,7 +216,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
         setShowOtpModal(false);
         onRequestClose();
         navigation.navigate("DoctorAppNavigation", {
-          screen: "DoctorMedicalRegistration",
+          screen: "Dashboard",
         });
       }, 1500);
     } catch (error) {
