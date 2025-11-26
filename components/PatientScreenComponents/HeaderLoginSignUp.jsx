@@ -21,7 +21,9 @@ import { useAuth } from "../../contexts/AuthContext";
 import PatientAuthModal from "../Auth/PatientAuthModal";
 import DoctorSignupModal from "../Auth/DoctorSignupModal";
 
-const HeaderLoginSignUp = ({ isDoctorPortal = false, user }) => {
+const defaultAvatar = require("../../assets/Images/user-icon.jpg");
+
+const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const navigation = useNavigation();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [isHovered, setIsHovered] = useState(false);
@@ -31,7 +33,21 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user }) => {
   const [authModalMode, setAuthModalMode] = useState("login");
   const [doctorModalVisible, setDoctorModalVisible] = useState(false);
   const { registerOpenModal } = useLoginModal();
-  const { logout } = useAuth();
+  const { user: contextUser, logout } = useAuth();
+  const user = userOverride ?? contextUser;
+  const displayName = user?.name || user?.fullName || user?.username || "User";
+  const displayEmail = user?.email || user?.emailId || "";
+  const avatarUri =
+    user?.picture ||
+    user?.avatar ||
+    user?.avatarUrl ||
+    user?.profileImage ||
+    user?.image ||
+    user?.photoUrl;
+  const avatarSource =
+    avatarUri && typeof avatarUri === "string"
+      ? { uri: avatarUri }
+      : defaultAvatar;
 
   const isApp = Platform.OS === "ios" || Platform.OS === "android";
   const isSmallScreen =
@@ -69,6 +85,12 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user }) => {
       friction: 5,
       useNativeDriver: true,
     }).start();
+  };
+
+  const handleProfile = () => {
+    setDropdownVisible(false);
+    // TODO: Navigate to user profile page
+    // navigation.navigate("UserProfile");
   };
 
   const handleLogout = async () => {
@@ -135,23 +157,25 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user }) => {
                   style={styles.authButtonBox}
                   onPress={() => setDropdownVisible(!dropdownVisible)}
                 >
-                  <MaterialIcons name="person" size={30} color="black" />
+                  <Image source={avatarSource} style={styles.avatarSmall} />
                 </Pressable>
 
                 {dropdownVisible && (
                   <View style={styles.dropdownMain}>
                     {user ? (
                       <>
-                        <View style={styles.userInfoContainer}>
-                          <Text style={styles.userNameText}>
-                            {user?.name || "User"}
-                          </Text>
-                          {user?.email && (
-                            <Text style={styles.userEmailText}>
-                              {user.email}
-                            </Text>
-                          )}
-                        </View>
+                        <TouchableOpacity
+                          onPress={handleProfile}
+                          style={styles.dropdownItem}
+                        >
+                          <MaterialIcons
+                            name="person"
+                            size={18}
+                            color="#111827"
+                            style={{ marginRight: 8 }}
+                          />
+                          <Text style={styles.dropdownText}>User Profile</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity
                           onPress={handleLogout}
                           style={styles.logoutButton}
@@ -182,7 +206,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user }) => {
 
           {!isDoctorPortal && (
             <View style={styles.usernameApp}>
-              <Text style={{ fontWeight: "600", fontSize: 19 }}>Hello,</Text>
+              <Text style={{ fontWeight: "600", fontSize: 19 }}>Welcome,</Text>
               <Text
                 style={{
                   fontWeight: "800",
@@ -191,96 +215,75 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user }) => {
                 }}
               >
                 {" "}
-                {user?.name ? user?.name : "User"}!
+                {displayName}!
               </Text>
             </View>
           )}
         </View>
-      ) : (
-        <>
-          {user ? (
-            <View style={{ position: "relative" }}>
-              <Animated.View
-                style={[
-                  styles.headerBtn,
-                  {
-                    backgroundColor: isHovered ? "#f96166" : "#fff",
-                    borderColor: isHovered ? "#f96166" : "#DDD",
-                    transform: [{ scale: scaleAnim }],
-                  },
-                ]}
-                onMouseEnter={onHoverIn}
-                onMouseLeave={onHoverOut}
-              >
-                <TouchableOpacity
-                  onPress={() => setDropdownVisible(!dropdownVisible)}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.headerBtnText,
-                      {
-                        color: isHovered ? "#fff" : "#333",
-                      },
-                    ]}
+      ) : user ? (
+        <View style={styles.webHeaderShell}>
+          <Text style={styles.webWelcome}>
+            Welcome, <Text style={styles.webWelcomeName}>{displayName}</Text>
+          </Text>
+          <View style={styles.webProfileSection}>
+            <TouchableOpacity
+              style={styles.webProfileButton}
+              onPress={() => setDropdownVisible(!dropdownVisible)}
+            >
+              <Image source={avatarSource} style={styles.avatar} />
+            </TouchableOpacity>
+            {dropdownVisible && (
+              <>
+                <Pressable
+                  style={styles.dropdownOverlay}
+                  onPress={() => setDropdownVisible(false)}
+                />
+                <View style={styles.webDropdownMenu}>
+                  <TouchableOpacity
+                    onPress={handleProfile}
+                    style={styles.dropdownAction}
                   >
-                    {user?.name || "User"}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-              {dropdownVisible && (
-                <>
-                  <Pressable
-                    style={styles.dropdownOverlay}
-                    onPress={() => setDropdownVisible(false)}
-                  />
-                  <View style={styles.webDropdown}>
-                    <View style={styles.userInfoContainer}>
-                      <Text style={styles.userNameText}>
-                        {user?.name || "User"}
-                      </Text>
-                      {user?.email && (
-                        <Text style={styles.userEmailText}>{user.email}</Text>
-                      )}
-                    </View>
-                    <TouchableOpacity
-                      onPress={handleLogout}
-                      style={styles.logoutButton}
-                    >
-                      <Text style={styles.logoutButtonText}>Logout</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-            </View>
-          ) : (
-            <Animated.View
+                    <MaterialIcons name="person" size={18} color="#111827" />
+                    <Text style={styles.dropdownActionText}>User Profile</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleLogout}
+                    style={styles.dropdownAction}
+                  >
+                    <MaterialIcons name="logout" size={18} color="#f96166" />
+                    <Text style={styles.dropdownActionText}>Logout</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      ) : (
+        <Animated.View
+          style={[
+            styles.headerBtn,
+            {
+              backgroundColor: isHovered ? "#f96166" : "#fff",
+              borderColor: isHovered ? "#f96166" : "#DDD",
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+          onMouseEnter={onHoverIn}
+          onMouseLeave={onHoverOut}
+        >
+          <TouchableOpacity onPress={() => openAuthModal("login")}>
+            <Text
               style={[
-                styles.headerBtn,
+                styles.headerBtnText,
                 {
-                  backgroundColor: isHovered ? "#f96166" : "#fff",
-                  borderColor: isHovered ? "#f96166" : "#DDD",
-                  transform: [{ scale: scaleAnim }],
+                  color: isHovered ? "#fff" : "#333",
                 },
               ]}
-              onMouseEnter={onHoverIn}
-              onMouseLeave={onHoverOut}
             >
-              <TouchableOpacity onPress={() => openAuthModal("login")}>
-                <Text
-                  style={[
-                    styles.headerBtnText,
-                    {
-                      color: isHovered ? "#fff" : "#333",
-                    },
-                  ]}
-                >
-                  Login / Signup
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
-        </>
+              Login / Signup
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       <PatientAuthModal
@@ -348,6 +351,59 @@ const styles = StyleSheet.create({
     color: "#000",
     marginLeft: 6,
   },
+  webHeaderShell: {
+    width: "100%",
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    // backgroundColor: "#fff",
+    // borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.05,
+    // shadowRadius: 8,
+    // elevation: 2,
+  },
+  webWelcome: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  webWelcomeName: {
+    color: "#f96166",
+    fontWeight: "700",
+  },
+  webProfileSection: {
+    position: "relative",
+  },
+  webProfileButton: {
+    cursor: "pointer",
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  avatarSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  profileMeta: {
+    marginHorizontal: 10,
+    flexShrink: 1,
+  },
+  profileName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  profileEmail: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
   authButtonsApp: {
     flexDirection: "row",
     alignItems: "center",
@@ -375,6 +431,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
@@ -408,22 +466,34 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 999,
   },
-  webDropdown: {
+  webDropdownMenu: {
     position: "absolute",
     top: "100%",
     right: 0,
-    marginTop: 4,
+    marginTop: 8,
     backgroundColor: "#FFFFFF",
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 5,
-    minWidth: 200,
+    minWidth: 160,
     zIndex: 1000,
+  },
+  dropdownAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  dropdownActionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+    marginLeft: 8,
   },
   userInfoContainer: {
     padding: 12,
