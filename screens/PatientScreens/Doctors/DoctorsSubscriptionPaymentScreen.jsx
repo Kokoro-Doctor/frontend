@@ -13,7 +13,9 @@ import {
   useWindowDimensions,
   StatusBar,
 } from "react-native";
-import { MaterialIcons, Icon } from "react-native-vector-icons/MaterialIcons";
+// import { MaterialIcons, Icon } from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+//import Icon from "react-native-vector-icons/MaterialIcons";
 import { useChatbot } from "../../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
@@ -123,7 +125,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                                 {`${doctors.experience} Experience`}
                               </Text>
                               <View style={styles.locationSection}>
-                                <Icon
+                                <MaterialIcons
                                   name="location-on"
                                   size={15}
                                   color="rgba(22, 128, 236, 0.75)"
@@ -141,7 +143,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                             </Text>
                             <View style={styles.metricsBox}>
                               <View style={styles.metricsContent}>
-                                <Icon
+                                <MaterialIcons
                                   name="star"
                                   size={13}
                                   color="rgba(22, 128, 236, 0.75)"
@@ -153,7 +155,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                                 </Text>
                               </View>
                               <View style={styles.metricsContent}>
-                                <Icon
+                                <MaterialIcons 
                                   name="star"
                                   size={13}
                                   color="rgba(22, 128, 236, 0.75)"
@@ -165,7 +167,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                                 </Text>
                               </View>
                               <View style={styles.metricsContent}>
-                                <Icon
+                                <MaterialIcons
                                   name="star"
                                   size={13}
                                   color="rgba(22, 128, 236, 0.75)"
@@ -196,7 +198,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                           <TouchableOpacity
                             style={styles.paymentButton}
                             onPress={() => {
-                              handleContinuePayment(1);
+                              handleContinuePayment(1999);
                             }}
                           >
                             <Text style={styles.paymentButtonText}>
@@ -544,6 +546,9 @@ const styles = StyleSheet.create({
     width: "100%",
     //borderWidth: 1,
     flexDirection: "row",
+  },
+  metricsTitle:{
+    fontSize:12
   },
   verticalLine: {
     height: "100%",

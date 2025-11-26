@@ -14,20 +14,20 @@ import {
   StatusBar,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
-import Header from "../../components/PatientScreenComponents/Header";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 
-const {width, height} = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 const ContactUs = ({ navigation, route }) => {
-  const {width} = useWindowDimensions();
+  const { width } = useWindowDimensions();
   return (
     <>
-      {(Platform.OS === "web" && width > 1000) && (
+      {Platform.OS === "web" && width > 1000 && (
         <View style={styles.container}>
           <SideBarNavigation navigation={navigation} />
-    
+
           <View style={styles.imageContainer}>
             <ImageBackground
               source={require("../../assets/Images/main_background.jpg")}
@@ -35,32 +35,40 @@ const ContactUs = ({ navigation, route }) => {
               resizeMode="cover"
             >
               <View
-                style={[styles.overlay, { backgroundColor: "rgba(0, 0, 0, 0.6)" }]}
+                style={[
+                  styles.overlay,
+                  { backgroundColor: "rgba(0, 0, 0, 0.6)" },
+                ]}
               />
               <View style={styles.parent}>
                 <View style={styles.Left}>
                   <SideBarNavigation navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
-                  <View style={styles.header}><Header navigation={navigation}/></View>
-                  <View style={styles.title}><Title/></View>
+                  <View style={styles.header}>
+                    <HeaderLoginSignUp navigation={navigation} />
+                  </View>
+                  <View style={styles.title}>
+                    <Title />
+                  </View>
                   <View style={styles.Contactbox}>
                     <Text style={styles.Contact}>Contact Us</Text>
-    
+
                     {/* Clickable Website */}
                     <TouchableOpacity onPress={() => Linking.openURL("")}>
                       <Text style={styles.website}>
-                        Website: <Text style={styles.linkText}>Kokoro.Doctor</Text>
+                        Website:{" "}
+                        <Text style={styles.linkText}>Kokoro.Doctor</Text>
                       </Text>
                     </TouchableOpacity>
-    
+
                     {/* Clickable Phone Number (Optional, if needed) */}
                     <TouchableOpacity onPress={() => Linking.openURL("")}>
                       <Text style={styles.contact}>
                         Phone: <Text style={styles.linkText}>7060334160</Text>
                       </Text>
                     </TouchableOpacity>
-    
+
                     {/* Social Media Section */}
                     <View style={styles.socialmedia}>
                       <Text style={styles.socialtext}>Social:</Text>
@@ -79,7 +87,7 @@ const ContactUs = ({ navigation, route }) => {
                             />
                           </TouchableOpacity>
                         </View>
-    
+
                         <View style={styles.socialIconBox}>
                           <TouchableOpacity
                             onPress={() =>
@@ -94,18 +102,22 @@ const ContactUs = ({ navigation, route }) => {
                             />
                           </TouchableOpacity>
                         </View>
-    
+
                         <View style={styles.socialIconBox}>
-                          <TouchableOpacity onPress={() => Linking.openURL("/")}>
+                          <TouchableOpacity
+                            onPress={() => Linking.openURL("/")}
+                          >
                             <Image
                               source={require("../../assets/Icons/twitter.png")}
                               style={styles.socialIcon}
                             />
                           </TouchableOpacity>
                         </View>
-    
+
                         <View style={styles.socialIconBox}>
-                          <TouchableOpacity onPress={() => Linking.openURL("/")}>
+                          <TouchableOpacity
+                            onPress={() => Linking.openURL("/")}
+                          >
                             <Image
                               source={require("../../assets/Icons/youtube.png")}
                               style={styles.socialIcon}
@@ -114,7 +126,7 @@ const ContactUs = ({ navigation, route }) => {
                         </View>
                       </View>
                     </View>
-    
+
                     {/* Clickable Email */}
                     <TouchableOpacity
                       onPress={() =>
@@ -139,7 +151,7 @@ const ContactUs = ({ navigation, route }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={[styles.header, { height: "15%" }]}>
-            <Header navigation={navigation} />
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
 
           <View style={styles.searchBar}>
@@ -147,90 +159,90 @@ const ContactUs = ({ navigation, route }) => {
           </View>
 
           <View style={styles.Contactbox}>
-              <Text style={styles.Contact}>Contact Us</Text>
+            <Text style={styles.Contact}>Contact Us</Text>
 
-              {/* Clickable Website */}
-              <TouchableOpacity onPress={() => Linking.openURL("")}>
-                <Text style={styles.website}>
-                  Website: <Text style={styles.linkText}>Kokoro.Doctor</Text>
-                </Text>
-              </TouchableOpacity>
+            {/* Clickable Website */}
+            <TouchableOpacity onPress={() => Linking.openURL("")}>
+              <Text style={styles.website}>
+                Website: <Text style={styles.linkText}>Kokoro.Doctor</Text>
+              </Text>
+            </TouchableOpacity>
 
-              {/* Clickable Phone Number (Optional, if needed) */}
-              <TouchableOpacity onPress={() => Linking.openURL("")}>
-                <Text style={styles.contact}>
-                  Phone: <Text style={styles.linkText}>7060334160</Text>
-                </Text>
-              </TouchableOpacity>
+            {/* Clickable Phone Number (Optional, if needed) */}
+            <TouchableOpacity onPress={() => Linking.openURL("")}>
+              <Text style={styles.contact}>
+                Phone: <Text style={styles.linkText}>7060334160</Text>
+              </Text>
+            </TouchableOpacity>
 
-              {/* Social Media Section */}
-              <View style={styles.socialmedia}>
-                <Text style={styles.socialtext}>Social:</Text>
-                <View style={styles.iconContainer}>
-                  <View style={styles.socialIconBox}>
-                    <TouchableOpacity
-                      onPress={() =>
-                        Linking.openURL(
-                          "https://www.linkedin.com/company/metafiedkokoro"
-                        )
-                      }
-                    >
-                      <Image
-                        source={require("../../assets/Icons/LinkedIn.png")}
-                        style={styles.socialIcon}
-                      />
-                    </TouchableOpacity>
-                  </View>
+            {/* Social Media Section */}
+            <View style={styles.socialmedia}>
+              <Text style={styles.socialtext}>Social:</Text>
+              <View style={styles.iconContainer}>
+                <View style={styles.socialIconBox}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      Linking.openURL(
+                        "https://www.linkedin.com/company/metafiedkokoro"
+                      )
+                    }
+                  >
+                    <Image
+                      source={require("../../assets/Icons/LinkedIn.png")}
+                      style={styles.socialIcon}
+                    />
+                  </TouchableOpacity>
+                </View>
 
-                  <View style={styles.socialIconBox}>
-                    <TouchableOpacity
-                      onPress={() =>
-                        Linking.openURL(
-                          "https://www.instagram.com/kokoro.doc?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
-                        )
-                      }
-                    >
-                      <Image
-                        source={require("../../assets/Icons/instagram.png")}
-                        style={styles.socialIcon}
-                      />
-                    </TouchableOpacity>
-                  </View>
+                <View style={styles.socialIconBox}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      Linking.openURL(
+                        "https://www.instagram.com/kokoro.doc?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+                      )
+                    }
+                  >
+                    <Image
+                      source={require("../../assets/Icons/instagram.png")}
+                      style={styles.socialIcon}
+                    />
+                  </TouchableOpacity>
+                </View>
 
-                  <View style={styles.socialIconBox}>
-                    <TouchableOpacity onPress={() => Linking.openURL("/")}>
-                      <Image
-                        source={require("../../assets/Icons/twitter.png")}
-                        style={styles.socialIcon}
-                      />
-                    </TouchableOpacity>
-                  </View>
+                <View style={styles.socialIconBox}>
+                  <TouchableOpacity onPress={() => Linking.openURL("/")}>
+                    <Image
+                      source={require("../../assets/Icons/twitter.png")}
+                      style={styles.socialIcon}
+                    />
+                  </TouchableOpacity>
+                </View>
 
-                  <View style={styles.socialIconBox}>
-                    <TouchableOpacity onPress={() => Linking.openURL("/")}>
-                      <Image
-                        source={require("../../assets/Icons/youtube.png")}
-                        style={styles.socialIcon}
-                      />
-                    </TouchableOpacity>
-                  </View>
+                <View style={styles.socialIconBox}>
+                  <TouchableOpacity onPress={() => Linking.openURL("/")}>
+                    <Image
+                      source={require("../../assets/Icons/youtube.png")}
+                      style={styles.socialIcon}
+                    />
+                  </TouchableOpacity>
                 </View>
               </View>
-
-              {/* Clickable Email */}
-              <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL("mailto:business.support@kokoro.doctor")
-                }
-              >
-                <Text style={styles.Email}>
-                  Email:{" "}
-                  <Text style={styles.linkText}>
-                    business.support@kokoro.doctor
-                  </Text>
-                </Text>
-              </TouchableOpacity>
             </View>
+
+            {/* Clickable Email */}
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL("mailto:business.support@kokoro.doctor")
+              }
+            >
+              <Text style={styles.Email}>
+                Email:{" "}
+                <Text style={styles.linkText}>
+                  business.support@kokoro.doctor
+                </Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </>
@@ -246,7 +258,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     flexDirection: "row",
   },
-  appContainer:{
+  appContainer: {
     flex: 1,
     height: "100%",
     width: "100%",
@@ -291,10 +303,10 @@ const styles = StyleSheet.create({
     // borderColor: "black",
     zIndex: 2,
     ...Platform.select({
-      web:{
-        width:"100%",
-      }
-    })
+      web: {
+        width: "100%",
+      },
+    }),
   },
   title: {
     // borderColor: "#FFFFFF",
@@ -309,11 +321,11 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginVertical: "auto",
     ...Platform.select({
-      web:{
+      web: {
         width: width > 1000 ? "68%" : "95%",
-        height: width>1000 ? "37%" : "28%",
-      }
-    })
+        height: width > 1000 ? "37%" : "28%",
+      },
+    }),
   },
   Contact: {
     fontWeight: 600,

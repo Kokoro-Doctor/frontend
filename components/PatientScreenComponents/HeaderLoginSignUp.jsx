@@ -364,14 +364,15 @@ const styles = StyleSheet.create({
     // shadowOpacity: 0.05,
     // shadowRadius: 8,
     // elevation: 2,
+    
   },
   webWelcome: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
-    color: "#111827",
+    color: "#fff",
   },
   webWelcomeName: {
-    color: "#f96166",
+    color: "#fff",
     fontWeight: "700",
   },
   webProfileSection: {
