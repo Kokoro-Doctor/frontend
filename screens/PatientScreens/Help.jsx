@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   ImageBackground,
   Text,
@@ -11,9 +11,10 @@ import {
   StatusBar,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
-import Header from "../../components/PatientScreenComponents/Header";
+
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 
 const { width, height } = Dimensions.get("window");
 
@@ -41,7 +42,7 @@ const Help = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
                   <View style={styles.title}>
                     <Title />
@@ -111,7 +112,7 @@ const Help = ({ navigation, route }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={[styles.header, { height: "15%" }]}>
-            <Header navigation={navigation} />
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
 
           <View style={styles.searchBar}>
@@ -303,55 +304,55 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
 
-  contain: {
-    flexDirection: "column",
-    padding: 20,
-    backgroundColor: "#f5f5f5",
-  },
-  headerContainer: {
-    flex: 1,
-    justifyContent: "flex-start",
-  },
-  contentContainer: {
-    flex: 3,
-  },
-  head: {
-    fontSize: 35,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#5a34cc",
-    marginTop: 15,
-  },
-  question: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 10,
-  },
-  answer: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 10,
-  },
-  resource: {
-    fontSize: 14,
-    color: "#333",
-    marginTop: 5,
-  },
-  contact: {
-    fontSize: 14,
-    color: "#333",
-    marginTop: 10,
-  },
-  link: {
-    color: "#5a34cc",
-    fontWeight: "bold",
-  },
+  // contain: {
+  //   flexDirection: "column",
+  //   padding: 20,
+  //   backgroundColor: "#f5f5f5",
+  // },
+  // headerContainer: {
+  //   flex: 1,
+  //   justifyContent: "flex-start",
+  // },
+  // contentContainer: {
+  //   flex: 3,
+  // },
+  // head: {
+  //   fontSize: 35,
+  //   fontWeight: "bold",
+  //   color: "#333",
+  //   marginBottom: 20,
+  // },
+  // sectionTitle: {
+  //   fontSize: 18,
+  //   fontWeight: "bold",
+  //   color: "#5a34cc",
+  //   marginTop: 15,
+  // },
+  // question: {
+  //   fontSize: 16,
+  //   fontWeight: "bold",
+  //   color: "#333",
+  //   marginTop: 10,
+  // },
+  // answer: {
+  //   fontSize: 14,
+  //   color: "#555",
+  //   marginBottom: 10,
+  // },
+  // resource: {
+  //   fontSize: 14,
+  //   color: "#333",
+  //   marginTop: 5,
+  // },
+  // contact: {
+  //   fontSize: 14,
+  //   color: "#333",
+  //   marginTop: 10,
+  // },
+  // link: {
+  //   color: "#5a34cc",
+  //   fontWeight: "bold",
+  // },
 });
 
 export default Help;
