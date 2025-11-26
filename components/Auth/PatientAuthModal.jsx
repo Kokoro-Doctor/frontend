@@ -31,7 +31,6 @@ const PatientAuthModal = ({
     signup: signupHandler,
     requestSignupOtp: requestSignupOtpHandler,
     requestLoginOtp: requestLoginOtpHandler,
-    loginWithPassword: loginWithPasswordHandler,
     loginWithOtp: loginWithOtpHandler,
   } = useContext(AuthContext);
   const { setRole } = useRole();
@@ -53,11 +52,6 @@ const PatientAuthModal = ({
   const [signupIdentifier, setSignupIdentifier] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordVisible, setPasswordVisible] = useState(false);
-  const [loginPasswordVisible, setLoginPasswordVisible] = useState(false);
-  const [passwordTouched, setPasswordTouched] = useState(false);
   const [otpFlow, setOtpFlow] = useState(null);
   const [otpTargetPhone, setOtpTargetPhone] = useState("");
 
@@ -202,11 +196,6 @@ const PatientAuthModal = ({
     setLoginIdentifier("");
     setSignupIdentifier("");
     setFullName("");
-    setPassword("");
-    setPasswordVisible(false);
-    setLoginPasswordVisible(false);
-    setPasswordTouched(false);
-    setLoginPassword("");
     setOtpFlow(null);
     setOtpTargetPhone("");
     setShowOtpModal(false);
@@ -335,18 +324,12 @@ const PatientAuthModal = ({
     otpOverride = null
   ) => {
     const nameToUse = fullName.trim();
-    const passwordToUse = password.trim();
     const phoneNumberToUse =
       phoneNumberOverride || otpTargetPhone || buildPhoneNumber();
     const otpToUse = otpOverride || otp.trim();
 
     if (!nameToUse) {
       setErrorMessage("Please enter your full name.");
-      return;
-    }
-    if (passwordToUse.length < 6) {
-      setPasswordTouched(true);
-      setErrorMessage("Password must be at least 6 characters.");
       return;
     }
     if (!phoneNumberToUse || !otpToUse) {
@@ -365,7 +348,6 @@ const PatientAuthModal = ({
         phoneNumber: phoneNumberToUse,
         otp: otpToUse,
         email: email.trim() || undefined,
-        password: passwordToUse,
       });
 
       setRole("patient");
@@ -387,7 +369,7 @@ const PatientAuthModal = ({
     }
   };
 
-  const handleLogin = async () => {
+  const handleSendLoginOtp = async () => {
     if (isProcessing) return;
 
     const identifier = loginIdentifier.trim();
@@ -402,11 +384,6 @@ const PatientAuthModal = ({
       return;
     }
 
-    if (!loginPassword.trim()) {
-      setErrorMessage("Please enter your password.");
-      return;
-    }
-
     const phoneNumber = buildPhoneNumber(identifier);
     if (!phoneNumber) {
       setErrorMessage("Please enter a valid mobile number.");
@@ -414,33 +391,14 @@ const PatientAuthModal = ({
     }
 
     setMobile(identifier);
-    setErrorMessage("");
-    setInfoMessage("");
-    setIsProcessing(true);
-    try {
-      await loginWithPasswordHandler({
-        phoneNumber: phoneNumber,
-        password: loginPassword.trim(),
-      });
-      setInfoMessage("Login successful! Redirecting...");
-      setTimeout(() => {
-        onRequestClose();
-      }, 1000);
-    } catch (error) {
-      const errorMsg = getErrorMessage(error);
-      setErrorMessage(errorMsg);
-      // If password login fails and user doesn't have password, offer OTP option
-      // This is a fallback for edge cases
-    } finally {
-      setIsProcessing(false);
-    }
+    return sendOtpForFlow({ phoneNumber, flow: "login" });
   };
 
   const handleNext = async () => {
     if (isProcessing) return;
 
     if (mode === "login") {
-      await handleLogin();
+      await handleSendLoginOtp();
       return;
     }
 
@@ -473,27 +431,18 @@ const PatientAuthModal = ({
       setErrorMessage("Please enter a valid 10-digit mobile number.");
       return false;
     }
-    if (password.trim().length < 6) {
-      setPasswordTouched(true);
-      setErrorMessage("Password must be at least 6 characters.");
-      return false;
-    }
     return true;
   };
 
-  const canLogin = sanitizeDigits(loginIdentifier).length >= 10;
   const loginDigitsValid = sanitizeDigits(loginIdentifier).length >= 10;
   const showLoginPhoneError =
     loginIdentifier.trim().length > 0 && !loginDigitsValid;
   const signupDigitsValid = sanitizeDigits(signupIdentifier).length >= 10;
-  const passwordValid = password.trim().length >= 6;
-  const showSignupPasswordError = passwordTouched && !passwordValid;
   const showSignupPhoneError =
     signupIdentifier.trim().length > 0 && !signupDigitsValid;
-  const baseSignupValid = fullName.trim() && signupDigitsValid && passwordValid;
+  const baseSignupValid = fullName.trim() && signupDigitsValid;
 
-  const isLoginActionDisabled =
-    !canLogin || !loginPassword.trim() || isProcessing;
+  const isLoginActionDisabled = !loginDigitsValid || isProcessing;
 
   const isPrimaryDisabled =
     mode === "login" ? isLoginActionDisabled : !baseSignupValid || isProcessing;
@@ -584,6 +533,9 @@ const PatientAuthModal = ({
                   ]}
                 >
                   <Text style={styles.titleHead}>Welcome Back!</Text>
+                  <Text style={styles.subtitle}>
+                    Enter your mobile number to receive an OTP
+                  </Text>
 
                   <Text style={styles.inputLabel}>Mobile Number</Text>
                   <TextInput
@@ -601,32 +553,6 @@ const PatientAuthModal = ({
                     </Text>
                   ) : null}
 
-                  <Text style={styles.inputLabel}>
-                    Password <Text style={styles.requiredIndicator}>*</Text>
-                  </Text>
-                  <View style={styles.passwordField}>
-                    <TextInput
-                      placeholder="Enter your password"
-                      placeholderTextColor="#d3d3d3"
-                      secureTextEntry={!loginPasswordVisible}
-                      style={styles.passwordInput}
-                      value={loginPassword}
-                      onChangeText={setLoginPassword}
-                    />
-                    <TouchableOpacity
-                      style={styles.passwordToggle}
-                      onPress={() =>
-                        setLoginPasswordVisible((prevVisible) => !prevVisible)
-                      }
-                    >
-                      <Ionicons
-                        name={loginPasswordVisible ? "eye-off" : "eye"}
-                        size={18}
-                        color="#6B7280"
-                      />
-                    </TouchableOpacity>
-                  </View>
-
                   <TouchableOpacity
                     style={[
                       styles.btn,
@@ -636,7 +562,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing ? "Logging in..." : "Login"}
+                      {isProcessing ? "Sending OTP..." : "Send OTP"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -708,44 +634,6 @@ const PatientAuthModal = ({
                     value={email}
                     onChangeText={setEmail}
                   />
-
-                  <Text style={styles.inputLabel}>
-                    Create Password{" "}
-                    <Text style={styles.requiredIndicator}>*</Text>
-                  </Text>
-                  <View style={styles.passwordField}>
-                    <TextInput
-                      placeholder="Minimum 6 characters"
-                      placeholderTextColor="#d3d3d3"
-                      style={styles.passwordInput}
-                      secureTextEntry={!passwordVisible}
-                      value={password}
-                      onChangeText={(value) => {
-                        setPassword(value);
-                        if (!passwordTouched) {
-                          setPasswordTouched(true);
-                        }
-                      }}
-                      onBlur={() => setPasswordTouched(true)}
-                    />
-                    <TouchableOpacity
-                      style={styles.passwordToggle}
-                      onPress={() =>
-                        setPasswordVisible((prevVisible) => !prevVisible)
-                      }
-                    >
-                      <Ionicons
-                        name={passwordVisible ? "eye-off" : "eye"}
-                        size={18}
-                        color="#6B7280"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  {showSignupPasswordError ? (
-                    <Text style={styles.inlineErrorText}>
-                      Password must be at least 6 characters.
-                    </Text>
-                  ) : null}
 
                   <TouchableOpacity
                     style={[
@@ -941,9 +829,15 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "700",
     color: "#333",
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: "center",
     letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 16,
   },
   input: {
     width: "100%",
@@ -1106,28 +1000,6 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontSize: 13,
     fontWeight: "normal",
-  },
-  passwordField: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 8,
-    backgroundColor: "#FFFFFF",
-    marginTop: 4,
-    marginBottom: 6,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: "#333",
-  },
-  passwordToggle: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
   },
   inlineErrorText: {
     width: "100%",
