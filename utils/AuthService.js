@@ -240,7 +240,8 @@ const persistUserSession = async ({ access_token, profile, role }) => {
     await AsyncStorage.setItem("@user", JSON.stringify(profile));
   }
   if (role) {
-    await AsyncStorage.setItem("role", role);
+    // Use consistent key "userRole" to match RoleContext
+    await AsyncStorage.setItem("userRole", role);
   }
 };
 
@@ -439,13 +440,13 @@ export const confirmPasswordReset = async () => {
 export const logOut = async () => {
   await AsyncStorage.removeItem("@token");
   await AsyncStorage.removeItem("@user");
-  await AsyncStorage.removeItem("role");
+  await AsyncStorage.removeItem("userRole");
 };
 
 export const restoreUserState = async () => {
   const token = await AsyncStorage.getItem("@token");
   const user = await AsyncStorage.getItem("@user");
-  const role = await AsyncStorage.getItem("role");
+  const role = await AsyncStorage.getItem("userRole");
   return token && user ? { token, user: JSON.parse(user), role } : null;
 };
 
