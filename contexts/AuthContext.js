@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   completeDoctorSignup,
   completeUserSignup,
@@ -58,8 +59,11 @@ export const AuthProvider = ({ children }) => {
 
   const syncSession = async (result, fallbackRole = null) => {
     if (result?.profile) {
+      const userRole = result.role ?? fallbackRole ?? "user";
       setUser(result.profile);
-      setRole(result.role ?? fallbackRole ?? "user");
+      setRole(userRole);
+      // Sync role with AsyncStorage for RoleContext
+      await AsyncStorage.setItem("userRole", userRole);
       await clearSession();
       await resetChatCount();
     }
@@ -149,6 +153,8 @@ export const AuthProvider = ({ children }) => {
       await resetChatCount();
       setUser(null);
       setRole(null);
+      // Clear role from AsyncStorage
+      await AsyncStorage.removeItem("userRole");
     } catch (error) {
       alert("Logout Failed: Something went wrong!");
     }

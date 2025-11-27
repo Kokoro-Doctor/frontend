@@ -65,7 +65,9 @@
 import React, { Suspense } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ActivityIndicator, View, Platform } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRole } from "../contexts/RoleContext";
+import { useAuth } from "../contexts/AuthContext";
 import { RegistrationProvider } from "../contexts/RegistrationContext";
 
 // ✅ Direct imports (always needed instantly)
@@ -130,17 +132,51 @@ export const linking = {
   },
 };
 
+// Wrapper component for LandingPage that handles auth redirects
+const LandingPageWithAuth = ({ navigation, route }) => {
+  const { user, role: authRole, isLoading: authLoading } = useAuth();
+  const { role: roleContextRole } = useRole();
+  
+  // Use role from AuthContext if available, fallback to RoleContext
+  const role = authRole || roleContextRole;
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Wait for auth to finish loading
+      if (authLoading) return;
+
+      // If user is authenticated and has a role, redirect to appropriate dashboard
+      if (user && role) {
+        if (role === "doctor") {
+          // Redirect doctor to doctor dashboard
+          navigation.replace("DoctorAppNavigation", {
+            screen: "Dashboard",
+          });
+        }
+        // For users/patients, they can stay on LandingPage (no redirect needed)
+      }
+    }, [user, role, authLoading, navigation])
+  );
+
+  return <LandingPage navigation={navigation} route={route} />;
+};
+
 const RootNavigation = () => {
   const { role, loading } = useRole();
+  const { isLoading: authLoading } = useAuth();
 
-  if (loading) return <Loader />;
+  // Show loader while role or auth is loading
+  if (loading || authLoading) return <Loader />;
 
   return (
     <RegistrationProvider>
       <Suspense fallback={<Loader />}>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator 
+          screenOptions={{ headerShown: false }}
+          initialRouteName="LandingPage"
+        >
           {/* Always loaded instantly */}
-          <Stack.Screen name="LandingPage" component={LandingPage} />
+          <Stack.Screen name="LandingPage" component={LandingPageWithAuth} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
           <Stack.Screen name="ResetPassword" component={ResetPassword} />
