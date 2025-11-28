@@ -184,7 +184,7 @@ const HistoryScreen = ({ navigation }) => {
             </View>
           </View>
 
-          <ScrollView style={styles.appointmentsContainer}>
+          {/* <ScrollView style={styles.appointmentsContainer}>
             {Object.entries(groupedAppointments).map(
               ([date, dateAppointments]) => (
                 <View key={date} style={styles.dateGroup}>
@@ -197,7 +197,8 @@ const HistoryScreen = ({ navigation }) => {
                 </View>
               )
             )}
-          </ScrollView>
+          </ScrollView> */}
+          <Text style={styles.noDataText}>No Schedule for now</Text>
         </View>
       </SafeAreaView>
     </View>
@@ -371,6 +372,12 @@ const styles = StyleSheet.create({
     color: "#666",
     marginRight: "70%",
   },
+  noDataText:{
+    alignSelf:"center",
+    marginVertical:"10%",
+    fontSize:20,
+    fontWeight:600
+  }
 });
 
 export default HistoryScreen;

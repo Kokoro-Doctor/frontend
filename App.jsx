@@ -8,6 +8,7 @@ import { LoginModalProvider } from "./contexts/LoginModalContext";
 import { RoleProvider } from "./contexts/RoleContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import RootNavigation, { linking } from "./navigation/RootNavigator";
+import Prescription from "./screens/DoctorScreens/Prescription";
 // ✅ import your init
 import { initGoogleSignin } from "./utils/AuthService";
 
@@ -60,8 +61,9 @@ const App = () => {
           <RoleProvider>
             <LoginModalProvider>
               <NavigationContainer linking={linking} ref={navigationRef}>
-                <RootNavigation />
-                <ChatBotOverlay navigationRef={navigationRef} />
+                 {/* <RootNavigation />
+                 <ChatBotOverlay navigationRef={navigationRef} /> */}
+                 <Prescription/>
               </NavigationContainer>
             </LoginModalProvider>
           </RoleProvider>

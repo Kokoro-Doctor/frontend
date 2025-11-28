@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   Text,
+  ScrollView,
 } from "react-native";
 
 import { useChatbot } from "../../contexts/ChatbotContext";
@@ -24,6 +25,7 @@ const Prescription = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const [searchText, setSearchText] = useState("");
   const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   //const [selectedButton, setSelectedButton] = useState(null);
 
   useFocusEffect(
@@ -31,6 +33,24 @@ const Prescription = ({ navigation, route }) => {
       setChatbotConfig({ height: "57%" });
     }, [setChatbotConfig])
   );
+
+  const fileInputRef = React.useRef(null);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+
+    const files = Array.from(e.dataTransfer.files);
+    console.log("Dropped files:", files);
+
+    setUploadedFiles((prev) => [...prev, ...files]);
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    console.log("Selected files:", files);
+
+    setUploadedFiles((prev) => [...prev, ...files]);
+  };
 
   return (
     <>
@@ -48,23 +68,6 @@ const Prescription = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <HeaderLoginSignUp navigation={navigation} />
-                  {/* <View style={styles.firstTextBox}>
-                    <View>
-                      <Text style={styles.firstText}>
-                        Welcome Doctor!
-
-                      </Text>
-
-                    </View>
-                    <View>
-                      <Text style={styles.secondText}>
-                        Here is your medical dashboard.
-
-                      </Text>
-
-                    </View>
-
-                  </View> */}
 
                   <View style={styles.contentContainer}>
                     <View style={styles.upperPart}>
@@ -74,7 +77,14 @@ const Prescription = ({ navigation, route }) => {
                         </Text>
                       </View>
                       <View>
-                        <TouchableOpacity style={styles.firstButton}>
+                        <TouchableOpacity
+                          style={styles.firstButton}
+                          onPress={() =>
+                            navigation.navigate("DoctorAppNavigation", {
+                              screen: "DoctorsSubscribers",
+                            })
+                          }
+                        >
                           <Text style={styles.subscriberText}>
                             Select your subscriber
                           </Text>
@@ -122,7 +132,7 @@ const Prescription = ({ navigation, route }) => {
                         </View>
 
                         <View style={{ alignItems: "center", marginTop: "3%" }}>
-                          <TouchableOpacity style={styles.medilockerPart}>
+                          {/* <TouchableOpacity style={styles.medilockerPart}>
                             <View>
                               <Image
                                 source={require("../../assets/DoctorsPortal/Icons/send_Icon.png")}
@@ -149,12 +159,61 @@ const Prescription = ({ navigation, route }) => {
                                 just upload Document and generate precription
                               </Text>
                             </View>
-                            {/* <MaterialIcons name="file-upload" size={24} color="#555" />
-                                        <Text style={styles.title}>Drag & Drop Here</Text>
-                                        <Text style={styles.subtitle}>
-                                            just upload Document and generate prescription
-                                        </Text> */}
-                          </TouchableOpacity>
+                            
+                          </TouchableOpacity> */}
+                          <View
+                            style={styles.medilockerPart}
+                            onDrop={handleDrop}
+                            onDragOver={(e) => e.preventDefault()}
+                          >
+                            {/* Hidden file input for click upload */}
+                            <input
+                              type="file"
+                              multiple
+                              style={{ display: "none" }}
+                              ref={fileInputRef}
+                              onChange={handleFileSelect}
+                            />
+
+                            <TouchableOpacity
+                              onPress={() => fileInputRef.current.click()}
+                            >
+                              <Image
+                                source={require("../../assets/DoctorsPortal/Icons/send_Icon.png")}
+                                style={styles.filterIcon}
+                              />
+                              <Text style={styles.dragText}>
+                                Drag & Drop Here
+                              </Text>
+                              <Text style={styles.lastpartText}>
+                                just upload Document and generate prescription
+                              </Text>
+                            </TouchableOpacity>
+                            {/* <View style={{ marginTop: 12 }}>
+                              {uploadedFiles.map((file, index) => (
+                                <Text key={index} style={{ color: "#333" }}>
+                                  {file.name}
+                                </Text>
+                              ))}
+                            </View> */}
+                            <ScrollView
+                              nestedScrollEnabled={true}
+                              style={{ height: 65, width: "100%" }} // only SIZE here
+                              contentContainerStyle={{
+                                // layout goes HERE
+                                paddingVertical: 4,
+                              }}
+                            >
+                              {uploadedFiles.map((file, index) => (
+                                <Text
+                                  key={index}
+                                  style={{ paddingVertical: 4 }}
+                                >
+                                  {file.name}
+                                </Text>
+                              ))}
+                            </ScrollView>
+                          </View>
                         </View>
                         <View
                           style={{ alignItems: "center", marginTop: "2.5%" }}
@@ -168,7 +227,7 @@ const Prescription = ({ navigation, route }) => {
                       </View>
 
                       <View style={styles.rightPart}>
-                        <View style={{ backgroundColor: "#FF7072" }}>
+                        <View style={{ backgroundColor: "#ed3d40ff" }}>
                           <View style={{ marginLeft: "12%" }}>
                             <Text style={styles.rightText}>DrBuddy</Text>
                           </View>
@@ -369,11 +428,15 @@ const styles = StyleSheet.create({
     // backgroundColor: "#fdf9f8", // light pastel background
     // marginHorizontal: 20,
   },
+  filterIcon: {
+    alignSelf: "center",
+  },
   dragText: {
     color: "#5B5B5B",
     fontSize: 14,
     fontWeight: "500",
     fontFamily: "Poppins - Medium",
+    alignSelf: "center",
   },
   lastpartText: {
     color: "#878787",
