@@ -50,23 +50,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <HeaderLoginSignUp navigation={navigation} />
-                  {/* <View style={styles.firstTextBox}>
-                    <View>
-                      <Text style={styles.firstText}>
-                        Welcome Doctor!
-
-                      </Text>
-
-                    </View>
-                    <View>
-                      <Text style={styles.secondText}>
-                        Here is your medical dashboard.
-
-                      </Text>
-
-                    </View>
-
-                  </View> */}
+                  
                   <View style={styles.backPicBox}>
                     <TouchableOpacity>
                       <Image
@@ -458,10 +442,11 @@ const styles = StyleSheet.create({
   },
   imageBox: {
     margin: "1%",
+    borderWidth:1
   },
   imagepic: {
-    height: 100,
-    width: 100,
+    height: 80,
+    width: 80,
   },
   // firstTextBox: {
   //   width: "28%",
@@ -469,13 +454,14 @@ const styles = StyleSheet.create({
   //   borderColor: "#E2E2E2",
   // },
   firstBoxText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#444444",
     fontWeight: 500,
     fontFamily: "Poppins - Medium",
+    borderWidth:1
   },
   firstTexttwo: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#444444",
     fontWeight: 400,
     fontFamily: "Poppins - Regular",

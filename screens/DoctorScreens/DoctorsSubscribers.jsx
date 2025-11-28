@@ -50,23 +50,6 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <HeaderLoginSignUp navigation={navigation} />
-                  {/* <View style={styles.firstTextBox}>
-                    <View>
-                      <Text style={styles.firstText}>
-                        Welcome Doctor!
-
-                      </Text>
-
-                    </View>
-                    <View>
-                      <Text style={styles.secondText}>
-                        Here is your medical dashboard.
-
-                      </Text>
-
-                    </View>
-
-                  </View> */}
 
                   <View style={styles.contentContainer}>
                     <View style={styles.upperPart}>
@@ -156,7 +139,20 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                           source={require("../../assets/DoctorsPortal/Images/subscriberIcon.png")}
                           style={styles.subscriberIcon}
                         />
-                        
+                        <Text style={styles.inviteSubscriberText}>
+                          Complete your registration process to become a
+                          verified doctor on the platform.
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.inviteButton}
+                          onPress={() =>
+                            navigation.navigate("DoctorAppNavigation", {
+                              screen: "DoctorMedicalRegistration",
+                            })
+                          }
+                        >
+                          Complete Registration Process
+                        </TouchableOpacity>
                       </View>
                       {/* </ScrollView> */}
                     </View>
@@ -328,17 +324,31 @@ const styles = StyleSheet.create({
     height: "70%",
   },
   lowerCenterSection: {
-    borderWidth: 1,
+    //borderWidth: 1,
     height: "80%",
-    width: "40%",
+    width: "45%",
     alignSelf: "center",
     alignItems: "center",
   },
   subscriberIcon: {
     height: 125,
     width: 100,
-    alignSelf:"center",
-    marginVertical:"10%"
+    alignSelf: "center",
+    marginVertical: "10%",
+  },
+  inviteSubscriberText: {
+    alignSelf: "center",
+    color: "#de1f1fff",
+    fontSize: 14,
+    fontWeight: 600,
+  },
+  inviteButton: {
+    //borderWidth:1,
+    marginVertical: "3%",
+    padding: "1.5%",
+    backgroundColor: "#dc2727ff",
+    color: "#fff",
+    borderRadius: 6,
   },
 });
 

@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     marginTop: "6%",
     fontWeight: "semibold",
     fontSize: windowWidth < 550 ? 20 : 30,
-    marginTop: 0,
+    //marginTop: 0,
     width: windowWidth * 0.5,
     
     ...Platform.select({
