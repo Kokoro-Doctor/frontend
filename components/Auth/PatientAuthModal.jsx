@@ -17,6 +17,14 @@ import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useRole } from "../../contexts/RoleContext";
 import { getErrorMessage } from "../../utils/errorUtils";
+import {
+  COUNTRY_CODES,
+  DEFAULT_COUNTRY_CODE,
+  validatePhoneNumber,
+  buildFullPhoneNumber,
+  detectCountryCode,
+  getCountryByCode,
+} from "../../utils/countryCodes";
 
 const WEB_CARD_WIDTH = 300;
 
@@ -54,6 +62,14 @@ const PatientAuthModal = ({
   const [email, setEmail] = useState("");
   const [otpFlow, setOtpFlow] = useState(null);
   const [otpTargetPhone, setOtpTargetPhone] = useState("");
+  const [loginCountryCode, setLoginCountryCode] =
+    useState(DEFAULT_COUNTRY_CODE);
+  const [signupCountryCode, setSignupCountryCode] =
+    useState(DEFAULT_COUNTRY_CODE);
+  const [isLoginCountryDropdownOpen, setIsLoginCountryDropdownOpen] =
+    useState(false);
+  const [isSignupCountryDropdownOpen, setIsSignupCountryDropdownOpen] =
+    useState(false);
 
   useEffect(() => {
     const width =
@@ -114,7 +130,14 @@ const PatientAuthModal = ({
 
   const sanitizeDigits = (value = "") => value.replace(/\D/g, "");
   const normalizedDigits = sanitizeDigits(mobile);
-  const isPhoneValid = normalizedDigits.length >= 10;
+
+  // Get current country code based on mode
+  const currentCountryCode =
+    mode === "login" ? loginCountryCode : signupCountryCode;
+  const currentPhoneValue =
+    mode === "login" ? loginIdentifier : signupIdentifier;
+  const phoneDigits = sanitizeDigits(currentPhoneValue);
+  const isPhoneValid = validatePhoneNumber(phoneDigits, currentCountryCode);
   const isOtpComplete = otp.trim().length === 4;
 
   const detectInputType = (value) => {
@@ -141,6 +164,11 @@ const PatientAuthModal = ({
     const detectedType = detectInputType(value);
     if (detectedType === "phone") {
       setMobile(value);
+      // Auto-detect country code if number starts with +
+      if (value.trim().startsWith("+")) {
+        const detected = detectCountryCode(value);
+        setLoginCountryCode(detected);
+      }
     }
   };
 
@@ -150,6 +178,12 @@ const PatientAuthModal = ({
       setSignupIdentifier("");
       setMobile("");
       return;
+    }
+
+    // Auto-detect country code if number starts with +
+    if (trimmed.startsWith("+")) {
+      const detected = detectCountryCode(trimmed);
+      setSignupCountryCode(detected);
     }
 
     const digitsOnly = sanitizeDigits(trimmed);
@@ -167,19 +201,26 @@ const PatientAuthModal = ({
     }
   };
 
-  const buildPhoneNumber = (phoneValue = null) => {
-    // Use provided value, or fall back to mobile state, or signupIdentifier
+  const buildPhoneNumber = (phoneValue = null, countryCodeOverride = null) => {
+    // Use provided value, or fall back to mobile state, or signupIdentifier/loginIdentifier
     const valueToUse =
       phoneValue || mobile || signupIdentifier || loginIdentifier;
     const trimmed = valueToUse.trim();
     if (!trimmed) return "";
-    const digitsOnly = sanitizeDigits(trimmed);
-    if (!digitsOnly) return "";
+
+    // If already has + prefix, return as-is
     if (trimmed.startsWith("+")) {
-      return `+${digitsOnly}`;
+      return trimmed;
     }
-    const localDigits = digitsOnly.slice(-10);
-    return `+91${localDigits}`;
+
+    // Use provided country code or current mode's country code
+    const countryCode =
+      countryCodeOverride ||
+      (otpFlow === "signup" ? signupCountryCode : loginCountryCode) ||
+      currentCountryCode ||
+      DEFAULT_COUNTRY_CODE;
+
+    return buildFullPhoneNumber(trimmed, countryCode);
   };
 
   const resetFlow = () => {
@@ -199,6 +240,10 @@ const PatientAuthModal = ({
     setOtpFlow(null);
     setOtpTargetPhone("");
     setShowOtpModal(false);
+    setLoginCountryCode(DEFAULT_COUNTRY_CODE);
+    setSignupCountryCode(DEFAULT_COUNTRY_CODE);
+    setIsLoginCountryDropdownOpen(false);
+    setIsSignupCountryDropdownOpen(false);
   };
 
   const sendOtpForFlow = async ({ phoneNumber, flow }) => {
@@ -244,12 +289,15 @@ const PatientAuthModal = ({
     }
 
     const digitsOnly = sanitizeDigits(valueToUse);
-    if (digitsOnly.length < 10) {
-      setErrorMessage("Please enter a valid 10-digit mobile number.");
+    if (!validatePhoneNumber(digitsOnly, signupCountryCode)) {
+      const country = getCountryByCode(signupCountryCode);
+      setErrorMessage(
+        `Please enter a valid mobile number for ${country.name}.`
+      );
       return false;
     }
 
-    const phoneNumber = buildPhoneNumber(valueToUse);
+    const phoneNumber = buildPhoneNumber(valueToUse, signupCountryCode);
     if (!phoneNumber) {
       setErrorMessage("Please enter a valid mobile number.");
       return false;
@@ -384,7 +432,16 @@ const PatientAuthModal = ({
       return;
     }
 
-    const phoneNumber = buildPhoneNumber(identifier);
+    const digitsOnly = sanitizeDigits(identifier);
+    if (!validatePhoneNumber(digitsOnly, loginCountryCode)) {
+      const country = getCountryByCode(loginCountryCode);
+      setErrorMessage(
+        `Please enter a valid mobile number for ${country.name}.`
+      );
+      return;
+    }
+
+    const phoneNumber = buildPhoneNumber(identifier, loginCountryCode);
     if (!phoneNumber) {
       setErrorMessage("Please enter a valid mobile number.");
       return;
@@ -427,17 +484,26 @@ const PatientAuthModal = ({
       return false;
     }
     const digitsOnly = sanitizeDigits(signupIdentifier);
-    if (digitsOnly.length < 10) {
-      setErrorMessage("Please enter a valid 10-digit mobile number.");
+    if (!validatePhoneNumber(digitsOnly, signupCountryCode)) {
+      const country = getCountryByCode(signupCountryCode);
+      setErrorMessage(
+        `Please enter a valid mobile number for ${country.name}.`
+      );
       return false;
     }
     return true;
   };
 
-  const loginDigitsValid = sanitizeDigits(loginIdentifier).length >= 10;
+  const loginDigitsValid = validatePhoneNumber(
+    sanitizeDigits(loginIdentifier),
+    loginCountryCode
+  );
   const showLoginPhoneError =
     loginIdentifier.trim().length > 0 && !loginDigitsValid;
-  const signupDigitsValid = sanitizeDigits(signupIdentifier).length >= 10;
+  const signupDigitsValid = validatePhoneNumber(
+    sanitizeDigits(signupIdentifier),
+    signupCountryCode
+  );
   const showSignupPhoneError =
     signupIdentifier.trim().length > 0 && !signupDigitsValid;
   const baseSignupValid = fullName.trim() && signupDigitsValid;
@@ -538,18 +604,70 @@ const PatientAuthModal = ({
                   </Text>
 
                   <Text style={styles.inputLabel}>Mobile Number</Text>
-                  <TextInput
-                    placeholder="Enter your mobile number"
-                    placeholderTextColor="#d3d3d3"
-                    keyboardType="phone-pad"
-                    autoCapitalize="none"
-                    style={styles.input}
-                    value={loginIdentifier}
-                    onChangeText={handleLoginIdentifierChange}
-                  />
+                  <View style={styles.phoneContainer}>
+                    <View style={styles.countryCodeContainer}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setIsLoginCountryDropdownOpen(
+                            !isLoginCountryDropdownOpen
+                          )
+                        }
+                        style={styles.countryCodeButton}
+                      >
+                        <Text style={styles.countryCodeText}>
+                          {getCountryByCode(loginCountryCode).flag}{" "}
+                          {loginCountryCode}
+                        </Text>
+                        <Ionicons
+                          name={
+                            isLoginCountryDropdownOpen
+                              ? "chevron-up"
+                              : "chevron-down"
+                          }
+                          size={16}
+                          color="#666"
+                          style={{ marginLeft: 4 }}
+                        />
+                      </TouchableOpacity>
+                      {isLoginCountryDropdownOpen && (
+                        <View style={styles.countryDropdown}>
+                          <ScrollView
+                            style={styles.countryDropdownScroll}
+                            nestedScrollEnabled
+                          >
+                            {COUNTRY_CODES.map((country) => (
+                              <TouchableOpacity
+                                key={country.code}
+                                style={styles.countryDropdownItem}
+                                onPress={() => {
+                                  setLoginCountryCode(country.code);
+                                  setIsLoginCountryDropdownOpen(false);
+                                }}
+                              >
+                                <Text style={styles.countryDropdownText}>
+                                  {country.flag} {country.code} {country.name}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                    <TextInput
+                      placeholder="Enter your mobile number"
+                      placeholderTextColor="#d3d3d3"
+                      keyboardType="phone-pad"
+                      autoCapitalize="none"
+                      style={styles.phoneInput}
+                      value={loginIdentifier}
+                      onChangeText={handleLoginIdentifierChange}
+                      maxLength={getCountryByCode(loginCountryCode).maxLength}
+                    />
+                  </View>
                   {showLoginPhoneError ? (
                     <Text style={styles.inlineErrorText}>
-                      Please enter a valid 10-digit mobile number.
+                      Please enter a valid mobile number for{" "}
+                      {getCountryByCode(loginCountryCode).name}.
                     </Text>
                   ) : null}
 
@@ -606,18 +724,70 @@ const PatientAuthModal = ({
                     Mobile Number{" "}
                     <Text style={styles.requiredIndicator}>*</Text>
                   </Text>
-                  <TextInput
-                    placeholder="Mobile Number"
-                    placeholderTextColor="#d3d3d3"
-                    keyboardType="phone-pad"
-                    autoCapitalize="none"
-                    style={styles.input}
-                    value={signupIdentifier}
-                    onChangeText={handleSignupIdentifierChange}
-                  />
+                  <View style={styles.phoneContainer}>
+                    <View style={styles.countryCodeContainer}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setIsSignupCountryDropdownOpen(
+                            !isSignupCountryDropdownOpen
+                          )
+                        }
+                        style={styles.countryCodeButton}
+                      >
+                        <Text style={styles.countryCodeText}>
+                          {getCountryByCode(signupCountryCode).flag}{" "}
+                          {signupCountryCode}
+                        </Text>
+                        <Ionicons
+                          name={
+                            isSignupCountryDropdownOpen
+                              ? "chevron-up"
+                              : "chevron-down"
+                          }
+                          size={16}
+                          color="#666"
+                          style={{ marginLeft: 4 }}
+                        />
+                      </TouchableOpacity>
+                      {isSignupCountryDropdownOpen && (
+                        <View style={styles.countryDropdown}>
+                          <ScrollView
+                            style={styles.countryDropdownScroll}
+                            nestedScrollEnabled
+                          >
+                            {COUNTRY_CODES.map((country) => (
+                              <TouchableOpacity
+                                key={country.code}
+                                style={styles.countryDropdownItem}
+                                onPress={() => {
+                                  setSignupCountryCode(country.code);
+                                  setIsSignupCountryDropdownOpen(false);
+                                }}
+                              >
+                                <Text style={styles.countryDropdownText}>
+                                  {country.flag} {country.code} {country.name}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                    <TextInput
+                      placeholder="Enter your mobile number"
+                      placeholderTextColor="#d3d3d3"
+                      keyboardType="phone-pad"
+                      autoCapitalize="none"
+                      style={styles.phoneInput}
+                      value={signupIdentifier}
+                      onChangeText={handleSignupIdentifierChange}
+                      maxLength={getCountryByCode(signupCountryCode).maxLength}
+                    />
+                  </View>
                   {showSignupPhoneError ? (
                     <Text style={styles.inlineErrorText}>
-                      Please enter a valid 10-digit mobile number.
+                      Please enter a valid mobile number for{" "}
+                      {getCountryByCode(signupCountryCode).name}.
                     </Text>
                   ) : null}
 
@@ -860,31 +1030,68 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#DDD",
     borderRadius: 8,
-    paddingHorizontal: 12,
-    marginTop: 2,
+    marginTop: 4,
+    marginBottom: 12,
     minHeight: 50,
     backgroundColor: "#FFFFFF",
+    overflow: "visible",
   },
-  countryCodeBox: {
-    paddingHorizontal: 4,
-    paddingVertical: 14,
+  countryCodeContainer: {
+    position: "relative",
     borderRightWidth: 1,
     borderRightColor: "#DDD",
-    justifyContent: "center",
+    paddingRight: 8,
+    marginRight: 8,
+  },
+  countryCodeButton: {
+    flexDirection: "row",
     alignItems: "center",
-    maxWidth: 60,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    minWidth: 80,
   },
   countryCodeText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
+    color: "#333",
+  },
+  countryDropdown: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#DDD",
+    borderRadius: 8,
+    marginTop: 4,
+    maxHeight: 200,
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  countryDropdownScroll: {
+    maxHeight: 200,
+  },
+  countryDropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  countryDropdownText: {
+    fontSize: 14,
     color: "#333",
   },
   phoneInput: {
     flex: 1,
-    paddingLeft: 12,
     fontSize: 15,
     color: "#333",
-    paddingVertical: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
   },
   btn: {
     backgroundColor: "#f96166",

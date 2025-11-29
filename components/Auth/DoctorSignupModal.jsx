@@ -14,6 +14,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../contexts/AuthContext";
 import { getErrorMessage } from "../../utils/errorUtils";
+import {
+  COUNTRY_CODES,
+  DEFAULT_COUNTRY_CODE,
+  validatePhoneNumber,
+  buildFullPhoneNumber,
+  detectCountryCode,
+  getCountryByCode,
+} from "../../utils/countryCodes";
 
 const DoctorSignupModal = ({ visible, onRequestClose }) => {
   const navigation = useNavigation();
@@ -30,6 +38,8 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
   const [showOtpModal, setShowOtpModal] = useState(false);
+  const [doctorCountryCode, setDoctorCountryCode] = useState(DEFAULT_COUNTRY_CODE);
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!visible) {
@@ -66,6 +76,8 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     setErrorMessage("");
     setInfoMessage("");
     setShowOtpModal(false);
+    setDoctorCountryCode(DEFAULT_COUNTRY_CODE);
+    setIsCountryDropdownOpen(false);
   };
 
   const validateDoctorDetails = () => {
@@ -87,8 +99,9 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       return false;
     }
     const digitsOnly = sanitizeDigits(doctorPhone);
-    if (digitsOnly.length < 10) {
-      setErrorMessage("Please enter a valid mobile number.");
+    if (!validatePhoneNumber(digitsOnly, doctorCountryCode)) {
+      const country = getCountryByCode(doctorCountryCode);
+      setErrorMessage(`Please enter a valid mobile number for ${country.name}.`);
       return false;
     }
     return true;
@@ -102,13 +115,19 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       return;
     }
     const trimmed = value.trim();
+    
+    // Auto-detect country code if number starts with +
+    if (trimmed.startsWith("+")) {
+      const detected = detectCountryCode(trimmed);
+      setDoctorCountryCode(detected);
+      const digitsOnly = sanitizeDigits(trimmed);
+      setDoctorPhone(`+${digitsOnly}`);
+      return;
+    }
+    
     const digitsOnly = sanitizeDigits(trimmed);
     if (!digitsOnly) {
       setDoctorPhone("");
-      return;
-    }
-    if (trimmed.startsWith("+")) {
-      setDoctorPhone(`+${digitsOnly}`);
       return;
     }
     setDoctorPhone(digitsOnly);
@@ -119,15 +138,13 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       return "";
     }
     const trimmed = doctorPhone.trim();
-    const digitsOnly = sanitizeDigits(trimmed);
-    if (!digitsOnly || digitsOnly.length < 10) {
-      return "";
-    }
+    
+    // If already has + prefix, return as-is
     if (trimmed.startsWith("+")) {
-      return `+${digitsOnly}`;
+      return trimmed;
     }
-    const localDigits = digitsOnly.slice(-10);
-    return `+91${localDigits}`;
+    
+    return buildFullPhoneNumber(trimmed, doctorCountryCode);
   };
 
   const handleSendVerification = async () => {
@@ -248,7 +265,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
   };
 
   const doctorPhoneDigits = sanitizeDigits(doctorPhone);
-  const isDoctorPhoneValid = doctorPhoneDigits.length >= 10;
+  const isDoctorPhoneValid = validatePhoneNumber(doctorPhoneDigits, doctorCountryCode);
   const showDoctorPhoneError =
     doctorPhone.trim().length > 0 && !isDoctorPhoneValid;
 
@@ -298,18 +315,57 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
               <Text style={styles.inputLabel}>
                 Mobile Number <Text style={styles.requiredIndicator}>*</Text>
               </Text>
-              <TextInput
-                placeholder="Mobile Number"
-                placeholderTextColor="#d3d3d3"
-                keyboardType="phone-pad"
-                autoCapitalize="none"
-                style={styles.input}
-                value={doctorPhone}
-                onChangeText={handleDoctorPhoneChange}
-              />
+              <View style={styles.phoneContainer}>
+                <View style={styles.countryCodeContainer}>
+                  <TouchableOpacity
+                    onPress={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                    style={styles.countryCodeButton}
+                  >
+                    <Text style={styles.countryCodeText}>
+                      {getCountryByCode(doctorCountryCode).flag} {doctorCountryCode}
+                    </Text>
+                    <Ionicons
+                      name={isCountryDropdownOpen ? "chevron-up" : "chevron-down"}
+                      size={16}
+                      color="#666"
+                      style={{ marginLeft: 4 }}
+                    />
+                  </TouchableOpacity>
+                  {isCountryDropdownOpen && (
+                    <View style={styles.countryDropdown}>
+                      <ScrollView style={styles.countryDropdownScroll} nestedScrollEnabled>
+                        {COUNTRY_CODES.map((country) => (
+                          <TouchableOpacity
+                            key={country.code}
+                            style={styles.countryDropdownItem}
+                            onPress={() => {
+                              setDoctorCountryCode(country.code);
+                              setIsCountryDropdownOpen(false);
+                            }}
+                          >
+                            <Text style={styles.countryDropdownText}>
+                              {country.flag} {country.code} {country.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+                <TextInput
+                  placeholder="Enter your mobile number"
+                  placeholderTextColor="#d3d3d3"
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                  style={styles.phoneInput}
+                  value={doctorPhone}
+                  onChangeText={handleDoctorPhoneChange}
+                  maxLength={getCountryByCode(doctorCountryCode).maxLength}
+                />
+              </View>
               {showDoctorPhoneError ? (
                 <Text style={styles.inlineErrorText}>
-                  Please enter a valid 10-digit mobile number.
+                  Please enter a valid mobile number for {getCountryByCode(doctorCountryCode).name}.
                 </Text>
               ) : null}
 
@@ -548,31 +604,68 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#DDD",
     borderRadius: 8,
-    paddingHorizontal: 12,
-    marginTop: 10,
+    marginTop: 2,
+    marginBottom: 12,
     minHeight: 50,
     backgroundColor: "#FFFFFF",
+    overflow: "visible",
   },
-  countryCodeBox: {
-    paddingHorizontal: 4,
-    paddingVertical: 14,
+  countryCodeContainer: {
+    position: "relative",
     borderRightWidth: 1,
     borderRightColor: "#DDD",
-    justifyContent: "center",
+    paddingRight: 8,
+    marginRight: 8,
+  },
+  countryCodeButton: {
+    flexDirection: "row",
     alignItems: "center",
-    maxWidth: 60,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    minWidth: 80,
   },
   countryCodeText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
+    color: "#333",
+  },
+  countryDropdown: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#DDD",
+    borderRadius: 8,
+    marginTop: 4,
+    maxHeight: 200,
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  countryDropdownScroll: {
+    maxHeight: 200,
+  },
+  countryDropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  countryDropdownText: {
+    fontSize: 14,
     color: "#333",
   },
   phoneInput: {
     flex: 1,
-    paddingLeft: 12,
     fontSize: 15,
     color: "#333",
-    paddingVertical: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
   },
   btn: {
     backgroundColor: "#1FBF86",
