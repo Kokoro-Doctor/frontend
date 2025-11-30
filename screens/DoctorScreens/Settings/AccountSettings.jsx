@@ -1,31 +1,30 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Text, View, StyleSheet, ScrollView, TouchableOpacity, TextInput } from "react-native"
-import SideBarNavigation from "../../../components/DoctorsPortalComponents/NewestSidebar"
-import SettingsNavigation from "../../../components/DoctorsPortalComponents/SettingsNavigation"
+import { useState } from "react";
+import {
+  Text,
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+} from "react-native";
+import SideBarNavigation from "../../../components/DoctorsPortalComponents/NewestSidebar";
+import SettingsNavigation from "../../../components/DoctorsPortalComponents/SettingsNavigation";
 
 const AccountSettings = ({ navigation, route }) => {
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [mobileNumber, setMobileNumber] = useState("")
-  const [token, setToken] = useState("")
-
-  const handleConfirmPassword = () => {
-    // Handle password change logic
-    console.log("Password change requested")
-  }
+  const [mobileNumber, setMobileNumber] = useState("");
+  const [token, setToken] = useState("");
 
   const handleContinue = () => {
     // Handle 2FA setup continuation
-    console.log("2FA setup requested")
-  }
+    console.log("2FA setup requested");
+  };
 
   const handleSubmit = () => {
     // Handle token submission
-    console.log("Token submitted")
-  }
+    console.log("Token submitted");
+  };
 
   return (
     <View style={styles.container}>
@@ -46,50 +45,18 @@ const AccountSettings = ({ navigation, route }) => {
             <View style={styles.contentCard}>
               <Text style={styles.contentTitle}>Security Settings</Text>
 
-              {/* Change Password Section */}
-              <View style={styles.settingSection}>
-                <Text style={styles.sectionTitle}>Change Password</Text>
-
-                <View style={styles.passwordFields}>
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Current Password</Text>
-                    <TextInput
-                      style={styles.input}
-                      secureTextEntry
-                      value={currentPassword}
-                      onChangeText={setCurrentPassword}
-                    />
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>New Password</Text>
-                    <TextInput style={styles.input} secureTextEntry value={newPassword} onChangeText={setNewPassword} />
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Confirm Password</Text>
-                    <TextInput
-                      style={styles.input}
-                      secureTextEntry
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                    />
-                  </View>
-                </View>
-
-                <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmPassword}>
-                  <Text style={styles.confirmButtonText}>Confirm</Text>
-                </TouchableOpacity>
-              </View>
-
               {/* Two-factor Authentication Section */}
               <View style={styles.settingSection}>
                 <Text style={styles.sectionTitle}>
-                  <Text style={styles.underlinedText}>Two-factor authentication</Text>
+                  <Text style={styles.underlinedText}>
+                    Two-factor authentication
+                  </Text>
                 </Text>
                 <Text style={styles.descriptionText}>
-                  Two-factor authentication adds an extra layer of security to your account. In addition to your
-                  username and password, you'll need to enter a code that Practo sends to you via text or an app on yo
+                  Two-factor authentication adds an extra layer of security to
+                  your account. In addition to your username and password,
+                  you'll need to enter a code that Practo sends to you via text
+                  or an app on yo
                 </Text>
 
                 <View style={styles.twoFactorSection}>
@@ -110,16 +77,27 @@ const AccountSettings = ({ navigation, route }) => {
                     />
                   </View>
 
-                  <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                  <TouchableOpacity
+                    style={styles.continueButton}
+                    onPress={handleContinue}
+                  >
                     <Text style={styles.continueButtonText}>Continue</Text>
                   </TouchableOpacity>
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Token</Text>
-                    <TextInput style={styles.input} keyboardType="number-pad" value={token} onChangeText={setToken} />
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="number-pad"
+                      value={token}
+                      onChangeText={setToken}
+                    />
                   </View>
 
-                  <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+                  <TouchableOpacity
+                    style={styles.submitButton}
+                    onPress={handleSubmit}
+                  >
                     <Text style={styles.submitButtonText}>Submit</Text>
                   </TouchableOpacity>
                 </View>
@@ -127,7 +105,9 @@ const AccountSettings = ({ navigation, route }) => {
 
               {/* Manage Logged-in Devices Section */}
               <View style={styles.settingSection}>
-                <Text style={styles.sectionTitle}>Manage Logged-in Devices</Text>
+                <Text style={styles.sectionTitle}>
+                  Manage Logged-in Devices
+                </Text>
 
                 <View style={styles.deviceCard}>
                   <View style={styles.deviceInfo}>
@@ -148,8 +128,8 @@ const AccountSettings = ({ navigation, route }) => {
         </View>
       </View>
     </View>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -211,7 +191,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "500",
     marginBottom: 15,
-    color:"#444444",
+    color: "#444444",
   },
   underlinedText: {
     textDecorationLine: "underline",
@@ -228,13 +208,7 @@ const styles = StyleSheet.create({
     color: "#000000",
     lineHeight: 20,
     marginBottom: 15,
-    fontWeight:"300%",
-  },
-  passwordFields: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    marginBottom: 15,
+    fontWeight: "300%",
   },
   inputGroup: {
     width: "32%",
@@ -255,15 +229,6 @@ const styles = StyleSheet.create({
     color: "#333333",
     backgroundColor: "#FFFFFF",
   },
-  confirmButton: {
-    backgroundColor: "#FFB6B6",
-    borderRadius: 4,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    width: 120,
-    marginTop: 5,
-  },
   continueButton: {
     backgroundColor: "#FFB6B6",
     borderRadius: 4,
@@ -272,11 +237,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 120,
     marginBottom: 20,
-  },
-  confirmButtonText: {
-    color: "#333333",
-    fontSize: 14,
-    fontWeight: "500",
   },
   continueButtonText: {
     color: "#333333",
@@ -305,7 +265,7 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     borderRadius: 4,
     padding: 15,
-    width:"70%",
+    width: "70%",
   },
   deviceInfo: {
     flexDirection: "row",
@@ -329,13 +289,12 @@ const styles = StyleSheet.create({
     color: "#333333",
     lineHeight: 20,
     fontWeight: "500",
-    
   },
   currentDevice: {
     fontSize: 14,
     color: "#4CD964",
     fontWeight: "500",
   },
-})
+});
 
 export default AccountSettings;

@@ -33,8 +33,6 @@ const DoctorsSignUp = () => {
     specialization: "",
     experience: "",
     phoneNumber: "",
-    password: "",
-    confirmPassword: "",
     otp: ["", "", "", ""],
   });
   const [otpValue, setOtpValue] = useState("");
@@ -61,10 +59,6 @@ const DoctorsSignUp = () => {
   );
 
   const isPhoneValid = sanitizeDigits(formData.phoneNumber).length >= 10;
-  const passwordValid = formData.password.trim().length >= 6;
-  const passwordsMatch =
-    formData.password.trim() &&
-    formData.password.trim() === formData.confirmPassword.trim();
   const essentialDetailsFilled =
     formData.firstname.trim() &&
     formData.lastname.trim() &&
@@ -73,8 +67,6 @@ const DoctorsSignUp = () => {
     formData.phoneNumber.trim();
   const canSendOtp =
     essentialDetailsFilled &&
-    passwordValid &&
-    passwordsMatch &&
     isPhoneValid &&
     otpCountdown === 0 &&
     otpStatus !== "sending" &&
@@ -119,14 +111,6 @@ const DoctorsSignUp = () => {
       alert("Please enter a valid mobile number.");
       return false;
     }
-    if (formData.password.trim().length < 6) {
-      alert("Password must be at least 6 characters.");
-      return false;
-    }
-    if (formData.password.trim() !== formData.confirmPassword.trim()) {
-      alert("Passwords do not match.");
-      return false;
-    }
     return true;
   };
 
@@ -153,36 +137,6 @@ const DoctorsSignUp = () => {
           alert("Google Sign-In failed. Please try again.");
         }
       }
-      // if (response?.type === "success") {
-      //   try {
-      //     const googleUser = await handleGoogleLogin(response);
-      //     if (googleUser) {
-      //       // ✅ Auto-register doctor in backend (with placeholder password)
-      //       // const doctorData = await registerDoctor({
-      //       //   doctorname: googleUser.name || "Doctor",
-      //       //   email: googleUser.email,
-      //       //   password: "google-auth-password", // required by backend (≥5 chars)
-      //       //   phoneNumber: "0000000000", // placeholder, can be updated later
-      //       //   location: "Not specified",
-      //       // });
-
-      //       // ✅ Save locally
-      //       await AsyncStorage.setItem("@doctor", JSON.stringify(doctorData));
-
-      //       // ✅ Navigate to medical registration
-      //       alert(
-      //         `Welcome Dr. ${doctorData.doctorname || googleUser.name || ""}!`
-      //       );
-      //       navigation.navigate("DoctorMedicalRegistration", {
-      //         email: doctorData.email,
-      //         doctorname: doctorData.doctorname,
-      //       });
-      //     }
-      //   } catch (error) {
-      //     console.error("Google doctor signup error:", error);
-      //     alert(error.message || "Google Sign-Up failed. Please try again.");
-      //   }
-      // }
     };
     handleGoogleResponse();
   }, [navigation, response]);
@@ -288,14 +242,6 @@ const DoctorsSignUp = () => {
       alert("Experience must be a valid number.");
       return;
     }
-    if (formData.password.trim().length < 6) {
-      alert("Password must be at least 6 characters.");
-      return;
-    }
-    if (formData.password.trim() !== formData.confirmPassword.trim()) {
-      alert("Passwords do not match.");
-      return;
-    }
 
     setOtpStatus("verifying");
     try {
@@ -307,7 +253,6 @@ const DoctorsSignUp = () => {
         specialization: formData.specialization.trim(),
         experience: experienceValue,
         email: formData.email,
-        password: formData.password.trim(),
       });
 
       setOtpStatus("verified");
@@ -511,37 +456,6 @@ const DoctorsSignUp = () => {
                   ]}
                   value={formData.email}
                   onChangeText={(val) => handleChange("email", val)}
-                />
-                <Text style={styles.inputHeading}>
-                  Password <Text style={styles.requiredIndicator}>*</Text>
-                </Text>
-                <TextInput
-                  placeholder="Create a password (min. 6 characters)..."
-                  placeholderTextColor="#c0c0c0"
-                  style={[
-                    styles.inputContainer,
-                    Platform.OS === "web" &&
-                      width > 1000 && { width: "60%", height: 36 },
-                  ]}
-                  secureTextEntry
-                  value={formData.password}
-                  onChangeText={(val) => handleChange("password", val)}
-                />
-                <Text style={styles.inputHeading}>
-                  Confirm Password{" "}
-                  <Text style={styles.requiredIndicator}>*</Text>
-                </Text>
-                <TextInput
-                  placeholder="Re-enter password..."
-                  placeholderTextColor="#c0c0c0"
-                  style={[
-                    styles.inputContainer,
-                    Platform.OS === "web" &&
-                      width > 1000 && { width: "60%", height: 36 },
-                  ]}
-                  secureTextEntry
-                  value={formData.confirmPassword}
-                  onChangeText={(val) => handleChange("confirmPassword", val)}
                 />
                 <View style={styles.rememberForgotRow}>
                   <View style={styles.rememberMeContainer}>
@@ -783,42 +697,6 @@ const DoctorsSignUp = () => {
                     ]}
                     value={formData.email}
                     onChangeText={(val) => handleChange("email", val)}
-                  />
-                </View>
-
-                <Text style={styles.inputHeading}>
-                  Password <Text style={styles.requiredIndicator}>*</Text>
-                </Text>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    placeholder="Create a password (min. 6 characters)..."
-                    placeholderTextColor="#c0c0c0"
-                    secureTextEntry
-                    style={[
-                      styles.inputContainer,
-                      { color: formData.password ? "black" : "#c0c0c0" },
-                    ]}
-                    value={formData.password}
-                    onChangeText={(val) => handleChange("password", val)}
-                  />
-                </View>
-                <Text style={styles.inputHeading}>
-                  Confirm Password{" "}
-                  <Text style={styles.requiredIndicator}>*</Text>
-                </Text>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    placeholder="Re-enter password..."
-                    placeholderTextColor="#c0c0c0"
-                    secureTextEntry
-                    style={[
-                      styles.inputContainer,
-                      {
-                        color: formData.confirmPassword ? "black" : "#c0c0c0",
-                      },
-                    ]}
-                    value={formData.confirmPassword}
-                    onChangeText={(val) => handleChange("confirmPassword", val)}
                   />
                 </View>
                 <View style={styles.rememberForgotRow}>

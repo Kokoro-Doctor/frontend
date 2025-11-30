@@ -73,9 +73,6 @@ import { RegistrationProvider } from "../contexts/RegistrationContext";
 // ✅ Direct imports (always needed instantly)
 import LandingPage from "../screens/PatientScreens/LandingPage";
 import VerifyEmail from "../screens/PatientScreens/Auth/VerifyEmail";
-import ForgotPassword from "../screens/PatientScreens/Auth/ForgotPassword";
-import ResetPassword from "../screens/PatientScreens/Auth/ResetPassword";
-import PasswordSuccess from "../screens/PatientScreens/Auth/PasswordSuccess";
 import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
 
@@ -87,13 +84,16 @@ let AppNavigation;
 if (Platform.OS === "web") {
   // Use lazy loading only for web (Webpack supports import())
   DoctorPatientLandingPage = React.lazy(() =>
-    import("../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage")
+    import(
+      "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage"
+    )
   );
   DoctorAppNavigation = React.lazy(() => import("./DoctorsNavigation"));
   AppNavigation = React.lazy(() => import("./PatientNavigation"));
 } else {
   // Use static requires for native (Metro bundler limitation)
-  DoctorPatientLandingPage = require("../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage").default;
+  DoctorPatientLandingPage =
+    require("../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage").default;
   DoctorAppNavigation = require("./DoctorsNavigation").default;
   AppNavigation = require("./PatientNavigation").default;
 }
@@ -122,9 +122,6 @@ export const linking = {
           email: (email) => email,
         },
       },
-      ForgotPassword: "forgot-password",
-      ResetPassword: "reset-password",
-      PasswordSuccess: "password-success",
       DoctorPatientLandingPage: "Role",
       DoctorAppNavigation: { path: "doctor" },
       PatientAppNavigation: { path: "patient" },
@@ -136,7 +133,7 @@ export const linking = {
 const LandingPageWithAuth = ({ navigation, route }) => {
   const { user, role: authRole, isLoading: authLoading } = useAuth();
   const { role: roleContextRole } = useRole();
-  
+
   // Use role from AuthContext if available, fallback to RoleContext
   const role = authRole || roleContextRole;
 
@@ -171,16 +168,13 @@ const RootNavigation = () => {
   return (
     <RegistrationProvider>
       <Suspense fallback={<Loader />}>
-        <Stack.Navigator 
+        <Stack.Navigator
           screenOptions={{ headerShown: false }}
           initialRouteName="LandingPage"
         >
           {/* Always loaded instantly */}
           <Stack.Screen name="LandingPage" component={LandingPageWithAuth} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
-          <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-          <Stack.Screen name="ResetPassword" component={ResetPassword} />
-          <Stack.Screen name="PasswordSuccess" component={PasswordSuccess} />
 
           {/* Conditionally lazy/static screens */}
           <Stack.Screen
@@ -191,10 +185,7 @@ const RootNavigation = () => {
             name="DoctorAppNavigation"
             component={DoctorAppNavigation}
           />
-          <Stack.Screen
-            name="PatientAppNavigation"
-            component={AppNavigation}
-          />
+          <Stack.Screen name="PatientAppNavigation" component={AppNavigation} />
           <Stack.Screen name="MobileChatbot" component={MobileChatbot} />
           <Stack.Screen name="DoctorsSignUp" component={DoctorsSignUp} />
         </Stack.Navigator>
