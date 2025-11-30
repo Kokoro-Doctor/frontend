@@ -3,9 +3,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { HeaderButtonsProvider } from "react-navigation-header-buttons/HeaderButtonsProvider";
 import { useTheme } from "../contexts/ThemeContext";
 import { lightTheme, darkTheme } from "../contexts/Themes";
-import ForgotPassword from "../screens/PatientScreens/Auth/ForgotPassword";
-import ResetPassword from "../screens/PatientScreens/Auth/ResetPassword";
-import PasswordSuccess from "../screens/PatientScreens/Auth/PasswordSuccess";
 import PrivacyPolicy from "../screens/PatientScreens/Auth/PrivacyPolicy";
 import VerifyEmail from "../screens/PatientScreens/Auth/VerifyEmail";
 import LandingPage from "../screens/PatientScreens/LandingPage";
@@ -125,7 +122,7 @@ const DoctorNavigator = () => {
       <Stack.Screen
         name="DoctorReviewScreen"
         component={DoctorReviewScreen}
-        options={{headerShown : false}}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
@@ -295,21 +292,6 @@ const AppNavigation = () => {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="ForgotPassword"
-          component={ForgotPassword}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ResetPassword"
-          component={ResetPassword}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="PasswordSuccess"
-          component={PasswordSuccess}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
           name="LandingPage"
           component={LandingPage}
           options={{ headerShown: false }}
@@ -371,7 +353,6 @@ const AppNavigation = () => {
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
-      
     </HeaderButtonsProvider>
   );
 };

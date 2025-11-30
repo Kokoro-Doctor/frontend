@@ -421,19 +421,6 @@ export const completeDoctorSignup = async ({
   return data;
 };
 
-// ================= Deprecated Password Helpers =================
-
-export const requestPasswordReset = async () => {
-  throw new Error(
-    "Password resets are no longer supported. Please log in using your mobile number and OTP."
-  );
-};
-
-export const confirmPasswordReset = async () => {
-  throw new Error(
-    "Password resets are no longer supported. Please log in using your mobile number and OTP."
-  );
-};
 
 // ================= Session Helpers =================
 
