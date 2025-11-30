@@ -8,7 +8,6 @@ import { LoginModalProvider } from "./contexts/LoginModalContext";
 import { RoleProvider } from "./contexts/RoleContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import RootNavigation, { linking } from "./navigation/RootNavigator";
-//import Prescription from "./screens/DoctorScreens/Prescription";
 // ✅ import your init
 import { initGoogleSignin } from "./utils/AuthService";
 

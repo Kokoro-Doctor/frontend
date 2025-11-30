@@ -50,7 +50,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <HeaderLoginSignUp navigation={navigation} />
-                  
+
                   <View style={styles.backPicBox}>
                     <TouchableOpacity>
                       <Image
@@ -70,174 +70,199 @@ const GeneratePrescription = ({ navigation, route }) => {
 
                     <View style={styles.lowerPart}>
                       <View style={styles.container}>
-                        <View style={styles.imageBox}>
-                          <Image
-                            source={require("../../assets/DoctorsPortal/Images/userpic.png")}
-                            style={styles.imagepic}
-                          />
-                        </View>
-                        <View style={styles.firstTextBox}>
-                          <View>
-                            <Text
-                              style={{
-                                fontWeight: 600,
-                                fontSize: 24,
-                                color: "#000000",
-                              }}
-                            >
-                              Anamika Singh
-                            </Text>
+                        <View style={{ flexDirection: "row" }}>
+                          <View style={styles.imageBox}>
+                            <Image
+                              source={require("../../assets/DoctorsPortal/Images/userpic.png")}
+                              style={styles.imagepic}
+                            />
                           </View>
-                          <View
-                            style={{ flexDirection: "row", marginTop: "1.5%" }}
-                          >
-                            <View>
-                              <Text style={styles.firstBoxText}>Age :</Text>
-                            </View>
-                            <View>
-                              <Text style={styles.firstTexttwo}> 50</Text>
-                            </View>
-
-                            <View style={{ marginLeft: "32%" }}>
-                              <Text style={styles.firstBoxText}>Gender :</Text>
-                            </View>
-                            <View>
-                              <Text style={styles.firstTexttwo}> Female</Text>
-                            </View>
-                          </View>
-                          <View
-                            style={{ flexDirection: "row", marginTop: "1.5%" }}
-                          >
-                            <View>
-                              <Text style={styles.firstBoxText}>
-                                Condition :
-                              </Text>
-                            </View>
-                            <View>
-                              <Text style={styles.firstTexttwo}>
-                                {" "}
-                                Heart Disease
-                              </Text>
-                            </View>
-                          </View>
-                          <View
-                            style={{ flexDirection: "row", marginTop: "1.5%" }}
-                          >
-                            <View>
-                              <Text style={styles.firstBoxText}>Status :</Text>
-                            </View>
-                            <View>
-                              <Text style={styles.firstTexttwo}>
-                                {" "}
-                                Cancelled
-                              </Text>
-                            </View>
-                          </View>
-                          <View style={{ flexDirection: "row" }}>
-                            <View>
-                              <Text style={styles.firstBoxText}>Summary :</Text>
-                            </View>
-                            <View>
-                              <Text style={styles.firstTexttwo}>
-                                {" "}
-                                Shortness of breath (dyspnea) for four months,
-                                progressively worsening to the point of limiting
-                                daily
-                              </Text>
-                            </View>
-                          </View>
-                          <Text style={styles.firstTexttwo}>activities</Text>
-                        </View>
-                        <View style={styles.secondTextBox}>
-                          <View style={{ flexDirection: "row", gap: "14%" }}>
-                            <View>
-                              <View style={{ flexDirection: "column" }}>
-                                <View style={{ flexDirection: "row" }}>
-                                  <View>
-                                    <Text
-                                      style={{
-                                        fontWeight: 500,
-                                        fontSize: 16,
-                                        color: "#000000",
-                                      }}
-                                    >
-                                      Appointment Date :
-                                    </Text>
-                                  </View>
-                                  <View>
-                                    <Text style={styles.firstTexttwo}>
-                                      {" "}
-                                      18 Oct 2025
-                                    </Text>
-                                  </View>
-                                </View>
-                              </View>
-                              <View
+                          <View style={styles.firstTextBox}>
+                            <View style={styles.firstHeadSection}>
+                              <Text
                                 style={{
-                                  flexDirection: "row",
-                                  marginTop: "1.5%",
+                                  fontWeight: 600,
+                                  fontSize: 24,
+                                  color: "#000000",
                                 }}
                               >
-                                <View>
-                                  <Text style={styles.firstBoxText}>
-                                    Time :
-                                  </Text>
-                                </View>
+                                Anamika Singh
+                              </Text>
+                              <View style={styles.secondTextBox}>
+                                <View
+                                  style={{ flexDirection: "row", gap: "14%" }}
+                                >
+                                  <View>
+                                    <View style={{ flexDirection: "column" }}>
+                                      <View style={{ flexDirection: "row" }}>
+                                        <View>
+                                          <Text
+                                            style={{
+                                              fontWeight: 500,
+                                              fontSize: 14,
+                                              color: "#000000",
+                                            }}
+                                          >
+                                            Appointment Date :
+                                          </Text>
+                                        </View>
+                                        <View>
+                                          <Text style={styles.firstTexttwo}>
+                                            {" "}
+                                            18 Oct 2025
+                                          </Text>
+                                        </View>
+                                      </View>
+                                    </View>
+                                    <View
+                                      style={{
+                                        flexDirection: "row",
+                                        marginTop: "1.5%",
+                                      }}
+                                    >
+                                      <View>
+                                        <Text style={styles.firstBoxText}>
+                                          Time :
+                                        </Text>
+                                      </View>
 
-                                <View>
-                                  <Text style={styles.firstTexttwo}>
-                                    {" "}
-                                    11:00 AM
+                                      <View>
+                                        <Text style={styles.firstTexttwo}>
+                                          {" "}
+                                          11:00 AM
+                                        </Text>
+                                      </View>
+                                    </View>
+                                  </View>
+
+                                  <Text
+                                    style={{
+                                      fontWeight: 500,
+                                      fontSize: 14,
+                                      color: "#000000",
+                                    }}
+                                  >
+                                    Health Score :
                                   </Text>
                                 </View>
                               </View>
                             </View>
-
-                            <Text
+                            <View
                               style={{
-                                fontWeight: 500,
-                                fontSize: 16,
-                                color: "#000000",
+                                flexDirection: "row",
+                                marginTop: "0.8%",
                               }}
                             >
-                              Health Score :
+                              <View>
+                                <Text style={styles.firstBoxText}>Age :</Text>
+                              </View>
+                              <View>
+                                <Text style={styles.firstTexttwo}> 50</Text>
+                              </View>
+
+                              <View style={{ marginLeft: "20%" }}>
+                                <Text style={styles.firstBoxText}>
+                                  Gender :
+                                </Text>
+                              </View>
+                              <View>
+                                <Text style={styles.firstTexttwo}> Female</Text>
+                              </View>
+                            </View>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                marginTop: "0.8%",
+                              }}
+                            >
+                              <View>
+                                <Text style={styles.firstBoxText}>
+                                  Condition :
+                                </Text>
+                              </View>
+                              <View>
+                                <Text style={styles.firstTexttwo}>
+                                  {" "}
+                                  Heart Disease
+                                </Text>
+                              </View>
+                            </View>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                marginTop: "0.8%",
+                              }}
+                            >
+                              <View>
+                                <Text style={styles.firstBoxText}>
+                                  Status :
+                                </Text>
+                              </View>
+                              <View>
+                                <Text style={styles.firstTexttwo}>
+                                  {" "}
+                                  Cancelled
+                                </Text>
+                              </View>
+                            </View>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                marginTop: "0.8%",
+                              }}
+                            >
+                              <View>
+                                <Text style={styles.firstBoxText}>
+                                  Summary :
+                                </Text>
+                              </View>
+                              <View>
+                                <Text style={styles.firstTexttwo}>
+                                  {" "}
+                                  Shortness of breath (dyspnea) for four months,
+                                  progressively worsening to the point of
+                                  limiting daily activities
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+
+                          
+                            <TouchableOpacity style={styles.generateButton}>
+                              <Text style={styles.generateText}>
+                                Generate Prescription
+                              </Text>
+                            </TouchableOpacity>
+                
+                        </View>
+                        <View style={styles.lowerSectionContainer}>
+                          <View style={{ marginLeft: "2%" }}>
+                            <Text style={styles.middleText}>
+                              Patients Uploaded Documents
                             </Text>
                           </View>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "flex-end",
+                              gap: "1.5%",
+                              marginRight: "1.5%",
+                            }}
+                          >
+                            <TouchableOpacity>
+                              <Image
+                                source={require("../../assets/DoctorsPortal/Icons/call_Icon.png")}
+                                style={styles.midddleIcon}
+                              />
+                            </TouchableOpacity>
+                            <TouchableOpacity>
+                              <Image
+                                source={require("../../assets/DoctorsPortal/Icons/fileSave.png")}
+                                style={styles.middleIcon}
+                              />
+                            </TouchableOpacity>
+                          </View>
                         </View>
-
-                        <View style={{ marginLeft: "3%" }}>
-                          <TouchableOpacity style={styles.generateButton}>
-                            <Text style={styles.generateText}>
-                              Generate Prescription
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "flex-end",
-                          gap: "1.5%",
-                          marginRight: "1.5%",
-                        }}
-                      >
-                        <TouchableOpacity>
-                          <Image
-                            source={require("../../assets/DoctorsPortal/Icons/call_Icon.png")}
-                            style={styles.midddleIcon}
-                          />
-                        </TouchableOpacity>
-                        <TouchableOpacity>
-                          <Image
-                            source={require("../../assets/DoctorsPortal/Icons/fileSave.png")}
-                            style={styles.middleIcon}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                      <View style={{ marginLeft: "2%" }}>
-                        <Text style={styles.middleText}>
-                          Patients Uploaded Documents
-                        </Text>
                       </View>
 
                       <View style={styles.bottomPart}>
@@ -289,16 +314,16 @@ const GeneratePrescription = ({ navigation, route }) => {
                         </View>
 
                         <View style={styles.medilockerBox}>
-                          <View style={{ marginLeft: "4%" }}>
+                          <View style={{ marginLeft: "2%" }}>
                             <Text style={styles.mediText}>File Name</Text>
                           </View>
-                          <View style={{ marginLeft: "17%" }}>
+                          <View style={{ marginLeft: "15%" }}>
                             <Text style={styles.mediText}>Document Type</Text>
                           </View>
                           <View style={{ marginLeft: "6%" }}>
                             <Text style={styles.mediText}>File size</Text>
                           </View>
-                          <View style={{ marginLeft: "6%" }}>
+                          <View style={{ marginLeft: "3%" }}>
                             <Text style={styles.mediText}>Creation Date</Text>
                           </View>
                           <View style={{ marginLeft: "6%" }}>
@@ -307,7 +332,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                           <View style={{ marginLeft: "4%" }}>
                             <Text style={styles.mediText}>Quick Preview</Text>
                           </View>
-                          <View style={{ marginLeft: "4%" }}>
+                          <View style={{ marginLeft: "2%" }}>
                             <Text style={styles.mediText}>Actions</Text>
                           </View>
                         </View>
@@ -375,8 +400,14 @@ const styles = StyleSheet.create({
     width: "85%",
   },
   firstTextBox: {
-    marginTop: "3%",
-    marginLeft: "4%",
+    marginTop: "0%",
+    marginLeft: "0.5%",
+    //borderWidth: 1,
+    width: "73%",
+  },
+  firstHeadSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
 
   backPicBox: {
@@ -389,7 +420,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     marginTop: "0.5%",
-
     backgroundColor: "#FFFFFF",
     marginBottom: "4%",
     borderRadius: 5,
@@ -425,40 +455,45 @@ const styles = StyleSheet.create({
   },
 
   lowerPart: {
-    height: "73%",
+    height: "76%",
     borderWidth: 1,
     borderRadius: 16,
-    marginTop: "3%",
+    marginTop: "1.5%",
     marginLeft: "4%",
     marginBottom: "3%",
     marginRight: "4%",
-    borderColor: "#D9D9D9",
+    borderColor: "#d0cdcdff",
+    padding:"0.5%"
   },
   container: {
+    flexDirection: "column",
+    //borderWidth: 2,
+    height: "50%",
+    borderColor: "#190678ff",
+  },
+  lowerSectionContainer: {
     flexDirection: "row",
-
-    padding: 18,
-    height: "29%",
+    justifyContent: "space-between",
+    //borderWidth:1,
+    marginVertical:"2%",
+    height:"25%"
   },
   imageBox: {
-    margin: "1%",
-    borderWidth:1
+    //margin: "1%",
+    //borderWidth: 1,
+    height: "49%",
   },
   imagepic: {
-    height: 80,
-    width: 80,
+    height: 70,
+    width: 70,
   },
-  // firstTextBox: {
-  //   width: "28%",
 
-  //   borderColor: "#E2E2E2",
-  // },
   firstBoxText: {
     fontSize: 14,
     color: "#444444",
     fontWeight: 500,
     fontFamily: "Poppins - Medium",
-    borderWidth:1
+    //borderWidth: 1,
   },
   firstTexttwo: {
     fontSize: 14,
@@ -468,30 +503,34 @@ const styles = StyleSheet.create({
   },
   generateButton: {
     backgroundColor: "#FF7072",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 6,
+    width:"17%",
+    height:"25%",
+    marginLeft:"2%"
   },
   generateText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     fontFamily: "Poppins - SemiBold",
+    alignSelf:"center",
+    marginVertical:"3%"
   },
   middleText: {
     color: "#000000",
     fontSize: 20,
     fontWeight: "500",
     fontFamily: "Inter - Medium",
+    marginTop:"6%"
   },
   bottomPart: {
-    marginLeft: "1%",
-    marginTop: "0.5%",
+    //marginLeft: "1%",
+    //marginTop: "0.5%",
     borderWidth: 1,
     borderRadius: 8,
     borderColor: "#DADADA",
-    height: "48%",
-    width: "98%",
+    height: "50%",
+    width: "100%",
   },
   upperMiddlepart: {
     height: "20%",
@@ -533,9 +572,11 @@ const styles = StyleSheet.create({
   //   paddingRight: "20%",
   // },
   secondTextBox: {
-    width: "40%",
-
-    borderColor: "#E2E2E2",
+    width: "50%",
+    //borderColor: "#E2E2E2",
+    //borderWidth: 1,
+    height: "100%",
+    paddingHorizontal: "1%",
   },
 
   medilockerBox: {
@@ -546,14 +587,14 @@ const styles = StyleSheet.create({
     height: "20%",
     width: "100%",
     backgroundColor: "#FF70720F",
-    //padding: 1,
     borderRadius: 0,
     borderColor: "#DADADA",
     flexDirection: "row",
     padding: "0.6%",
+    justifyContent:"space-around"
   },
   mediText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "500",
     color: "#444444",
     fontFamily: "Poppins - Medium",
