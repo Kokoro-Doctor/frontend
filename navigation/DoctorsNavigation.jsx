@@ -36,7 +36,7 @@ const DoctorAppNavigation = () => {
   return (
     <HeaderButtonsProvider stackType={"native"}>
       <Stack.Navigator
-        initialRouteName="LandingPage"
+        initialRouteName="Dashboard"
         screenOptions={{
           headerStyle: {
             backgroundColor: theme.container.backgroundColor,
