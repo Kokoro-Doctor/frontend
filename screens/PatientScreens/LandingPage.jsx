@@ -11,7 +11,7 @@ import {
   StatusBar,
   Animated,
   Text,
-  Alert
+  Alert,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";

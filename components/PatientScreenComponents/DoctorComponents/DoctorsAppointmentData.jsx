@@ -443,13 +443,16 @@ const DoctorAppointmentScreen = ({
                         const doctorId = getDoctorKey(item);
 
                         if (subscribedDoctors[doctorId]) {
-                          // Already subscribed → Go to booking page
+                          // Already subscribed → go to booking
                           navigation.navigate("DoctorsInfoWithBooking", {
                             doctors: item,
                           });
                         } else {
-                          // Not subscribed → Start payment flow
-                          subscribeToDoctor(doctorId);
+                          // Not subscribed → open subscription payment screen
+                          navigation.navigate("DoctorsInfoWithSubscription", {
+                            doctorId,
+                            doctors: item,
+                          });
                         }
                       }}
                     >
@@ -582,13 +585,19 @@ const DoctorAppointmentScreen = ({
                           const doctorId = getDoctorKey(item);
 
                           if (subscribedDoctors[doctorId]) {
-                            // Already subscribed → Go to booking page
+                            // Already subscribed → go to booking
                             navigation.navigate("DoctorsInfoWithBooking", {
                               doctors: item,
                             });
                           } else {
-                            // Not subscribed → Start payment flow
-                            subscribeToDoctor(doctorId);
+                            // Not subscribed → open subscription payment screen
+                            navigation.navigate(
+                              "DoctorsInfoWithSubscription",
+                              {
+                                doctorId,
+                                doctors: item,
+                              }
+                            );
                           }
                         }}
                       >

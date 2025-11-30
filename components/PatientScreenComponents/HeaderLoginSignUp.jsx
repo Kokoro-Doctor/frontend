@@ -184,11 +184,12 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                       </>
                     ) : (
                       <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={styles.dropdownItem}
                         onPress={() => {
                           setDropdownVisible(false);
                           openAuthModal("login");
                         }}
-                        style={styles.dropdownItem}
                       >
                         <Text style={styles.dropdownText}>Login / Signup</Text>
                       </TouchableOpacity>
@@ -364,7 +365,6 @@ const styles = StyleSheet.create({
     // shadowOpacity: 0.05,
     // shadowRadius: 8,
     // elevation: 2,
-    
   },
   webWelcome: {
     fontSize: 20,
@@ -408,38 +408,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    position: "relative",
+    //position: "relative",
     zIndex: 10,
+    //borderWidth:1
   },
   authButtonBox: {
-    padding: 4,
+    padding: "2%",
     borderRadius: 8,
+    //borderWidth:1
   },
   dropdownMain: {
     position: "absolute",
-    right: 0,
-    top: 40,
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 10,
-    marginTop: 8,
-    minWidth: 160,
+    minWidth: 110,
     overflow: "hidden",
+    right: "5%",
+    top:40,
+    height: "75%",
+    borderColor: "#4a4a4aff",
+    borderWidth: 1,
   },
   dropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    //flexDirection: "row",
+    //alignItems: "center",
+    paddingVertical: "2%",
+    paddingHorizontal: "1%",
+    width:"100%",
+    justifyContent:"center"
   },
   dropdownText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#000",
+    color: "#0c0c0cff",
+    paddingHorizontal: "6%",
+    paddingVertical: "2%",
   },
   usernameApp: {
     marginTop: 5,
