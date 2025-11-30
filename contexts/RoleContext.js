@@ -25,13 +25,14 @@
 
 
 
-import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 const RoleContext = createContext();
 
 export const RoleProvider = ({ children }) => {
   const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Restore role on app startup
   useEffect(() => {
@@ -41,6 +42,8 @@ export const RoleProvider = ({ children }) => {
         if (stored) setRole(stored);
       } catch (err) {
         console.log("Error loading stored role:", err);
+      } finally {
+        setLoading(false);
       }
     };
     loadRole();
@@ -61,7 +64,7 @@ export const RoleProvider = ({ children }) => {
   };
 
   return (
-    <RoleContext.Provider value={{ role, setRole: updateRole }}>
+    <RoleContext.Provider value={{ role, setRole: updateRole, loading }}>
       {children}
     </RoleContext.Provider>
   );

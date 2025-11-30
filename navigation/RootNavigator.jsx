@@ -62,19 +62,18 @@
 
 // export default RootNavigation;
 
-import React, { Suspense } from "react";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { ActivityIndicator, View, Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { useRole } from "../contexts/RoleContext";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React, { Suspense } from "react";
+import { ActivityIndicator, Platform, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { RegistrationProvider } from "../contexts/RegistrationContext";
+import { useRole } from "../contexts/RoleContext";
 
 // ✅ Direct imports (always needed instantly)
-import LandingPage from "../screens/PatientScreens/LandingPage";
-import VerifyEmail from "../screens/PatientScreens/Auth/VerifyEmail";
 import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
+import LandingPage from "../screens/PatientScreens/LandingPage";
 
 // ✅ Conditionally import heavy screens (works on web + native)
 let DoctorPatientLandingPage;
@@ -111,17 +110,6 @@ export const linking = {
   config: {
     screens: {
       LandingPage: "Home",
-      VerifyEmail: {
-        path: "verify-email",
-        parse: {
-          token: (token) => token,
-          email: (email) => email,
-        },
-        stringify: {
-          token: (token) => token,
-          email: (email) => email,
-        },
-      },
       DoctorPatientLandingPage: "Role",
       DoctorAppNavigation: { path: "doctor" },
       PatientAppNavigation: { path: "patient" },
@@ -149,8 +137,13 @@ const LandingPageWithAuth = ({ navigation, route }) => {
           navigation.replace("DoctorAppNavigation", {
             screen: "Dashboard",
           });
+        } else if (role === "user") {
+          // For users/patients, they can stay on LandingPage
+          // If you want to redirect them to a specific patient dashboard, uncomment below:
+          // navigation.replace("PatientAppNavigation", {
+          //   screen: "LandingPage",
+          // });
         }
-        // For users/patients, they can stay on LandingPage (no redirect needed)
       }
     }, [user, role, authLoading, navigation])
   );
@@ -159,22 +152,41 @@ const LandingPageWithAuth = ({ navigation, route }) => {
 };
 
 const RootNavigation = () => {
-  const { role, loading } = useRole();
-  const { isLoading: authLoading } = useAuth();
+  const { role: roleContextRole, loading: roleLoading } = useRole();
+  const { user, role: authRole, isLoading: authLoading } = useAuth();
+
+  // Determine the actual role (prefer AuthContext role, fallback to RoleContext)
+  const role = authRole || roleContextRole;
 
   // Show loader while role or auth is loading
-  if (loading || authLoading) return <Loader />;
+  if (roleLoading || authLoading) return <Loader />;
+
+  // Determine initial route based on authentication and role
+  const getInitialRouteName = () => {
+    // If user is authenticated and has a role, redirect to appropriate dashboard
+    if (user && role) {
+      if (role === "doctor") {
+        return "DoctorAppNavigation";
+      }
+      // For users/patients, they can stay on LandingPage
+      // or redirect to PatientAppNavigation if you want them to go directly to patient dashboard
+      return "LandingPage";
+    }
+    // Not authenticated, go to landing page
+    return "LandingPage";
+  };
+
+  const initialRouteName = getInitialRouteName();
 
   return (
     <RegistrationProvider>
       <Suspense fallback={<Loader />}>
         <Stack.Navigator
           screenOptions={{ headerShown: false }}
-          initialRouteName="LandingPage"
+          initialRouteName={initialRouteName}
         >
           {/* Always loaded instantly */}
           <Stack.Screen name="LandingPage" component={LandingPageWithAuth} />
-          <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
 
           {/* Conditionally lazy/static screens */}
           <Stack.Screen
