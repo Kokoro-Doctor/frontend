@@ -11,6 +11,7 @@ import {
   StatusBar,
   Animated,
   Text,
+  Alert
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
@@ -58,8 +59,47 @@ const LandingPage = ({ navigation, route }) => {
       }, 1000);
 
       return () => clearTimeout(timer);
-    }, [setChatbotConfig])
+    }, [borderAnim, setChatbotConfig])
   );
+
+  const { paymentSuccess, doctorId } = route?.params || {};
+  const alertShownRef = useRef(false);
+
+  useEffect(() => {
+    if (paymentSuccess && !alertShownRef.current) {
+      alertShownRef.current = true;
+
+      // WEB
+      if (Platform.OS === "web") {
+        alert(
+          "You have successfully subscribed to doctor. Now book your slot."
+        );
+
+        navigation.navigate("PatientAppNavigation", {
+          screen: "DoctorResultShow",
+          params: { highlightDoctorId: doctorId },
+        });
+
+        return;
+      }
+
+      // APP
+      Alert.alert(
+        "Subscription Successful",
+        "You have successfully subscribed to doctor. Now book your slot.",
+        [
+          {
+            text: "OK",
+            onPress: () =>
+              navigation.navigate("PatientAppNavigation", {
+                screen: "DoctorResultShow",
+                params: { highlightDoctorId: doctorId },
+              }),
+          },
+        ]
+      );
+    }
+  }, [doctorId, navigation, paymentSuccess]);
 
   return (
     <>
@@ -344,9 +384,7 @@ const LandingPage = ({ navigation, route }) => {
                       }}
                       imageStyle={{ borderRadius: 14 }}
                       resizeMode="cover"
-                    >
-                      
-                    </ImageBackground>
+                    ></ImageBackground>
                   </TouchableOpacity>
                 </Animated.View>
 
@@ -360,7 +398,6 @@ const LandingPage = ({ navigation, route }) => {
                         inputRange: [0, 1],
                         outputRange: [0.8, 1],
                       }),
-                      
                     }}
                   >
                     <ImageBackground
@@ -369,7 +406,7 @@ const LandingPage = ({ navigation, route }) => {
                         width: 150,
                         height: "auto",
                         //alignSelf:"center",
-                        marginVertical:"5%",
+                        marginVertical: "5%",
                       }}
                       resizeMode="stretch"
                     >
@@ -381,9 +418,9 @@ const LandingPage = ({ navigation, route }) => {
                           textShadowColor: "rgba(0, 0, 0, 0.5)",
                           textShadowOffset: { width: 1, height: 1 },
                           textShadowRadius: 2,
-                          alignSelf:"center",
-                          marginTop:"8%",
-                          marginBottom:"3%"
+                          alignSelf: "center",
+                          marginTop: "8%",
+                          marginBottom: "3%",
                         }}
                       >
                         Try Me for Free
@@ -464,7 +501,7 @@ const styles = StyleSheet.create({
   header: {
     //borderWidth: 5,
     // borderColor: "black",
-    paddingHorizontal:"2%",
+    paddingHorizontal: "2%",
     zIndex: 2,
     ...Platform.select({
       web: {

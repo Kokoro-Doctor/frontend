@@ -32,27 +32,8 @@ const DoctorAppointmentScreen = ({
     doctor?.doctor_id || doctor?.id || doctor?.email;
   //const linkTo = useLinkTo();
   const [showFull, setShowFull] = useState(false);
+  const [subscribedDoctors, setSubscribedDoctors] = useState({});
 
-  // useEffect(() => {
-  //   const fetchDoctors = async () => {
-  //     try {
-  //       const response = await fetch(`${API_URL}/doctorsService/fetchDoctors`, {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ category: selectedCategory?.value || "" }),
-
-  //       });
-  //       const data = await response.json();
-  //       setDoctors(data.doctors || []);
-  //     } catch (error) {
-  //       console.error("Failed to fetch doctors:", error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchDoctors();
-  // }, [selectedCategory]);
   useEffect(() => {
     const fetchDoctors = async () => {
       setLoading(true);
@@ -203,12 +184,66 @@ const DoctorAppointmentScreen = ({
     }
   }, [allDoctors]);
 
-  // const handleHeartButtonPress = (doctorId) => {
-  //   if (!doctorId) return;
-  //   setSubscriberCounts((prev) => ({
-  //     ...prev,
-  //     [doctorId]: (prev[doctorId] || 0) + 1,
-  //   }));
+  // const subscribeToDoctor = async (doctorId) => {
+  //   if (!doctorId) {
+  //     console.warn("Missing doctor identifier for subscription");
+  //     return;
+  //   }
+  //   if (!userIdentifier) {
+  //     alert("Please log in to subscribe to a doctor.");
+  //     return;
+  //   }
+  //   try {
+  //     const response = await fetch(`${API_URL}/doctorsService/subscribe`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         doctor_id: doctorId,
+  //         user_id: userIdentifier,
+  //       }),
+  //     });
+
+  //     const data = await response.json();
+  //     alert(data.message);
+
+  //     // Update the subscriber count locally
+  //     setSubscriberCounts((prev) => ({
+  //       ...prev,
+  //       [doctorId]: prev[doctorId] || 0,
+  //     }));
+
+  //     // Find the doctor from the list
+  //     const subscribedDoctor = allDoctors.find(
+  //       (doc) => getDoctorKey(doc) === doctorId
+  //     );
+
+  //     // Add updated subscriber count to the doctor object
+  //     const updatedDoctor = {
+  //       ...subscribedDoctor,
+  //       subscriberCount: (subscriberCounts[doctorId] || 0) + 1,
+  //     };
+
+  //     // navigation.navigate("DoctorsInfoWithBooking", {
+  //     //   doctors: updatedDoctor,
+  //     // });
+  //     // linkTo(
+  //     //   `/DoctorsInfoWithBooking?doctors=${encodeURIComponent(JSON.stringify(updatedDoctor))}`
+  //     // );
+  //     if (Platform.OS === "web") {
+  //       const encoded = encodeURIComponent(JSON.stringify(updatedDoctor));
+  //       window.history.pushState(
+  //         {},
+  //         "",
+  //         `/DoctorsInfoWithBooking?doctors=${encoded}`
+  //       );
+  //       console.log(window.location.href);
+  //     }
+  //     navigation.navigate("DoctorsInfoWithBooking", {
+  //       doctors: updatedDoctor,
+  //     });
+  //   } catch (error) {
+  //     console.error("Subscription failed:", error);
+  //   }
   // };
 
   const subscribeToDoctor = async (doctorId) => {
@@ -233,29 +268,31 @@ const DoctorAppointmentScreen = ({
       const data = await response.json();
       alert(data.message);
 
-      // Update the subscriber count locally
+      // 👉 ADD PAYMENT SUCCESS ALERT LOGIC HERE
+      if (
+        data?.paymentCompleted === true &&
+        !sessionStorage.getItem("paymentAlertShown")
+      ) {
+        alert("Payment successful! Your subscription is now active.");
+        sessionStorage.setItem("paymentAlertShown", "yes");
+      }
+
+      // Update subscriber count
       setSubscriberCounts((prev) => ({
         ...prev,
         [doctorId]: prev[doctorId] || 0,
       }));
 
-      // Find the doctor from the list
       const subscribedDoctor = allDoctors.find(
         (doc) => getDoctorKey(doc) === doctorId
       );
 
-      // Add updated subscriber count to the doctor object
       const updatedDoctor = {
         ...subscribedDoctor,
         subscriberCount: (subscriberCounts[doctorId] || 0) + 1,
       };
 
-      // navigation.navigate("DoctorsInfoWithBooking", {
-      //   doctors: updatedDoctor,
-      // });
-      // linkTo(
-      //   `/DoctorsInfoWithBooking?doctors=${encodeURIComponent(JSON.stringify(updatedDoctor))}`
-      // );
+      // Web navigation
       if (Platform.OS === "web") {
         const encoded = encodeURIComponent(JSON.stringify(updatedDoctor));
         window.history.pushState(
@@ -263,8 +300,9 @@ const DoctorAppointmentScreen = ({
           "",
           `/DoctorsInfoWithBooking?doctors=${encoded}`
         );
-        console.log(window.location.href);
       }
+
+      // App navigation
       navigation.navigate("DoctorsInfoWithBooking", {
         doctors: updatedDoctor,
       });
@@ -401,21 +439,24 @@ const DoctorAppointmentScreen = ({
                       //   !userIdentifier && { backgroundColor: "gray" },
                       // ]}
                       style={styles.button}
-                      // onPress={() => {
-                      //   if (!userIdentifier) {
-                      //     alert("You must be logged in to subscribe.");
-                      //   } else {
-                      //     subscribeToDoctor(getDoctorKey(item));
-                      //   }
-                      // }}
-                      onPress={() =>
-                        navigation.navigate("DoctorsInfoWithSubscription", {
-                          doctors: item,
-                        })
-                      }
+                      onPress={() => {
+                        const doctorId = getDoctorKey(item);
+
+                        if (subscribedDoctors[doctorId]) {
+                          // Already subscribed → Go to booking page
+                          navigation.navigate("DoctorsInfoWithBooking", {
+                            doctors: item,
+                          });
+                        } else {
+                          // Not subscribed → Start payment flow
+                          subscribeToDoctor(doctorId);
+                        }
+                      }}
                     >
                       <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
-                        Subscribe
+                        {subscribedDoctors[getDoctorKey(item)]
+                          ? "Book Slot"
+                          : "Subscribe"}
                       </Text>
                     </Pressable>
                   </View>
@@ -442,11 +483,11 @@ const DoctorAppointmentScreen = ({
                     <View style={styles.cardHeaderInfo}>
                       <TouchableOpacity
                         style={styles.imageContainer}
-                        onPress={() =>
-                          navigation.navigate("DoctorsInfoWithSubscription", {
-                            doctors: item,
-                          })
-                        }
+                        // onPress={() =>
+                        //   navigation.navigate("DoctorsInfoWithSubscription", {
+                        //     doctors: item,
+                        //   })
+                        // }
                       >
                         <Image
                           source={{ uri: item.profilePhoto }}
@@ -482,12 +523,7 @@ const DoctorAppointmentScreen = ({
                       </View>
                       <View style={styles.rightContainer}>
                         <View style={styles.countBox}>
-                          <View
-                            style={styles.heartButtonBox}
-                            // onPress={() =>
-                            //   handleHeartButtonPress(getDoctorKey(item))
-                            // }
-                          >
+                          <View style={styles.heartButtonBox}>
                             <Image
                               source={require("../../../assets/Icons/heart1.png")}
                               style={styles.heartImage}
@@ -541,25 +577,27 @@ const DoctorAppointmentScreen = ({
                         </View>
                       </View>
                       <TouchableOpacity
-                        // style={styles.button}
-                        // onPress={() =>
-                        //   navigation.navigate("DoctorsInfoWithRating", {
-                        //     doctors: item,
-                        //   })
-                        // }
-                        style={[
-                          styles.button,
-                          !userIdentifier && { backgroundColor: "gray" },
-                        ]}
+                        style={[styles.button]}
                         onPress={() => {
-                          if (!userIdentifier) {
-                            alert("You must be logged in to subscribe.");
+                          const doctorId = getDoctorKey(item);
+
+                          if (subscribedDoctors[doctorId]) {
+                            // Already subscribed → Go to booking page
+                            navigation.navigate("DoctorsInfoWithBooking", {
+                              doctors: item,
+                            });
                           } else {
-                            subscribeToDoctor(getDoctorKey(item));
+                            // Not subscribed → Start payment flow
+                            subscribeToDoctor(doctorId);
                           }
                         }}
                       >
-                        <Text style={styles.buttonText}>Subscribe</Text>
+                        <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
+                          {subscribedDoctors[getDoctorKey(item)]
+                            ? "Book Slot"
+                            : "Subscribe"}
+                        </Text>
+
                         <Image
                           source={require("../../../assets/Icons/arrow.png")}
                           style={styles.arrowIcon}
