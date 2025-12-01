@@ -66,6 +66,11 @@ const LandingPage = ({ navigation, route }) => {
   const alertShownRef = useRef(false);
 
   useEffect(() => {
+    console.log("🔍 useEffect triggered");
+    console.log("paymentSuccess =", paymentSuccess);
+    console.log("doctorId =", doctorId);
+    console.log("alertShownRef =", alertShownRef.current);
+
     if (paymentSuccess && !alertShownRef.current) {
       alertShownRef.current = true;
 
