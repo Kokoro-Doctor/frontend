@@ -62,29 +62,29 @@ const LandingPage = ({ navigation, route }) => {
     }, [borderAnim, setChatbotConfig])
   );
 
-  const [webPaymentHandled, setWebPaymentHandled] = useState(false);
+  // const [webPaymentHandled, setWebPaymentHandled] = useState(false);
 
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
+  // useEffect(() => {
+  //   if (Platform.OS !== "web") return;
 
-    const params = new URLSearchParams(window.location.search);
-    const success = params.get("paymentSuccess");
-    const id = params.get("doctorId");
+  //   const params = new URLSearchParams(window.location.search);
+  //   const success = params.get("paymentSuccess");
+  //   const id = params.get("doctorId");
 
-    if (success === "true" && id && !webPaymentHandled) {
-      console.log("🌐 Query Params Detected -> Payment Success");
+  //   if (success === "true" && id && !webPaymentHandled) {
+  //     console.log("🌐 Query Params Detected -> Payment Success");
 
-      setWebPaymentHandled(true);
+  //     setWebPaymentHandled(true);
 
-      navigation.navigate("LandingPage", {
-        paymentSuccess: true,
-        doctorId: id,
-      });
+  //     navigation.navigate("LandingPage", {
+  //       paymentSuccess: true,
+  //       doctorId: id,
+  //     });
 
-      // Remove query params from URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [navigation, webPaymentHandled]);
+  //     // Remove query params from URL
+  //     window.history.replaceState({}, document.title, window.location.pathname);
+  //   }
+  // }, [navigation, webPaymentHandled]);
 
   const { paymentSuccess, doctorId } = route?.params || {};
   const alertShownRef = useRef(false);
