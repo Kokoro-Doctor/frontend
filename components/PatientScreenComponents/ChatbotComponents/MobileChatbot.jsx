@@ -47,7 +47,6 @@ const MobileChatbot = () => {
       }),
     },
   ]);
-  const [userId, setUserId] = useState(null);
   const [userMessage, setUserMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [playingMessage, setPlayingMessage] = useState(null);
@@ -55,17 +54,7 @@ const MobileChatbot = () => {
   const [typingText, setTypingText] = useState(".");
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   const [showSignInPopup, setShowSignInPopup] = useState(false);
-  const { user } = useContext(AuthContext);
-
-  // Set userID when user signs in
-  useEffect(() => {
-    if (user) {
-      setUserId(user?.user_id || user?.email);
-      // Note: Session and chat count cleanup is handled in AuthContext
-    } else {
-      setUserId(null);
-    }
-  }, [user]);
+  const { user, role } = useContext(AuthContext);
 
   // Stop speaking when user refreshes the page
   useEffect(() => {
@@ -123,7 +112,8 @@ const MobileChatbot = () => {
 
         try {
           const botReply = await askBot(
-            userId,
+            user,
+            role,
             messageToSend,
             selectedLanguage.value
           );
@@ -190,7 +180,8 @@ const MobileChatbot = () => {
 
     try {
       const botReply = await askBot(
-        userId,
+        user,
+        role,
         messageToSend,
         selectedLanguage.value
       );

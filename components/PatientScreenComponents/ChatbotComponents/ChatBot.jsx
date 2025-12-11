@@ -34,7 +34,6 @@ const { width } = Dimensions.get("window");
 
 const ChatBot = () => {
   const { chatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
-  const [userId, setUserId] = useState(null);
   const [messages, setMessages] = useState([
     {
       sender: "bot",
@@ -48,17 +47,7 @@ const ChatBot = () => {
   const typingDots = new Animated.Value(0);
   const [typingText, setTypingText] = useState(".");
   const [showSignInPopup, setShowSignInPopup] = useState(false);
-  const { user } = useContext(AuthContext);
-
-  //Set userID when user signs in
-  useEffect(() => {
-    if (user) {
-      setUserId(user?.user_id || user?.email);
-      // Note: Session and chat count cleanup is handled in AuthContext
-    } else {
-      setUserId(null);
-    }
-  }, [user]);
+  const { user, role } = useContext(AuthContext);
 
   //Stop speaking when user refreshes the page
   useEffect(() => {
@@ -110,7 +99,8 @@ const ChatBot = () => {
 
         try {
           const botReply = await askBot(
-            userId,
+            user,
+            role,
             messageToSend,
             selectedLanguage
           );
@@ -157,7 +147,12 @@ const ChatBot = () => {
     setIsLoading(true);
 
     try {
-      const botReply = await askBot(userId, messageToSend, selectedLanguage);
+      const botReply = await askBot(
+        user,
+        role,
+        messageToSend,
+        selectedLanguage
+      );
 
       if (botReply) {
         setMessages((prevMessages) => {
