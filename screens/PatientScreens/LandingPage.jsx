@@ -11,7 +11,7 @@ import {
   StatusBar,
   Animated,
   Text,
-  Alert
+  Alert,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
@@ -62,10 +62,39 @@ const LandingPage = ({ navigation, route }) => {
     }, [borderAnim, setChatbotConfig])
   );
 
+  const [webPaymentHandled, setWebPaymentHandled] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("paymentSuccess");
+    const id = params.get("doctorId");
+
+    if (success === "true" && id && !webPaymentHandled) {
+      console.log("🌐 Query Params Detected -> Payment Success");
+
+      setWebPaymentHandled(true);
+
+      navigation.navigate("LandingPage", {
+        paymentSuccess: true,
+        doctorId: id,
+      });
+
+      // Remove query params from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [navigation, webPaymentHandled]);
+
   const { paymentSuccess, doctorId } = route?.params || {};
   const alertShownRef = useRef(false);
 
   useEffect(() => {
+    console.log("🔍 useEffect triggered");
+    console.log("paymentSuccess =", paymentSuccess);
+    console.log("doctorId =", doctorId);
+    console.log("alertShownRef =", alertShownRef.current);
+
     if (paymentSuccess && !alertShownRef.current) {
       alertShownRef.current = true;
 

@@ -198,7 +198,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                           <TouchableOpacity
                             style={styles.paymentButton}
                             onPress={() => {
-                              handleContinuePayment(1999);
+                              handleContinuePayment(1);
                             }}
                           >
                             <Text style={styles.paymentButtonText}>
