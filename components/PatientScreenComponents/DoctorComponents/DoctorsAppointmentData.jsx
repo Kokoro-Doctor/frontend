@@ -38,10 +38,9 @@ const DoctorAppointmentScreen = ({
     const fetchDoctors = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`${API_URL}/doctorsService/fetchDoctors`, {
-          method: "POST",
+        const response = await fetch(`${API_URL}/doctorsService/doctors`, {
+          method: "GET",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ category: "" }), // Fetch all doctors initially
         });
         const data = await response.json();
         //console.log("📦 Raw API response:", data);
@@ -591,13 +590,10 @@ const DoctorAppointmentScreen = ({
                             });
                           } else {
                             // Not subscribed → open subscription payment screen
-                            navigation.navigate(
-                              "DoctorsInfoWithSubscription",
-                              {
-                                doctorId,
-                                doctors: item,
-                              }
-                            );
+                            navigation.navigate("DoctorsInfoWithSubscription", {
+                              doctorId,
+                              doctors: item,
+                            });
                           }
                         }}
                       >

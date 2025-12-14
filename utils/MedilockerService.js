@@ -5,14 +5,12 @@ const medilocker_API = `${API_URL}/medilocker`;
 
 export const FetchFromServer = async(email) => {
     try {
-        const response = await fetch(`${medilocker_API}/fetch`, {
-            method: "POST",
+        const encodedUserId = encodeURIComponent(email);
+        const response = await fetch(`${medilocker_API}/users/${encodedUserId}/files`, {
+            method: "GET",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              user_id: email,
-            }),
         });
     
         if (!response.ok) {
@@ -62,15 +60,13 @@ export const upload = async (payload) => {
 
 export const download = async (email, fileName) => {
     try {
-        const response = await fetch(`${medilocker_API}/download`, {
-            method: "POST",
+        const encodedUserId = encodeURIComponent(email);
+        const encodedFileName = encodeURIComponent(fileName);
+        const response = await fetch(`${medilocker_API}/users/${encodedUserId}/files/${encodedFileName}/download`, {
+            method: "GET",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-                user_id: email,
-                filename: fileName,
-            }),
         });
 
         if (!response.ok) {
@@ -88,15 +84,13 @@ export const download = async (email, fileName) => {
 
 export const remove = async (email, fileName) => {
     try {
-        const response = await fetch(`${medilocker_API}/delete`, {
-            method: "POST",
+        const encodedUserId = encodeURIComponent(email);
+        const encodedFileName = encodeURIComponent(fileName);
+        const response = await fetch(`${medilocker_API}/users/${encodedUserId}/files/${encodedFileName}`, {
+            method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-                user_id: email,
-                filename: fileName,
-            }),
         });
     
         if (!response.ok) {
