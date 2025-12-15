@@ -18,6 +18,10 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
   const menuItems = [
     { name: "Home", icon: require("../../assets/Icons/HomeProfile.png") },
     {
+      name: "Dashboard",
+      icon: require("../../assets/Icons/icondashboard.png"),
+    },
+    {
       name: "Subscribe to Sr.Doctors",
       icon: require("../../assets/Icons/doctorTool.png"),
     },
@@ -47,9 +51,9 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
     // setSelectedItem(menu);  //used for the red color color but is not working as intended
     if (menu === "Home") {
       navigation.navigate("LandingPage");
-    } else if (menu === "About Us") {
+    } else if (menu === "Dashboard") {
       navigation.navigate("PatientAppNavigation", {
-        screen: "AboutUs",
+        screen: "UserDashboard",
       });
     } else if (menu === "Subscribe to Sr.Doctors") {
       navigation.navigate("PatientAppNavigation", {
@@ -70,6 +74,10 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
     } else if (menu === "Contact Us") {
       navigation.navigate("PatientAppNavigation", {
         screen: "ContactUs",
+      });
+    } else if (menu === "About Us") {
+      navigation.navigate("PatientAppNavigation", {
+        screen: "AboutUs",
       });
     } else if (menu === "Settings") {
       navigation.navigate("PatientAppNavigation", {
