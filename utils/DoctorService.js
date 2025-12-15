@@ -101,15 +101,24 @@ export const fetchDoctorDetails = async (doctorname) => {
 };
 
 export async function createBooking(bookingPayload) {
-  const response = await fetch(`${API_URL}/backendurl/`, {
+  // Ensure bookingPayload has the correct structure for new API
+  const payload = {
+    doctor_id: bookingPayload.doctor_id,
+    date: bookingPayload.date,
+    start_time: bookingPayload.start_time || bookingPayload.start, // Support both formats
+    user_id: bookingPayload.user_id,
+  };
+  
+  const response = await fetch(`${API_URL}/appointmentService/bookings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(bookingPayload),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error("Failed to create booking");
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to create booking");
   }
   return await response.json();
 }

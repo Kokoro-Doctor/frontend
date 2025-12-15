@@ -22,7 +22,8 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { payment_api } from "../../../utils/PaymentService";
 import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 import { API_URL } from "../../../env-vars";
-import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon from "react-native-vector-icons/FontAwesome";
+import { createBooking } from "../../../utils/DoctorService";
 
 const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
   const { setChatbotConfig } = useChatbot();
@@ -50,21 +51,19 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
         if (!doctorIdentifier) {
           return;
         }
-        const res = await fetch(`${API_URL}/doctorBookings/fetchBookings`, {
-          method: "POST",
+        const res = await fetch(
+          `${API_URL}/appointmentService/doctors/${doctorIdentifier}/bookings`,
+          {
+            method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            id: doctorIdentifier,
-            type: "doctor",
-            days: 3,
-          }),
-        });
+          }
+        );
 
         const data = await res.json();
         if (res.ok) {
-          setBookings(data.bookings || []);
+          setBookings(data || []);
         } else {
           console.error("Error fetching bookings", data.detail);
         }
@@ -101,6 +100,13 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
     // Otherwise, proceed with payment
     Alert.alert("Processing Payment", "Redirecting to payment gateway...");
     try {
+      // Create booking payload from route params
+      const bookingPayload = {
+        doctor_id: doctorIdentifier,
+        date: selectedDate,
+        start_time: selectedTimeSlot?.time || selectedTimeSlot,
+        user_id: user?.user_id || user?.email,
+      };
       await createBooking(bookingPayload);
       const paymentLink = await payment_api(amount);
       if (paymentLink) {

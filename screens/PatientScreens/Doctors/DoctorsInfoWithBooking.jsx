@@ -26,6 +26,17 @@ import { useAuth } from "../../../contexts/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
+// Helper function to calculate end time (30 minutes after start)
+const getEndTime = (startTime) => {
+  const [hours, minutes] = startTime.split(":").map(Number);
+  const startDate = new Date();
+  startDate.setHours(hours, minutes, 0, 0);
+  startDate.setMinutes(startDate.getMinutes() + 30);
+  const endHours = String(startDate.getHours()).padStart(2, "0");
+  const endMinutes = String(startDate.getMinutes()).padStart(2, "0");
+  return `${endHours}:${endMinutes}`;
+};
+
 const DoctorsInfoWithBooking = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const [selectedDate, setSelectedDate] = useState("Today");
@@ -96,14 +107,13 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
         const weekday = date.toLocaleDateString("en-US", { weekday: "long" }); // "Monday"
 
         try {
-          const res = await fetch(`${API_URL}/doctorBookings/available`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              doctor_id: doctorIdentifier,
-              date: dateString,
-            }),
-          });
+          const res = await fetch(
+            `${API_URL}/appointmentService/doctors/${doctorIdentifier}/availability?date=${dateString}`,
+            {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            }
+          );
 
           console.log(`Response ${res.status} for ${weekday} (${dateString})`);
           const data = await res.json();
@@ -112,6 +122,15 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
             JSON.stringify(data, null, 2)
           );
 
+          // New API returns array directly, map slot_time to start for compatibility
+          const slots = Array.isArray(data)
+            ? data.map((slot) => ({
+                ...slot,
+                start: slot.slot_time || slot.start,
+                end: slot.slot_time ? getEndTime(slot.slot_time) : slot.end,
+              }))
+            : [];
+
           return {
             id: dateString,
             label: `${weekday}, ${date.toLocaleDateString("en-US", {
@@ -119,7 +138,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
               month: "short",
             })}`,
             date: dateString,
-            slots: data.slots || [],
+            slots: slots,
           };
         } catch (e) {
           console.error(`Error fetching slots for ${dateString}:`, e);
@@ -175,11 +194,11 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
       console.log("Booking request payload:", {
         doctor_id: doctorIdentifier,
         date: selectedDate,
-        start: selectedTimeSlot,
+        start_time: selectedTimeSlot,
         user_id: userIdentifier,
       });
 
-      const res = await fetch(`${API_URL}/doctorBookings/book`, {
+      const res = await fetch(`${API_URL}/appointmentService/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -188,9 +207,8 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
         body: JSON.stringify({
           doctor_id: doctorIdentifier,
           date: selectedDate,
-          start: selectedTimeSlot,
+          start_time: selectedTimeSlot,
           user_id: userIdentifier,
-          platform: Platform.OS === "web" ? "web" : "mobile",
         }),
       });
 
@@ -200,15 +218,16 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
 
       if (!res.ok) throw new Error(data.detail || "Booking failed");
 
-      // Update local state
+      // Update local state - mark slot as unavailable
       setAvailableDates((prevDates) =>
         prevDates.map((date) => {
           if (date.date === selectedDate) {
             return {
               ...date,
               slots: date.slots.map((slot) =>
-                slot.start === selectedTimeSlot
-                  ? { ...slot, available: slot.available - 1 }
+                slot.start === selectedTimeSlot ||
+                slot.slot_time === selectedTimeSlot
+                  ? { ...slot, available: false, booking_id: data.booking_id }
                   : slot
               ),
             };
