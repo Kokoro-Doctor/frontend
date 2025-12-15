@@ -11,7 +11,6 @@ import {
   requestSignupOtp as requestSignupOtpApi,
   restoreUserState,
   signInWithGoogleApp,
-  verifySignupOtp as verifySignupOtpApi,
 } from "../utils/AuthService";
 import { resetChatCount } from "../utils/chatLimitManager";
 import { ensureError, getErrorMessage } from "../utils/errorUtils";
@@ -76,16 +75,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Signup OTP request failed:", message, error);
-      throw ensureError(error);
-    }
-  };
-
-  const verifySignupOtpHandler = async (payload) => {
-    try {
-      return await verifySignupOtpApi(payload);
-    } catch (error) {
-      const message = getErrorMessage(error);
-      console.error("Signup OTP verification failed:", message, error);
       throw ensureError(error);
     }
   };
@@ -197,7 +186,6 @@ export const AuthProvider = ({ children }) => {
         doctorsSignup: doctorSignupHandler,
         signup: completePatientSignup,
         requestSignupOtp: requestSignupOtpHandler,
-        verifySignupOtp: verifySignupOtpHandler,
         requestLoginOtp: requestLoginOtpHandler,
         initiateLogin: initiateLoginHandler,
         loginWithOtp: loginWithOtpHandler,

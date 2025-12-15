@@ -308,18 +308,6 @@ export const requestSignupOtp = async ({ phoneNumber, role = "user" }) => {
 };
 
 
-export const verifySignupOtp = async ({ phoneNumber, otp, role = "user" }) => {
-  if (!phoneNumber || !otp) {
-    throw new Error("OTP and phone number are required.");
-  }
-  return postJson(
-    "/auth/verify-otp",
-    { phoneNumber, otp, role },
-    "Failed to verify OTP"
-  );
-};
-
-
 export const requestLoginOtp = async ({ phoneNumber }) => {
   if (!phoneNumber) {
     throw new Error("Please provide a mobile number.");

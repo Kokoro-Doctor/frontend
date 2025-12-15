@@ -227,13 +227,11 @@ const GeneratePrescription = ({ navigation, route }) => {
                             </View>
                           </View>
 
-                          
-                            <TouchableOpacity style={styles.generateButton}>
-                              <Text style={styles.generateText}>
-                                Generate Prescription
-                              </Text>
-                            </TouchableOpacity>
-                
+                          <TouchableOpacity style={styles.generateButton}>
+                            <Text style={styles.generateText}>
+                              Generate Prescription
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                         <View style={styles.lowerSectionContainer}>
                           <View style={{ marginLeft: "2%" }}>
@@ -463,7 +461,7 @@ const styles = StyleSheet.create({
     marginBottom: "3%",
     marginRight: "4%",
     borderColor: "#d0cdcdff",
-    padding:"0.5%"
+    padding: "0.5%",
   },
   container: {
     flexDirection: "column",
@@ -475,8 +473,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     //borderWidth:1,
-    marginVertical:"2%",
-    height:"25%"
+    marginVertical: "2%",
+    height: "25%",
   },
   imageBox: {
     //margin: "1%",
@@ -504,24 +502,24 @@ const styles = StyleSheet.create({
   generateButton: {
     backgroundColor: "#FF7072",
     borderRadius: 6,
-    width:"17%",
-    height:"25%",
-    marginLeft:"2%"
+    width: "17%",
+    height: "25%",
+    marginLeft: "2%",
   },
   generateText: {
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "600",
     fontFamily: "Poppins - SemiBold",
-    alignSelf:"center",
-    marginVertical:"3%"
+    alignSelf: "center",
+    marginVertical: "3%",
   },
   middleText: {
     color: "#000000",
     fontSize: 20,
     fontWeight: "500",
     fontFamily: "Inter - Medium",
-    marginTop:"6%"
+    marginTop: "6%",
   },
   bottomPart: {
     //marginLeft: "1%",
@@ -591,7 +589,7 @@ const styles = StyleSheet.create({
     borderColor: "#DADADA",
     flexDirection: "row",
     padding: "0.6%",
-    justifyContent:"space-around"
+    justifyContent: "space-around",
   },
   mediText: {
     fontSize: 14,
