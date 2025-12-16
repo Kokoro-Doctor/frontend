@@ -18,12 +18,7 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
   const [selectedItem, setSelectedItem] = useState(activeItem);
 
   const menuItems = [
-<<<<<<< HEAD
-    { name: "Home", 
-      icon: require("../../assets/Icons/HomeProfile.png") },
-=======
     { name: "Home", icon: require("../../assets/Icons/HomeProfile.png") },
->>>>>>> main
     {
       name: "Calendar",
       icon: require("../../assets/DoctorsPortal/Icons/calendar.png"),
