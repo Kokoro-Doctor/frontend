@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -10,26 +10,68 @@ import {
   useWindowDimensions,
   ScrollView,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import NewSideNav from "../../../components/DoctorsPortalComponents/NewSideNav";
 import { useNavigation } from "@react-navigation/native";
 import SideImageStyle from "../../../components/DoctorsPortalComponents/SideImageStyle";
-import { registerDoctor } from "../../../utils/AuthService";
+import { useGoogleAuth, handleGoogleLogin } from "../../../utils/AuthService";
 import Header from "../../../components/PatientScreenComponents/Header";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const DoctorsSignUp = () => {
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
   const [rememberMe, setRememberMe] = useState(false);
+  const [request, response, promptAsync] = useGoogleAuth();
+  const { doctorsSignup, requestSignupOtp } = useAuth();
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
     email: "",
     location: "",
+    specialization: "",
+    experience: "",
     phoneNumber: "",
-    password: "",
     otp: ["", "", "", ""],
   });
+  const [otpValue, setOtpValue] = useState("");
+  const [otpStatus, setOtpStatus] = useState("idle");
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const otpIntervalRef = useRef(null);
+  const sanitizeDigits = useCallback(
+    (value = "") => value.replace(/\D/g, ""),
+    []
+  );
+  const normalizePhoneNumber = useCallback(
+    (value = formData.phoneNumber) => {
+      if (!value || !value.trim()) return "";
+      const trimmed = value.trim();
+      const digitsOnly = sanitizeDigits(trimmed);
+      if (!digitsOnly) return "";
+      if (trimmed.startsWith("+")) {
+        return `+${digitsOnly}`;
+      }
+      const localDigits = digitsOnly.slice(-10);
+      return localDigits ? `+91${localDigits}` : "";
+    },
+    [formData.phoneNumber, sanitizeDigits]
+  );
+
+  const isPhoneValid = sanitizeDigits(formData.phoneNumber).length >= 10;
+  const essentialDetailsFilled =
+    formData.firstname.trim() &&
+    formData.lastname.trim() &&
+    formData.specialization.trim() &&
+    formData.experience.trim() &&
+    formData.phoneNumber.trim();
+  const canSendOtp =
+    essentialDetailsFilled &&
+    isPhoneValid &&
+    otpCountdown === 0 &&
+    otpStatus !== "sending" &&
+    otpStatus !== "verified";
+  const isOtpComplete = otpValue.trim().length === 4;
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -38,22 +80,191 @@ const DoctorsSignUp = () => {
     setRememberMe(!rememberMe);
   };
 
-  const handleSignup = async () => {
-    try {
-      await registerDoctor({
-        doctorname: `${formData.firstname} ${formData.lastname}`,
-        email: formData.email,
-        password: formData.password,
-        phoneNumber: formData.phoneNumber,
-        location: formData.location,
+  const validateDoctorForm = () => {
+    if (!formData.firstname.trim()) {
+      alert("Please enter your first name.");
+      return false;
+    }
+    if (!formData.lastname.trim()) {
+      alert("Please enter your last name.");
+      return false;
+    }
+    if (!formData.specialization.trim()) {
+      alert("Please enter your specialization.");
+      return false;
+    }
+    if (!formData.experience.trim()) {
+      alert("Please enter your years of experience.");
+      return false;
+    }
+    const experienceValue = parseInt(formData.experience, 10);
+    if (Number.isNaN(experienceValue) || experienceValue < 0) {
+      alert("Experience must be a valid number.");
+      return false;
+    }
+    if (!formData.phoneNumber.trim()) {
+      alert("Please enter your mobile number.");
+      return false;
+    }
+    const digitsOnly = sanitizeDigits(formData.phoneNumber);
+    if (digitsOnly.length < 10) {
+      alert("Please enter a valid mobile number.");
+      return false;
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    const handleGoogleResponse = async () => {
+      if (response?.type === "success") {
+        try {
+          const googleUser = await handleGoogleLogin(response);
+          if (googleUser) {
+            // Save Google user as a doctor
+            await AsyncStorage.setItem("@doctor", JSON.stringify(googleUser));
+            // setDoctor({
+            //   doctorname: googleUser.doctorname,
+            //   email: googleUser.email,
+            // });
+            alert(`Welcome Dr. ${googleUser.doctorname || ""}!`);
+            navigation.navigate("DoctorMedicalRegistration", {
+              email: googleUser.email,
+              doctorname: googleUser.name,
+            });
+          }
+        } catch (error) {
+          console.error("Google doctor login error:", error);
+          alert("Google Sign-In failed. Please try again.");
+        }
+      }
+    };
+    handleGoogleResponse();
+  }, [navigation, response]);
+
+  useEffect(() => {
+    if (otpCountdown <= 0) {
+      if (otpIntervalRef.current) {
+        clearInterval(otpIntervalRef.current);
+        otpIntervalRef.current = null;
+      }
+      return;
+    }
+
+    otpIntervalRef.current = setInterval(() => {
+      setOtpCountdown((prev) => {
+        if (prev <= 1) {
+          if (otpIntervalRef.current) {
+            clearInterval(otpIntervalRef.current);
+            otpIntervalRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
       });
+    }, 1000);
+
+    return () => {
+      if (otpIntervalRef.current) {
+        clearInterval(otpIntervalRef.current);
+        otpIntervalRef.current = null;
+      }
+    };
+  }, [otpCountdown]);
+
+  useEffect(() => {
+    return () => {
+      if (otpIntervalRef.current) {
+        clearInterval(otpIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const triggerGoogleLogin = useCallback(() => {
+    if (request) {
+      promptAsync(); // must be called immediately
+    } else {
+      console.log("Google auth request not ready yet");
+    }
+  }, [request, promptAsync]);
+
+  const handleSendOtp = async () => {
+    if (!validateDoctorForm()) {
+      return;
+    }
+    if (!isPhoneValid) {
+      alert("Please enter a valid phone number to receive OTP.");
+      return;
+    }
+    const phoneNumber = normalizePhoneNumber();
+    if (!phoneNumber) {
+      alert("Please enter a valid phone number to receive OTP.");
+      return;
+    }
+    setOtpStatus("sending");
+    try {
+      await requestSignupOtp({
+        phoneNumber,
+        role: "doctor",
+      });
+      setOtpStatus("sent");
+      setOtpCountdown(60);
+      alert("OTP sent to your phone number.");
+    } catch (error) {
+      console.error("Failed to send OTP:", error);
+      alert(error.message || "Failed to send OTP. Please try again.");
+      setOtpStatus("idle");
+    }
+  };
+
+  const handleVerifyAndSignup = async () => {
+    if (!isOtpComplete) {
+      alert("Please enter the 4-digit OTP.");
+      return;
+    }
+    const phoneNumber = normalizePhoneNumber();
+    if (!phoneNumber) {
+      alert("Please enter a valid phone number before verifying OTP.");
+      return;
+    }
+    if (!validateDoctorForm()) {
+      return;
+    }
+    if (!formData.specialization.trim()) {
+      alert("Please enter your specialization.");
+      return;
+    }
+    if (!formData.experience.trim()) {
+      alert("Please enter your years of experience.");
+      return;
+    }
+    const experienceValue = parseInt(formData.experience, 10);
+    if (Number.isNaN(experienceValue) || experienceValue < 0) {
+      alert("Experience must be a valid number.");
+      return;
+    }
+
+    setOtpStatus("verifying");
+    try {
+      // Directly signup with phone + OTP (no separate verify step)
+      await doctorsSignup({
+        phoneNumber,
+        otp: otpValue.trim(),
+        name: `${formData.firstname} ${formData.lastname}`.trim(),
+        specialization: formData.specialization.trim(),
+        experience: experienceValue,
+        email: formData.email,
+      });
+
+      setOtpStatus("verified");
       alert("Doctor registered successfully!");
-      navigation.navigate("DoctorMedicalRegistration", {
+      navigation.navigate("DoctorAppNavigation", {
+        screen: "DoctorMedicalRegistration",
         email: formData.email,
       });
     } catch (error) {
-      alert(error.message);
       console.error("Doctor registration error:", error);
+      alert(error.message || "Doctor registration failed.");
+      setOtpStatus("sent");
     }
   };
 
@@ -62,11 +273,13 @@ const DoctorsSignUp = () => {
       {Platform.OS === "web" && width > 1000 && (
         <View style={styles.webContainer}>
           <NewSideNav navigation={navigation} />
-          <View style={styles.Content}>
+          <ScrollView style={styles.Content}>
             <View style={styles.DetailContainer}>
               <Text style={styles.heading}>Sign Up</Text>
               <View style={styles.details}>
-                <Text style={styles.inputHeading}>First Name</Text>
+                <Text style={styles.inputHeading}>
+                  First Name <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <TextInput
                   placeholder="Enter your first name..."
                   placeholderTextColor="#c0c0c0"
@@ -76,10 +289,12 @@ const DoctorsSignUp = () => {
                       width > 1000 && { width: "60%", height: 36 },
                     { color: formData.firstname ? "black" : "#c0c0c0" },
                   ]}
-                  value={formData.name}
+                  value={formData.firstname}
                   onChangeText={(val) => handleChange("firstname", val)}
                 />
-                <Text style={styles.inputHeading}>Last Name</Text>
+                <Text style={styles.inputHeading}>
+                  Last Name <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <TextInput
                   placeholder="Enter your last name..."
                   placeholderTextColor="#c0c0c0"
@@ -89,23 +304,131 @@ const DoctorsSignUp = () => {
                       width > 1000 && { width: "60%", height: 36 },
                     { color: formData.lastname ? "black" : "#c0c0c0" },
                   ]}
-                  value={formData.name}
+                  value={formData.lastname}
                   onChangeText={(val) => handleChange("lastname", val)}
                 />
-                <Text style={styles.inputHeading}>Email Id</Text>
+                <Text style={styles.inputHeading}>
+                  Phone Number <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <View style={styles.phoneInputRow}>
+                  <TextInput
+                    placeholder="Enter your phone number..."
+                    placeholderTextColor="#c0c0c0"
+                    keyboardType="phone-pad"
+                    style={[
+                      styles.inputContainer,
+                      styles.phoneInput,
+                      Platform.OS === "web" &&
+                        width > 1000 && { width: "60%", height: 36 },
+                      { color: formData.phoneNumber ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.phoneNumber}
+                    onChangeText={(val) => handleChange("phoneNumber", val)}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.sendOtpButton,
+                      !canSendOtp &&
+                        otpStatus !== "verified" &&
+                        styles.disabledOtpButton,
+                      otpStatus === "verified" && styles.verifiedBadge,
+                    ]}
+                    onPress={handleSendOtp}
+                    disabled={!canSendOtp}
+                  >
+                    <Text style={styles.sendOtpButtonText}>
+                      {otpStatus === "verified"
+                        ? "Verified"
+                        : otpStatus === "sending"
+                        ? "Sending..."
+                        : otpCountdown > 0
+                        ? `Resend in ${otpCountdown}s`
+                        : "Send OTP"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {otpStatus !== "idle" && (
+                  <View style={styles.otpRow}>
+                    <TextInput
+                      placeholder="4-digit OTP"
+                      placeholderTextColor="#c0c0c0"
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      style={[styles.inputContainer, styles.otpInput]}
+                      value={otpValue}
+                      onChangeText={(value) =>
+                        setOtpValue(value.replace(/[^0-9]/g, ""))
+                      }
+                    />
+                    <TouchableOpacity
+                      style={[
+                        styles.verifyOtpButton,
+                        (!isOtpComplete || otpStatus === "verified") &&
+                          styles.disabledOtpButton,
+                      ]}
+                      onPress={handleVerifyAndSignup}
+                      disabled={
+                        !isOtpComplete ||
+                        otpStatus === "verifying" ||
+                        otpStatus === "verified"
+                      }
+                    >
+                      <Text style={styles.verifyOtpButtonText}>
+                        {otpStatus === "verified"
+                          ? "Signed Up!"
+                          : otpStatus === "verifying"
+                          ? "Signing Up..."
+                          : "Verify & Sign Up"}
+                      </Text>
+                    </TouchableOpacity>
+                    {otpStatus === "verified" && (
+                      <Text style={styles.verificationMessage}>
+                        Phone verified successfully.
+                      </Text>
+                    )}
+                    {otpCountdown > 0 && otpStatus !== "verified" && (
+                      <Text style={styles.otpHelper}>
+                        Resend available in {otpCountdown}s
+                      </Text>
+                    )}
+                  </View>
+                )}
+                <Text style={styles.inputHeading}>
+                  Specialization <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <TextInput
-                  placeholder="Enter your email..."
+                  placeholder="e.g. Cardiologist"
                   placeholderTextColor="#c0c0c0"
                   style={[
                     styles.inputContainer,
                     Platform.OS === "web" &&
                       width > 1000 && { width: "60%", height: 36 },
-                    { color: formData.email ? "black" : "#c0c0c0" },
+                    { color: formData.specialization ? "black" : "#c0c0c0" },
                   ]}
-                  value={formData.email}
-                  onChangeText={(val) => handleChange("email", val)}
+                  value={formData.specialization}
+                  onChangeText={(val) => handleChange("specialization", val)}
                 />
-                <Text style={styles.inputHeading}>Establishment Location</Text>
+                <Text style={styles.inputHeading}>
+                  Years of Experience{" "}
+                  <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <TextInput
+                  placeholder="e.g. 5"
+                  placeholderTextColor="#c0c0c0"
+                  keyboardType="numeric"
+                  style={[
+                    styles.inputContainer,
+                    Platform.OS === "web" &&
+                      width > 1000 && { width: "60%", height: 36 },
+                    { color: formData.experience ? "black" : "#c0c0c0" },
+                  ]}
+                  value={formData.experience}
+                  onChangeText={(val) => handleChange("experience", val)}
+                />
+                <Text style={styles.inputHeading}>
+                  Establishment Location{" "}
+                  <Text style={styles.optionalIndicator}>(optional)</Text>
+                </Text>
                 <TextInput
                   placeholder="Enter your location..."
                   placeholderTextColor="#c0c0c0"
@@ -118,33 +441,21 @@ const DoctorsSignUp = () => {
                   value={formData.location}
                   onChangeText={(val) => handleChange("location", val)}
                 />
-                <Text style={styles.inputHeading}>Phone No</Text>
+                <Text style={styles.inputHeading}>
+                  Email Id{" "}
+                  <Text style={styles.optionalIndicator}>(optional)</Text>
+                </Text>
                 <TextInput
-                  placeholder="Enter your phone number..."
+                  placeholder="Enter your email..."
                   placeholderTextColor="#c0c0c0"
-                  keyboardType="phone-pad"
                   style={[
                     styles.inputContainer,
                     Platform.OS === "web" &&
                       width > 1000 && { width: "60%", height: 36 },
-                    { color: formData.phoneNumber ? "black" : "#c0c0c0" },
+                    { color: formData.email ? "black" : "#c0c0c0" },
                   ]}
-                  value={formData.phone}
-                  onChangeText={(val) => handleChange("phoneNumber", val)}
-                />
-                <Text style={styles.inputHeading}>Password</Text>
-                <TextInput
-                  placeholder="Enter your password..."
-                  placeholderTextColor="#c0c0c0"
-                  secureTextEntry
-                  style={[
-                    styles.inputContainer,
-                    Platform.OS === "web" &&
-                      width > 1000 && { width: "60%", height: 36 },
-                    { color: formData.password ? "black" : "#c0c0c0" },
-                  ]}
-                  value={formData.password}
-                  onChangeText={(val) => handleChange("password", val)}
+                  value={formData.email}
+                  onChangeText={(val) => handleChange("email", val)}
                 />
                 <View style={styles.rememberForgotRow}>
                   <View style={styles.rememberMeContainer}>
@@ -168,26 +479,30 @@ const DoctorsSignUp = () => {
                 </View>
 
                 <TouchableOpacity
-                  style={styles.continueContainer}
-                  onPress={handleSignup}
-                >
-                  <Text style={styles.continueText}>Sign in</Text>
-                  <Image
-                    style={styles.arrowIcon}
-                    source={require("../../../assets/DoctorsPortal/Icons/ArrowIcon.png")}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
                   style={styles.skipContainer}
                   onPress={() =>
-                    navigation.navigate("DoctorMedicalRegistration")
+                    navigation.navigate("DoctorAppNavigation", {
+                      screen: "DoctorMedicalRegistration",
+                    })
                   }
                 >
                   <Text style={styles.continueText}>Skip</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.googleButton}
+                  onPress={triggerGoogleLogin}
+                >
+                  <Image
+                    source={require("../../../assets/Images/google-icon.png")}
+                    style={styles.googleIcon}
+                  />
+                  <Text style={styles.googleButtonText}>
+                    Sign in with Google
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ScrollView>
           <SideImageStyle />
         </View>
       )}
@@ -201,7 +516,9 @@ const DoctorsSignUp = () => {
             <View style={styles.DetailContainer}>
               <Text style={styles.heading}>Sign Up</Text>
               <View style={styles.details}>
-                <Text style={styles.inputHeading}>First Name</Text>
+                <Text style={styles.inputHeading}>
+                  First Name <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     placeholder="Enter your first name..."
@@ -215,7 +532,9 @@ const DoctorsSignUp = () => {
                   />
                 </View>
 
-                <Text style={styles.inputHeading}>Last Name</Text>
+                <Text style={styles.inputHeading}>
+                  Last Name <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     placeholder="Enter your last name..."
@@ -229,7 +548,145 @@ const DoctorsSignUp = () => {
                   />
                 </View>
 
-                <Text style={styles.inputHeading}>Email Id</Text>
+                <Text style={styles.inputHeading}>
+                  Phone Number <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <View style={[styles.inputWrapper, styles.phoneInputRow]}>
+                  <TextInput
+                    placeholder="Enter your phone number..."
+                    placeholderTextColor="#c0c0c0"
+                    keyboardType="phone-pad"
+                    style={[
+                      styles.inputContainer,
+                      styles.phoneInput,
+                      { color: formData.phoneNumber ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.phoneNumber}
+                    onChangeText={(val) => handleChange("phoneNumber", val)}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.sendOtpButton,
+                      !canSendOtp &&
+                        otpStatus !== "verified" &&
+                        styles.disabledOtpButton,
+                      otpStatus === "verified" && styles.verifiedBadge,
+                    ]}
+                    onPress={handleSendOtp}
+                    disabled={!canSendOtp}
+                  >
+                    <Text style={styles.sendOtpButtonText}>
+                      {otpStatus === "verified"
+                        ? "Verified"
+                        : otpStatus === "sending"
+                        ? "Sending..."
+                        : otpCountdown > 0
+                        ? `Resend in ${otpCountdown}s`
+                        : "Send OTP"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {otpStatus !== "idle" && (
+                  <View style={[styles.inputWrapper, styles.otpRow]}>
+                    <TextInput
+                      placeholder="4-digit OTP"
+                      placeholderTextColor="#c0c0c0"
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      style={[styles.inputContainer, styles.otpInput]}
+                      value={otpValue}
+                      onChangeText={(value) =>
+                        setOtpValue(value.replace(/[^0-9]/g, ""))
+                      }
+                    />
+                    <TouchableOpacity
+                      style={[
+                        styles.verifyOtpButton,
+                        (!isOtpComplete || otpStatus === "verified") &&
+                          styles.disabledOtpButton,
+                      ]}
+                      onPress={handleVerifyAndSignup}
+                      disabled={
+                        !isOtpComplete ||
+                        otpStatus === "verifying" ||
+                        otpStatus === "verified"
+                      }
+                    >
+                      <Text style={styles.verifyOtpButtonText}>
+                        {otpStatus === "verified"
+                          ? "Signed Up!"
+                          : otpStatus === "verifying"
+                          ? "Signing Up..."
+                          : "Verify & Sign Up"}
+                      </Text>
+                    </TouchableOpacity>
+                    {otpStatus === "verified" && (
+                      <Text style={styles.verificationMessage}>
+                        Phone verified successfully.
+                      </Text>
+                    )}
+                    {otpCountdown > 0 && otpStatus !== "verified" && (
+                      <Text style={styles.otpHelper}>
+                        Resend available in {otpCountdown}s
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                <Text style={styles.inputHeading}>
+                  Specialization <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="e.g. Cardiologist"
+                    placeholderTextColor="#c0c0c0"
+                    style={[
+                      styles.inputContainer,
+                      { color: formData.specialization ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.specialization}
+                    onChangeText={(val) => handleChange("specialization", val)}
+                  />
+                </View>
+                <Text style={styles.inputHeading}>
+                  Years of Experience{" "}
+                  <Text style={styles.requiredIndicator}>*</Text>
+                </Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="e.g. 5"
+                    placeholderTextColor="#c0c0c0"
+                    keyboardType="numeric"
+                    style={[
+                      styles.inputContainer,
+                      { color: formData.experience ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.experience}
+                    onChangeText={(val) => handleChange("experience", val)}
+                  />
+                </View>
+
+                <Text style={styles.inputHeading}>
+                  Establishment Location{" "}
+                  <Text style={styles.optionalIndicator}>(optional)</Text>
+                </Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="Enter your location..."
+                    placeholderTextColor="#c0c0c0"
+                    style={[
+                      styles.inputContainer,
+                      { color: formData.location ? "black" : "#c0c0c0" },
+                    ]}
+                    value={formData.location}
+                    onChangeText={(val) => handleChange("location", val)}
+                  />
+                </View>
+
+                <Text style={styles.inputHeading}>
+                  Email Id{" "}
+                  <Text style={styles.optionalIndicator}>(optional)</Text>
+                </Text>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     placeholder="Enter your email..."
@@ -242,37 +699,6 @@ const DoctorsSignUp = () => {
                     onChangeText={(val) => handleChange("email", val)}
                   />
                 </View>
-
-                <Text style={styles.inputHeading}>Phone No</Text>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    placeholder="Enter your phone number..."
-                    placeholderTextColor="#c0c0c0"
-                    keyboardType="phone-pad"
-                    style={[
-                      styles.inputContainer,
-                      { color: formData.phoneNumber ? "black" : "#c0c0c0" },
-                    ]}
-                    value={formData.phoneNumber}
-                    onChangeText={(val) => handleChange("phoneNumber", val)}
-                  />
-                </View>
-
-                <Text style={styles.inputHeading}>Password</Text>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    placeholder="Enter your password..."
-                    placeholderTextColor="#c0c0c0"
-                    secureTextEntry
-                    style={[
-                      styles.inputContainer,
-                      { color: formData.password ? "black" : "#c0c0c0" },
-                    ]}
-                    value={formData.password}
-                    onChangeText={(val) => handleChange("password", val)}
-                  />
-                </View>
-
                 <View style={styles.rememberForgotRow}>
                   <TouchableOpacity
                     style={styles.checkboxContainer}
@@ -290,18 +716,11 @@ const DoctorsSignUp = () => {
                 </View>
 
                 <View style={styles.btns}>
-                  <TouchableOpacity
-                    style={styles.continueContainer}
-                    onPress={handleSignup}
-                  >
-                    <Text style={styles.continueText}>Sign in</Text>
-                    <Text>{"\n"}</Text>
-                  </TouchableOpacity>
                   <Text style={styles.orOption}>Or</Text>
 
                   <TouchableOpacity
                     style={styles.continueWithGoogle}
-                    onPress={handleSignup}
+                    onPress={() => promptAsync()}
                   >
                     <Image
                       style={styles.googleIcon}
@@ -333,6 +752,66 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     backgroundColor: "#FCF5F7",
+    height: "100%",
+  },
+  phoneInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  sendOtpButton: {
+    backgroundColor: "#1FBF86",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    justifyContent: "center",
+  },
+  sendOtpButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  disabledOtpButton: {
+    backgroundColor: "#D1D5DB",
+  },
+  verifiedBadge: {
+    backgroundColor: "#16A34A",
+  },
+  otpRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    marginTop: 8,
+  },
+  otpInput: {
+    flex: 1,
+  },
+  verifyOtpButton: {
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    justifyContent: "center",
+  },
+  verifyOtpButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  verificationMessage: {
+    color: "#047857",
+    fontSize: 13,
+    marginTop: 6,
+  },
+  otpHelper: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginTop: 4,
   },
 
   header: {
@@ -350,11 +829,11 @@ const styles = StyleSheet.create({
   headContainer: {
     height: 70,
     marginBottom: "10%",
-
     width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
+    //justifyContent: "space-evenly",
+    //alignItems: "center",
     zIndex: 2,
+    //borderWidth: 1,
   },
   appContainer: {
     // flex: 1,
@@ -369,7 +848,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FCF5F7",
     ...Platform.select({
       web: {
-        width: "60%",
+        width: "100%",
         height: "auto",
       },
     }),
@@ -389,14 +868,22 @@ const styles = StyleSheet.create({
       web: {
         alignItems: "left",
         width: "100%",
-        //borderWidth:1
+        //borderWidth: 1,
+        //height:"70%"
       },
     }),
   },
 
   inputWrapper: {
     width: "100%",
-    maxWidth: 400,
+    //borderWidth: 1,
+    ...Platform.select({
+      web: {
+        //width: "100%",
+        maxWidth: 800,
+        //borderWidth: 1,
+      },
+    }),
   },
 
   heading: {
@@ -408,9 +895,9 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         fontSize: 30,
-        fontWeight: "500",
+        fontWeight: 500,
         marginBottom: "2%",
-        marginTop: "10%",
+        marginTop: "4%",
       },
     }),
   },
@@ -460,7 +947,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         fontSize: 14,
         paddingHorizontal: 5,
-        //width: "30%",
+        width: "100%",
         backgroundColor: "#fff",
         marginBottom: 10,
         shadowColor: "#000",
@@ -524,7 +1011,8 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignSelf: "center",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: "2%",
+    //borderWidth:1
   },
 
   continueContainer: {
@@ -539,7 +1027,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     ...Platform.select({
       web: {
-        width: "60%",
+        width: "100%",
         height: 42,
         backgroundColor: "#1FBF86",
         borderRadius: 5,
@@ -587,7 +1075,7 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         marginLeft: "15%",
-        width: "30%",
+        width: "40%",
       },
     }),
   },
@@ -605,6 +1093,40 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 10,
     borderRadius: 12,
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "60%",
+    height: 42,
+    //borderWidth: 1,
+    borderColor: "#151212ff",
+    borderRadius: 4,
+    //marginBottom: "3%",
+    marginTop: "3%",
+    backgroundColor: "#c1bfbfff",
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: "2%",
+  },
+  googleButtonText: {
+    fontSize: 16,
+    color: "#0e0e0eff",
+  },
+  requiredIndicator: {
+    color: "#EF4444",
+    fontSize: 12,
+    fontWeight: "bold",
+    marginLeft: 2,
+  },
+  optionalIndicator: {
+    color: "#6B7280",
+    fontSize: 14,
+    fontWeight: "normal",
+    marginLeft: 4,
   },
 });
 export default DoctorsSignUp;

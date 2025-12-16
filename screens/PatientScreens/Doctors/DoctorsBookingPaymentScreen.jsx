@@ -20,10 +20,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { payment_api } from "../../../utils/PaymentService";
-import Header from "../../../components/PatientScreenComponents/Header";
-//import Icon from "react-native-vector-icons/MaterialIcons";
+import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 import { API_URL } from "../../../env-vars";
- import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon from "react-native-vector-icons/FontAwesome";
+import { createBooking } from "../../../utils/DoctorService";
 
 const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
   const { setChatbotConfig } = useChatbot();
@@ -34,6 +34,8 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
   const [consultationFee, setConsultationFee] = useState(0);
   const params = route?.params || {};
   const doctors = params.doctor;
+  const doctorIdentifier =
+    doctors?.doctor_id || doctors?.id || doctors?.email || null;
   const selectedDate = params.selectedDate;
   const selectedTimeSlot = params.selectedTimeSlot
     ? typeof params.selectedTimeSlot === "string"
@@ -46,21 +48,22 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
 
     const fetchDoctorBookings = async () => {
       try {
-        const res = await fetch(`${API_URL}/doctorBookings/fetchBookings`, {
-          method: "POST",
+        if (!doctorIdentifier) {
+          return;
+        }
+        const res = await fetch(
+          `${API_URL}/appointmentService/doctors/${doctorIdentifier}/bookings`,
+          {
+            method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            id: doctors.email,
-            type: "doctor",
-            days: 3,
-          }),
-        });
+          }
+        );
 
         const data = await res.json();
         if (res.ok) {
-          setBookings(data.bookings || []);
+          setBookings(data || []);
         } else {
           console.error("Error fetching bookings", data.detail);
         }
@@ -70,7 +73,7 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
     };
 
     fetchDoctorBookings();
-  }, [doctors]);
+  }, [doctorIdentifier]);
 
   useFocusEffect(
     useCallback(() => {
@@ -97,6 +100,13 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
     // Otherwise, proceed with payment
     Alert.alert("Processing Payment", "Redirecting to payment gateway...");
     try {
+      // Create booking payload from route params
+      const bookingPayload = {
+        doctor_id: doctorIdentifier,
+        date: selectedDate,
+        start_time: selectedTimeSlot?.time || selectedTimeSlot,
+        user_id: user?.user_id || user?.email,
+      };
       await createBooking(bookingPayload);
       const paymentLink = await payment_api(amount);
       if (paymentLink) {
@@ -138,7 +148,7 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
                 <View style={styles.Right}>
                   {/* Header section */}
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
 
                   {/* Main content area */}

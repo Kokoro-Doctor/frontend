@@ -16,8 +16,11 @@ import {
 } from "react-native";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
-import Header from "../../../components/PatientScreenComponents/Header";
+import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 import { payment_api } from "../../../utils/PaymentService";
+import { useLoginModal } from "../../../contexts/LoginModalContext";
+import { useAuth } from "../../../contexts/AuthContext";
+
 const { width, height } = Dimensions.get("window");
 
 const features = [
@@ -31,6 +34,9 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   // const doctors = route?.params?.doctors || {};
   const [doctors, setDoctors] = useState(route.params?.doctors || null);
   const [isReady, setIsReady] = useState(false); // Delay rendering
+  const { user } = useAuth();
+  const { triggerLoginModal } = useLoginModal();
+
   useEffect(() => {
     const tryParseDoctorFromUrl = () => {
       try {
@@ -73,7 +79,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
     } else {
       setIsReady(true);
     }
-  }, []);
+  }, [doctors]);
 
   const handleContinuePayment = async (amount) => {
     Alert.alert("Processing Payment", "Redirecting to payment gateway...");
@@ -91,6 +97,23 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
     } catch (error) {
       Alert.alert("Payment Failed", error.message);
     }
+  };
+
+  const handleSubscribeClick = () => {
+    if (!user) {
+      // opens the actual login modal controlled by HeaderLoginSignUp
+      triggerLoginModal({ mode: "login" });
+      return;
+    }
+
+    // already logged in → go to payment
+    // navigation.navigate("PatientAppNavigation", {
+    //   screen: "DoctorsSubscriptionPaymentScreen",
+    //   params: { doctors },
+    // });
+    navigation.navigate("DoctorsSubscriptionPaymentScreen", {
+      params: { doctors },
+    });
   };
 
   return (
@@ -116,8 +139,8 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                 </View>
 
                 <View style={styles.Right}>
-                  <View style={styles.header}>
-                    <Header navigation={navigation} />
+                  <View style={[styles.header, { height: "12%" }]}>
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
 
                   <View style={styles.contentContainer}>
@@ -157,40 +180,41 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                         <Text style={styles.reviewsTitle}>User Reviews</Text>
 
                         <View style={styles.reviewsList}>
-                          {doctors.reviews?.map((review, index) => (
-                            <View key={index} style={styles.reviewCard}>
-                              <View style={styles.reviewTextBox}>
-                                <ScrollView
-                                  nestedScrollEnabled={true}
-                                  showsVerticalScrollIndicator={false}
-                                >
-                                  <Text style={styles.reviewText}>
-                                    {review.comment}
-                                  </Text>
-                                </ScrollView>
-                              </View>
+                          {Array.isArray(doctors?.reviews) &&
+                            doctors.reviews.map((review, index) => (
+                              <View key={index} style={styles.reviewCard}>
+                                <View style={styles.reviewTextBox}>
+                                  <ScrollView
+                                    nestedScrollEnabled={true}
+                                    showsVerticalScrollIndicator={false}
+                                  >
+                                    <Text style={styles.reviewText}>
+                                      {review.comment}
+                                    </Text>
+                                  </ScrollView>
+                                </View>
 
-                              <View style={styles.reviewerContainer}>
-                                {[...Array(5)].map((_, i) => (
-                                  <MaterialIcons
-                                    key={i}
-                                    name={
-                                      i + 1 <= review.rating
-                                        ? "star"
-                                        : i + 0.5 <= review.rating
-                                        ? "star-half"
-                                        : "star-border"
-                                    }
-                                    size={16}
-                                    color="#FFD700"
-                                  />
-                                ))}
-                                <Text style={styles.reviewerName}>
-                                  {review.reviewer}
-                                </Text>
+                                <View style={styles.reviewerContainer}>
+                                  {[...Array(5)].map((_, i) => (
+                                    <MaterialIcons
+                                      key={i}
+                                      name={
+                                        i + 1 <= review.rating
+                                          ? "star"
+                                          : i + 0.5 <= review.rating
+                                          ? "star-half"
+                                          : "star-border"
+                                      }
+                                      size={16}
+                                      color="#FFD700"
+                                    />
+                                  ))}
+                                  <Text style={styles.reviewerName}>
+                                    {review.reviewer}
+                                  </Text>
+                                </View>
                               </View>
-                            </View>
-                          ))}
+                            ))}
                         </View>
                       </View>
                     </View>
@@ -224,12 +248,13 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                         </View>
                         <TouchableOpacity
                           style={styles.subscribeButton}
-                          onPress={() =>
-                            navigation.navigate(
-                              "DoctorsSubscriptionPaymentScreen",
-                              { doctors }
-                            )
-                          }
+                          // onPress={() =>
+                          //   navigation.navigate("Doctors", {
+                          //     screen: "DoctorsSubscriptionPaymentScreen",
+                          //     params: { doctors },
+                          //   })
+                          // }
+                          onPress={handleSubscribeClick}
                         >
                           <Text style={styles.subscribeButtonText}>
                             Subscribe Doctor
@@ -480,7 +505,7 @@ const styles = StyleSheet.create({
         // color: "#666",
         marginTop: 2,
         fontWeight: windowWidth < 1000 ? "bold" : "normal",
-        alignSelf: "flex-start",
+        //alignSelf: "flex-start",
         alignSelf: windowWidth > 1000 ? "flex-start" : "center",
       },
     }),
@@ -636,46 +661,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
 
-  doctorIcon: {
-    alignSelf: "center",
-    height: 28,
-    width: 28,
-    marginHorizontal: "3%",
-    borderRadius: 50,
-  },
-  experienceDetail: {
-    height: "94%",
-    width: "78%",
-    //borderWidth: 1,
-    alignSelf: "center",
-    flexDirection: "column",
-  },
-  experienceText: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: " rgb(94, 93, 93)",
-    paddingHorizontal: "4%",
-  },
-  experience: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#000000",
-    paddingHorizontal: "4%",
-  },
-
-  ratingSection: {
-    height: "100%",
-    width: "48.8%",
-    //borderWidth: 1,
-    flexDirection: "row",
-  },
-  rating: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#000000",
-    alignSelf: "center",
-  },
-
   feesBox: {
     height: "90%",
     width: "60%",
@@ -766,80 +751,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     // borderWidth: 1,
   },
-  doctorImage: {
-    height: 90,
-    width: 90,
-    alignSelf: "center",
-    borderRadius: 40,
-    ...Platform.select({
-      web: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginBottom: 10,
-      },
-    }),
-  },
+
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 5,
   },
-  ratingDetail: {
-    ...Platform.select({
-      web: {
-        flexDirection: "column",
-        width: "80%",
-        //borderWidth:1
-      },
-    }),
-  },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: " rgb(94, 93, 93)",
-    paddingHorizontal: "4%",
-    ...Platform.select({
-      web: {
-        marginLeft: "1%",
-        fontSize: 14,
-        fontWeight: 600,
-      },
-    }),
-  },
+
   doctorInfoSection: {
     width: "80%",
     height: "85%",
     paddingLeft: "1%",
     //borderWidth: 1,
   },
-  doctorName: {
-    fontSize: 22,
-    fontWeight: 600,
-    color: "#000000",
-    alignSelf: "center",
-    ...Platform.select({
-      web: {
-        fontSize: 22,
-        fontWeight: "bold",
-        color: "#333",
-        alignSelf: "flex-start",
-      },
-    }),
-  },
-  doctorCredentials: {
-    fontSize: 14,
-    alignSelf: "center",
-    fontWeight: 600,
-    ...Platform.select({
-      web: {
-        fontSize: 14,
-        color: "#666",
-        marginTop: 2,
-        alignSelf: "flex-start",
-      },
-    }),
-  },
+
   doctorExperience: {
     fontSize: 14,
     color: "#666",
@@ -964,10 +889,10 @@ const styles = StyleSheet.create({
     marginLeft: "18%",
   },
   feeText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 400,
     color: "#888888",
-    marginRight: "18%",
+    marginRight: "15%",
   },
   subscribeButton: {
     height: "24%",

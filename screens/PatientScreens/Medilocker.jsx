@@ -21,11 +21,11 @@ import SideBarNavigation from "../../components/PatientScreenComponents/SideBarN
 import * as DocumentPicker from "expo-document-picker";
 import * as WebBrowser from "expo-web-browser";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import Header from "../../components/PatientScreenComponents/Header";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { AntDesign, FontAwesome, Entypo } from "@expo/vector-icons";
 import { AuthContext } from "../../contexts/AuthContext";
+import { useLoginModal } from "../../contexts/LoginModalContext";
 import {
   FetchFromServer,
   upload,
@@ -33,6 +33,7 @@ import {
   remove,
   shortenUrl,
 } from "../../utils/MedilockerService";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 const { width, height } = Dimensions.get("window");
 
 const Medilocker = ({ navigation }) => {
@@ -40,6 +41,7 @@ const Medilocker = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const { width } = useWindowDimensions();
   const { user } = useContext(AuthContext);
+  const { triggerLoginModal } = useLoginModal();
   const [isGridView, setIsGridView] = useState(true);
 
   const [menuVisible, setMenuVisible] = useState(false);
@@ -52,7 +54,7 @@ const Medilocker = ({ navigation }) => {
 
     const loadFilesFromServer = async () => {
       try {
-        const data = await FetchFromServer(user?.email);
+        const data = await FetchFromServer(user?.user_id || user?.email);
         if (data?.files) {
           const mappedFiles = data.files.map((file) => ({
             name: file.filename,
@@ -161,7 +163,7 @@ const Medilocker = ({ navigation }) => {
       }
 
       const payload = {
-        email: user?.email,
+        user_id: user?.user_id || user?.email,
         files: [
           {
             filename: fileName,
@@ -190,7 +192,7 @@ const Medilocker = ({ navigation }) => {
 
   const downloadFile = async (fileName) => {
     try {
-      const data = await download(user?.email, fileName);
+      const data = await download(user?.user_id || user?.email, fileName);
       const downloadUrl = data.download_url;
 
       if (Platform.OS === "web") {
@@ -205,7 +207,7 @@ const Medilocker = ({ navigation }) => {
 
   const removeFile = async (fileName) => {
     try {
-      const data = await remove(user?.email, fileName);
+      const data = await remove(user?.user_id || user?.email, fileName);
 
       setFiles(files.filter((file) => file.name !== fileName));
       Alert.alert("Deleted", `${fileName} has been removed`);
@@ -216,7 +218,7 @@ const Medilocker = ({ navigation }) => {
 
   const shareFile = async (fileName) => {
     try {
-      const data = await download(user?.email, fileName);
+      const data = await download(user?.user_id || user?.email, fileName);
       const downloadUrl = data.download_url;
 
       if (Platform.OS === "web") {
@@ -295,42 +297,26 @@ const Medilocker = ({ navigation }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
 
                   <View style={styles.right_middle}>
-                    <View style={styles.medilocker_Container}>
-                      <View style={styles.DashedBox}>
-                        <ImageBackground
-                          source={require("../../assets/Images/Rectangle.png")}
-                          style={styles.dashedBorder}
-                          resizeMode="stretch"
-                        >
-                          <Text style={styles.uploadTitle}>Medilocker</Text>
-                          <Image
-                            source={require("../../assets/Icons/Vector.png")}
-                            style={styles.uploadIcon}
-                          />
-                          <Text style={styles.uploadText}>
-                            Drag and Drop your documents here, or
-                          </Text>
-                          <TouchableOpacity onPress={pickDocument}>
-                            <Text style={styles.uploadLink}>
-                              Click to Browse
-                            </Text>
-                          </TouchableOpacity>
-                        </ImageBackground>
-                      </View>
-
-                      <TouchableOpacity
-                        style={styles.addDocumentButton}
-                        onPress={pickDocument}
-                      >
-                        <Text style={styles.addDocumentText}>
-                          + Add New Document
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity
+                      style={styles.uploadBar}
+                      onPress={pickDocument}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialIcons
+                        name="cloud-upload"
+                        size={20}
+                        color="#FF7072"
+                        style={styles.uploadBarIcon}
+                      />
+                      <Text style={styles.uploadBarText}>
+                        Drag & drop files here or{" "}
+                        <Text style={styles.uploadBarLink}>browse</Text>
+                      </Text>
+                    </TouchableOpacity>
                   </View>
 
                   <View style={styles.right_bottom}>
@@ -443,7 +429,7 @@ const Medilocker = ({ navigation }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={styles.appHeader}>
-            <Header navigation={navigation} />
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
           <View style={styles.appMedilockerContainer}>
             <Text style={styles.appTitle}>Medilocker</Text>
@@ -619,7 +605,7 @@ const Medilocker = ({ navigation }) => {
             </Text>
             <Pressable
               onPress={() => {
-                navigation.navigate("Login");
+                triggerLoginModal();
               }}
               style={styles.loginButton}
             >
@@ -684,72 +670,48 @@ const styles = StyleSheet.create({
     }),
   },
   right_middle: {
-    height: "40%",
+    height: "auto",
     width: "100%",
+    marginTop: "4%",
+    paddingHorizontal: "5%",
   },
   right_bottom: {
     width: "100%",
-    height: "38%",
-  },
-  medilocker_Container: {
     flex: 1,
-    //  height: "80%",
-    width: "100%",
-    borderWidth: 1,
-    backgroundColor: "white",
-    padding: 10,
-    transform: [{ scale: 0.9 }],
-    flexDirection: "column",
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+  },
+  uploadBar: {
+    backgroundColor: "#FFF5F7",
+    borderWidth: 2,
+    borderColor: "#FFE5E8",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      web: {
+        borderStyle: "dashed",
+        cursor: "pointer",
+      },
+    }),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    // alignSelf: "center", // Ensures it's inside the parent
-    maxHeight: "100%", // Prevents it from exceeding parent height
-    overflow: "hidden",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  DashedBox: {
-    height: "75%",
-    width: "96%",
-    //borderWidth: 1,
-    borderColor: "#000000",
-    marginHorizontal: "2%",
-    marginVertical: "1.6%",
-    overflow: "hidden",
+  uploadBarIcon: {
+    marginRight: 10,
   },
-  dashedBorder: {
-    width: "100%",
-    height: "100%",
+  uploadBarText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
   },
-  uploadTitle: {
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: 700,
-    marginVertical: "1%",
-  },
-  uploadIcon: {
-    alignSelf: "center",
-    height: "25%",
-    width: "10%",
-    resizeMode: "contain",
-  },
-  uploadText: {
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: 500,
-    paddingVertical: "0.5%",
-  },
-  uploadLink: {
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: 600,
-    color: "#0961BB",
-    textDecorationLine: "underline",
+  uploadBarLink: {
+    color: "#FF7072",
+    fontWeight: "600",
   },
   files_Upload: {
     fontSize: 21,
@@ -784,6 +746,7 @@ const styles = StyleSheet.create({
     // height: "95%",
     width: "100%",
     borderWidth: 0,
+    marginTop: "1%",
     backgroundColor: "white",
     padding: 10,
     transform: [{ scale: 0.9 }],
@@ -1137,7 +1100,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     padding: 15,
     borderRadius: 50,
-    elevation: 5,
+    //elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,

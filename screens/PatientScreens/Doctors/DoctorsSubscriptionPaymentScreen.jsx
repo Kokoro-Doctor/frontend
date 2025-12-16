@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useContext } from "react";
+import { useCallback, useState, useContext } from "react";
 import {
   Alert,
   Image,
@@ -8,24 +8,23 @@ import {
   TouchableOpacity,
   View,
   Platform,
-  Dimensions,
   ScrollView,
   Linking,
   useWindowDimensions,
   StatusBar,
 } from "react-native";
+// import { MaterialIcons, Icon } from "react-native-vector-icons/MaterialIcons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+//import Icon from "react-native-vector-icons/MaterialIcons";
 import { useChatbot } from "../../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { payment_api } from "../../../utils/PaymentService";
-import Header from "../../../components/PatientScreenComponents/Header";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 
 const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  //const [patientName, setPatientName] = useState("");
+  //const [searchQuery, setSearchQuery] = useState("");
   const { setChatbotConfig } = useChatbot();
   const { width } = useWindowDimensions();
   const { user } = useContext(AuthContext);
@@ -37,9 +36,9 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
     }, [])
   );
 
-  const handleSearch = () => {
-    Alert.alert(`Search Results for: ${searchQuery}`);
-  };
+  // const handleSearch = () => {
+  //   Alert.alert(`Search Results for: ${searchQuery}`);
+  // };
 
   const handleContinuePayment = async (amount) => {
     Alert.alert("Processing Payment", "Redirecting to payment gateway...");
@@ -83,8 +82,8 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
 
                 <View style={styles.Right}>
                   {/* Header section */}
-                  <View style={styles.header}>
-                    <Header navigation={navigation} />
+                  <View style={[styles.header, { height: "12%" }]}>
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
 
                   {/* Main content area */}
@@ -126,7 +125,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                                 {`${doctors.experience} Experience`}
                               </Text>
                               <View style={styles.locationSection}>
-                                <Icon
+                                <MaterialIcons
                                   name="location-on"
                                   size={15}
                                   color="rgba(22, 128, 236, 0.75)"
@@ -144,7 +143,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                             </Text>
                             <View style={styles.metricsBox}>
                               <View style={styles.metricsContent}>
-                                <Icon
+                                <MaterialIcons
                                   name="star"
                                   size={13}
                                   color="rgba(22, 128, 236, 0.75)"
@@ -156,7 +155,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                                 </Text>
                               </View>
                               <View style={styles.metricsContent}>
-                                <Icon
+                                <MaterialIcons 
                                   name="star"
                                   size={13}
                                   color="rgba(22, 128, 236, 0.75)"
@@ -168,7 +167,7 @@ const DoctorsSubscriptionPaymentScreen = ({ navigation, route }) => {
                                 </Text>
                               </View>
                               <View style={styles.metricsContent}>
-                                <Icon
+                                <MaterialIcons
                                   name="star"
                                   size={13}
                                   color="rgba(22, 128, 236, 0.75)"
@@ -548,17 +547,20 @@ const styles = StyleSheet.create({
     //borderWidth: 1,
     flexDirection: "row",
   },
+  metricsTitle:{
+    fontSize:12
+  },
   verticalLine: {
     height: "100%",
     backgroundColor: "rgb(224, 224, 225)",
     width: "0.3%",
   },
-  horizontalLine:{
+  horizontalLine: {
     height: "0.3%",
     backgroundColor: "rgb(224, 224, 225)",
     width: "71%",
-    marginTop:"3%",
-    marginLeft:"9%"
+    marginTop: "3%",
+    marginLeft: "9%",
   },
   doctorSubscriptionDetails: {
     minHeight: 300,
@@ -582,7 +584,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  subscriptionFeesContainer:{
+  subscriptionFeesContainer: {
     height: "12%",
     width: "70%",
     //borderWidth: 1,
@@ -690,7 +692,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    backgroundColor: "#fff",
+    //backgroundColor: "#fff",
   },
   sectionTitle: {
     fontSize: 16,
@@ -761,7 +763,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: "2.5%",
     shadowColor: "#000",
-    overflow: "hidden",
+    //overflow: "hidden",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -815,11 +817,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     width: "100%",
     shadowColor: "#000",
-    overflow: "hidden",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    shadowRadius: 3,
     elevation: 5,
     backgroundColor: "#fff",
   },

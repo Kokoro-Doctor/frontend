@@ -14,6 +14,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { AuthContext } from "../../contexts/AuthContext";
+import { useLoginModal } from "../../contexts/LoginModalContext";
 import { MaterialIcons } from "@expo/vector-icons";
 import SideBarNavigation from "./SideBarNavigation";
 import NewestSidebar from "../DoctorsPortalComponents/NewestSidebar";
@@ -22,6 +23,7 @@ const { width, height } = Dimensions.get("window");
 
 const Header = ({ navigation, isDoctorPortal = false }) => {
   const { user, logout, setRole } = useContext(AuthContext);
+  const { triggerLoginModal } = useLoginModal();
   const { width } = useWindowDimensions();
   const [isSideBarVisible, setIsSideBarVisible] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -251,7 +253,13 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
           {Platform.OS === "web" && width > 1000 && (
             <View style={styles.authButtonsWeb}>
               <Pressable
-                onPress={() => navigation.navigate("Login")}
+                onPress={() => navigation.navigate("DoctorsSignUp")}
+                style={[styles.doctorButton]}
+              >
+                <Text style={styles.doctorButtonText}>Are you a doctor ?</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => triggerLoginModal({ mode: "login" })}
                 //onPress={() => handleOptionPress("DoctorPatientLandingPage")}
                 style={styles.authButton}
               >
@@ -350,9 +358,17 @@ const Header = ({ navigation, isDoctorPortal = false }) => {
                       <View
                         style={[styles.dropdownMain, styles.dropdownLoggedOut]}
                       >
+                        <Pressable
+                          onPress={() => navigation.navigate("DoctorsSignUp")}
+                          style={[styles.doctorButtonApp]}
+                        >
+                          <Text style={styles.doctorButtonTextApp}>
+                            Are you a doctor?
+                          </Text>
+                        </Pressable>
                         <TouchableOpacity
                           //onPress={() => handleOptionPress("Login")}
-                          onPress={() => navigation.navigate("Login")}
+                          onPress={() => triggerLoginModal({ mode: "login" })}
                           style={styles.dropdownItem}
                         >
                           <Text style={styles.dropdownText}>Login</Text>
@@ -473,6 +489,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-end",
     marginRight: 20,
+    //borderWidth:1,
+    justifyContent: "space-around",
+    width: "25%",
   },
   authButtonsApp: {
     flexDirection: "row",
@@ -482,6 +501,34 @@ const styles = StyleSheet.create({
   },
   authButtonBox: {
     //borderWidth:1,
+  },
+  // doctorButtonApp: {
+  //   marginHorizontal: "4%",
+  //   borderWidth: 1,
+  //   width: "60%",
+  //   alignItems: "center",
+  // },
+  doctorButtonTextApp:{
+    fontSize:14,
+    color:"rgba(255, 112, 114, 1)",
+    fontWeight:700,
+    marginTop:"3%"
+  },
+  doctorButton: {
+    borderWidth: 1,
+    borderRadius: 5,
+    width: "50%",
+    height: "60%",
+    alignItems: "center",
+    marginVertical: "3%",
+    backgroundColor: "#fff",
+  },
+  doctorButtonText: {
+    color: " rgba(255, 112, 114, 1)",
+    fontWeight: 700,
+    marginVertical: "1%",
+    fontSize: 17,
+    
   },
   authButton: {
     height: 50,
@@ -558,7 +605,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     zIndex: 100,
-    marginRight: "2%",
+    //marginRight: "6%",
+    width:120
   },
   dropdownLoggedOut: {
     top: 30,

@@ -10,7 +10,7 @@ import EstablishmentTiming from "../screens/DoctorScreens/DoctorRegistration/Est
 import NewDoctorMedicalReg from "../screens/DoctorScreens/DoctorRegistration/NewDoctorMedicalReg";
 import ReminderScreen from "../screens/DoctorScreens/ReminderView";
 import HistoryScreen from "../screens/DoctorScreens/History";
-import CalendarView from "../screens/DoctorScreens/CalendarView";
+//import Calendar from "../screens/DoctorScreens/Calendar";
 import AppointmentsView from "../screens/DoctorScreens/AppointmentsView";
 import AccountSettings from "../screens/DoctorScreens/Settings/AccountSettings";
 import LanguagePreference from "../screens/DoctorScreens/Settings/LanguagePreference";
@@ -22,6 +22,11 @@ import ThemeSettings from "../screens/DoctorScreens/Settings/ThemeSettings";
 import Reminder from "../screens/DoctorScreens/ReminderNewest";
 import LandingPage from "../screens/PatientScreens/LandingPage";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
+import Dashboard from "../screens/DoctorScreens/Dashboard";
+import Prescription from "../screens/DoctorScreens/Prescription";
+import DoctorsSubscribers from "../screens/DoctorScreens/DoctorsSubscribers";
+import GeneratePrescription from "../screens/DoctorScreens/GeneratePrescription";
+import DrCalendarView from "../screens/DoctorScreens/DrCalendarView";
 
 const Stack = createNativeStackNavigator();
 
@@ -31,7 +36,7 @@ const DoctorAppNavigation = () => {
   return (
     <HeaderButtonsProvider stackType={"native"}>
       <Stack.Navigator
-        initialRouteName="LandingPage"
+        initialRouteName="Dashboard"
         screenOptions={{
           headerStyle: {
             backgroundColor: theme.container.backgroundColor,
@@ -42,6 +47,11 @@ const DoctorAppNavigation = () => {
         <Stack.Screen
           name="DoctorPatientLandingPage"
           component={DoctorPatientLandingPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Dashboard"
+          component={Dashboard}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -85,8 +95,28 @@ const DoctorAppNavigation = () => {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="CalendarView"
-          component={CalendarView}
+          name="DoctorsSubscribers"
+          component={DoctorsSubscribers}
+          options={{ headerShown: false }}
+        />
+        {/* <Stack.Screen
+          name="Calendar"
+          component={Calendar}
+          options={{ headerShown: false }}
+        /> */}
+        <Stack.Screen
+          name="DrCalendarView"
+          component={DrCalendarView}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Prescription"
+          component={Prescription}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GeneratePrescription"
+          component={GeneratePrescription}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -99,7 +129,7 @@ const DoctorAppNavigation = () => {
           component={AccountSettings}
           options={{ headerShown: false }}
         />
-        
+
         <Stack.Screen
           name="MedicalProof"
           component={MedicalProof}

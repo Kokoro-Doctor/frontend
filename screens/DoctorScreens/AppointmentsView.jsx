@@ -123,17 +123,17 @@ const AppointmentsView = ({ navigation }) => {
         {/* Appointments Table */}
         <View style={styles.appointmentsTable}>
           {/* Table Header */}
-          <View style={styles.tableHeader}>
+          {/* <View style={styles.tableHeader}>
             <Text style={styles.tableHeaderCell}>Patient Name</Text>
             <Text style={styles.tableHeaderCell}>Date & Time</Text>
             <Text style={styles.tableHeaderCell}>Status</Text>
             <Text style={styles.tableHeaderCell}>Appointment Type</Text>
             <Text style={styles.tableHeaderCell}>Doctor Assigned</Text>
             <Text style={styles.tableHeaderCell}>Action</Text>
-          </View>
+          </View> */}
 
           {/* Table Body */}
-          <ScrollView style={styles.tableBody}>
+          {/* <ScrollView style={styles.tableBody}>
             {appointmentData.map((appointment, index) => (
               <View key={index} style={styles.tableRow}>
                 <Text style={styles.tableCell}>{appointment.patientName}</Text>
@@ -155,7 +155,8 @@ const AppointmentsView = ({ navigation }) => {
                 </View>
               </View>
             ))}
-          </ScrollView>
+          </ScrollView> */}
+          <Text style={styles.noDataText}>No Schedule for now</Text>
         </View>
       </View>
     </View>
@@ -333,6 +334,12 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginLeft: 4,
   },
+  noDataText:{
+    alignSelf:"center",
+    marginVertical:"10%",
+    fontSize:20,
+    fontWeight:600
+  }
 });
 
 export default AppointmentsView;

@@ -12,6 +12,10 @@ import {
   Dimensions,
 } from "react-native";
 import { AuthContext } from "../../contexts/AuthContext";
+<<<<<<< HEAD
+=======
+import { useLoginModal } from "../../contexts/LoginModalContext";
+>>>>>>> main
 import { MaterialIcons } from "@expo/vector-icons";
 import NewSideNav from "./NewSideNav";
 import NewestSidebar from "./NewestSidebar";
@@ -21,6 +25,10 @@ const { width, height } = Dimensions.get("window");
 
 const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
   const { user, logout, setRole } = useContext(AuthContext);
+<<<<<<< HEAD
+=======
+  const { triggerLoginModal } = useLoginModal();
+>>>>>>> main
   const { width } = useWindowDimensions();
   const [isSideBarVisible, setIsSideBarVisible] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -219,7 +227,11 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
           {Platform.OS === "web" && width > 1000 && (
             <View style={styles.authButtonsWeb}>
               <Pressable
+<<<<<<< HEAD
                 onPress={() => navigation.navigate("Login")}
+=======
+                onPress={() => triggerLoginModal({ mode: "login" })}
+>>>>>>> main
                 //onPress={() => handleOptionPress("DoctorPatientLandingPage")}
                 style={styles.authButton}
               >
@@ -321,7 +333,13 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
                       >
                         <Pressable
                           //onPress={() => handleOptionPress("Login")}
+<<<<<<< HEAD
                           onPress={() => navigation.navigate("Login")}
+=======
+                          onPress={() =>
+                            triggerLoginModal({ mode: "login" })
+                          }
+>>>>>>> main
                           style={styles.dropdownItem}
                         >
                           <Text style={styles.dropdownText}>Login</Text>

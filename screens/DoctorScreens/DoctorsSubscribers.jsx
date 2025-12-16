@@ -8,13 +8,17 @@ import {
   Platform,
   TouchableOpacity,
   useWindowDimensions,
+<<<<<<< HEAD
   StatusBar,
+=======
+>>>>>>> main
   Text,
   TextInput,
   ScrollView,
 } from "react-native";
 
 import { MaterialIcons } from "@expo/vector-icons";
+<<<<<<< HEAD
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -25,6 +29,14 @@ import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSideba
 import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
 import DoctorCard from "../../components/DoctorsPortalComponents/DoctorCard";
 
+=======
+import { useChatbot } from "../../contexts/ChatbotContext";
+import { useFocusEffect } from "@react-navigation/native";
+//import DoctorsHeader from "../../components/DoctorsPortalComponents/DoctorsHeader";
+import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
+//import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+>>>>>>> main
 
 const { width, height } = Dimensions.get("window");
 const DoctorsSubscribers = ({ navigation, route }) => {
@@ -33,11 +45,18 @@ const DoctorsSubscribers = ({ navigation, route }) => {
   const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
   //const [selectedButton, setSelectedButton] = useState(null);
 
+<<<<<<< HEAD
 
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
     }, [])
+=======
+  useFocusEffect(
+    useCallback(() => {
+      setChatbotConfig({ height: "57%" });
+    }, [setChatbotConfig])
+>>>>>>> main
   );
 
   return (
@@ -46,16 +65,24 @@ const DoctorsSubscribers = ({ navigation, route }) => {
         <View style={styles.webContainer}>
           <View style={styles.imageContainer}>
             <ImageBackground
+<<<<<<< HEAD
               source={require("../../assets/Images/dr_background.png")}
               style={styles.imageBackground}
               resizeMode="cover"
             >
               
+=======
+              source={require("../../assets/DoctorsPortal/Images/DoctorDashboard.png")}
+              style={styles.imageBackground}
+              resizeMode="cover"
+            >
+>>>>>>> main
               <View style={styles.parent}>
                 <View style={styles.Left}>
                   <NewestSidebar navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
+<<<<<<< HEAD
                   <DoctorsHeader navigation={navigation} />
                   {/* <View style={styles.firstTextBox}>
                     <View>
@@ -74,11 +101,15 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                     </View>
 
                   </View> */}
+=======
+                  <HeaderLoginSignUp navigation={navigation} />
+>>>>>>> main
 
                   <View style={styles.contentContainer}>
                     <View style={styles.upperPart}>
                       <View>
                         <Text style={styles.containerText}>
+<<<<<<< HEAD
                           Your Subscribers</Text>
                       </View>
                       <View style={styles.upperBox}>
@@ -114,6 +145,45 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                           <Text style={styles.dateText}>Status : </Text>
                           <View style={styles.filterBox}>
                             
+=======
+                          Your Subscribers
+                        </Text>
+                      </View>
+                      <View style={styles.upperBox}>
+                        <TouchableOpacity style={styles.filterBox}>
+                          <Image
+                            source={require("../../assets/DoctorsPortal/Icons/filterIcon.png")}
+                            style={styles.filterIcon}
+                          />
+                          <Text style={styles.filterText}>Filter</Text>
+                        </TouchableOpacity>
+
+                        <View
+                          style={{ flexDirection: "row", alignItems: "center" }}
+                        >
+                          <Text style={styles.dateText}>Date : </Text>
+                          <View style={styles.filterBox}>
+                            <TouchableOpacity style={styles.dateBox}>
+                              <TextInput
+                                style={styles.selectdateText}
+                                placeholder="Select Date"
+                                value={searchText}
+                                onChangeText={setSearchText}
+                              />
+                              <Image
+                                //source={require("../../assets/Icons/dateIcon.png")}
+                                style={styles.iconImage}
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+
+                        <View
+                          style={{ flexDirection: "row", alignItems: "center" }}
+                        >
+                          <Text style={styles.dateText}>Status : </Text>
+                          <View style={styles.filterBox}>
+>>>>>>> main
                             <TouchableOpacity style={styles.dateBox}>
                               <TextInput
                                 style={styles.selectdateText}
@@ -122,7 +192,11 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                                 onChangeText={setSearchText}
                               />
                               <Image
+<<<<<<< HEAD
                                 source={require("../../assets/Icons/statusIcon.png")}
+=======
+                                //source={require("../../assets/Icons/statusIcon.png")}
+>>>>>>> main
                                 style={styles.iconImage}
                               />
                             </TouchableOpacity>
@@ -135,7 +209,11 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                             size={20}
                             color="#B9B9B988"
                             style={styles.searchIcon}
+<<<<<<< HEAD
                          />
+=======
+                          />
+>>>>>>> main
                           <TextInput
                             style={styles.searchBoxText}
                             placeholder="Search For Patient"
@@ -147,13 +225,19 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                     </View>
 
                     <View style={styles.lowerPart}>
+<<<<<<< HEAD
                       <ScrollView>
+=======
+                      {/* <ScrollView> */}
+                      {/* <SubscriberCard></SubscriberCard>
+>>>>>>> main
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
+<<<<<<< HEAD
                         <SubscriberCard></SubscriberCard>
                         <SubscriberCard></SubscriberCard>
                         {/* <DoctorCard
@@ -200,12 +284,39 @@ const DoctorsSubscribers = ({ navigation, route }) => {
 
                   </View>
                   
+=======
+                        <SubscriberCard></SubscriberCard> */}
+                      <View style={styles.lowerCenterSection}>
+                        <Image
+                          source={require("../../assets/DoctorsPortal/Images/subscriberIcon.png")}
+                          style={styles.subscriberIcon}
+                        />
+                        <Text style={styles.inviteSubscriberText}>
+                          Complete your registration process to become a
+                          verified doctor on the platform.
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.inviteButton}
+                          onPress={() =>
+                            navigation.navigate("DoctorAppNavigation", {
+                              screen: "DoctorMedicalRegistration",
+                            })
+                          }
+                        >
+                          Complete Registration Process
+                        </TouchableOpacity>
+                      </View>
+                      {/* </ScrollView> */}
+                    </View>
+                  </View>
+>>>>>>> main
                 </View>
               </View>
             </ImageBackground>
           </View>
         </View>
       )}
+<<<<<<< HEAD
 
       {(Platform.OS !== "web" || width < 1000) && (
         <View style={styles.appContainer}>
@@ -258,6 +369,8 @@ const DoctorsSubscribers = ({ navigation, route }) => {
       )}
 
       
+=======
+>>>>>>> main
     </>
   );
 };
@@ -270,6 +383,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     flexDirection: "row",
   },
+<<<<<<< HEAD
   appContainer:{
     flex:1,
     height:"100%",
@@ -338,6 +452,9 @@ const styles = StyleSheet.create({
     fontWeight:"700",
 
   },
+=======
+
+>>>>>>> main
   imageContainer: {
     borderColor: "#00ffff",
     height: "100%",
@@ -370,6 +487,7 @@ const styles = StyleSheet.create({
     width: "85%",
   },
   firstTextBox: {
+<<<<<<< HEAD
     marginTop:'3%',
     marginLeft:'4%',
     
@@ -395,11 +513,36 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     marginBottom: "4%",
     borderRadius:5,
+=======
+    marginTop: "3%",
+    marginLeft: "4%",
+  },
+  firstText: {
+    fontSize: 42,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  secondText: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#FFFFFF",
+    marginLeft: 8,
+    marginTop: 5,
+  },
+  contentContainer: {
+    flex: 1,
+    marginTop: "2%",
+
+    backgroundColor: "#FFFFFF",
+    marginBottom: "4%",
+    borderRadius: 5,
+>>>>>>> main
     overflow: "hidden",
     width: "92%",
     marginHorizontal: "4%",
   },
   upperPart: {
+<<<<<<< HEAD
     flex:1,
     backgroundColor:"#FCA2A21F",
     height:"30%",
@@ -502,6 +645,123 @@ const styles = StyleSheet.create({
     height:"70%",
   },
   
+=======
+    flex: 1,
+    backgroundColor: "#FCA2A21F",
+    height: "30%",
+    width: "100%",
+  },
+  containerText: {
+    fontSize: 34,
+    fontWeight: "600",
+    color: "#000000",
+    paddingTop: "2%",
+    marginLeft: "4%",
+  },
+  upperBox: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    gap: "2%",
+    paddingVertical: "2%",
+
+    marginLeft: "4%",
+  },
+  filterBox: {
+    flexDirection: "row",
+    borderRadius: 4,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    alignContent: "center",
+    alignSelf: "center",
+    outlineStyle: "none",
+    borderWidth: 0,
+  },
+  SearchBox: {
+    flexDirection: "row",
+    borderRadius: 4,
+    backgroundColor: "#FFFFFF",
+    width: "30%",
+    paddingVertical: 2,
+  },
+  filterIcon: {
+    width: 20,
+    height: 20,
+  },
+  filterText: {
+    alignItems: "center",
+    justifyContent: "center",
+    alignContent: "center",
+    alignSelf: "center",
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#000000",
+  },
+  dateBox: {
+    borderRadius: 4,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#000000",
+  },
+  selectdateText: {
+    fontSize: 14,
+    fontWeight: "300",
+    color: "#B9B9B9",
+    outlineStyle: "none",
+    borderWidth: 0,
+  },
+  searchBoxText: {
+    fontSize: 14,
+    fontWeight: "300",
+    color: "#B9B9B9",
+    justifyContent: "flex-start",
+    outlineStyle: "none",
+    borderWidth: 0,
+  },
+  upperBoxx: {
+    flexDirection: "row",
+    backgroundColor: "#E2E8F0",
+  },
+
+  lowerPart: {
+    height: "70%",
+  },
+  lowerCenterSection: {
+    //borderWidth: 1,
+    height: "80%",
+    width: "45%",
+    alignSelf: "center",
+    alignItems: "center",
+  },
+  subscriberIcon: {
+    height: 125,
+    width: 100,
+    alignSelf: "center",
+    marginVertical: "10%",
+  },
+  inviteSubscriberText: {
+    alignSelf: "center",
+    color: "#de1f1fff",
+    fontSize: 14,
+    fontWeight: 600,
+  },
+  inviteButton: {
+    //borderWidth:1,
+    marginVertical: "3%",
+    padding: "1.5%",
+    backgroundColor: "#dc2727ff",
+    color: "#fff",
+    borderRadius: 6,
+  },
+>>>>>>> main
 });
 
 export default DoctorsSubscribers;

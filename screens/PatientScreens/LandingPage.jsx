@@ -11,11 +11,12 @@ import {
   StatusBar,
   Animated,
   Text,
+  Alert,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-import Header from "../../components/PatientScreenComponents/Header";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 import { TrackEvent } from "../../utils/TrackEvent";
@@ -58,8 +59,76 @@ const LandingPage = ({ navigation, route }) => {
       }, 1000);
 
       return () => clearTimeout(timer);
-    }, [setChatbotConfig])
+    }, [borderAnim, setChatbotConfig])
   );
+
+  const [webPaymentHandled, setWebPaymentHandled] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("paymentSuccess");
+    const id = params.get("doctorId");
+
+    if (success === "true" && id && !webPaymentHandled) {
+      console.log("🌐 Query Params Detected -> Payment Success");
+
+      setWebPaymentHandled(true);
+
+      navigation.navigate("LandingPage", {
+        paymentSuccess: true,
+        doctorId: id,
+      });
+
+      // Remove query params from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [navigation, webPaymentHandled]);
+
+  const { paymentSuccess, doctorId } = route?.params || {};
+  const alertShownRef = useRef(false);
+
+  useEffect(() => {
+    console.log("🔍 useEffect triggered");
+    console.log("paymentSuccess =", paymentSuccess);
+    console.log("doctorId =", doctorId);
+    console.log("alertShownRef =", alertShownRef.current);
+
+    if (paymentSuccess && !alertShownRef.current) {
+      alertShownRef.current = true;
+
+      // WEB
+      if (Platform.OS === "web") {
+        alert(
+          "You have successfully subscribed to doctor. Now book your slot."
+        );
+
+        navigation.navigate("PatientAppNavigation", {
+          screen: "DoctorResultShow",
+          params: { highlightDoctorId: doctorId },
+        });
+
+        return;
+      }
+
+      // APP
+      Alert.alert(
+        "Subscription Successful",
+        "You have successfully subscribed to doctor. Now book your slot.",
+        [
+          {
+            text: "OK",
+            onPress: () =>
+              navigation.navigate("PatientAppNavigation", {
+                screen: "DoctorResultShow",
+                params: { highlightDoctorId: doctorId },
+              }),
+          },
+        ]
+      );
+    }
+  }, [doctorId, navigation, paymentSuccess]);
 
   return (
     <>
@@ -83,7 +152,7 @@ const LandingPage = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <Header navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} />
                   </View>
                   <View style={styles.title}>
                     <Title />
@@ -242,8 +311,8 @@ const LandingPage = ({ navigation, route }) => {
       {(Platform.OS !== "web" || width < 1000) && (
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
-          <View style={[styles.header, { height: "15%" }]}>
-            <Header navigation={navigation} />
+          <View style={[styles.header, { height: "12%" }]}>
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
 
           <View style={styles.searchBar}>
@@ -344,9 +413,7 @@ const LandingPage = ({ navigation, route }) => {
                       }}
                       imageStyle={{ borderRadius: 14 }}
                       resizeMode="cover"
-                    >
-                      
-                    </ImageBackground>
+                    ></ImageBackground>
                   </TouchableOpacity>
                 </Animated.View>
 
@@ -360,7 +427,6 @@ const LandingPage = ({ navigation, route }) => {
                         inputRange: [0, 1],
                         outputRange: [0.8, 1],
                       }),
-                      
                     }}
                   >
                     <ImageBackground
@@ -369,7 +435,7 @@ const LandingPage = ({ navigation, route }) => {
                         width: 150,
                         height: "auto",
                         //alignSelf:"center",
-                        marginVertical:"5%",
+                        marginVertical: "5%",
                       }}
                       resizeMode="stretch"
                     >
@@ -381,9 +447,9 @@ const LandingPage = ({ navigation, route }) => {
                           textShadowColor: "rgba(0, 0, 0, 0.5)",
                           textShadowOffset: { width: 1, height: 1 },
                           textShadowRadius: 2,
-                          alignSelf:"center",
-                          marginTop:"8%",
-                          marginBottom:"3%"
+                          alignSelf: "center",
+                          marginTop: "8%",
+                          marginBottom: "3%",
                         }}
                       >
                         Try Me for Free
@@ -462,8 +528,9 @@ const styles = StyleSheet.create({
     width: "85%",
   },
   header: {
-    // borderWidth: 5,
+    //borderWidth: 5,
     // borderColor: "black",
+    paddingHorizontal: "2%",
     zIndex: 2,
     ...Platform.select({
       web: {
@@ -512,7 +579,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   searchBar: {
-    marginTop: "6%",
+    marginTop: "3%",
   },
   cards: {
     height: "60%",

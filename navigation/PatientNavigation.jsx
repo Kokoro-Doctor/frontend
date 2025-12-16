@@ -3,13 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { HeaderButtonsProvider } from "react-navigation-header-buttons/HeaderButtonsProvider";
 import { useTheme } from "../contexts/ThemeContext";
 import { lightTheme, darkTheme } from "../contexts/Themes";
-import Login from "../screens/PatientScreens/Auth/Login";
-import ForgotPassword from "../screens/PatientScreens/Auth/ForgotPassword";
-import ResetPassword from "../screens/PatientScreens/Auth/ResetPassword";
-import PasswordSuccess from "../screens/PatientScreens/Auth/PasswordSuccess";
-import Signup from "../screens/PatientScreens/Auth/Signup";
 import PrivacyPolicy from "../screens/PatientScreens/Auth/PrivacyPolicy";
-import VerifyEmail from "../screens/PatientScreens/Auth/VerifyEmail";
 import LandingPage from "../screens/PatientScreens/LandingPage";
 import DoctorPatientLandingPage from "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage";
 
@@ -127,7 +121,7 @@ const DoctorNavigator = () => {
       <Stack.Screen
         name="DoctorReviewScreen"
         component={DoctorReviewScreen}
-        options={{headerShown : false}}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
@@ -287,38 +281,8 @@ const AppNavigation = () => {
         }}
       >
         <Stack.Screen
-          name="Login"
-          component={Login}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
           name="PrivacyPolicy"
           component={PrivacyPolicy}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="VerifyEmail"
-          component={VerifyEmail}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ForgotPassword"
-          component={ForgotPassword}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ResetPassword"
-          component={ResetPassword}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="PasswordSuccess"
-          component={PasswordSuccess}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Signup"
-          component={Signup}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -383,7 +347,6 @@ const AppNavigation = () => {
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
-      
     </HeaderButtonsProvider>
   );
 };

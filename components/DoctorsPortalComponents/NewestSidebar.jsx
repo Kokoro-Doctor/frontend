@@ -18,8 +18,12 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
   const [selectedItem, setSelectedItem] = useState(activeItem);
 
   const menuItems = [
+<<<<<<< HEAD
     { name: "Home", 
       icon: require("../../assets/Icons/HomeProfile.png") },
+=======
+    { name: "Home", icon: require("../../assets/Icons/HomeProfile.png") },
+>>>>>>> main
     {
       name: "Calendar",
       icon: require("../../assets/DoctorsPortal/Icons/calendar.png"),
@@ -27,6 +31,10 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
     {
       name: "Appointments",
       icon: require("../../assets/DoctorsPortal/Icons/appointment.png"),
+    },
+    {
+      name: "Prescription",
+      icon: require("../../assets/DoctorsPortal/Icons/PrescriptionIcon.png"),
     },
     {
       name: "History",
@@ -64,11 +72,15 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
     setSelectedItem(menu);
 
     // Navigate using if/else structure like in code 1
-    if (menu === "Calendar") {
-      navigation.navigate("CalendarView");
-    } else if (menu === "Appointments") {
+    if (menu === "Home") {
+      navigation.navigate("Dashboard");
+    } else if (menu === "Calendar") {
+      navigation.navigate("DrCalendarView");
+    }else if (menu === "Appointments") {
       navigation.navigate("AppointmentsView");
-    } else if (menu === "History") {
+    }else if (menu === "Prescription") {
+      navigation.navigate("Prescription");
+    }else if (menu === "History") {
       navigation.navigate("History");
     } else if (menu === "Reminder") {
       navigation.navigate("ReminderView");

@@ -8,6 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "web-build": "expo export:web",
     "lint": "expo lint"
   },
   "dependencies": {
@@ -54,6 +55,7 @@
     "react-native-animatable": "^1.4.0",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-linear-gradient": "^2.8.3",
+    "react-native-markdown-display": "^7.0.2",
     "react-native-modal": "^14.0.0-rc.1",
     "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-modal-dropdown": "^1.0.2",
@@ -80,7 +82,11 @@
     "babel-loader": "^10.0.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
+<<<<<<< HEAD
     "expo": "^54.0.23",
+=======
+    "markdown-it": "^14.1.0",
+>>>>>>> main
     "typescript": "~5.8.3",
     "webpack": "^5.101.3",
     "webpack-cli": "^6.0.1"

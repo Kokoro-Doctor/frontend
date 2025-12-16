@@ -62,16 +62,18 @@
 
 // export default RootNavigation;
 
-import React, { Suspense } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { ActivityIndicator, View, Platform } from "react-native";
-import { useRole } from "../contexts/RoleContext";
+import React, { Suspense } from "react";
+import { ActivityIndicator, Platform, View } from "react-native";
+import { useAuth } from "../contexts/AuthContext";
 import { RegistrationProvider } from "../contexts/RegistrationContext";
+import { useRole } from "../contexts/RoleContext";
 
 // ✅ Direct imports (always needed instantly)
-import LandingPage from "../screens/PatientScreens/LandingPage";
-import Login from "../screens/PatientScreens/Auth/Login";
 import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
+import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
+import LandingPage from "../screens/PatientScreens/LandingPage";
 
 // ✅ Conditionally import heavy screens (works on web + native)
 let DoctorPatientLandingPage;
@@ -81,13 +83,16 @@ let AppNavigation;
 if (Platform.OS === "web") {
   // Use lazy loading only for web (Webpack supports import())
   DoctorPatientLandingPage = React.lazy(() =>
-    import("../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage")
+    import(
+      "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage"
+    )
   );
   DoctorAppNavigation = React.lazy(() => import("./DoctorsNavigation"));
   AppNavigation = React.lazy(() => import("./PatientNavigation"));
 } else {
   // Use static requires for native (Metro bundler limitation)
-  DoctorPatientLandingPage = require("../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage").default;
+  DoctorPatientLandingPage =
+    require("../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage").default;
   DoctorAppNavigation = require("./DoctorsNavigation").default;
   AppNavigation = require("./PatientNavigation").default;
 }
@@ -112,17 +117,76 @@ export const linking = {
   },
 };
 
-const RootNavigation = () => {
-  const { role, loading } = useRole();
+// Wrapper component for LandingPage that handles auth redirects
+const LandingPageWithAuth = ({ navigation, route }) => {
+  const { user, role: authRole, isLoading: authLoading } = useAuth();
+  const { role: roleContextRole } = useRole();
 
-  if (loading) return <Loader />;
+  // Use role from AuthContext if available, fallback to RoleContext
+  const role = authRole || roleContextRole;
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Wait for auth to finish loading
+      if (authLoading) return;
+
+      // If user is authenticated and has a role, redirect to appropriate dashboard
+      if (user && role) {
+        if (role === "doctor") {
+          // Redirect doctor to doctor dashboard
+          navigation.replace("DoctorAppNavigation", {
+            screen: "Dashboard",
+          });
+        } else if (role === "user") {
+          // For users/patients, they can stay on LandingPage
+          // If you want to redirect them to a specific patient dashboard, uncomment below:
+          // navigation.replace("PatientAppNavigation", {
+          //   screen: "LandingPage",
+          // });
+        }
+      }
+    }, [user, role, authLoading, navigation])
+  );
+
+  return <LandingPage navigation={navigation} route={route} />;
+};
+
+const RootNavigation = () => {
+  const { role: roleContextRole, loading: roleLoading } = useRole();
+  const { user, role: authRole, isLoading: authLoading } = useAuth();
+
+  // Determine the actual role (prefer AuthContext role, fallback to RoleContext)
+  const role = authRole || roleContextRole;
+
+  // Show loader while role or auth is loading
+  if (roleLoading || authLoading) return <Loader />;
+
+  // Determine initial route based on authentication and role
+  const getInitialRouteName = () => {
+    // If user is authenticated and has a role, redirect to appropriate dashboard
+    if (user && role) {
+      if (role === "doctor") {
+        return "DoctorAppNavigation";
+      }
+      // For users/patients, they can stay on LandingPage
+      // or redirect to PatientAppNavigation if you want them to go directly to patient dashboard
+      return "LandingPage";
+    }
+    // Not authenticated, go to landing page
+    return "LandingPage";
+  };
+
+  const initialRouteName = getInitialRouteName();
 
   return (
     <RegistrationProvider>
       <Suspense fallback={<Loader />}>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator
+          screenOptions={{ headerShown: false }}
+          initialRouteName={initialRouteName}
+        >
           {/* Always loaded instantly */}
-          <Stack.Screen name="LandingPage" component={LandingPage} />
+          <Stack.Screen name="LandingPage" component={LandingPageWithAuth} />
 
           {/* Conditionally lazy/static screens */}
           <Stack.Screen
@@ -133,12 +197,9 @@ const RootNavigation = () => {
             name="DoctorAppNavigation"
             component={DoctorAppNavigation}
           />
-          <Stack.Screen
-            name="PatientAppNavigation"
-            component={AppNavigation}
-          />
-          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="PatientAppNavigation" component={AppNavigation} />
           <Stack.Screen name="MobileChatbot" component={MobileChatbot} />
+          <Stack.Screen name="DoctorsSignUp" component={DoctorsSignUp} />
         </Stack.Navigator>
       </Suspense>
     </RegistrationProvider>

@@ -32,11 +32,12 @@ const NewSideNav = () => {
 	const handleSidebarClick = (menu) => {
 		// setSelectedItem(menu);  //used for the red color color but is not working as intended
 		if (menu === "Home") {
-			if (isRegistered) {
-				navigation.navigate("CalendarView");
-			} else {
-				navigation.navigate("DoctorPatientLandingPage");
-			}
+			// if (isRegistered) {
+			// 	navigation.navigate("Dashboard");
+			// } else {
+			// 	navigation.navigate("DoctorPatientLandingPage");
+			// }
+			navigation.navigate("Dashboard");
 		} else if (menu === "Contact Us") {
 			navigation.navigate("ContactUs");
 		} else if (menu === "Help") {

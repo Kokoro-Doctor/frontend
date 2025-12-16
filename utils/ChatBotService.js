@@ -1,17 +1,55 @@
 import { API_URL } from "../env-vars";
 import { getSessionId } from "./sessionManager";
 
-export const askBot = async (userId, messageToSend, selectedLanguage) => {
+/**
+ * Get the appropriate user identifier based on role
+ * @param {Object} user - User object from AuthContext (can be patient or doctor)
+ * @param {string} role - User role ('doctor' or 'user'/'patient')
+ * @returns {string|null} The appropriate identifier (doctor_id or user_id)
+ */
+export const getUserIdentifier = (user, role) => {
+  if (!user || !role) return null;
+  
+  if (role === "doctor") {
+    return user.doctor_id || null;
+  } else {
+    // For patients/users, use user_id only
+    return user.user_id || null;
+  }
+};
+
+/**
+ * Send a message to the chatbot
+ * @param {Object} user - User object from AuthContext (null for anonymous users)
+ * @param {string} role - User role ('doctor', 'user', or null)
+ * @param {string} messageToSend - Message text
+ * @param {string} selectedLanguage - Language code (e.g., 'en', 'hi')
+ */
+export const askBot = async (user, role, messageToSend, selectedLanguage) => {
   try {
     let bodyPayload;
 
-    // If user is logged in — use their email
-    if (userId) {
-      bodyPayload = {
-        user_id: userId,
-        message: messageToSend,
-        language: selectedLanguage,
-      };
+    // If user is logged in, get the appropriate identifier
+    if (user && role) {
+      const identifier = getUserIdentifier(user, role);
+      if (!identifier) {
+        throw new Error("Unable to determine user identifier");
+      }
+      
+      // Build payload with the correct identifier field based on role
+      if (role === "doctor") {
+        bodyPayload = {
+          doctor_id: identifier,
+          message: messageToSend,
+          language: selectedLanguage,
+        };
+      } else {
+        bodyPayload = {
+          user_id: identifier,
+          message: messageToSend,
+          language: selectedLanguage,
+        };
+      }
     } else {
       // If anonymous user — use session_id
       const sessionId = await getSessionId();

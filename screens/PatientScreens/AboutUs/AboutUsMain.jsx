@@ -166,8 +166,8 @@ const AboutUsMain = ({ navigation, route }) => {
                     </Text>
                     <Ionicons
                       name="chevron-forward"
-                      size={20}
-                      color="#E57373"
+                      size={22}
+                      color="#FFFFFF"
                     />
                   </TouchableOpacity>
 
@@ -182,8 +182,8 @@ const AboutUsMain = ({ navigation, route }) => {
                     </Text>
                     <Ionicons
                       name="chevron-forward"
-                      size={20}
-                      color="#E57373"
+                      size={22}
+                      color="#FFFFFF"
                     />
                   </TouchableOpacity>
 
@@ -198,8 +198,8 @@ const AboutUsMain = ({ navigation, route }) => {
                     </Text>
                     <Ionicons
                       name="chevron-forward"
-                      size={20}
-                      color="#E57373"
+                      size={22}
+                      color="#FFFFFF"
                     />
                   </TouchableOpacity>
                 </View>
@@ -371,7 +371,7 @@ const AboutUsMain = ({ navigation, route }) => {
       ;
       {(Platform.OS !== "web" || width < 1000) && (
         <ScrollView style={styles.appContainer} ref={scrollViewRef}>
-          <StatusBar barStyle="light-content" backgroundColor="#FF6B6B" />
+          <StatusBar barStyle="light-content" backgroundColor="#f96166" />
           {/* Header Section */}
           <View style={styles.appHeader}>
             <View style={styles.appContentWrapper}>
@@ -495,7 +495,7 @@ const AboutUsMain = ({ navigation, route }) => {
               <Text style={styles.appExpandableText}>
                 What is Kokoro.Doctor?
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#E57373" />
+              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -507,7 +507,7 @@ const AboutUsMain = ({ navigation, route }) => {
               <Text style={styles.appExpandableText}>
                 How Kokoro.Doctor Works?
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#E57373" />
+              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -519,7 +519,7 @@ const AboutUsMain = ({ navigation, route }) => {
               <Text style={styles.appExpandableText}>
                 Why Kokoro.Doctor Stands Out?
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#E57373" />
+              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -762,142 +762,168 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   title: {
-    padding: 20,
-    height: 180,
+    padding: 30,
+    minHeight: 200,
     flexDirection: "column",
-    backgroundColor: "#dc6060",
+    backgroundColor: "#f96166",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   brandName: {
     fontWeight: "bold",
-    fontSize: 50,
-    color: "#D0C4FF",
+    fontSize: 52,
+    color: "#FFFFFF",
+    letterSpacing: -1,
   },
   doctorText: {
-    color: "#B0A0FF",
+    color: "#FFE5E8",
   },
   tagline: {
-    fontSize: 25,
-    color: "#e0a8c8",
-    marginTop: 5,
+    fontSize: 22,
+    color: "#FFFFFF",
+    marginTop: 8,
+    fontWeight: "500",
+    opacity: 0.95,
   },
 
   AboutSection: {
     flexDirection: "row",
     justifyContent: "space-between",
     flexWrap: "wrap",
-    marginTop:"1%",
-    paddingHorizontal: 10,
-    //borderWidth: 1,
+    marginTop: 30,
+    paddingHorizontal: 20,
+    gap: 20,
   },
   textBox: {
     backgroundColor: "#FFFFFF",
-    padding: 15,
-    // borderRadius: 10,
-    // marginHorizontal: 10,
-
+    padding: 28,
+    borderRadius: 12,
     width: "66%",
     position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
   },
   delayedBorder: {
     position: "absolute",
     right: 0,
     top: "15%",
     height: "50%",
-    width: 2,
-    backgroundColor: "black",
+    width: 3,
+    backgroundColor: "#f96166",
+    borderRadius: 2,
   },
   aboutTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
-    color: "black",
-    marginBottom: 5,
+    color: "#333",
+    marginBottom: 16,
+    letterSpacing: -0.5,
   },
   text: {
-    fontFamily: "Noticia Text",
-    fontSize: 18,
-    color: "black",
-    lineHeight: 22,
+    fontSize: 16,
+    color: "#555",
+    lineHeight: 26,
+    letterSpacing: 0.2,
   },
   bold: {
     fontWeight: "bold",
   },
   rightSection: {
     width: "30%",
-    padding: 15,
-    paddingLeft: 20,
+    padding: 24,
     flexShrink: 1,
     maxWidth: "100%",
+    backgroundColor: "#FFF5F7",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FFE5E8",
   },
   urgentNeedTitle: {
-    marginTop: "10%",
-    fontSize: 18,
+    marginTop: 0,
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#000000",
+    color: "#333",
+    marginBottom: 12,
   },
   highlight: {
-    color: "#FFD700",
+    color: "#f96166",
   },
   urgentNeedText: {
-    fontSize: 14,
-    color: "#ed0f0f",
-    marginTop: "1%",
-    case: "uppercase",
-    fontWeight: 700,
+    fontSize: 15,
+    color: "#f96166",
+    marginTop: 8,
+    lineHeight: 22,
+    fontWeight: "600",
   },
 
   //---
   Need: {
-    padding: 15,
-    backgroundColor: "#B0B6FF",
+    padding: 30,
+    backgroundColor: "#FFF5F7",
+    marginTop: 30,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FFE5E8",
   },
   headerNeed: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   headerTextNeed: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "bold",
-    color: "#000",
+    color: "#333",
+    letterSpacing: -0.5,
   },
   description: {
     fontSize: 16,
     color: "#666",
-    marginTop: 5,
+    marginTop: 8,
+    lineHeight: 24,
   },
   problemTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
-    color: "#000",
-    marginTop: 10,
-    paddingLeft: "2%",
+    color: "#333",
+    marginTop: 20,
+    marginBottom: 20,
   },
   problemContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginTop: 15,
-    paddingLeft: "2%",
-    paddingRight: "2%",
+    marginTop: 20,
+    gap: 16,
   },
   problemBox: {
     width: "48%",
-    // height:"60%",
-    backgroundColor: "#EDE9FE", // Light purple box
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    shadowColor: "#000",
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: "#f96166",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
     alignItems: "center",
-    // shadowOpacity: 0.1,
-    // shadowOffset: { width: 2, height: 2 },
-    // shadowRadius: 5,
-    // elevation: 5, // For Android shadow
+    borderWidth: 1,
+    borderColor: "#FFE5E8",
   },
   problemText: {
     fontSize: 15,
-    color: "#C20000", // Red text
-    fontWeight: "bold",
+    color: "#f96166",
+    fontWeight: "600",
     textAlign: "center",
+    lineHeight: 22,
   },
   circle1: {
     position: "absolute",
@@ -921,173 +947,200 @@ const styles = StyleSheet.create({
   },
   //----
   access: {
-    padding: 15,
+    padding: 30,
     backgroundColor: "#FFFFFF",
+    marginTop: 30,
   },
   head: {
-    fontSize: 20,
+    fontSize: 26,
     fontWeight: "bold",
-    color: "#000",
-    marginBottom: 10,
-    paddingLeft: "5%",
+    color: "#333",
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
   subhead: {
-    fontSize: 16,
-    paddingLeft: "5%",
-    color: "#333",
-    marginBottom: 20,
+    fontSize: 18,
+    color: "#666",
+    marginBottom: 28,
+    lineHeight: 26,
   },
   option: {
-    backgroundColor: "#333",
-    padding: 15,
-    paddingLeft: "5%",
-    borderRadius: 8,
+    backgroundColor: "#f96166",
+    padding: 18,
+    paddingLeft: 24,
+    borderRadius: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 16,
+    shadowColor: "#f96166",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   optionText: {
     fontSize: 16,
     color: "#fff",
-    fontWeight: "500",
+    fontWeight: "600",
   },
   //-------
   GlobleMission: {
-    padding: "2%",
+    padding: 30,
   },
   missionBox: {
     backgroundColor: "#FFF",
-    padding: 15,
-    borderRadius: 10,
-    borderWidth: 4,
-    borderColor: "#FECF58", // Yellow border
+    padding: 30,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#FFE5E8",
     width: "100%",
-    // alignItems: "center",
     marginBottom: 30,
-    paddingBottom: "15%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   missionHeader: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "bold",
-    // textAlign: "center",
+    color: "#333",
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
 
   missionSubText: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#666",
-    // textAlign: "center",
-    marginTop: 5,
-    marginBottom: 10,
+    marginTop: 8,
+    marginBottom: 20,
+    lineHeight: 24,
+    fontStyle: "italic",
   },
   benefitsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
-    height: "50%",
-    //borderWidth:1
+    gap: 16,
+    marginTop: 20,
   },
   benefitBox: {
-    backgroundColor: "#E29558", // Orange color
-    padding: "2%",
-    borderRadius: 18,
-    width: "30%",
+    backgroundColor: "#f96166",
+    padding: 24,
+    borderRadius: 12,
+    width: "31%",
     alignItems: "center",
-    height: "100%",
+    justifyContent: "center",
+    minHeight: 140,
+    shadowColor: "#f96166",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   benefitText: {
     color: "#FFF",
     fontSize: 16,
     textAlign: "center",
-    marginTop: "15%",
+    fontWeight: "600",
+    lineHeight: 22,
   },
   womenHealthHeader: {
-    marginTop: "2%",
-    fontSize: 18,
+    marginTop: 30,
+    fontSize: 22,
     fontWeight: "bold",
+    color: "#333",
+    marginBottom: 16,
   },
   womenBenefitsContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    width: "80%",
-    height: "43%",
-    //borderWidth:1,
-    alignSelf: "center",
-    marginTop: "1%",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: 16,
+    marginTop: 16,
   },
   womenBenefitBox: {
-    backgroundColor: "#E29558", // Orange color
-    padding: "2%",
-    borderRadius: 18,
-    width: "30%",
+    backgroundColor: "#f96166",
+    padding: 24,
+    borderRadius: 12,
+    width: "48%",
     alignItems: "center",
-    height: "100%",
+    justifyContent: "center",
+    minHeight: 140,
+    shadowColor: "#f96166",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   womenBenefitText: {
     color: "#FFF",
-    fontSize: 16,
+    fontSize: 15,
     textAlign: "center",
-    marginTop: "10%",
+    fontWeight: "600",
+    lineHeight: 22,
   },
   pricingHeader: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: "bold",
-    alignSelf: "flex-start",
-    marginBottom: 5,
+    color: "#333",
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
   pricingSubText: {
-    fontSize: 22,
+    fontSize: 18,
     color: "#666",
-    // textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 30,
+    lineHeight: 26,
   },
   pricingBox: {
-    // backgroundColor: "#",
-    paddingVertical: 10,
-    marginRight: "70%",
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: "green",
+    borderColor: "#f96166",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: 16,
+    backgroundColor: "#FFF5F7",
+    width: "fit-content",
   },
   priceText: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
+    color: "#f96166",
   },
   priceLabel: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#666",
-    marginLeft: 5,
+    marginLeft: 8,
   },
   discountContainer: {
-    marginLeft: "50%",
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 20,
   },
   discountBadge: {
-    backgroundColor: "#4CAF50", // Green Badge
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    marginRight: 10,
+    backgroundColor: "#f96166",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginRight: 16,
   },
   discountText: {
     color: "#FFF",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "bold",
   },
   note: {
-    fontSize: 12,
-    color: "#120909f3",
-    textAlign: "center",
-    marginTop: 10,
-    marginRight: "20%",
-    paddingHorizontal: 10,
+    fontSize: 13,
+    color: "#666",
+    textAlign: "left",
+    marginTop: 20,
+    lineHeight: 20,
+    maxWidth: "80%",
   },
   //----
   resolution: {
@@ -1165,40 +1218,57 @@ const styles = StyleSheet.create({
   //--------- final page
   FinalThought: {
     backgroundColor: "white",
-    padding: 20,
+    padding: 40,
+    marginTop: 30,
   },
   Heading: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
+    color: "#333",
+    marginBottom: 20,
+    letterSpacing: -0.5,
   },
   SubTitle: {
-    paddingTop: "1%",
-    fontSize: 22,
+    paddingTop: 8,
+    fontSize: 20,
+    color: "#555",
+    lineHeight: 30,
+    marginBottom: 16,
   },
   TextRed: {
-    color: "red",
+    color: "#f96166",
+    fontWeight: "600",
   },
   content: {
-    paddingTop: "1%",
-    fontSize: 22,
+    paddingTop: 8,
+    fontSize: 20,
+    color: "#555",
+    lineHeight: 30,
+    marginBottom: 16,
   },
   lastPara: {
-    paddingTop: "1%",
-    paddingLeft: "20%",
-    paddingRight: "20%",
-    fontSize: 22,
-    // marginBottom:"25%"
+    paddingTop: 8,
+    paddingLeft: "10%",
+    paddingRight: "10%",
+    fontSize: 20,
+    color: "#555",
+    lineHeight: 30,
+    textAlign: "center",
+    marginTop: 20,
   },
   kokoro: {
-    fontSize: 120,
-    fontFamily: "bold",
-    color: "#bebcbc",
+    fontSize: 140,
+    fontWeight: "bold",
+    color: "#FFE5E8",
+    marginTop: 40,
+    letterSpacing: -2,
   },
   doctor: {
-    marginLeft: "30%",
-    fontSize: 120,
-    fontFamily: "bold",
-    color: "#bebcbc",
+    marginLeft: "25%",
+    fontSize: 140,
+    fontWeight: "bold",
+    color: "#FFE5E8",
+    letterSpacing: -2,
   },
 
   //APP design starts
@@ -1209,7 +1279,7 @@ const styles = StyleSheet.create({
   // Header Styles
   appHeader: {
     width: "100%",
-    backgroundColor: "#FF6B6B",
+    backgroundColor: "#f96166",
     flex: 1,
   },
   appContentWrapper: {
@@ -1284,9 +1354,16 @@ const styles = StyleSheet.create({
   appUrgentNeedSection: {
     width: "90%",
     padding: "5%",
-    backgroundColor: "#B0B6FF",
-    borderRadius: 10,
+    backgroundColor: "#FFF5F7",
+    borderRadius: 12,
     marginHorizontal: "auto",
+    borderWidth: 1,
+    borderColor: "#FFE5E8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   appUrgentNeedTitle: {
     fontSize: 20,
@@ -1304,17 +1381,19 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   appProblemBox: {
-    backgroundColor: "#DADDFF",
-    padding: 10,
-    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 12,
     overflow: "hidden",
-    shadowColor: "rgba(0, 0, 0, 0.1)",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowColor: "#f96166",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
     width: "100%",
     alignSelf: "stretch",
+    borderWidth: 1,
+    borderColor: "#FFE5E8",
   },
   appProblemBlock: {
     backgroundColor: "#B0B6FF",
@@ -1358,10 +1437,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#333",
+    backgroundColor: "#f96166",
     padding: "4%",
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: "3%",
+    shadowColor: "#f96166",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   appExpandableText: {
     fontSize: 16,
@@ -1374,10 +1458,15 @@ const styles = StyleSheet.create({
     width: "100%",
     padding: "5%",
     backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#FECF58",
+    borderWidth: 2,
+    borderColor: "#FFE5E8",
+    borderRadius: 12,
     margin: "5%",
-    //width: "90%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   appVisionTitle: {
     fontSize: 20,
@@ -1402,15 +1491,20 @@ const styles = StyleSheet.create({
   appBenefitBox: {
     width: "45%",
     aspectRatio: 1,
-    backgroundColor: "#E29558",
+    backgroundColor: "#f96166",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     padding: 15,
+    shadowColor: "#f96166",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   appBenefitText: {
     fontSize: 18,
-    fontwWeight: "bold",
+    fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
   },
@@ -1458,12 +1552,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: "2%",
-    borderWidth: 1,
-    borderColor: "#4CAF50",
-    borderRadius: 6,
+    padding: "3%",
+    borderWidth: 2,
+    borderColor: "#f96166",
+    borderRadius: 12,
     marginBottom: "4%",
     flexWrap: "wrap",
+    backgroundColor: "#FFF5F7",
   },
   appPriceAmount: {
     fontSize: 20,
@@ -1485,9 +1580,9 @@ const styles = StyleSheet.create({
     marginBottom: "3%",
   },
   appSaveBadge: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#f96166",
     padding: "2%",
-    borderRadius: 4,
+    borderRadius: 8,
     marginRight: "3%",
   },
   appSaveText: {
@@ -1579,10 +1674,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FF7072",
+    backgroundColor: "#f96166",
     paddingVertical: "5%",
     paddingHorizontal: "12%",
     borderRadius: 30,
+    shadowColor: "#f96166",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   appButtonText: {
     color: "#fff",
@@ -1619,17 +1719,23 @@ const styles = StyleSheet.create({
     marginBottom: "3%",
   },
   appRedText: {
-    color: "#E57373",
+    color: "#f96166",
+    fontWeight: "600",
   },
   appAtTopButton: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-end",
-    backgroundColor: "#E57373",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    marginTop: 10,
+    backgroundColor: "#f96166",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    marginTop: 20,
+    shadowColor: "#f96166",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   appArrowIcon: {
     position: "absolute",
