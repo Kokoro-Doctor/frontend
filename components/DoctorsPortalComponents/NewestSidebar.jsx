@@ -44,8 +44,7 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
 
   const lowerMenuItems = [
     {
-      name: "Profile",
-      icon: require("../../assets/DoctorsPortal/Icons/profile.png"),
+      
     },
     {
       name: "Settings",
