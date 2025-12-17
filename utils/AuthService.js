@@ -198,9 +198,6 @@
 //   return null;
 // };
 
-
-
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
@@ -307,7 +304,6 @@ export const requestSignupOtp = async ({ phoneNumber, role = "user" }) => {
   return postJson(endpoint, { phoneNumber }, "Failed to send OTP");
 };
 
-
 export const requestLoginOtp = async ({ phoneNumber }) => {
   if (!phoneNumber) {
     throw new Error("Please provide a mobile number.");
@@ -315,14 +311,12 @@ export const requestLoginOtp = async ({ phoneNumber }) => {
   return postJson("/auth/request-otp", { phoneNumber }, "Failed to send OTP");
 };
 
-
 export const initiateLogin = async ({ phoneNumber }) => {
   if (!phoneNumber) {
     throw new Error("Please provide a mobile number.");
   }
   return postJson("/auth/login", { phoneNumber }, "Failed to start login");
 };
-
 
 const handleLoginResponse = async (data) => {
   if (data?.access_token && data?.profile) {
@@ -334,7 +328,6 @@ const handleLoginResponse = async (data) => {
   }
   return data;
 };
-
 
 export const loginWithOtp = async ({ phoneNumber, otp }) => {
   if (!phoneNumber || !otp) {
@@ -350,12 +343,7 @@ export const loginWithOtp = async ({ phoneNumber, otp }) => {
 
 // ================= Profile Creation =================
 
-export const completeUserSignup = async ({
-  phoneNumber,
-  otp,
-  name,
-  email,
-}) => {
+export const completeUserSignup = async ({ phoneNumber, otp, name, email }) => {
   if (!phoneNumber || !otp) {
     throw new Error("Phone number and OTP are required to complete signup.");
   }
@@ -408,7 +396,6 @@ export const completeDoctorSignup = async ({
 
   return data;
 };
-
 
 // ================= Session Helpers =================
 
