@@ -429,8 +429,8 @@ const DoctorAppointmentScreen = ({
                   {/* Right Section - Slot Booking */}
                   <View style={styles.subscriptionSection}>
                     <View style={styles.subscriptionTextBox}>
-                      <Text style={styles.priceText}>₹1999</Text>
-                      <Text style={styles.feeText}>| Subscription Fee</Text>
+                      {/* <Text style={styles.priceText}>₹1999</Text> */}
+                      <Text style={styles.feeText}> Subscribe Here</Text>
                     </View>
                     <Pressable
                       // style={[
@@ -1157,7 +1157,7 @@ const styles = StyleSheet.create({
     marginLeft: "5%",
   },
   feeText: {
-    fontSize: 11,
+    fontSize: 16,
     fontWeight: 400,
     color: "#888888",
     marginRight: "8%",

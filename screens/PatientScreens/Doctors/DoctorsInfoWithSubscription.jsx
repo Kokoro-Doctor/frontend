@@ -31,9 +31,9 @@ const features = [
 
 const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
-  // const doctors = route?.params?.doctors || {};
   const [doctors, setDoctors] = useState(route.params?.doctors || null);
-  const [isReady, setIsReady] = useState(false); // Delay rendering
+  const [isReady, setIsReady] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("week"); // "week" or "month"
   const { user } = useAuth();
   const { triggerLoginModal } = useLoginModal();
 
@@ -42,12 +42,10 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
       try {
         let encodedDoctor = null;
 
-        // 👇 Works both on Web and Native
         if (Platform.OS === "web") {
           const urlObj = new URL(window.location.href);
           encodedDoctor = urlObj.searchParams.get("doctors");
         } else {
-          // For native: still fallback to Linking.getInitialURL
           Linking.getInitialURL().then((url) => {
             if (url && url.includes("DoctorsInfoWithSubscription")) {
               const urlObj = new URL(url);
@@ -101,20 +99,36 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
 
   const handleSubscribeClick = () => {
     if (!user) {
-      // opens the actual login modal controlled by HeaderLoginSignUp
       triggerLoginModal({ mode: "login" });
       return;
     }
 
-    // already logged in → go to payment
-    // navigation.navigate("PatientAppNavigation", {
-    //   screen: "DoctorsSubscriptionPaymentScreen",
-    //   params: { doctors },
-    // });
     navigation.navigate("DoctorsSubscriptionPaymentScreen", {
-      params: { doctors },
+      params: { doctors, selectedPlan },
     });
   };
+
+  // Plan details
+  const weeklyPlan = {
+    features: [
+      "1 Specialist consultation within 24hrs",
+      "Unlimited Medilocker access",
+      "Unlimited AI chatbot access",
+      "Ideal for quick clarity and one-time specialist need",
+    ],
+  };
+
+  const monthlyPlan = {
+    features: [
+      "2 Specialist consultations per month",
+      "Unlimited Medilocker storage",
+      "Unlimited AI chatbot access",
+      "Doctor-Patient continuity + follow-up included",
+      "Ideal for ongoing cardiac & gynaec health support",
+    ],
+  };
+
+  const currentPlan = selectedPlan === "week" ? weeklyPlan : monthlyPlan;
 
   return (
     <>
@@ -133,7 +147,6 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
               />
 
               <View style={styles.parent}>
-                {/* Keeping the existing sidebar navigation as requested */}
                 <View style={styles.Left}>
                   <SideBarNavigation navigation={navigation} />
                 </View>
@@ -219,45 +232,58 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                       </View>
                     </View>
 
-                    {/* Appointment booking section */}
+                    {/* Subscription section */}
                     <View style={styles.subscriptionSection}>
                       <View style={styles.subscriptionTextHead}>
-                        <Text style={styles.subscriptionTextTitle}>
-                          To Book Slot of Doctor you have to first subscribe
-                          them .{" "}
-                        </Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.rupeesBox,
+                            selectedPlan === "week" && styles.rupeesBoxSelected,
+                          ]}
+                          onPress={() => setSelectedPlan("week")}
+                        >
+                          <Text
+                            style={[
+                              styles.rupeesText,
+                              selectedPlan === "week" && styles.rupeesTextSelected,
+                            ]}
+                          >
+                            ₹499/week
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.rupeesBox,
+                            selectedPlan === "month" && styles.rupeesBoxSelected,
+                          ]}
+                          onPress={() => setSelectedPlan("month")}
+                        >
+                          <Text
+                            style={[
+                              styles.rupeesText,
+                              selectedPlan === "month" && styles.rupeesTextSelected,
+                            ]}
+                          >
+                            ₹999/month
+                          </Text>
+                        </TouchableOpacity>
                       </View>
+
                       <View style={styles.subscriptionMetricsBox}>
-                        <Text style={styles.metricsTitle}>
-                          Metrics Of Subscription
-                        </Text>
-                        <Text style={styles.metricsTitle}>
-                          {" "}
-                          1 Free Regular check up
-                        </Text>
-                        <Text style={styles.metricsTitle}>
-                          {" "}
-                          1 free emergency checkup
-                        </Text>
-                        <Text style={styles.metricsTitle}> Medilocker</Text>
+                        {currentPlan.features.map((feature, index) => (
+                          <Text key={index} style={styles.metricsTitle}>
+                            - {feature}
+                          </Text>
+                        ))}
                       </View>
+
                       <View style={styles.subscriptionButtonContainer}>
-                        <View style={styles.subscriptionTextBox}>
-                          <Text style={styles.priceText}>₹1999</Text>
-                          <Text style={styles.feeText}>| Subscription Fee</Text>
-                        </View>
                         <TouchableOpacity
                           style={styles.subscribeButton}
-                          // onPress={() =>
-                          //   navigation.navigate("Doctors", {
-                          //     screen: "DoctorsSubscriptionPaymentScreen",
-                          //     params: { doctors },
-                          //   })
-                          // }
                           onPress={handleSubscribeClick}
                         >
                           <Text style={styles.subscribeButtonText}>
-                            Subscribe Doctor
+                            Purchase Plan
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -369,7 +395,6 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                 Subscribe
               </Text>
             </TouchableOpacity>
-            {/* </View> */}
           </ScrollView>
         </View>
       )}
@@ -396,7 +421,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     color: "#333",
-
     marginBottom: 12,
   },
   featureItem: {
@@ -457,7 +481,6 @@ const styles = StyleSheet.create({
   },
   appImageContainer: {
     width: "75%",
-    //borderWidth: 1,
     marginVertical: "6%",
     alignSelf: "center",
     marginBottom: "3%",
@@ -479,7 +502,6 @@ const styles = StyleSheet.create({
   doctornamebox: {
     alignSelf: "center",
   },
-
   doctorName: {
     fontSize: 22,
     fontWeight: 600,
@@ -490,7 +512,6 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: "bold",
         color: "#333",
-
         alignSelf: windowWidth > 1000 ? "flex-start" : "center",
       },
     }),
@@ -502,16 +523,13 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         fontSize: 14,
-        // color: "#666",
         marginTop: 2,
         fontWeight: windowWidth < 1000 ? "bold" : "normal",
-        //alignSelf: "flex-start",
         alignSelf: windowWidth > 1000 ? "flex-start" : "center",
       },
     }),
   },
   doctorDescription: {
-    //borderWidth: 1,
     height: "18%",
     width: "88%",
     alignSelf: "center",
@@ -522,12 +540,10 @@ const styles = StyleSheet.create({
   descriptionText: {
     textAlign: "justify",
     padding: "1%",
-    //fontStyle:"italic",
   },
   experienceRatingContainer: {
     height: "7%",
     width: "88%",
-    //borderWidth: 1,
     alignSelf: "center",
     flexDirection: "row",
     justifyContent: "space-around",
@@ -537,7 +553,7 @@ const styles = StyleSheet.create({
     padding: "1%",
     ...Platform.select({
       web: {
-        minHeight: 60, // Ensures visibility in web view
+        minHeight: 60,
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
@@ -545,14 +561,12 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#ddd",
         boxShadow: " 0px 0px 4px 3px rgba(0, 0, 0, 0.25)",
-        // marginTop: "-165%",
       },
     }),
   },
   experienceSection: {
     height: "100%",
     width: "49%",
-    //borderWidth: 1,
     flexDirection: "row",
     justifyContent: "space-around",
   },
@@ -566,7 +580,6 @@ const styles = StyleSheet.create({
   experienceDetail: {
     height: "94%",
     width: "78%",
-    //borderWidth: 1,
     alignSelf: "center",
     flexDirection: "column",
   },
@@ -585,14 +598,12 @@ const styles = StyleSheet.create({
   verticalLine: {
     height: "75%",
     width: "0.4%",
-    //borderWidth:1,
     alignSelf: "center",
     backgroundColor: "#000000",
   },
   ratingSection: {
     height: "100%",
     width: "48.8%",
-    //borderWidth: 1,
     flexDirection: "row",
   },
   ratingDetail: {
@@ -600,7 +611,6 @@ const styles = StyleSheet.create({
       web: {
         flexDirection: "column",
         width: "80%",
-        //borderWidth:1
       },
     }),
   },
@@ -633,7 +643,6 @@ const styles = StyleSheet.create({
   bookAppointmentButton: {
     height: "4%",
     width: "70%",
-    //borderWidth: 1,
     alignSelf: "center",
     borderRadius: 8,
     backgroundColor: "rgb(237, 109, 111)",
@@ -645,26 +654,21 @@ const styles = StyleSheet.create({
   firstTextstyle: {
     fontSize: 18,
   },
-
   webContainer: {
     flex: 1,
     flexDirection: "row",
     height: "100%",
     width: "100%",
   },
-
   imageContainer: {
     height: "100%",
     width: "100%",
-    //borderWidth: 1,
     marginVertical: "10%",
     alignSelf: "center",
   },
-
   feesBox: {
     height: "90%",
     width: "60%",
-    //borderWidth: 1,
     marginHorizontal: "3.5%",
     alignSelf: "center",
     flexDirection: "column",
@@ -680,7 +684,6 @@ const styles = StyleSheet.create({
     fontWeight: 600,
     color: " rgb(94, 93, 93)",
   },
-
   imageBackground: {
     flex: 1,
     height: "100%",
@@ -708,8 +711,6 @@ const styles = StyleSheet.create({
     flexDirection: "column",
   },
   header: {
-    // borderWidth: 5,
-    // borderColor: "black",
     zIndex: 2,
     ...Platform.select({
       web: {
@@ -742,29 +743,23 @@ const styles = StyleSheet.create({
   doctorProfileDetail: {
     height: "72%",
     width: "100%",
-    //borderWidth: 1,
     flexDirection: "row",
   },
   doctorLeftSection: {
     width: "20%",
     height: "48%",
     alignItems: "center",
-    // borderWidth: 1,
   },
-
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 5,
   },
-
   doctorInfoSection: {
     width: "80%",
     height: "85%",
     paddingLeft: "1%",
-    //borderWidth: 1,
   },
-
   doctorExperience: {
     fontSize: 14,
     color: "#666",
@@ -778,7 +773,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   reviewsSection: {
-    //borderWidth: 1,
     height: "40%",
     bottom: "10%",
   },
@@ -790,7 +784,6 @@ const styles = StyleSheet.create({
   reviewsList: {
     flexDirection: "row",
     justifyContent: "space-around",
-    //borderWidth: 1,
     borderColor: "red",
     height: "80%",
   },
@@ -804,13 +797,11 @@ const styles = StyleSheet.create({
   reviewTextBox: {
     height: "80%",
     width: "100%",
-    // borderWidth: 1,
   },
   reviewText: {
     fontSize: 13,
     color: "#000",
     marginBottom: "3%",
-    //fontFamily: "Alex Brush",
     fontWeight: 400,
     fontStyle: "italic",
   },
@@ -818,7 +809,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: "2%",
-    // borderWidth: 1,
   },
   reviewerName: {
     fontSize: 12,
@@ -832,14 +822,37 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: "2%",
     marginLeft: "5%",
-    //padding: "2%",
+    
   },
   subscriptionTextHead: {
+    flexDirection: "row",
     height: "10%",
-    width: "70%",
-    //borderWidth: 1,
-    marginTop: "20%",
+    width: "85%",
+    marginTop: "10%",
     marginLeft: "8%",
+    
+    borderRadius: 5,
+    overflow: "hidden",
+  },
+  rupeesBox: {
+    width: "50%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRightWidth: 0.5,
+    borderColor: "#ddd",
+  },
+  rupeesBoxSelected: {
+    backgroundColor: "#8A70FF",
+  },
+  rupeesText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#333",
+  },
+  rupeesTextSelected: {
+    color: "#fff",
+    fontWeight: "bold",
   },
   subscriptionTextTitle: {
     fontSize: 14,
@@ -847,13 +860,13 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   subscriptionMetricsBox: {
-    height: "27%",
+    height: "50%",
     width: "85%",
-    //borderWidth: 1,
     backgroundColor: "#F6F6F6",
     borderRadius: 5,
     alignSelf: "center",
-    marginTop: "1%",
+    marginTop: "4%",
+    paddingTop: "3%",
   },
   metricsTitle: {
     fontSize: 13,
@@ -863,26 +876,22 @@ const styles = StyleSheet.create({
     marginTop: "1%",
   },
   subscriptionButtonContainer: {
-    height: "25%",
-    width: "85%",
-    //borderWidth: 1,
+    height: "30%",
+    width: "70%",
     alignSelf: "center",
     alignItems: "center",
-    marginTop: "10%",
+    marginTop: "3%",
     flexDirection: "column",
-    //justifyContent:"space-around"
   },
   subscriptionTextBox: {
     height: "20%",
     width: "80%",
-    //borderWidth: 1,
     marginTop: "10%",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
   },
   priceText: {
-    //fontFamily:"Annapurna SIL",
     fontSize: 16,
     fontWeight: 500,
     color: "#000000",
@@ -897,7 +906,6 @@ const styles = StyleSheet.create({
   subscribeButton: {
     height: "24%",
     width: "80%",
-    //borderWidth: 1,
     marginTop: "2%",
     backgroundColor: "#FF7072",
     borderRadius: 5,

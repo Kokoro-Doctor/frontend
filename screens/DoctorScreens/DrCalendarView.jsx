@@ -11,11 +11,8 @@ import {
   Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-<<<<<<< HEAD
-import NewestSidebarDr from "../../components/DoctorsPortalComponents/NewestSidebarDr";
-=======
-import NewestSidebarDr from "../../components/DoctorsPortalComponents/NewestSidebar";
->>>>>>> main
+import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
+
 
 const DrCalendarView = ({ navigation }) => {
   const [viewMode, setViewMode] = useState("Week"); // Set default to Week view
@@ -152,7 +149,7 @@ const DrCalendarView = ({ navigation }) => {
       {/* Sidebar for larger screens or when open */}
       {sidebarOpen && (
         <View style={styles.sidebarContainer}>
-          <NewestSidebarDr
+          <NewestSidebar
             navigation={navigation}
             closeSidebar={toggleSidebar}
             activeItem="Calendar"
@@ -203,11 +200,7 @@ const DrCalendarView = ({ navigation }) => {
         <View style={styles.controlsContainer}>
           <View style={styles.searchContainer}>
             <Image
-<<<<<<< HEAD
-              source={require("../../assets/Icons/SearchIcon2.png")}
-=======
               source={require("../../assets/Icons/search.png")}
->>>>>>> main
               style={styles.imagepic}
             />
 
@@ -218,11 +211,7 @@ const DrCalendarView = ({ navigation }) => {
               onChangeText={setSearchText}
             />
             <Image
-<<<<<<< HEAD
-              source={require("../../assets/Icons/searchFilter2.png")}
-=======
               source={require("../../assets/Icons/search.png")}
->>>>>>> main
               style={styles.imagepicc}
             />
           </View>
