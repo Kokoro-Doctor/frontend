@@ -14,17 +14,18 @@ import {
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import * as DocumentPicker from "expo-document-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 //import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 const { width, height } = Dimensions.get("window");
 const UserDashboard = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
 
+  const [user, setUser] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [issueDocs, setIssueDocs] = useState([]);
   const [appointmentData, setAppointmentData] = useState(null);
   const [consultationRemaining, setConsultationRemaining] = useState(null);
-
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
   const indexOfLast = currentPage * itemsPerPage;
@@ -265,6 +266,22 @@ const UserDashboard = ({ navigation, route }) => {
     }
   }, [issueDocs]);
 
+  //loggedin user detail
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("@user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (err) {
+        console.log("Failed to load user:", err);
+      }
+    };
+
+    loadUser();
+  }, []);
+
   return (
     <>
       {/* Hidden inputs for Web */}
@@ -302,9 +319,23 @@ const UserDashboard = ({ navigation, route }) => {
                   <HeaderLoginSignUp navigation={navigation} />
                 </View>
                 <HoverScale style={styles.userDetailSection}>
-                  <View style={styles.userImageBox}></View>
+                  {/* <View style={styles.userImageBox}></View> */}
+                  <View style={styles.userImageBox}>
+                    {user?.picture ? (
+                      <Image
+                        source={{ uri: user.picture }}
+                        style={styles.userAvatar}
+                      />
+                    ) : (
+                      <Text style={styles.userInitial}>
+                        {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                      </Text>
+                    )}
+                  </View>
+
                   <View style={styles.userdetailsBox}>
-                    <Text style={styles.userName}>User</Text>
+                    <Text style={styles.userName}>{user?.name || "User"}</Text>
+
                     <View style={styles.packDetails}>
                       <View style={styles.packTextBox}>
                         <Text style={styles.packDetailsText}>
@@ -678,13 +709,32 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   userImageBox: {
-    borderWidth: 1,
-    height: "42%",
+    //borderWidth: 1,
+    height: "48%",
     width: "4%",
     marginVertical: "1%",
     marginHorizontal: "1%",
     borderColor: "#c8c7c7ff",
+    borderRadius: 50,
   },
+  userAvatar: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 50,
+  },
+
+  userInitial: {
+    fontSize: 32,
+    fontWeight: "600",
+    color: "#FF7072",
+    borderWidth: 1,
+    borderRadius: 50,
+    width: "100%",
+    height: "100%",
+    textAlign: "center",
+    borderColor: "#e1e0e0ff",
+  },
+
   userdetailsBox: {
     marginVertical: "1%",
     marginHorizontal: "0%",
@@ -693,9 +743,10 @@ const styles = StyleSheet.create({
     //borderWidth: 1,
   },
   userName: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: 600,
-    marginHorizontal: "1%",
+    marginHorizontal: "0%",
+    //borderWidth:1
   },
   packDetails: {
     height: "19%",
