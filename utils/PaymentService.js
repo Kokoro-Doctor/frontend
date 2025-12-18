@@ -28,13 +28,15 @@ import { API_URL } from "../env-vars";
 
 export const payment_api = async (amount) => {
   try {
-    const response = await fetch(`${API_URL}/process-payment`, {
+    const response = await fetch(`${API_URL}/process-payment/payment-link`, {
       method: "POST",
       mode: "cors",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify({
+        plan_id: "PLAN_1_7D_ALL",
+      }),
     });
 
     const result = await response.json(); // ✅ FIX
@@ -50,4 +52,3 @@ export const payment_api = async (amount) => {
     throw error;
   }
 };
-

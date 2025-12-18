@@ -10,41 +10,67 @@ import {
   Image,
   Animated,
   ScrollView,
+  Linking,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-//import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import { API_URL } from "../../env-vars";
 
 const { width, height } = Dimensions.get("window");
-const UserDashboard = ({ navigation, route }) => {
+
+const UserDashboard = ({ navigation }) => {
   const { width } = useWindowDimensions();
 
   const [user, setUser] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [issueDocs, setIssueDocs] = useState([]);
-  const [appointmentData, setAppointmentData] = useState(null);
-  const [consultationRemaining, setConsultationRemaining] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentDocuments = documents.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(documents.length / itemsPerPage);
+  const [activeSubscription, setActiveSubscription] = useState(null);
+  const [doctorData, setDoctorData] = useState(null);
+  const [appointmentData, setAppointmentData] = useState(null);
+  const [consultationRemaining, setConsultationRemaining] = useState(0);
+  const hasFetchedRef = useRef(false);
 
-  // --------------------------
-  // WEB FILE INPUT REFERENCES
-  // --------------------------
   const uploadInputRef = useRef(null);
   const issueInputRef = useRef(null);
 
-  // --------------------------
-  // HOVER SCALE
-  // --------------------------
+  // For the main document upload
+  const onWebUploadChange = (e) => {
+    const files = Array.from(e.target.files); // FileList -> Array
+    const newDocs = files.map((file) => ({
+      id: Date.now() + Math.random(),
+      date: new Date().toLocaleDateString(),
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      name: file.name,
+      format: "." + file.name.split(".").pop(),
+      type: detectType(file.name),
+      uri: URL.createObjectURL(file),
+    }));
+    setDocuments((prev) => [...prev, ...newDocs]);
+  };
+
+  // For the issue upload
+  const onWebIssueChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newDocs = files.map((file) => ({
+      name: file.name,
+      uri: URL.createObjectURL(file),
+    }));
+    setIssueDocs((prev) => [...prev, ...newDocs]);
+  };
+
   const HoverScale = ({ children, style }) => {
     const scale = useRef(new Animated.Value(1)).current;
-
     const onEnter = () => {
       Animated.timing(scale, {
         toValue: 1.02,
@@ -52,7 +78,6 @@ const UserDashboard = ({ navigation, route }) => {
         useNativeDriver: true,
       }).start();
     };
-
     const onLeave = () => {
       Animated.timing(scale, {
         toValue: 1,
@@ -60,131 +85,33 @@ const UserDashboard = ({ navigation, route }) => {
         useNativeDriver: true,
       }).start();
     };
-
     if (Platform.OS !== "web") {
       return <Animated.View style={[style]}>{children}</Animated.View>;
     }
-
     return (
       <Animated.View
         style={[style, { transform: [{ scale }] }]}
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}
       >
-        {children}
+        {" "}
+        {children}{" "}
       </Animated.View>
     );
   };
 
-  // --------------------------
-  // TYPE COLORS
-  // --------------------------
-  const getTagColor = (type) => {
-    switch (type) {
-      case "Report":
-        return { bg: "#FFD7A2", text: "#8A4A00", borderColor: "#8A4A00" };
-
-      case "Scan":
-        return { bg: "#AFE2CA", text: "#006644", borderColor: "#006644" };
-
-      case "Lab test":
-        return { bg: "#AFE2CA", text: "#004D33", borderColor: "#004D33" };
-
-      case "Prescription":
-        return { bg: "#FF92D3BF", text: "#A30063", borderColor: "#A30063" };
-
-      default:
-        return { bg: "#EEEEEE", text: "#444444", borderColor: "#444444" };
-    }
-  };
-
-  const fetchDashboardStats = async () => {
-    try {
-      // Replace with your actual API
-      const response = await fetch("https://your-backend.com/user/dashboard");
-
-      if (!response.ok) throw new Error("Network response failed");
-
-      const data = await response.json();
-
-      // If backend sends valid data → use it
-      setAppointmentData(data?.upcomingAppointment || null);
-      setConsultationRemaining(data?.consultationRemaining || null);
-    } catch (error) {
-      console.log("Stats API error:", error);
-
-      // Backend not ready → show default values
-      setAppointmentData(null); // default = "No Appointment"
-      setConsultationRemaining(null); // default = "0/0"
-    }
-  };
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
-
-  // --------------------------
-  // CROSS PLATFORM UPLOAD
-  // --------------------------
-  const handleUpload = async () => {
-    if (Platform.OS === "web") {
-      uploadInputRef.current?.click();
-      return;
-    }
-
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        multiple: false,
-        copyToCacheDirectory: true,
-      });
-
-      if (result.canceled) return;
-
-      addDocs(result.assets);
-    } catch (err) {
-      console.log("Upload error:", err);
-    }
-  };
-
-  const onWebUploadChange = (e) => {
-    const files = Array.from(e.target.files);
-
-    const mapped = files.map((file, index) => ({
-      id: Date.now() + index,
-      date: new Date().toLocaleDateString(),
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      name: file.name,
-      format: "." + file.name.split(".").pop(),
-      type: detectType(file.name),
-      uri: URL.createObjectURL(file),
-    }));
-
-    setDocuments((prev) => [...prev, ...mapped]);
-  };
-
-  const addDocs = (assets) => {
-    const newDocs = assets.map((file, index) => ({
-      id: Date.now() + index,
-      date: new Date().toLocaleDateString(),
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      name: file.name,
-      format: "." + file.name.split(".").pop(),
-      type: detectType(file.name),
-      uri: file.uri,
-    }));
-
-    setDocuments((prev) => [...prev, ...newDocs]);
-  };
+  // ------------------ Utility ------------------
+  const getDoctorName = () =>
+    doctorData?.doctor?.doctorname || doctorData?.doctorname || "—";
+  const getDoctorSpecialization = () =>
+    doctorData?.doctor?.specialization || doctorData?.specialization || "";
+  const getDoctorExperience = () =>
+    doctorData?.doctor?.experience || doctorData?.experience
+      ? `${doctorData?.doctor?.experience || doctorData?.experience} exp`
+      : "";
 
   const detectType = (fileName) => {
     const ext = fileName.split(".").pop().toLowerCase();
-
     if (["pdf"].includes(ext)) return "Report";
     if (["png", "jpg", "jpeg", "pdf"].includes(ext)) return "Scan";
     if (["txt", "doc", "docx"].includes(ext)) return "Prescription";
@@ -192,95 +119,435 @@ const UserDashboard = ({ navigation, route }) => {
     return "Other";
   };
 
-  // --------------------------
-  // ISSUE UPLOAD
-  // --------------------------
-  const handleIssueUpload = async () => {
-    if (Platform.OS === "web") {
-      issueInputRef.current?.click();
+  const getTagColor = (type) => {
+    switch (type) {
+      case "Report":
+        return { bg: "#FFD7A2", text: "#8A4A00", borderColor: "#8A4A00" };
+      case "Scan":
+        return { bg: "#AFE2CA", text: "#006644", borderColor: "#006644" };
+      case "Lab test":
+        return { bg: "#AFE2CA", text: "#004D33", borderColor: "#004D33" };
+      case "Prescription":
+        return { bg: "#FF92D3BF", text: "#A30063", borderColor: "#A30063" };
+      default:
+        return { bg: "#EEEEEE", text: "#444444", borderColor: "#444444" };
+    }
+  };
+
+  // ------------------ Fetch Functions ------------------
+
+  // const fetchActiveSubscription = async (userId, doctorId) => {
+  //   try {
+  //     const res = await fetch(
+  //       `${API_URL}/subscriptions/user/${userId}/doctor/${doctorId}`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${user?.token}`, // 🔥 IMPORTANT
+  //         },
+  //       }
+  //     );
+
+  //     if (!res.ok) {
+  //       console.warn("Subscription API failed:", res.status);
+  //       return null;
+  //     }
+
+  //     return await res.json();
+  //   } catch (err) {
+  //     console.error("❌ fetchActiveSubscription:", err);
+  //     return null;
+  //   }
+  // };
+
+  const fetchActiveSubscription = async (userId, doctorId) => {
+    console.log("💳 fetchActiveSubscription START");
+
+    if (!user?.token) {
+      console.warn("⛔ Skipping subscription API — NO TOKEN");
+      return null;
+    }
+
+    try {
+      const url = `${API_URL}/booking/users/${userId}/subscriptions`;
+      console.log("🌐 Subscription URL:", url);
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
+
+      console.log("📡 Subscription API status:", res.status);
+
+      if (!res.ok) return null;
+
+      const subscriptions = await res.json();
+      console.log("📦 All subscriptions:", subscriptions);
+
+      if (!Array.isArray(subscriptions)) {
+        console.warn("⚠️ Subscriptions response is not an array");
+        return null;
+      }
+
+      // ✅ Find ACTIVE subscription for this doctor
+      const activeSubscription = subscriptions.find(
+        (sub) => sub.doctor_id === doctorId && sub.status === "active"
+      );
+
+      console.log("✅ Active subscription:", activeSubscription);
+
+      return activeSubscription || null;
+    } catch (err) {
+      console.error("❌ fetchActiveSubscription ERROR:", err);
+      return null;
+    }
+  };
+
+  // const fetchDoctor = async (doctorId) => {
+  //   try {
+  //     const res = await fetch(`${API_URL}/doctorsService/doctor/${doctorId}`);
+  //     if (!res.ok) return null;
+  //     return await res.json();
+  //   } catch (err) {
+  //     console.error("❌ fetchDoctor:", err);
+  //     return null;
+  //   }
+  // };
+  const fetchDoctor = async (doctorId) => {
+    console.log("👨‍⚕️ fetchDoctor START");
+    console.log("➡️ doctorId:", doctorId);
+
+    try {
+      const url = `${API_URL}/doctorsService/doctor/${doctorId}`;
+      console.log("🌐 Doctor URL:", url);
+
+      const res = await fetch(url);
+      console.log("📡 Doctor API status:", res.status);
+
+      if (!res.ok) {
+        console.warn("❌ Doctor API failed");
+        return null;
+      }
+
+      const data = await res.json();
+      console.log("📦 Doctor data:", data);
+
+      console.log("✅ fetchDoctor END");
+      return data;
+    } catch (err) {
+      console.error("❌ fetchDoctor ERROR:", err);
+      return null;
+    }
+  };
+
+  // const fetchUpcomingAppointment = async (userId) => {
+  //   console.log("🚀 fetchUpcomingAppointment CALLED", userId);
+
+  //   try {
+  //     const res = await fetch(
+  //       `${API_URL}/booking/users/${userId}/bookings?type=upcoming`
+  //     );
+
+  //     if (!res.ok) return;
+
+  //     const data = await res.json();
+  //     if (!Array.isArray(data) || !data.length) return;
+
+  //     const booking = data[0];
+  //     setAppointmentData(booking);
+
+  //     // 🔹 fetch doctor safely
+  //     const doctor = await fetchDoctor(booking.doctor_id);
+  //     if (doctor) setDoctorData(doctor);
+
+  //     // 🔹 fetch subscription safely (optional feature)
+  //     const subscription = await fetchActiveSubscription(
+  //       userId,
+  //       booking.doctor_id
+  //     );
+
+  //     if (subscription) setActiveSubscription(subscription);
+  //     else setActiveSubscription(null);
+  //   } catch (err) {
+  //     console.error("❌ fetchUpcomingAppointment:", err);
+  //   }
+  // };
+
+  // const fetchUpcomingAppointment = async (userId) => {
+  //   console.log("🚀 fetchUpcomingAppointment START");
+  //   console.log("➡️ userId:", userId);
+
+  //   try {
+  //     const url = `${API_URL}/booking/users/${userId}/bookings?type=upcoming`;
+  //     console.log("🌐 Upcoming Appointment URL:", url);
+
+  //     const res = await fetch(url);
+
+  //     console.log("📡 Upcoming Appointment status:", res.status);
+
+  //     if (!res.ok) {
+  //       console.warn("❌ Upcoming appointment API failed");
+  //       return;
+  //     }
+
+  //     const data = await res.json();
+  //     console.log("📦 Upcoming Appointment data:", data);
+
+  //     if (!Array.isArray(data) || !data.length) {
+  //       console.warn("⚠️ No upcoming appointments");
+  //       return;
+  //     }
+
+  //     const booking = data[0];
+  //     console.log("📌 Selected booking:", booking);
+
+  //     setAppointmentData(booking);
+
+  //     console.log("➡️ Calling fetchDoctor with doctor_id:", booking.doctor_id);
+  //     const doctor = await fetchDoctor(booking.doctor_id);
+
+  //     if (doctor) {
+  //       console.log("✅ Doctor fetched successfully");
+  //       setDoctorData(doctor);
+  //     } else {
+  //       console.warn("⚠️ Doctor fetch returned null");
+  //     }
+
+  //     console.log(
+  //       "➡️ Calling fetchActiveSubscription with:",
+  //       userId,
+  //       booking.doctor_id
+  //     );
+
+  //     const subscription = await fetchActiveSubscription(
+  //       userId,
+  //       booking.doctor_id
+  //     );
+
+  //     if (subscription) {
+  //       console.log("✅ Subscription fetched:", subscription);
+  //       setActiveSubscription(subscription);
+  //     } else {
+  //       console.warn("⚠️ No active subscription / forbidden");
+  //       setActiveSubscription(null);
+  //     }
+
+  //     console.log("✅ fetchUpcomingAppointment END");
+  //   } catch (err) {
+  //     console.error("❌ fetchUpcomingAppointment ERROR:", err);
+  //   }
+  // };
+
+  // const fetchUpcomingAppointment = async (userId) => {
+  //   console.log("🚀 fetchUpcomingAppointment START");
+
+  //   try {
+  //     const res = await fetch(
+  //       `${API_URL}/booking/users/${userId}/bookings?type=upcoming`
+  //     );
+
+  //     if (!res.ok) return;
+
+  //     const data = await res.json();
+  //     console.log("📦 Upcoming bookings:", data);
+
+  //     if (!Array.isArray(data) || data.length === 0) {
+  //       console.warn("⚠️ No upcoming appointment");
+  //       setAppointmentData(null);
+  //       setDoctorData(null);
+  //       setActiveSubscription(null);
+  //       setConsultationRemaining(0);
+  //       return;
+  //     }
+
+  //     const booking = data[0];
+  //     setAppointmentData(booking);
+
+  //     // ✅ fetch doctor
+  //     const doctor = await fetchDoctor(booking.doctor_id);
+  //     if (doctor) setDoctorData(doctor);
+
+  //     // ✅ fetch subscription
+  //     const subscription = await fetchActiveSubscription(
+  //       userId,
+  //       booking.doctor_id
+  //     );
+
+  //     setActiveSubscription(subscription);
+  //     const remaining =
+  //       (subscription?.appointments_total ?? 0) -
+  //       (subscription?.appointments_used ?? 0);
+
+  //     setConsultationRemaining(Math.max(remaining, 0));
+  //   } catch (err) {
+  //     console.error("❌ fetchUpcomingAppointment ERROR:", err);
+  //   }
+  // };
+
+  const fetchUpcomingAppointment = async (userId) => {
+  console.log("🚀 fetchUpcomingAppointment START");
+  console.log("➡️ userId:", userId);
+
+  try {
+    const url = `${API_URL}/booking/users/${userId}/bookings?type=upcoming`;
+    console.log("🌐 URL:", url);
+
+    const res = await fetch(url);
+
+    console.log("📡 status:", res.status);
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("❌ API ERROR:", text);
       return;
     }
 
+    const data = await res.json();
+    console.log("📦 Upcoming bookings:", data);
+
+    if (!Array.isArray(data) || data.length === 0) {
+      console.warn("⚠️ No upcoming appointment");
+      setAppointmentData(null);
+      setDoctorData(null);
+      setActiveSubscription(null);
+      setConsultationRemaining(0);
+      return;
+    }
+
+    const booking = data[0];
+    console.log("📌 booking:", booking);
+    setAppointmentData(booking);
+
+    const doctor = await fetchDoctor(booking.doctor_id);
+    if (doctor) setDoctorData(doctor);
+
+    const subscription = await fetchActiveSubscription(
+      userId,
+      booking.doctor_id
+    );
+
+    setActiveSubscription(subscription);
+
+    const remaining =
+      (subscription?.appointments_total ?? 0) -
+      (subscription?.appointments_used ?? 0);
+
+    setConsultationRemaining(Math.max(remaining, 0));
+
+    console.log("✅ fetchUpcomingAppointment END");
+  } catch (err) {
+    console.error("❌ fetchUpcomingAppointment EXCEPTION:", err);
+  }
+};
+
+
+  // ------------------ User Load ------------------
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        let storedUser;
+        if (Platform.OS === "web") {
+          storedUser = localStorage.getItem("@user");
+        } else {
+          storedUser = await AsyncStorage.getItem("@user");
+        }
+        if (storedUser) setUser(JSON.parse(storedUser));
+      } catch (err) {
+        console.error("❌ loadUser:", err);
+      }
+    };
+    loadUser();
+  }, []);
+
+  // useEffect(() => {
+  //   if (!user?.user_id) return;
+  //   fetchUpcomingAppointment(user.user_id);
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [user?.user_id]);
+  useEffect(() => {
+    if (!user?.user_id) return;
+    if (hasFetchedRef.current) return;
+
+    hasFetchedRef.current = true;
+    fetchUpcomingAppointment(user.user_id);
+  }, [user?.user_id]);
+
+  // ------------------ Handle Video Call ------------------
+  const handleJoinCall = () => {
+    if (!appointmentData?.meet_link) return;
+    if (Platform.OS === "web") window.open(appointmentData.meet_link, "_blank");
+    else Linking.openURL(appointmentData.meet_link);
+  };
+
+  // ------------------ Document Upload ------------------
+  const handleUpload = async () => {
+    if (Platform.OS === "web") return uploadInputRef.current?.click();
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const file = result.assets[0];
+      setDocuments((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          date: new Date().toLocaleDateString(),
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          name: file.name,
+          format: "." + file.name.split(".").pop(),
+          type: detectType(file.name),
+          uri: file.uri,
+        },
+      ]);
+    } catch (err) {
+      console.error("❌ handleUpload:", err);
+    }
+  };
+
+  const handleIssueUpload = async () => {
+    if (Platform.OS === "web") return issueInputRef.current?.click();
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "*/*",
         multiple: true,
         copyToCacheDirectory: true,
       });
-
       if (result.canceled) return;
-
       const file = result.assets[0];
-
-      setIssueDocs((prev) => [
-        ...prev,
-        {
-          name: file.name,
-          uri: file.uri,
-        },
-      ]);
+      setIssueDocs((prev) => [...prev, { name: file.name, uri: file.uri }]);
     } catch (err) {
-      console.log("Issue Upload error:", err);
+      console.error("❌ handleIssueUpload:", err);
     }
   };
 
-  const onWebIssueChange = (e) => {
-    const files = Array.from(e.target.files);
-
-    if (!files.length) return;
-
-    const mapped = files.map((file, index) => ({
-      name: file.name,
-      uri: URL.createObjectURL(file),
-    }));
-
-    setIssueDocs((prev) => [...prev, ...mapped]);
-  };
-
-  // --------------------------
-  // LOCAL STORAGE (only web)
-  // --------------------------
+  // ------------------ Local Storage Web ------------------
   useEffect(() => {
     if (Platform.OS === "web") {
-      const saved = localStorage.getItem("medilocker_docs");
-      if (saved) setDocuments(JSON.parse(saved));
+      const savedDocs = localStorage.getItem("medilocker_docs");
+      if (savedDocs) setDocuments(JSON.parse(savedDocs));
     }
   }, []);
-
   useEffect(() => {
-    if (Platform.OS === "web") {
+    if (Platform.OS === "web")
       localStorage.setItem("medilocker_docs", JSON.stringify(documents));
-    }
   }, [documents]);
 
   useEffect(() => {
     if (Platform.OS === "web") {
-      const saved = localStorage.getItem("issueDocs");
-      if (saved) setIssueDocs(JSON.parse(saved));
+      const savedIssue = localStorage.getItem("issueDocs");
+      if (savedIssue) setIssueDocs(JSON.parse(savedIssue));
     }
   }, []);
-
   useEffect(() => {
-    if (Platform.OS === "web") {
+    if (Platform.OS === "web")
       localStorage.setItem("issueDocs", JSON.stringify(issueDocs));
-    }
   }, [issueDocs]);
-
-  //loggedin user detail
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem("@user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (err) {
-        console.log("Failed to load user:", err);
-      }
-    };
-
-    loadUser();
-  }, []);
 
   return (
     <>
@@ -303,7 +570,7 @@ const UserDashboard = ({ navigation, route }) => {
           />
         </>
       )}
-      {Platform.OS === "web" && width > 1000 && (
+      {Platform.OS === "web" && (
         <View style={styles.webContainer}>
           <View style={styles.parent}>
             <View style={styles.Left}>
@@ -345,9 +612,6 @@ const UserDashboard = ({ navigation, route }) => {
                       <View style={styles.dateSection}></View>
                     </View>
                     <View style={styles.doctorAssignedDetails}>
-                      {/* <Text style={styles.doctorAssignedText}>
-                        Doctor Assigned :
-                      </Text> */}
                       <Text style={styles.doctorAssignedText}>
                         Doctor Assigned:{" "}
                         <Text
@@ -357,13 +621,8 @@ const UserDashboard = ({ navigation, route }) => {
                             color: "#000",
                           }}
                         >
-                          {appointmentData
-                            ? appointmentData.doctorName
-                            : "Dr. Kislay Shrivastava"}
-                          ,{" "}
-                          {appointmentData
-                            ? appointmentData.specialization
-                            : "Interventional cardiologist, MBBS, MD, DNB"}
+                          {getDoctorName()}, {getDoctorSpecialization()},{" "}
+                          {getDoctorExperience()}
                         </Text>
                       </Text>
                     </View>
@@ -391,8 +650,8 @@ const UserDashboard = ({ navigation, route }) => {
                     <Text style={styles.cardText}>Consultation Remaining</Text>
                     <View style={styles.cardSpecificDataSection}>
                       <Text style={styles.specificText}>
-                        {consultationRemaining
-                          ? `${consultationRemaining.used}/${consultationRemaining.total}`
+                        {activeSubscription
+                          ? `${consultationRemaining}/${activeSubscription.appointments_total}`
                           : "0/0"}
                       </Text>
                     </View>
@@ -430,16 +689,12 @@ const UserDashboard = ({ navigation, route }) => {
                       <Text
                         style={{ margin: "1%", fontSize: 16, fontWeight: 600 }}
                       >
-                        {appointmentData
-                          ? appointmentData.doctorName
-                          : "Dr. Kislay Shrivastava"}
+                        {getDoctorName()}
                       </Text>
                       <Text
                         style={{ margin: "1%", fontSize: 12, color: "#777" }}
                       >
-                        {appointmentData
-                          ? appointmentData.specialization
-                          : "Interventional cardiologist, MBBS, MD, DNB"}
+                        {getDoctorSpecialization()}, {getDoctorExperience()}
                       </Text>
                     </View>
                   </View>
@@ -453,8 +708,18 @@ const UserDashboard = ({ navigation, route }) => {
                       <Text style={styles.videoAppointmentText}>
                         Video Appointment
                       </Text>
-                      <TouchableOpacity style={styles.videoCallButton}>
-                        Join Call
+
+                      <TouchableOpacity
+                        style={[
+                          styles.videoCallButton,
+                          { opacity: appointmentData?.meet_link ? 1 : 0.3 },
+                        ]}
+                        disabled={!appointmentData?.meet_link}
+                        onPress={handleJoinCall}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "600" }}>
+                          Join Call
+                        </Text>
                       </TouchableOpacity>
                     </View>
                     <View style={styles.videoAppointmentDate}>
@@ -466,7 +731,9 @@ const UserDashboard = ({ navigation, route }) => {
                           color: "#f8f6f6ff",
                         }}
                       >
-                        No Appointment
+                        {appointmentData
+                          ? `${appointmentData.date} at ${appointmentData.start_time}`
+                          : "No Appointment"}
                       </Text>
                     </View>
                   </View>
