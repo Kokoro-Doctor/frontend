@@ -108,6 +108,17 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
     });
   };
 
+  // Plan details are now fetched from API 
+  // This function is kept for reference/future use
+  const handlePurchaseDetails = async (amount) => {
+    try {
+      const planDetails = await planDetails_api(amount);
+      return planDetails;
+    } catch (error) {
+      Alert.alert("Error", "Failed to fetch plan details: " + error.message);
+      return null;
+    }
+  };
   // Plan details
   const weeklyPlan = {
     features: [
@@ -280,7 +291,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                       <View style={styles.subscriptionButtonContainer}>
                         <TouchableOpacity
                           style={styles.subscribeButton}
-                          onPress={handleSubscribeClick}
+                          onPress={handleContinuePayment(999)}
                         >
                           <Text style={styles.subscribeButtonText}>
                             Purchase Plan
