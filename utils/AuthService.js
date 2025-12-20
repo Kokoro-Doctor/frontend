@@ -198,9 +198,6 @@
 //   return null;
 // };
 
-
-
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
@@ -310,7 +307,6 @@ export const requestSignupOtp = async ({ phoneNumber, email, role = "user" }) =>
   return postJson(endpoint, { phoneNumber, email }, "Failed to send OTP");
 };
 
-
 export const requestLoginOtp = async ({ identifier, preferredChannel = "email" }) => {
   // identifier can be email or phone number
   // preferredChannel: "email" (default) or "sms"
@@ -319,7 +315,6 @@ export const requestLoginOtp = async ({ identifier, preferredChannel = "email" }
   }
   return postJson("/auth/request-otp", { identifier, preferredChannel }, "Failed to send OTP");
 };
-
 
 export const initiateLogin = async ({ identifier }) => {
   // identifier can be email or phone number
@@ -389,7 +384,6 @@ const handleLoginResponse = async (data) => {
 
   return data;
 };
-
 
 export const loginWithOtp = async ({ identifier, otp }) => {
   // identifier can be email or phone number
@@ -483,7 +477,6 @@ export const completeDoctorSignup = async ({
   // Return data with profile included for consistency
   return { ...data, profile };
 };
-
 
 // ================= Session Helpers =================
 

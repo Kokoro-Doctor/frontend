@@ -6,6 +6,7 @@ import { lightTheme, darkTheme } from "../contexts/Themes";
 import PrivacyPolicy from "../screens/PatientScreens/Auth/PrivacyPolicy";
 import LandingPage from "../screens/PatientScreens/LandingPage";
 import DoctorPatientLandingPage from "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage";
+import UserDashboard from "../screens/PatientScreens/UserDashboard";
 
 //Doctors
 import ConsultWithDoctors from "../screens/PatientScreens/Doctors/ConsultWithDoctors";
@@ -288,6 +289,11 @@ const AppNavigation = () => {
         <Stack.Screen
           name="LandingPage"
           component={LandingPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="UserDashboard"
+          component={UserDashboard}
           options={{ headerShown: false }}
         />
         <Stack.Screen

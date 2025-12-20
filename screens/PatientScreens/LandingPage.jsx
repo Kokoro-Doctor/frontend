@@ -569,8 +569,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
     width: "23%",
-    height: "96%",
-    marginVertical: "0.5%",
+    height: height > 1000 ? "76%" : "96%",
+    marginVertical: "1%",
   },
   image: {
     height: "100%",
