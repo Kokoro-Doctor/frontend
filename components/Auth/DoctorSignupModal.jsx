@@ -38,7 +38,8 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
   const [showOtpModal, setShowOtpModal] = useState(false);
-  const [doctorCountryCode, setDoctorCountryCode] = useState(DEFAULT_COUNTRY_CODE);
+  const [doctorCountryCode, setDoctorCountryCode] =
+    useState(DEFAULT_COUNTRY_CODE);
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -98,10 +99,16 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       setErrorMessage("Please enter your mobile number.");
       return false;
     }
+    if (!doctorEmail.trim()) {
+      setErrorMessage("Email is required for doctor signup.");
+      return false;
+    }
     const digitsOnly = sanitizeDigits(doctorPhone);
     if (!validatePhoneNumber(digitsOnly, doctorCountryCode)) {
       const country = getCountryByCode(doctorCountryCode);
-      setErrorMessage(`Please enter a valid mobile number for ${country.name}.`);
+      setErrorMessage(
+        `Please enter a valid mobile number for ${country.name}.`
+      );
       return false;
     }
     return true;
@@ -115,7 +122,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       return;
     }
     const trimmed = value.trim();
-    
+
     // Auto-detect country code if number starts with +
     if (trimmed.startsWith("+")) {
       const detected = detectCountryCode(trimmed);
@@ -124,7 +131,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       setDoctorPhone(`+${digitsOnly}`);
       return;
     }
-    
+
     const digitsOnly = sanitizeDigits(trimmed);
     if (!digitsOnly) {
       setDoctorPhone("");
@@ -138,12 +145,12 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       return "";
     }
     const trimmed = doctorPhone.trim();
-    
+
     // If already has + prefix, return as-is
     if (trimmed.startsWith("+")) {
       return trimmed;
     }
-    
+
     return buildFullPhoneNumber(trimmed, doctorCountryCode);
   };
 
@@ -162,9 +169,22 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     setIsProcessing(true);
     setDoctorOtpStatus("sending");
 
+    // Email is required for doctor signup
+    const doctorEmailValue = doctorEmail.trim();
+    if (!doctorEmailValue) {
+      setErrorMessage("Email is required for doctor signup.");
+      setIsProcessing(false);
+      setDoctorOtpStatus("idle");
+      return;
+    }
+
     try {
-      await requestSignupOtp({ phoneNumber, role: "doctor" });
-      setInfoMessage("OTP sent to your mobile number.");
+      await requestSignupOtp({
+        phoneNumber,
+        email: doctorEmailValue,
+        role: "doctor",
+      });
+      setInfoMessage("OTP sent to your email address.");
       setDoctorOtpStatus("sent");
       setOtpCountdown(60);
       // Stack OTP modal on top of base doctor card
@@ -221,11 +241,11 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     try {
       await doctorsSignup({
         phoneNumber,
+        email: doctorEmail.trim(),  // Email is now mandatory
         otp: otpToUse,
         name: doctorFullName.trim(),
         specialization: doctorSpecialization.trim(),
         experience: parsedExperience,
-        email: doctorEmail.trim() || undefined,
       });
 
       setInfoMessage("Doctor registration successful! Redirecting...");
@@ -253,10 +273,20 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
     }
     setIsProcessing(true);
     setErrorMessage("");
+    const doctorEmailValue = doctorEmail.trim();
+    if (!doctorEmailValue) {
+      setErrorMessage("Email is required for doctor signup.");
+      setIsProcessing(false);
+      return;
+    }
     try {
-      await requestSignupOtp({ phoneNumber, role: "doctor" });
+      await requestSignupOtp({
+        phoneNumber,
+        email: doctorEmailValue,
+        role: "doctor",
+      });
       setOtpCountdown(60);
-      setInfoMessage("OTP resent to your mobile number.");
+      setInfoMessage("OTP resent to your email address.");
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
@@ -265,7 +295,10 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
   };
 
   const doctorPhoneDigits = sanitizeDigits(doctorPhone);
-  const isDoctorPhoneValid = validatePhoneNumber(doctorPhoneDigits, doctorCountryCode);
+  const isDoctorPhoneValid = validatePhoneNumber(
+    doctorPhoneDigits,
+    doctorCountryCode
+  );
   const showDoctorPhoneError =
     doctorPhone.trim().length > 0 && !isDoctorPhoneValid;
 
@@ -318,14 +351,19 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
               <View style={styles.phoneContainer}>
                 <View style={styles.countryCodeContainer}>
                   <TouchableOpacity
-                    onPress={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                    onPress={() =>
+                      setIsCountryDropdownOpen(!isCountryDropdownOpen)
+                    }
                     style={styles.countryCodeButton}
                   >
                     <Text style={styles.countryCodeText}>
-                      {getCountryByCode(doctorCountryCode).flag} {doctorCountryCode}
+                      {getCountryByCode(doctorCountryCode).flag}{" "}
+                      {doctorCountryCode}
                     </Text>
                     <Ionicons
-                      name={isCountryDropdownOpen ? "chevron-up" : "chevron-down"}
+                      name={
+                        isCountryDropdownOpen ? "chevron-up" : "chevron-down"
+                      }
                       size={16}
                       color="#666"
                       style={{ marginLeft: 4 }}
@@ -333,7 +371,10 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                   </TouchableOpacity>
                   {isCountryDropdownOpen && (
                     <View style={styles.countryDropdown}>
-                      <ScrollView style={styles.countryDropdownScroll} nestedScrollEnabled>
+                      <ScrollView
+                        style={styles.countryDropdownScroll}
+                        nestedScrollEnabled
+                      >
                         {COUNTRY_CODES.map((country) => (
                           <TouchableOpacity
                             key={country.code}
@@ -365,7 +406,8 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
               </View>
               {showDoctorPhoneError ? (
                 <Text style={styles.inlineErrorText}>
-                  Please enter a valid mobile number for {getCountryByCode(doctorCountryCode).name}.
+                  Please enter a valid mobile number for{" "}
+                  {getCountryByCode(doctorCountryCode).name}.
                 </Text>
               ) : null}
 
@@ -395,7 +437,7 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
               />
 
               <Text style={styles.inputLabel}>
-                Email <Text style={styles.optionalIndicator}>(optional)</Text>
+                Email <Text style={styles.requiredIndicator}>*</Text>
               </Text>
               <TextInput
                 placeholder="name@example.com"
@@ -414,7 +456,8 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                     !doctorFullName.trim() ||
                     !isDoctorPhoneValid ||
                     !doctorSpecialization.trim() ||
-                    !doctorExperience.trim()) &&
+                    !doctorExperience.trim() ||
+                    !doctorEmail.trim()) &&
                     styles.disabledBtn,
                 ]}
                 onPress={handleSendVerification}
@@ -423,7 +466,8 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                   !doctorFullName.trim() ||
                   !isDoctorPhoneValid ||
                   !doctorSpecialization.trim() ||
-                  !doctorExperience.trim()
+                  !doctorExperience.trim() ||
+                  !doctorEmail.trim()
                 }
               >
                 <Text style={styles.btnText}>

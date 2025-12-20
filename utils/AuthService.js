@@ -293,49 +293,106 @@ export const signInWithGoogleApp = async () => {
 
 // ================= OTP & Login Flow Helpers =================
 
-export const requestSignupOtp = async ({ phoneNumber, role = "user" }) => {
+export const requestSignupOtp = async ({ phoneNumber, email, role = "user" }) => {
   if (!phoneNumber) {
     throw new Error("Please provide a mobile number.");
+  }
+  if (!email) {
+    throw new Error("Please provide an email address.");
   }
   const endpoint =
     role === "doctor"
       ? "/auth/doctor/request-signup-otp"
       : "/auth/user/request-signup-otp";
-  return postJson(endpoint, { phoneNumber }, "Failed to send OTP");
+  return postJson(endpoint, { phoneNumber, email }, "Failed to send OTP");
 };
 
-export const requestLoginOtp = async ({ phoneNumber }) => {
-  if (!phoneNumber) {
-    throw new Error("Please provide a mobile number.");
+export const requestLoginOtp = async ({ identifier, preferredChannel = "email" }) => {
+  // identifier can be email or phone number
+  // preferredChannel: "email" (default) or "sms"
+  if (!identifier) {
+    throw new Error("Please provide an email address or mobile number.");
   }
-  return postJson("/auth/request-otp", { phoneNumber }, "Failed to send OTP");
+  return postJson("/auth/request-otp", { identifier, preferredChannel }, "Failed to send OTP");
 };
 
-export const initiateLogin = async ({ phoneNumber }) => {
-  if (!phoneNumber) {
-    throw new Error("Please provide a mobile number.");
+export const initiateLogin = async ({ identifier }) => {
+  // identifier can be email or phone number
+  if (!identifier) {
+    throw new Error("Please provide an email address or mobile number.");
   }
-  return postJson("/auth/login", { phoneNumber }, "Failed to start login");
+  return postJson("/auth/login", { identifier }, "Failed to start login");
+};
+
+
+// Helper function to fetch user profile
+const fetchUserProfile = async (user_id) => {
+  try {
+    const response = await fetch(buildUrl(`/users/${user_id}`), {
+      method: "GET",
+      headers: JSON_HEADERS,
+    });
+    const result = await parseJsonResponse(response, "Failed to fetch user profile");
+    return result?.user || null;
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return null;
+  }
+};
+
+// Helper function to fetch doctor profile
+const fetchDoctorProfile = async (doctor_id) => {
+  try {
+    const response = await fetch(buildUrl(`/doctorsService/doctor/${doctor_id}`), {
+      method: "GET",
+      headers: JSON_HEADERS,
+    });
+    const result = await parseJsonResponse(response, "Failed to fetch doctor profile");
+    return result?.doctor || null;
+  } catch (error) {
+    console.error("Error fetching doctor profile:", error);
+    return null;
+  }
 };
 
 const handleLoginResponse = async (data) => {
-  if (data?.access_token && data?.profile) {
+  if (!data?.access_token) {
+    return data;
+  }
+
+  let profile = data.profile;
+  const role = data.role;
+
+  // If profile is not in response, fetch it using user_id or doctor_id
+  if (!profile) {
+    if (data.user_id && role === "user") {
+      profile = await fetchUserProfile(data.user_id);
+    } else if (data.doctor_id && role === "doctor") {
+      profile = await fetchDoctorProfile(data.doctor_id);
+    }
+  }
+
+  if (profile) {
     await persistUserSession({
       access_token: data.access_token,
-      profile: data.profile,
-      role: data.role,
+      profile: profile,
+      role: role,
     });
+    // Return data with profile included for consistency
+    return { ...data, profile };
   }
+
   return data;
 };
 
-export const loginWithOtp = async ({ phoneNumber, otp }) => {
-  if (!phoneNumber || !otp) {
-    throw new Error("Phone number and OTP are required.");
+export const loginWithOtp = async ({ identifier, otp }) => {
+  // identifier can be email or phone number
+  if (!identifier || !otp) {
+    throw new Error("Email/phone number and OTP are required.");
   }
   const data = await postJson(
     "/auth/login",
-    { phoneNumber, otp },
+    { identifier, otp },
     "OTP login failed"
   );
   return handleLoginResponse(data);
@@ -343,24 +400,40 @@ export const loginWithOtp = async ({ phoneNumber, otp }) => {
 
 // ================= Profile Creation =================
 
-export const completeUserSignup = async ({ phoneNumber, otp, name, email }) => {
+export const completeUserSignup = async ({
+  phoneNumber,
+  email,
+  otp,
+  name,
+}) => {
   if (!phoneNumber || !otp) {
     throw new Error("Phone number and OTP are required to complete signup.");
+  }
+  if (!email) {
+    throw new Error("Email is required to complete signup.");
   }
 
   const data = await postJson(
     "/auth/user/signup",
-    { phoneNumber, otp, name, email },
+    { phoneNumber, email, otp, name },
     "Failed to complete signup"
   );
 
+  let profile = data.profile;
+
+  // If profile is not in response, fetch it using user_id
+  if (!profile && data.user_id) {
+    profile = await fetchUserProfile(data.user_id);
+  }
+
   await persistUserSession({
     access_token: data.access_token,
-    profile: data.profile,
+    profile: profile,
     role: "user",
   });
 
-  return data;
+  // Return data with profile included for consistency
+  return { ...data, profile };
 };
 
 export const completeDoctorSignup = async ({
@@ -388,13 +461,21 @@ export const completeDoctorSignup = async ({
     "Failed to complete doctor signup"
   );
 
+  let profile = data.profile;
+
+  // If profile is not in response, fetch it using doctor_id
+  if (!profile && data.doctor_id) {
+    profile = await fetchDoctorProfile(data.doctor_id);
+  }
+
   await persistUserSession({
     access_token: data.access_token,
-    profile: data.profile,
+    profile: profile,
     role: "doctor",
   });
 
-  return data;
+  // Return data with profile included for consistency
+  return { ...data, profile };
 };
 
 // ================= Session Helpers =================
