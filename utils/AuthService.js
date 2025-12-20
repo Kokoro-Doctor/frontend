@@ -326,12 +326,17 @@ export const initiateLogin = async ({ identifier }) => {
 
 
 // Helper function to fetch user profile
-const fetchUserProfile = async (user_id) => {
+const fetchUserProfile = async (user_id, access_token) => {
   try {
+    const headers = {
+      ...JSON_HEADERS,
+      ...(access_token && { Authorization: `Bearer ${access_token}` }),
+    };
     const response = await fetch(buildUrl(`/users/${user_id}`), {
       method: "GET",
-      headers: JSON_HEADERS,
+      headers,
     });
+    console.log("User Profile Response:", response);
     const result = await parseJsonResponse(response, "Failed to fetch user profile");
     return result?.user || null;
   } catch (error) {
@@ -341,11 +346,15 @@ const fetchUserProfile = async (user_id) => {
 };
 
 // Helper function to fetch doctor profile
-const fetchDoctorProfile = async (doctor_id) => {
+const fetchDoctorProfile = async (doctor_id, access_token) => {
   try {
+    const headers = {
+      ...JSON_HEADERS,
+      ...(access_token && { Authorization: `Bearer ${access_token}` }),
+    };
     const response = await fetch(buildUrl(`/doctorsService/doctor/${doctor_id}`), {
       method: "GET",
-      headers: JSON_HEADERS,
+      headers,
     });
     const result = await parseJsonResponse(response, "Failed to fetch doctor profile");
     return result?.doctor || null;
@@ -360,16 +369,31 @@ const handleLoginResponse = async (data) => {
     return data;
   }
 
+  // Persist token first so it's available for profile fetch
+  await AsyncStorage.setItem("@token", data.access_token);
+
   let profile = data.profile;
   const role = data.role;
 
   // If profile is not in response, fetch it using user_id or doctor_id
   if (!profile) {
     if (data.user_id && role === "user") {
-      profile = await fetchUserProfile(data.user_id);
+      profile = await fetchUserProfile(data.user_id, data.access_token);
+      console.log("User Profile:", profile);
     } else if (data.doctor_id && role === "doctor") {
-      profile = await fetchDoctorProfile(data.doctor_id);
+      profile = await fetchDoctorProfile(data.doctor_id, data.access_token);
     }
+  }
+
+  // If profile fetch failed, create minimal profile from login response
+  // This ensures auth state is set even if profile endpoint fails
+  if (!profile && (data.user_id || data.doctor_id)) {
+    profile = {
+      user_id: data.user_id,
+      doctor_id: data.doctor_id,
+      role: role,
+      // Minimal profile - will be updated on next fetch
+    };
   }
 
   if (profile) {
