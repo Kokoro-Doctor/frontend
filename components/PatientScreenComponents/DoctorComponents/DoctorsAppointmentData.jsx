@@ -1415,11 +1415,12 @@ useEffect(() => {
         `${API_URL}/booking/users/${user.user_id}/subscriptions`
       );
 
-      const data = await response.json();
+      const data = await response.json(); // <-- data is an ARRAY
 
       const subscribedMap = {};
-      data.subscriptions?.forEach((sub) => {
-        if (sub.status === "active") {
+
+      data.forEach((sub) => {
+        if (sub.status === "ACTIVE") {
           subscribedMap[sub.doctor_id] = true;
         }
       });
