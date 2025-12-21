@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -16,17 +16,18 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-//import DoctorsHeader from "../../components/DoctorsPortalComponents/DoctorsHeader";
+
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
-//import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
+import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 
-const { width, height } = Dimensions.get("window");
-const DoctorsSubscribers = ({ navigation, route }) => {
+const DoctorsSubscribers = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const [searchText, setSearchText] = useState("");
-  const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
-  //const [selectedButton, setSelectedButton] = useState(null);
+  const { setChatbotConfig } = useChatbot();
+
+  const [subscribers, setSubscribers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
@@ -34,6 +35,27 @@ const DoctorsSubscribers = ({ navigation, route }) => {
     }, [setChatbotConfig])
   );
 
+  // ✅ FETCH BACKEND DATA HERE (ONLY HERE)
+  useEffect(() => {
+    fetchSubscribers();
+  }, []);
+
+  const fetchSubscribers = async () => {
+    try {
+      const response = await fetch(
+        "https://your-api.com/doctor/subscribers"
+      );
+      const data = await response.json();
+
+      setSubscribers(data.subscribers || []);
+    } catch (error) {
+      console.log("Error fetching subscribers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ RETURN MUST BE INSIDE COMPONENT
   return (
     <>
       {Platform.OS === "web" && width > 1000 && (
@@ -48,16 +70,17 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                 <View style={styles.Left}>
                   <NewestSidebar navigation={navigation} />
                 </View>
+
                 <View style={styles.Right}>
                   <HeaderLoginSignUp navigation={navigation} />
 
                   <View style={styles.contentContainer}>
+                    {/* ---------- HEADER ---------- */}
                     <View style={styles.upperPart}>
-                      <View>
-                        <Text style={styles.containerText}>
-                          Your Subscribers
-                        </Text>
-                      </View>
+                      <Text style={styles.containerText}>
+                        Your Subscribers
+                      </Text>
+
                       <View style={styles.upperBox}>
                         <TouchableOpacity style={styles.filterBox}>
                           <Image
@@ -67,43 +90,13 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                           <Text style={styles.filterText}>Filter</Text>
                         </TouchableOpacity>
 
-                        <View
-                          style={{ flexDirection: "row", alignItems: "center" }}
-                        >
-                          <Text style={styles.dateText}>Date : </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                          <Text style={styles.dateText}>Date :</Text>
                           <View style={styles.filterBox}>
-                            <TouchableOpacity style={styles.dateBox}>
-                              <TextInput
-                                style={styles.selectdateText}
-                                placeholder="Select Date"
-                                value={searchText}
-                                onChangeText={setSearchText}
-                              />
-                              <Image
-                                //source={require("../../assets/Icons/dateIcon.png")}
-                                style={styles.iconImage}
-                              />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-
-                        <View
-                          style={{ flexDirection: "row", alignItems: "center" }}
-                        >
-                          <Text style={styles.dateText}>Status : </Text>
-                          <View style={styles.filterBox}>
-                            <TouchableOpacity style={styles.dateBox}>
-                              <TextInput
-                                style={styles.selectdateText}
-                                placeholder="All Patients"
-                                value={searchText}
-                                onChangeText={setSearchText}
-                              />
-                              <Image
-                                //source={require("../../assets/Icons/statusIcon.png")}
-                                style={styles.iconImage}
-                              />
-                            </TouchableOpacity>
+                            <TextInput
+                              style={styles.selectdateText}
+                              placeholder="Select Date"
+                            />
                           </View>
                         </View>
 
@@ -112,7 +105,6 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                             name="search"
                             size={20}
                             color="#B9B9B988"
-                            style={styles.searchIcon}
                           />
                           <TextInput
                             style={styles.searchBoxText}
@@ -124,37 +116,29 @@ const DoctorsSubscribers = ({ navigation, route }) => {
                       </View>
                     </View>
 
+                    {/* ---------- LIST ---------- */}
                     <View style={styles.lowerPart}>
-                      {/* <ScrollView> */}
-                      {/* <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard>
-                        <SubscriberCard></SubscriberCard> */}
-                      <View style={styles.lowerCenterSection}>
-                        <Image
-                          source={require("../../assets/DoctorsPortal/Images/subscriberIcon.png")}
-                          style={styles.subscriberIcon}
-                        />
-                        <Text style={styles.inviteSubscriberText}>
-                          Complete your registration process to become a
-                          verified doctor on the platform.
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.inviteButton}
-                          onPress={() =>
-                            navigation.navigate("DoctorAppNavigation", {
-                              screen: "DoctorMedicalRegistration",
-                            })
-                          }
-                        >
-                          Complete Registration Process
-                        </TouchableOpacity>
-                      </View>
-                      {/* </ScrollView> */}
+                      <ScrollView>
+                        {loading ? (
+                          <Text style={{ textAlign: "center", marginTop: 40 }}>
+                            Loading subscribers...
+                          </Text>
+                        ) : subscribers.length > 0 ? (
+                          subscribers.map((item) => (
+                            <SubscriberCard key={item.id} user={item} />
+                          ))
+                        ) : (
+                          <View style={styles.lowerCenterSection}>
+                            <Image
+                              source={require("../../assets/DoctorsPortal/Images/subscriberIcon.png")}
+                              style={styles.subscriberIcon}
+                            />
+                            <Text style={styles.inviteSubscriberText}>
+                              No subscribers found
+                            </Text>
+                          </View>
+                        )}
+                      </ScrollView>
                     </View>
                   </View>
                 </View>
@@ -166,6 +150,8 @@ const DoctorsSubscribers = ({ navigation, route }) => {
     </>
   );
 };
+
+export default DoctorsSubscribers;
 
 const styles = StyleSheet.create({
   webContainer: {
@@ -352,4 +338,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DoctorsSubscribers;
+

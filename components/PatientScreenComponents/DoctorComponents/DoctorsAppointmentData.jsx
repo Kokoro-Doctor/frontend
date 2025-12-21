@@ -346,7 +346,7 @@ const DoctorAppointmentScreen = ({
                 // }
                 style={styles.card}
               >
-                <View style={styles.cardRow}>
+                <TouchableOpacity style={styles.cardRow}>
                   {/* Left Section - Doctor Details */}
                   <View style={styles.row}>
                     {/* <Image
@@ -462,7 +462,7 @@ const DoctorAppointmentScreen = ({
                       </Text>
                     </Pressable>
                   </View>
-                </View>
+                </TouchableOpacity>
               </View>
             )}
           />

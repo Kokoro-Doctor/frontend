@@ -1,85 +1,73 @@
-import React, { useCallback, useState } from "react";
+import React from "react";
 import { Image, StyleSheet, View, TouchableOpacity, Text } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
-import GeneratePrescription from "../../screens/DoctorScreens/GeneratePrescription";
-const SubscriberCard = () => {
+const SubscriberCard = ({ user }) => {
+  const navigation = useNavigation();
+
   const handleContinueButtonApp = () => {
-    navigation.navigate(GeneratePrescription);
+    navigation.navigate("GeneratePrescription", {
+      userId: user.id,
+    });
   };
+
   return (
     <View>
       <View style={styles.container}>
         <View style={styles.imageBox}>
           <Image
-            //source={require("../../assets/Images/userpic.png")}
+            source={
+              user.image
+                ? { uri: user.image }
+                : require("../../assets/Icons/Users.png")
+            }
             style={styles.imagepic}
           />
         </View>
+
         <View style={styles.firstTextBox}>
-          <View>
-            <Text style={{ fontWeight: 600, fontSize: 24, color: "#000000" }}>
-              Anamika Singh
-            </Text>
-          </View>
+          <Text style={styles.name}>{user.name}</Text>
+
           <View style={{ flexDirection: "row", gap: "28%" }}>
-            <Text style={styles.firstBoxText}>Age : 50</Text>
-            <Text style={styles.firstBoxText}>Gender : Female</Text>
+            <Text style={styles.firstBoxText}>Age : {user.age}</Text>
+            <Text style={styles.firstBoxText}>Gender : {user.gender}</Text>
           </View>
-          <View>
-            <Text style={styles.firstBoxText}>Condition : Heart Disease</Text>
-          </View>
-          <View>
-            <Text style={styles.firstBoxText}>Status : Cancelled</Text>
-          </View>
+
+          <Text style={styles.firstBoxText}>
+            Condition : {user.condition}
+          </Text>
+          <Text style={styles.firstBoxText}>
+            Status : {user.status}
+          </Text>
         </View>
+
         <View style={styles.secondTextBox}>
           <View style={{ flexDirection: "row", gap: "14%" }}>
-            <Text style={{ fontWeight: 400, fontSize: 16, color: "#000000" }}>
-              Appointment Date : 18th Oct 2025
+            <Text style={styles.secondText}>
+              Appointment Date : {user.date}
             </Text>
-            <Text style={{ fontWeight: 500, fontSize: 16, color: "#000000" }}>
-              Health Score :
-            </Text>
+            <Text style={styles.score}>Health Score :</Text>
           </View>
-          <View>
-            <Text style={{ fontWeight: 400, fontSize: 16, color: "#000000" }}>
-              Time : 11:00 AM
-            </Text>
-          </View>
+
+          <Text style={styles.secondText}>
+            Time : {user.time}
+          </Text>
         </View>
 
         <View style={styles.button}>
-          <TouchableOpacity
-            style={{ alignItems: "center", justifyContent: "center" }}
-            onPress={handleContinueButtonApp}
-          >
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontWeight: 500,
-                fontSize: 16,
-                textAlign: "center",
-              }}
-            >
-              View Details
-            </Text>
+          <TouchableOpacity onPress={handleContinueButtonApp}>
+            <Text style={styles.buttonText}>View Details</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <View
-        style={{
-          borderWidth: 1,
-          borderColor: "#9B9A9A",
-          width: "95%",
-          margin: "auto",
-        }}
-      ></View>
+      <View style={styles.divider} />
     </View>
   );
 };
 
 export default SubscriberCard;
+
 
 const styles = StyleSheet.create({
   container: {
