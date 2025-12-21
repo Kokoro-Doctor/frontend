@@ -57,9 +57,19 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const syncSession = async (result, fallbackRole = null) => {
-    if (result?.profile) {
+    // Ensure auth state is set if we have access_token and user_id/doctor_id
+    // This makes auth state identifier-agnostic (works for email or phone login)
+    if (result?.access_token && (result?.user_id || result?.doctor_id || result?.profile)) {
       const userRole = result.role ?? fallbackRole ?? "user";
-      setUser(result.profile);
+      
+      // Use profile if available, otherwise create minimal user object
+      const userProfile = result.profile || {
+        user_id: result.user_id,
+        doctor_id: result.doctor_id,
+        role: userRole,
+      };
+      
+      setUser(userProfile);
       setRole(userRole);
       // Sync role with AsyncStorage for RoleContext
       await AsyncStorage.setItem("userRole", userRole);

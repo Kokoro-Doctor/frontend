@@ -109,7 +109,7 @@ export async function createBooking(bookingPayload) {
     user_id: bookingPayload.user_id,
   };
   
-  const response = await fetch(`${API_URL}/appointmentService/bookings`, {
+  const response = await fetch(`${API_URL}/booking/bookings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

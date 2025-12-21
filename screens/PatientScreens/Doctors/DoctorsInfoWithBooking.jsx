@@ -108,7 +108,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
 
         try {
           const res = await fetch(
-            `${API_URL}/appointmentService/doctors/${doctorIdentifier}/availability?date=${dateString}`,
+            `${API_URL}/booking/doctors/${doctorIdentifier}/availability?date=${dateString}`,
             {
               method: "GET",
               headers: { "Content-Type": "application/json" },
@@ -198,7 +198,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
         user_id: userIdentifier,
       });
 
-      const res = await fetch(`${API_URL}/appointmentService/bookings`, {
+      const res = await fetch(`${API_URL}/booking/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
