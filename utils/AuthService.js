@@ -385,6 +385,14 @@ const handleLoginResponse = async (data) => {
     }
   }
 
+  // Normalize doctor profile: ensure 'name' field exists from 'doctorname' if needed
+  if (profile && role === "doctor") {
+    if (!profile.name && profile.doctorname) {
+      profile.name = profile.doctorname;
+    }
+    console.log("Doctor profile normalized:", { name: profile.name, doctorname: profile.doctorname, allKeys: Object.keys(profile) });
+  }
+
   // If profile fetch failed, create minimal profile from login response
   // This ensures auth state is set even if profile endpoint fails
   if (!profile && (data.user_id || data.doctor_id)) {
@@ -489,7 +497,15 @@ export const completeDoctorSignup = async ({
 
   // If profile is not in response, fetch it using doctor_id
   if (!profile && data.doctor_id) {
-    profile = await fetchDoctorProfile(data.doctor_id);
+    profile = await fetchDoctorProfile(data.doctor_id, data.access_token);
+  }
+
+  // Normalize doctor profile: ensure 'name' field exists from 'doctorname' if needed
+  if (profile) {
+    if (!profile.name && profile.doctorname) {
+      profile.name = profile.doctorname;
+    }
+    console.log("Doctor signup profile normalized:", { name: profile.name, doctorname: profile.doctorname, allKeys: Object.keys(profile) });
   }
 
   await persistUserSession({

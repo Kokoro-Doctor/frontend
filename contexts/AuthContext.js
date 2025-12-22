@@ -45,7 +45,14 @@ export const AuthProvider = ({ children }) => {
     const initializeUser = async () => {
       try {
         const storedState = await restoreUserState();
-        if (storedState?.user) setUser(storedState.user);
+        if (storedState?.user) {
+          // Normalize doctor profile: ensure 'name' field exists from 'doctorname' if needed
+          const user = storedState.user;
+          if (storedState?.role === "doctor" && !user.name && user.doctorname) {
+            user.name = user.doctorname;
+          }
+          setUser(user);
+        }
         if (storedState?.role) setRole(storedState.role);
       } catch (error) {
         console.error("Failed to restore user state:", error);
