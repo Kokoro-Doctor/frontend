@@ -27,6 +27,25 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
   const [isSideBarVisible, setIsSideBarVisible] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
+  // Helper function to get display name, checking all possible name fields
+  const getDisplayName = () => {
+    if (!user) return "User";
+    const displayName =
+      user.name || user.doctorname || user.fullName || user.username || "User";
+    // Debug log to help troubleshoot
+    if (displayName === "User") {
+      console.log("DoctorsHeader - User object:", user);
+      console.log("DoctorsHeader - Available name fields:", {
+        name: user.name,
+        doctorname: user.doctorname,
+        fullName: user.fullName,
+        username: user.username,
+        allKeys: Object.keys(user || {}),
+      });
+    }
+    return displayName;
+  };
+
   // const handleOptionPress = (screen) => {
   //   setDropdownVisible(false);
   //   navigation.navigate(screen);
@@ -59,7 +78,7 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
             <View style={[styles.userInfo, styles.userInfoWeb]}>
               <View style={styles.welcomeContainer}>
                 <Text style={styles.welcomeText}>
-                  Welcome {user?.name || user?.doctorname || "User"}!
+                  Welcome {getDisplayName()}!
                 </Text>
                 <Text style={styles.subText}>
                   Here is your sales Medical dashboard
@@ -208,7 +227,7 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
                     }}
                   >
                     {" "}
-                    {user?.name || user?.doctorname || "User"}!
+                    {getDisplayName()}!
                   </Text>
                 </View>
               </View>
@@ -356,7 +375,7 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
                       }}
                     >
                       {" "}
-                      {user?.name || user?.doctorname || "User"}!
+                      {getDisplayName()}!
                     </Text>
                   </View>
                 )}
