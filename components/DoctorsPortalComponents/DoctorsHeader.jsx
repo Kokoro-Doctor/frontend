@@ -59,7 +59,7 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
             <View style={[styles.userInfo, styles.userInfoWeb]}>
               <View style={styles.welcomeContainer}>
                 <Text style={styles.welcomeText}>
-                  Welcome {user?.name ? user?.name : "User"}!
+                  Welcome {user?.name || user?.doctorname || "User"}!
                 </Text>
                 <Text style={styles.subText}>
                   Here is your sales Medical dashboard
@@ -208,7 +208,7 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
                     }}
                   >
                     {" "}
-                    {user?.name ? user?.name : "User"}!
+                    {user?.name || user?.doctorname || "User"}!
                   </Text>
                 </View>
               </View>
@@ -253,7 +253,6 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
 
           {(Platform.OS !== "web" || width < 1000) && (
             <>
-
               <Modal
                 visible={isSideBarVisible}
                 transparent={true}
@@ -307,7 +306,6 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
                     <Pressable
                       onPress={() => setDropdownVisible(!dropdownVisible)}
                     >
-
                       <MaterialIcons name="person" size={30} color="black" />
                     </Pressable>
                     <Pressable>
@@ -323,9 +321,7 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
                       >
                         <Pressable
                           //onPress={() => handleOptionPress("Login")}
-                          onPress={() =>
-                            triggerLoginModal({ mode: "login" })
-                          }
+                          onPress={() => triggerLoginModal({ mode: "login" })}
                           style={styles.dropdownItem}
                         >
                           <Text style={styles.dropdownText}>Login</Text>
@@ -338,7 +334,6 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
                           <Text style={styles.dropdownText}>Signup</Text>
                         </Pressable>
                       </View>
-
                     )}
                   </View>
                 </View>
@@ -361,7 +356,7 @@ const DoctorsHeader = ({ navigation, isDoctorPortal = false }) => {
                       }}
                     >
                       {" "}
-                      {user?.name ? user?.name : "User"}!
+                      {user?.name || user?.doctorname || "User"}!
                     </Text>
                   </View>
                 )}
