@@ -68,6 +68,7 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "DoctorsSubscribers",
     "GeneratePrescription",
     "Prescription",
+    "UserDashboard"
   ];
   const shownScreensMobile = ["LandingPage"];
 

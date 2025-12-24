@@ -1,23 +1,56 @@
+// import { API_URL } from "../env-vars";
+
+// export const payment_api = async (amount) => {
+//   try {
+//     const response = await fetch(`${API_URL}/process-payment`, {
+//       method: "POST",
+//       mode: "cors",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify({ amount }),
+//     });
+
+//     if (!response.ok) {
+//       console.log("Payment api error:", result);
+//       throw new Error(result.message || "Payment Failed");
+//     }
+
+//     const data = await response.json();
+//     return data.payment_link;
+//   } catch (error) {
+//     console.error("Payment API Error:", error.message);
+//     throw error;
+//   }
+// };
+
 import { API_URL } from "../env-vars";
 
-export const payment_api = async (amount) => {
+export const payment_api = async (planId, doctorId, userId) => {
+  console.log("inner call:",planId, doctorId, userId)
   try {
-    const response = await fetch(`${API_URL}/process-payment`, {
+    const response = await fetch(`${API_URL}/process-payment/payment-link`, {
       method: "POST",
       mode: "cors",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify({
+        plan_id: planId,
+        doctor_id: doctorId,
+        user_id: userId
+      }),
     });
+    console.log("respose data:", response);
+    const result = await response.json(); // ✅ FIX
+  
 
     if (!response.ok) {
       console.log("Payment api error:", result);
       throw new Error(result.message || "Payment Failed");
     }
 
-    const data = await response.json();
-    return data.payment_link;
+    return result.payment_link;
   } catch (error) {
     console.error("Payment API Error:", error.message);
     throw error;

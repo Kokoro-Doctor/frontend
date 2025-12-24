@@ -52,12 +52,12 @@ const DoctorsBookingPaymentScreen = ({ navigation, route }) => {
           return;
         }
         const res = await fetch(
-          `${API_URL}/appointmentService/doctors/${doctorIdentifier}/bookings`,
+          `${API_URL}/booking/doctors/${doctorIdentifier}/bookings`,
           {
             method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
         );
 

@@ -201,14 +201,22 @@ const DoctorsSignUp = () => {
       return;
     }
     setOtpStatus("sending");
+    // Email is required for doctor signup
+    const doctorEmailValue = formData.email.trim();
+    if (!doctorEmailValue) {
+      alert("Email is required for doctor signup.");
+      setOtpStatus("idle");
+      return;
+    }
     try {
       await requestSignupOtp({
         phoneNumber,
+        email: doctorEmailValue,
         role: "doctor",
       });
       setOtpStatus("sent");
       setOtpCountdown(60);
-      alert("OTP sent to your phone number.");
+      alert("OTP sent to your email address.");
     } catch (error) {
       console.error("Failed to send OTP:", error);
       alert(error.message || "Failed to send OTP. Please try again.");
@@ -248,11 +256,11 @@ const DoctorsSignUp = () => {
       // Directly signup with phone + OTP (no separate verify step)
       await doctorsSignup({
         phoneNumber,
+        email: formData.email.trim(), // Email is now mandatory
         otp: otpValue.trim(),
         name: `${formData.firstname} ${formData.lastname}`.trim(),
         specialization: formData.specialization.trim(),
         experience: experienceValue,
-        email: formData.email,
       });
 
       setOtpStatus("verified");

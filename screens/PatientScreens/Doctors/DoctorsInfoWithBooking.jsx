@@ -108,7 +108,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
 
         try {
           const res = await fetch(
-            `${API_URL}/appointmentService/doctors/${doctorIdentifier}/availability?date=${dateString}`,
+            `${API_URL}/booking/doctors/${doctorIdentifier}/availability?date=${dateString}`,
             {
               method: "GET",
               headers: { "Content-Type": "application/json" },
@@ -198,7 +198,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
         user_id: userIdentifier,
       });
 
-      const res = await fetch(`${API_URL}/appointmentService/bookings`, {
+      const res = await fetch(`${API_URL}/booking/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -368,40 +368,49 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                         <Text style={styles.reviewsTitle}>User Reviews</Text>
 
                         <View style={styles.reviewsList}>
-                          {doctors.reviews?.map((review, index) => (
-                            <View key={index} style={styles.reviewCard}>
-                              <View style={styles.reviewTextBox}>
-                                <ScrollView
-                                  nestedScrollEnabled={true}
-                                  showsVerticalScrollIndicator={false}
-                                >
-                                  <Text style={styles.reviewText}>
-                                    {review.comment}
-                                  </Text>
-                                </ScrollView>
-                              </View>
+                          {Array.isArray(doctors?.reviews) &&
+                          doctors.reviews.length > 0 ? (
+                            doctors.reviews.map((review, index) => (
+                              <View key={index} style={styles.reviewCard}>
+                                <View style={styles.reviewTextBox}>
+                                  <ScrollView
+                                    nestedScrollEnabled={true}
+                                    showsVerticalScrollIndicator={false}
+                                  >
+                                    <Text style={styles.reviewText}>
+                                      {review.comment || "No comment"}
+                                    </Text>
+                                  </ScrollView>
+                                </View>
 
-                              <View style={styles.reviewerContainer}>
-                                {[...Array(5)].map((_, i) => (
-                                  <MaterialIcons
-                                    key={i}
-                                    name={
-                                      i + 1 <= review.rating
-                                        ? "star"
-                                        : i + 0.5 <= review.rating
-                                        ? "star-half"
-                                        : "star-border"
-                                    }
-                                    size={16}
-                                    color="#FFD700"
-                                  />
-                                ))}
-                                <Text style={styles.reviewerName}>
-                                  {review.reviewer}
-                                </Text>
+                                <View style={styles.reviewerContainer}>
+                                  {[...Array(5)].map((_, i) => (
+                                    <MaterialIcons
+                                      key={i}
+                                      name={
+                                        i + 1 <= (review.rating || 0)
+                                          ? "star"
+                                          : i + 0.5 <= (review.rating || 0)
+                                          ? "star-half"
+                                          : "star-border"
+                                      }
+                                      size={16}
+                                      color="#FFD700"
+                                    />
+                                  ))}
+                                  <Text style={styles.reviewerName}>
+                                    {review.reviewer || "Anonymous"}
+                                  </Text>
+                                </View>
                               </View>
-                            </View>
-                          ))}
+                            ))
+                          ) : (
+                            <Text
+                              style={{ color: "#666", fontStyle: "italic" }}
+                            >
+                              No reviews available
+                            </Text>
+                          )}
                         </View>
                       </View>
                     </View>

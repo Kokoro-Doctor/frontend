@@ -160,6 +160,7 @@ const PatientAuthModal = ({
   };
 
   const handleLoginIdentifierChange = (value) => {
+    // Allow email or phone input
     setLoginIdentifier(value);
     const detectedType = detectInputType(value);
     if (detectedType === "phone") {
@@ -259,16 +260,33 @@ const PatientAuthModal = ({
     setOtpStatus("sending");
     try {
       if (flow === "signup") {
-        await requestSignupOtpHandler({ phoneNumber, role: "user" });
+        // Email is required for signup, OTP sent ONLY to email
+        const signupEmail = email.trim();
+        if (!signupEmail) {
+          setErrorMessage("Email is required for signup.");
+          setOtpStatus("idle");
+          setIsProcessing(false);
+          return false;
+        }
+        await requestSignupOtpHandler({
+          phoneNumber,
+          email: signupEmail,
+          role: "user",
+        });
+        setInfoMessage("OTP sent to your email address.");
       } else {
-        await requestLoginOtpHandler({ phoneNumber });
+        // For login, use identifier with preferred channel (default email)
+        await requestLoginOtpHandler({
+          identifier: phoneNumber,
+          preferredChannel: "email",
+        });
+        setInfoMessage("OTP sent to your email address.");
       }
       setOtpFlow(flow);
       setOtpTargetPhone(phoneNumber);
       setOtpStatus("sent");
       setOtpCountdown(60);
       setShowOtpModal(true);
-      setInfoMessage("OTP sent to your mobile number.");
       return true;
     } catch (error) {
       setOtpStatus("idle");
@@ -342,8 +360,10 @@ const PatientAuthModal = ({
       }
 
       if (otpFlow === "login") {
+        // Use identifier (can be email or phone) - use the original login identifier
+        const identifier = loginIdentifier.trim() || otpTargetPhone;
         const result = await loginWithOtpHandler({
-          phoneNumber: otpTargetPhone,
+          identifier: identifier,
           otp: otp.trim(),
         });
         setOtpStatus("verified");
@@ -380,6 +400,11 @@ const PatientAuthModal = ({
       setErrorMessage("Please enter your full name.");
       return;
     }
+    const emailToUse = email.trim();
+    if (!emailToUse) {
+      setErrorMessage("Email is required for signup.");
+      return;
+    }
     if (!phoneNumberToUse || !otpToUse) {
       setErrorMessage("Phone number and OTP are required.");
       return;
@@ -394,8 +419,8 @@ const PatientAuthModal = ({
       await signupHandler({
         name: nameToUse,
         phoneNumber: phoneNumberToUse,
+        email: emailToUse,
         otp: otpToUse,
-        email: email.trim() || undefined,
       });
 
       setRole("patient");
@@ -422,33 +447,85 @@ const PatientAuthModal = ({
 
     const identifier = loginIdentifier.trim();
     if (!identifier) {
-      setErrorMessage("Please enter your mobile number.");
+      setErrorMessage("Please enter your email address or mobile number.");
       return;
     }
 
     const detectedType = detectInputType(identifier);
-    if (detectedType !== "phone") {
-      setErrorMessage("Please enter a valid mobile number.");
+
+    if (detectedType === "email") {
+      // Email login - send OTP directly
+      setErrorMessage("");
+      setInfoMessage("");
+      setIsProcessing(true);
+      setOtp("");
+      setOtpStatus("sending");
+      try {
+        await requestLoginOtpHandler({ identifier, preferredChannel: "email" });
+        setOtpFlow("login");
+        setOtpTargetPhone(identifier); // Store identifier for later use
+        setOtpStatus("sent");
+        setOtpCountdown(60);
+        setShowOtpModal(true);
+        setInfoMessage("OTP sent to your email address.");
+        return true;
+      } catch (error) {
+        setOtpStatus("idle");
+        setErrorMessage(getErrorMessage(error));
+        setOtpFlow(null);
+        setOtpTargetPhone("");
+        return false;
+      } finally {
+        setIsProcessing(false);
+      }
+    } else if (detectedType === "phone") {
+      // Phone login - send OTP to email by default (prefer email)
+      const digitsOnly = sanitizeDigits(identifier);
+      if (!validatePhoneNumber(digitsOnly, loginCountryCode)) {
+        const country = getCountryByCode(loginCountryCode);
+        setErrorMessage(
+          `Please enter a valid mobile number for ${country.name}.`
+        );
+        return;
+      }
+
+      const phoneNumber = buildPhoneNumber(identifier, loginCountryCode);
+      if (!phoneNumber) {
+        setErrorMessage("Please enter a valid mobile number.");
+        return;
+      }
+
+      // Send OTP to email by default (prefer email)
+      setErrorMessage("");
+      setInfoMessage("");
+      setIsProcessing(true);
+      setOtp("");
+      setOtpStatus("sending");
+      try {
+        await requestLoginOtpHandler({
+          identifier: phoneNumber,
+          preferredChannel: "email",
+        });
+        setOtpFlow("login");
+        setOtpTargetPhone(phoneNumber);
+        setOtpStatus("sent");
+        setOtpCountdown(60);
+        setShowOtpModal(true);
+        setInfoMessage("OTP sent to your email address.");
+        return true;
+      } catch (error) {
+        setOtpStatus("idle");
+        setErrorMessage(getErrorMessage(error));
+        setOtpFlow(null);
+        setOtpTargetPhone("");
+        return false;
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      setErrorMessage("Please enter a valid email address or mobile number.");
       return;
     }
-
-    const digitsOnly = sanitizeDigits(identifier);
-    if (!validatePhoneNumber(digitsOnly, loginCountryCode)) {
-      const country = getCountryByCode(loginCountryCode);
-      setErrorMessage(
-        `Please enter a valid mobile number for ${country.name}.`
-      );
-      return;
-    }
-
-    const phoneNumber = buildPhoneNumber(identifier, loginCountryCode);
-    if (!phoneNumber) {
-      setErrorMessage("Please enter a valid mobile number.");
-      return;
-    }
-
-    setMobile(identifier);
-    return sendOtpForFlow({ phoneNumber, flow: "login" });
   };
 
   const handleNext = async () => {
@@ -471,12 +548,48 @@ const PatientAuthModal = ({
     if (isProcessing || otpCountdown > 0 || !otpTargetPhone || !otpFlow) {
       return;
     }
-    await sendOtpForFlow({ phoneNumber: otpTargetPhone, flow: otpFlow });
+    // Check if otpTargetPhone is email or phone
+    const detectedType = detectInputType(otpTargetPhone);
+    setIsProcessing(true);
+    setErrorMessage("");
+    try {
+      if (otpFlow === "signup") {
+        // Signup: resend OTP to email
+        const signupEmail = email.trim();
+        if (!signupEmail) {
+          setErrorMessage("Email is required for signup.");
+          setIsProcessing(false);
+          return;
+        }
+        await requestSignupOtpHandler({
+          phoneNumber: otpTargetPhone,
+          email: signupEmail,
+          role: "user",
+        });
+        setInfoMessage("OTP resent to your email address.");
+      } else {
+        // Login: resend OTP to email (default)
+        await requestLoginOtpHandler({
+          identifier: otpTargetPhone,
+          preferredChannel: "email",
+        });
+        setInfoMessage("OTP resent to your email address.");
+      }
+      setOtpCountdown(60);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const validateSignupFields = () => {
     if (!fullName.trim()) {
       setErrorMessage("Please enter your full name.");
+      return false;
+    }
+    if (!email.trim()) {
+      setErrorMessage("Email is required for signup.");
       return false;
     }
     if (!signupIdentifier.trim()) {
@@ -494,21 +607,29 @@ const PatientAuthModal = ({
     return true;
   };
 
-  const loginDigitsValid = validatePhoneNumber(
-    sanitizeDigits(loginIdentifier),
-    loginCountryCode
-  );
+  // Login validation: accept email or phone
+  const loginIdentifierType = detectInputType(loginIdentifier);
+  const loginDigitsValid =
+    loginIdentifierType === "phone"
+      ? validatePhoneNumber(sanitizeDigits(loginIdentifier), loginCountryCode)
+      : loginIdentifierType === "email";
   const showLoginPhoneError =
-    loginIdentifier.trim().length > 0 && !loginDigitsValid;
+    loginIdentifier.trim().length > 0 &&
+    loginIdentifierType === "phone" &&
+    !loginDigitsValid;
+
   const signupDigitsValid = validatePhoneNumber(
     sanitizeDigits(signupIdentifier),
     signupCountryCode
   );
   const showSignupPhoneError =
     signupIdentifier.trim().length > 0 && !signupDigitsValid;
-  const baseSignupValid = fullName.trim() && signupDigitsValid;
+  const baseSignupValid = fullName.trim() && email.trim() && signupDigitsValid;
 
-  const isLoginActionDisabled = !loginDigitsValid || isProcessing;
+  const isLoginActionDisabled =
+    !loginIdentifier.trim() ||
+    (loginIdentifierType && !loginDigitsValid) ||
+    isProcessing;
 
   const isPrimaryDisabled =
     mode === "login" ? isLoginActionDisabled : !baseSignupValid || isProcessing;
@@ -600,74 +721,33 @@ const PatientAuthModal = ({
                 >
                   <Text style={styles.titleHead}>Welcome Back!</Text>
                   <Text style={styles.subtitle}>
-                    Enter your mobile number to receive an OTP
+                    Enter your email address or mobile number
                   </Text>
 
-                  <Text style={styles.inputLabel}>Mobile Number</Text>
-                  <View style={styles.phoneContainer}>
-                    <View style={styles.countryCodeContainer}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          setIsLoginCountryDropdownOpen(
-                            !isLoginCountryDropdownOpen
-                          )
-                        }
-                        style={styles.countryCodeButton}
-                      >
-                        <Text style={styles.countryCodeText}>
-                          {getCountryByCode(loginCountryCode).flag}{" "}
-                          {loginCountryCode}
-                        </Text>
-                        <Ionicons
-                          name={
-                            isLoginCountryDropdownOpen
-                              ? "chevron-up"
-                              : "chevron-down"
-                          }
-                          size={16}
-                          color="#666"
-                          style={{ marginLeft: 4 }}
-                        />
-                      </TouchableOpacity>
-                      {isLoginCountryDropdownOpen && (
-                        <View style={styles.countryDropdown}>
-                          <ScrollView
-                            style={styles.countryDropdownScroll}
-                            nestedScrollEnabled
-                          >
-                            {COUNTRY_CODES.map((country) => (
-                              <TouchableOpacity
-                                key={country.code}
-                                style={styles.countryDropdownItem}
-                                onPress={() => {
-                                  setLoginCountryCode(country.code);
-                                  setIsLoginCountryDropdownOpen(false);
-                                }}
-                              >
-                                <Text style={styles.countryDropdownText}>
-                                  {country.flag} {country.code} {country.name}
-                                </Text>
-                              </TouchableOpacity>
-                            ))}
-                          </ScrollView>
-                        </View>
-                      )}
-                    </View>
-                    <TextInput
-                      placeholder="Enter your mobile number"
-                      placeholderTextColor="#d3d3d3"
-                      keyboardType="phone-pad"
-                      autoCapitalize="none"
-                      style={styles.phoneInput}
-                      value={loginIdentifier}
-                      onChangeText={handleLoginIdentifierChange}
-                      maxLength={getCountryByCode(loginCountryCode).maxLength}
-                    />
-                  </View>
-                  {showLoginPhoneError ? (
+                  <Text style={styles.inputLabel}>
+                    Email or Mobile Number{" "}
+                    <Text style={styles.requiredIndicator}>*</Text>
+                  </Text>
+                  <TextInput
+                    placeholder="Enter email or mobile number"
+                    placeholderTextColor="#d3d3d3"
+                    style={styles.input}
+                    keyboardType="default"
+                    autoCapitalize="none"
+                    value={loginIdentifier}
+                    onChangeText={handleLoginIdentifierChange}
+                  />
+                  {showLoginPhoneError &&
+                  detectInputType(loginIdentifier) === "phone" ? (
                     <Text style={styles.inlineErrorText}>
                       Please enter a valid mobile number for{" "}
                       {getCountryByCode(loginCountryCode).name}.
+                    </Text>
+                  ) : null}
+                  {loginIdentifier.trim() &&
+                  detectInputType(loginIdentifier) === null ? (
+                    <Text style={styles.inlineErrorText}>
+                      Please enter a valid email address or mobile number.
                     </Text>
                   ) : null}
 
@@ -792,8 +872,7 @@ const PatientAuthModal = ({
                   ) : null}
 
                   <Text style={styles.inputLabel}>
-                    Email{" "}
-                    <Text style={styles.optionalIndicator}>(optional)</Text>
+                    Email <Text style={styles.requiredIndicator}>*</Text>
                   </Text>
                   <TextInput
                     placeholder="Enter your email"
