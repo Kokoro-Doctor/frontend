@@ -372,9 +372,33 @@ const PatientAuthModal = ({
         setInfoMessage("Login successful! Redirecting...");
         setShowOtpModal(false);
         setIsProcessing(false);
-        setTimeout(() => {
-          onRequestClose();
-        }, 1000);
+        
+        // Close modal first
+        onRequestClose();
+        
+        // Navigate based on role immediately after login
+        const userRole = result?.role;
+        if (userRole === "doctor") {
+          // Navigate to doctor dashboard
+          setTimeout(() => {
+            navigation.reset({
+              index: 0,
+              routes: [
+                {
+                  name: "DoctorAppNavigation",
+                  params: { screen: "Dashboard" },
+                },
+              ],
+            });
+          }, 100);
+        } else if (userRole === "user") {
+          // User stays on LandingPage or navigates to patient dashboard
+          // Navigation will be handled by LandingPageWithAuth component
+          setTimeout(() => {
+            navigation.navigate("LandingPage");
+          }, 100);
+        }
+        
         return result;
       }
       setIsProcessing(false);

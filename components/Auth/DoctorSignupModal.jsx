@@ -249,13 +249,21 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       });
 
       setInfoMessage("Doctor registration successful! Redirecting...");
+      setShowOtpModal(false);
+      onRequestClose();
+      
+      // Navigate to doctor dashboard immediately after signup
       setTimeout(() => {
-        setShowOtpModal(false);
-        onRequestClose();
-        navigation.navigate("DoctorAppNavigation", {
-          screen: "Dashboard",
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: "DoctorAppNavigation",
+              params: { screen: "Dashboard" },
+            },
+          ],
         });
-      }, 1500);
+      }, 100);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
       throw error; // Re-throw so caller knows signup failed

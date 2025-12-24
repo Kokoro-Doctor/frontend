@@ -125,6 +125,31 @@ const LandingPageWithAuth = ({ navigation, route }) => {
   // Use role from AuthContext if available, fallback to RoleContext
   const role = authRole || roleContextRole;
 
+  // Use useEffect to handle immediate redirects when role changes
+  React.useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // If user is authenticated and has a role, redirect to appropriate dashboard
+    if (user && role) {
+      if (role === "doctor") {
+        // Redirect doctor to doctor dashboard immediately
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: "DoctorAppNavigation",
+              params: { screen: "Dashboard" },
+            },
+          ],
+        });
+      }
+      // For users/patients, they can stay on LandingPage
+      // No redirect needed for users
+    }
+  }, [user, role, authLoading, navigation]);
+
+  // Also use useFocusEffect for when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       // Wait for auth to finish loading
@@ -134,16 +159,17 @@ const LandingPageWithAuth = ({ navigation, route }) => {
       if (user && role) {
         if (role === "doctor") {
           // Redirect doctor to doctor dashboard
-          navigation.replace("DoctorAppNavigation", {
-            screen: "Dashboard",
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: "DoctorAppNavigation",
+                params: { screen: "Dashboard" },
+              },
+            ],
           });
-        } else if (role === "user") {
-          // For users/patients, they can stay on LandingPage
-          // If you want to redirect them to a specific patient dashboard, uncomment below:
-          // navigation.replace("PatientAppNavigation", {
-          //   screen: "LandingPage",
-          // });
         }
+        // For users/patients, they can stay on LandingPage
       }
     }, [user, role, authLoading, navigation])
   );
