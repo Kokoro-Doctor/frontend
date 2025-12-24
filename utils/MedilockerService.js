@@ -116,36 +116,31 @@ export const shortenUrl = async (longUrl) => {
     return shortenedUrl;
 };
 
-export const extractStructuredData = async (files, frontendPatientDetails = null) => {
+export const extractStructuredData = async (files) => {
     const apiUrl = `${medilocker_API}/extract-structured-data`;
     
-    console.log("🔵 [extractStructuredData] Starting extraction...");
-    console.log("🔵 [extractStructuredData] Base API URL:", medilocker_API);
-    console.log("🔵 [extractStructuredData] Full API URL:", apiUrl);
-    console.log("🔵 [extractStructuredData] Request method: POST");
-    console.log("🔵 [extractStructuredData] Number of files:", files?.length || 0);
+    console.log("[extractStructuredData] Starting prescription extraction...");
+    console.log("[extractStructuredData] Number of files:", files?.length || 0);
     
     // Log file info (without base64 content)
     if (files && files.length > 0) {
         files.forEach((file, index) => {
-            console.log(`🔵 [extractStructuredData] File ${index + 1}:`, {
+            console.log(`[extractStructuredData] File ${index + 1}:`, {
                 filename: file.filename,
-                contentLength: file.content?.length || 0,
-                contentPreview: file.content?.substring(0, 50) + "..." || "No content"
+                contentLength: file.content?.length || 0
             });
         });
     }
     
     const requestBody = {
         files: files,
-        frontend_patient_details: frontendPatientDetails,
     };
     
     const requestBodyString = JSON.stringify(requestBody);
-    console.log("🔵 [extractStructuredData] Request body size:", requestBodyString.length, "bytes");
+    console.log("[extractStructuredData] Request body size:", requestBodyString.length, "bytes");
     
     try {
-        console.log("🔵 [extractStructuredData] Sending fetch request...");
+        console.log("[extractStructuredData] Sending fetch request...");
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -154,11 +149,10 @@ export const extractStructuredData = async (files, frontendPatientDetails = null
             body: requestBodyString,
         });
 
-        console.log("🔵 [extractStructuredData] Response received:", {
+        console.log("[extractStructuredData] Response received:", {
             status: response.status,
             statusText: response.statusText,
-            ok: response.ok,
-            headers: Object.fromEntries(response.headers.entries())
+            ok: response.ok
         });
 
         if (!response.ok) {
@@ -167,13 +161,13 @@ export const extractStructuredData = async (files, frontendPatientDetails = null
             
             try {
                 const errorData = await response.json();
-                console.error("🔴 [extractStructuredData] Error response data:", errorData);
+                console.error("[extractStructuredData] Error response data:", errorData);
                 errorMessage = errorData.detail || errorData.message || errorMessage;
                 errorDetails = errorData;
             } catch (e) {
-                console.error("🔴 [extractStructuredData] Failed to parse error response:", e);
+                console.error("[extractStructuredData] Failed to parse error response:", e);
                 const errorText = await response.text().catch(() => "Could not read error response");
-                console.error("🔴 [extractStructuredData] Error response text:", errorText);
+                console.error("[extractStructuredData] Error response text:", errorText);
                 errorMessage = response.statusText || errorMessage;
             }
             
@@ -183,18 +177,31 @@ export const extractStructuredData = async (files, frontendPatientDetails = null
             throw fullError;
         }
 
-        console.log("🔵 [extractStructuredData] Parsing response JSON...");
-        const data = await response.json();
-        console.log("✅ [extractStructuredData] Extraction successful:", {
-            hasPatientDetails: !!data.patient_details,
-            hasPrescriptionReport: !!data.prescription_report,
-            prescriptionReportLength: data.prescription_report?.length || 0
+        console.log("[extractStructuredData] Parsing response JSON...");
+        const responseText = await response.text();
+        console.log("[extractStructuredData] Raw response text:", responseText.substring(0, 500));
+        
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error("[extractStructuredData] Failed to parse JSON:", parseError);
+            console.error("[extractStructuredData] Response text:", responseText);
+            throw new Error(`Failed to parse response: ${parseError.message}`);
+        }
+        
+        console.log("[extractStructuredData] Parsed data:", JSON.stringify(data, null, 2));
+        console.log("[extractStructuredData] Extraction successful:", {
+            hasPrescription: !!data.prescription,
+            prescriptionLength: data.prescription?.length || 0,
+            prescriptionValue: data.prescription?.substring(0, 100) || "EMPTY",
+            dataKeys: Object.keys(data || {})
         });
         
         return data;
 
     } catch (err) {
-        console.error("🔴 [extractStructuredData] Error caught:", {
+        console.error("[extractStructuredData] Error caught:", {
             name: err.name,
             message: err.message,
             stack: err.stack,
@@ -207,18 +214,14 @@ export const extractStructuredData = async (files, frontendPatientDetails = null
         
         if (err.name === "TypeError" && err.message.includes("Failed to fetch")) {
             userFriendlyMessage = `Network error: Unable to connect to the server. Please check:\n- Your internet connection\n- API URL: ${apiUrl}\n- CORS settings\n\nOriginal error: ${err.message}`;
-            console.error("🔴 [extractStructuredData] Network/CORS error detected");
+            console.error("[extractStructuredData] Network/CORS error detected");
         } else if (err.status) {
             userFriendlyMessage = `Server error (${err.status}): ${err.message}`;
         } else {
             userFriendlyMessage = `Error: ${err.message}`;
         }
         
-        console.error("🔴 [extractStructuredData] User-friendly error message:", userFriendlyMessage);
-        
-        // Don't show alert here - let the caller handle it
-        // alert(`Error: ${userFriendlyMessage}`);
-        // Alert.alert(`Error: ${userFriendlyMessage}`);
+        console.error("[extractStructuredData] User-friendly error message:", userFriendlyMessage);
         
         throw {
             ...err,
