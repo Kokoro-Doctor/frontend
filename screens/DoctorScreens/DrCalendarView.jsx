@@ -11,7 +11,8 @@ import {
   Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import NewestSidebarDr from "../../components/DoctorsPortalComponents/NewestSidebar";
+import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
+
 
 const DrCalendarView = ({ navigation }) => {
   const [viewMode, setViewMode] = useState("Week"); // Set default to Week view
@@ -148,7 +149,7 @@ const DrCalendarView = ({ navigation }) => {
       {/* Sidebar for larger screens or when open */}
       {sidebarOpen && (
         <View style={styles.sidebarContainer}>
-          <NewestSidebarDr
+          <NewestSidebar
             navigation={navigation}
             closeSidebar={toggleSidebar}
             activeItem="Calendar"

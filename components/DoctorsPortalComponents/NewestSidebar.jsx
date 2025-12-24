@@ -47,6 +47,9 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
 
   const lowerMenuItems = [
     {
+      
+    },
+    {
       name: "Settings",
       icon: require("../../assets/DoctorsPortal/Icons/GearSix.png"),
     },

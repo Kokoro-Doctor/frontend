@@ -269,7 +269,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     flexDirection: "row",
   },
-
   imageContainer: {
     borderColor: "#00ffff",
     height: "100%",
