@@ -15,6 +15,8 @@ import {
 
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
+import { useContext } from "react";
+import { AuthContext } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import { extractStructuredData } from "../../utils/MedilockerService";
@@ -24,12 +26,14 @@ const { width, height } = Dimensions.get("window");
 const Prescription = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const { setChatbotConfig } = useChatbot();
+  const { user } = useContext(AuthContext);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [generatedPrescription, setGeneratedPrescription] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedPrescription, setEditedPrescription] = useState(null);
 
+  console.log("user", user);
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
@@ -38,30 +42,41 @@ const Prescription = ({ navigation, route }) => {
 
   const fileInputRef = React.useRef(null);
 
+  // Format prescription text: replace "-" with bullet points (•)
+  const formatPrescriptionText = (text) => {
+    if (!text) return "";
+    // Replace "- " at the start of lines with "• " (bullet point)
+    // Also handle cases where there might be spaces before the dash
+    return text
+      .split("\n")
+      .map((line) => {
+        const trimmed = line.trim();
+        // Replace "- " at the start with "• "
+        if (trimmed.startsWith("- ")) {
+          return "• " + trimmed.substring(2);
+        }
+        // Replace "-" at the start (without space) with "• "
+        if (trimmed.startsWith("-")) {
+          return "• " + trimmed.substring(1).trim();
+        }
+        return line;
+      })
+      .join("\n");
+  };
+
   // Convert File object to base64
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
-      console.log("🟡 [fileToBase64] Starting conversion for file:", {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
-
       const reader = new FileReader();
       reader.onload = () => {
         try {
           const result = reader.result;
           // Extract base64 string (remove data:type;base64, prefix)
           const base64String = result.split(",")[1];
-          console.log("✅ [fileToBase64] File converted successfully:", {
-            filename: file.name,
-            base64Length: base64String?.length || 0,
-            preview: base64String?.substring(0, 50) + "...",
-          });
           resolve(base64String);
         } catch (parseError) {
           console.error(
-            "🔴 [fileToBase64] Error parsing base64 result:",
+            "[fileToBase64] Error parsing base64 result:",
             parseError
           );
           reject(
@@ -70,7 +85,7 @@ const Prescription = ({ navigation, route }) => {
         }
       };
       reader.onerror = (err) => {
-        console.error("🔴 [fileToBase64] FileReader error:", {
+        console.error("[fileToBase64] FileReader error:", {
           error: err,
           filename: file.name,
         });
@@ -86,7 +101,7 @@ const Prescription = ({ navigation, route }) => {
       try {
         reader.readAsDataURL(file);
       } catch (readError) {
-        console.error("🔴 [fileToBase64] Error starting file read:", readError);
+        console.error("[fileToBase64] Error starting file read:", readError);
         reject(
           new Error(
             `Failed to start reading file "${file.name}": ${readError.message}`
@@ -122,10 +137,10 @@ const Prescription = ({ navigation, route }) => {
       return;
     }
 
-    console.log("🟢 [extractFromFiles] Starting extraction process...");
-    console.log("🟢 [extractFromFiles] Number of files:", files.length);
+    console.log("[extractFromFiles] Starting extraction process...");
+    console.log("[extractFromFiles] Number of files:", files.length);
     files.forEach((file, index) => {
-      console.log(`🟢 [extractFromFiles] File ${index + 1}:`, {
+      console.log(`[extractFromFiles] File ${index + 1}:`, {
         name: file.name,
         size: file.size,
         type: file.type,
@@ -135,16 +150,16 @@ const Prescription = ({ navigation, route }) => {
     setIsGenerating(true);
     try {
       // Convert files to base64 format
-      console.log("🟢 [extractFromFiles] Converting files to base64...");
+      console.log("[extractFromFiles] Converting files to base64...");
       const filesWithBase64 = await Promise.all(
         files.map(async (file, index) => {
           try {
             console.log(
-              `🟢 [extractFromFiles] Converting file ${index + 1}: ${file.name}`
+              `[extractFromFiles] Converting file ${index + 1}: ${file.name}`
             );
             const base64Content = await fileToBase64(file);
             console.log(
-              `✅ [extractFromFiles] File ${
+              `[extractFromFiles] File ${
                 index + 1
               } converted successfully, base64 length:`,
               base64Content?.length || 0
@@ -155,7 +170,7 @@ const Prescription = ({ navigation, route }) => {
             };
           } catch (fileError) {
             console.error(
-              `🔴 [extractFromFiles] Error converting file ${index + 1} (${
+              `[extractFromFiles] Error converting file ${index + 1} (${
                 file.name
               }):`,
               fileError
@@ -168,20 +183,36 @@ const Prescription = ({ navigation, route }) => {
       );
 
       console.log(
-        "🟢 [extractFromFiles] All files converted. Calling extraction API..."
+        "[extractFromFiles] All files converted. Calling extraction API..."
       );
       // Call extraction API
       const result = await extractStructuredData(filesWithBase64);
 
-      console.log("✅ [extractFromFiles] Extraction API call successful");
-      console.log("🟢 [extractFromFiles] Extracted data:", {
-        hasPatientDetails: !!result.patient_details,
-        hasPrescriptionReport: !!result.prescription_report,
-        patientDetailsKeys: result.patient_details
-          ? Object.keys(result.patient_details)
-          : [],
-        prescriptionReportLength: result.prescription_report?.length || 0,
+      console.log("[extractFromFiles] Extraction API call successful");
+      console.log(
+        "[extractFromFiles] Full result object:",
+        JSON.stringify(result, null, 2)
+      );
+      console.log("[extractFromFiles] Extracted data:", {
+        hasPrescription: !!result.prescription,
+        prescriptionLength: result.prescription?.length || 0,
+        prescriptionValue: result.prescription,
+        resultKeys: Object.keys(result || {}),
       });
+
+      // Check if prescription exists in result
+      const prescriptionText =
+        result?.prescription || result?.data?.prescription || "";
+
+      if (!prescriptionText) {
+        console.error(
+          "[extractFromFiles] WARNING: No prescription found in result!",
+          {
+            result: result,
+            resultKeys: Object.keys(result || {}),
+          }
+        );
+      }
 
       // Update prescription with extracted data
       const prescription = {
@@ -191,33 +222,28 @@ const Prescription = ({ navigation, route }) => {
           month: "short",
           year: "numeric",
         }),
-        doctorName: "", // Can be filled from doctor profile
-        doctorSpecialty: "", // Can be filled from doctor profile
-        patientName: result.patient_details?.name || "",
-        insurance: "",
-        age: result.patient_details?.age || "",
-        gender: result.patient_details?.sex || "",
-        address: "",
+        patientName: "",
+        age: "",
+        gender: "",
         diagnosis: "",
         diagnosisDate: "",
-        prescriptionReport: result.prescription_report || "",
-        patientDetails: result.patient_details || {},
+        prescriptionReport: prescriptionText,
       };
 
-      console.log("✅ [extractFromFiles] Prescription object created:", {
-        patientName: prescription.patientName,
-        age: prescription.age,
-        gender: prescription.gender,
+      console.log("[extractFromFiles] Prescription object created:", {
         hasPrescriptionReport: !!prescription.prescriptionReport,
+        prescriptionReportLength: prescription.prescriptionReport?.length || 0,
+        prescriptionReportPreview:
+          prescription.prescriptionReport?.substring(0, 100) || "EMPTY",
       });
 
       setGeneratedPrescription(prescription);
       setIsEditMode(false);
       console.log(
-        "✅ [extractFromFiles] Extraction process completed successfully"
+        "[extractFromFiles] Extraction process completed successfully"
       );
     } catch (error) {
-      console.error("🔴 [extractFromFiles] Error in extraction process:", {
+      console.error("[extractFromFiles] Error in extraction process:", {
         name: error.name,
         message: error.message,
         userFriendlyMessage: error.userFriendlyMessage,
@@ -235,11 +261,11 @@ const Prescription = ({ navigation, route }) => {
       alert(errorMessage);
 
       // Also log to console for debugging
-      console.error("🔴 [extractFromFiles] Full error object:", error);
+      console.error("[extractFromFiles] Full error object:", error);
     } finally {
       setIsGenerating(false);
       console.log(
-        "🟢 [extractFromFiles] Extraction process finished (success or error)"
+        "[extractFromFiles] Extraction process finished (success or error)"
       );
     }
   };
@@ -254,13 +280,24 @@ const Prescription = ({ navigation, route }) => {
   };
 
   const handleEditPrescription = () => {
-    setEditedPrescription({ ...generatedPrescription });
+    // Initialize with current prescription and doctor info from auth
+    const doctorName = user?.name || user?.doctorname || "";
+    const doctorSpecialty = user?.specialization || "";
+
+    setEditedPrescription({
+      ...generatedPrescription,
+      doctorName: doctorName,
+      doctorSpecialty: doctorSpecialty,
+    });
     setIsEditMode(true);
   };
 
   const handleSavePrescription = () => {
     if (editedPrescription) {
-      setGeneratedPrescription(editedPrescription);
+      // Remove doctor info from saved prescription as it comes from auth context
+      const { doctorName, doctorSpecialty, ...prescriptionToSave } =
+        editedPrescription;
+      setGeneratedPrescription(prescriptionToSave);
       setIsEditMode(false);
       // TODO: Add API call to save prescription
     }
@@ -487,6 +524,7 @@ const Prescription = ({ navigation, route }) => {
                                         )
                                       }
                                       placeholder="Clinic Name"
+                                      placeholderTextColor="#999999"
                                     />
                                   ) : (
                                     <Text style={styles.clinicName}>
@@ -512,6 +550,7 @@ const Prescription = ({ navigation, route }) => {
                                           updatePrescriptionField("date", value)
                                         }
                                         placeholder="DD MMM YYYY"
+                                        placeholderTextColor="#999999"
                                       />
                                     </View>
                                   ) : (
@@ -541,6 +580,7 @@ const Prescription = ({ navigation, route }) => {
                                             )
                                           }
                                           placeholder="Doctor Name"
+                                          placeholderTextColor="#999999"
                                         />
                                       </View>
                                       <TextInput
@@ -556,15 +596,17 @@ const Prescription = ({ navigation, route }) => {
                                           )
                                         }
                                         placeholder="Specialty"
+                                        placeholderTextColor="#999999"
                                       />
                                     </>
                                   ) : (
                                     <>
                                       <Text style={styles.doctorNameText}>
-                                        DR : {generatedPrescription.doctorName}
+                                        DR :{" "}
+                                        {user?.name || user?.doctorname || ""}
                                       </Text>
                                       <Text style={styles.specialtyText}>
-                                        {generatedPrescription.doctorSpecialty}
+                                        {user?.specialization || ""}
                                       </Text>
                                     </>
                                   )}
@@ -574,12 +616,12 @@ const Prescription = ({ navigation, route }) => {
                               {/* Divider */}
                               <View style={styles.divider} />
 
-                              {/* Patient Details - Two Columns */}
+                              {/* Patient Details - 2 Fields Per Row */}
                               <View style={styles.patientDetailsContainer}>
-                                {/* Left Column */}
-                                <View style={styles.patientDetailsColumnLeft}>
+                                {/* Row 1: Patient Name + Age */}
+                                <View style={styles.detailRow}>
                                   {/* Patient Name */}
-                                  <View style={styles.detailItem}>
+                                  <View style={styles.detailItemHalf}>
                                     <Text style={styles.detailLabel}>
                                       Patient Name
                                     </Text>
@@ -595,100 +637,19 @@ const Prescription = ({ navigation, route }) => {
                                             value
                                           )
                                         }
-                                        placeholder="Patient Name"
+                                        placeholder="Enter patient name"
+                                        placeholderTextColor="#999999"
                                       />
                                     ) : (
                                       <Text style={styles.detailValue}>
-                                        {generatedPrescription.patientName}
-                                      </Text>
-                                    )}
-                                  </View>
-
-                                  {/* Address */}
-                                  <View style={styles.detailItem}>
-                                    <Text style={styles.detailLabel}>
-                                      Address
-                                    </Text>
-                                    {isEditMode ? (
-                                      <TextInput
-                                        style={styles.detailInputInline}
-                                        value={
-                                          editedPrescription?.address || ""
-                                        }
-                                        onChangeText={(value) =>
-                                          updatePrescriptionField(
-                                            "address",
-                                            value
-                                          )
-                                        }
-                                        placeholder="Address"
-                                        multiline
-                                      />
-                                    ) : (
-                                      <Text style={styles.detailValue}>
-                                        {generatedPrescription.address}
-                                      </Text>
-                                    )}
-                                  </View>
-
-                                  {/* Diagnosis */}
-                                  <View style={styles.detailItem}>
-                                    <Text style={styles.detailLabel}>
-                                      Diagnosis
-                                    </Text>
-                                    {isEditMode ? (
-                                      <TextInput
-                                        style={styles.detailInputInline}
-                                        value={
-                                          editedPrescription?.diagnosis || ""
-                                        }
-                                        onChangeText={(value) =>
-                                          updatePrescriptionField(
-                                            "diagnosis",
-                                            value
-                                          )
-                                        }
-                                        placeholder="Diagnosis"
-                                        multiline
-                                      />
-                                    ) : (
-                                      <Text style={styles.detailValue}>
-                                        {generatedPrescription.diagnosis}
-                                      </Text>
-                                    )}
-                                  </View>
-                                </View>
-
-                                {/* Right Column */}
-                                <View style={styles.patientDetailsColumnRight}>
-                                  {/* Insurance */}
-                                  <View style={styles.detailItem}>
-                                    <Text style={styles.detailLabel}>
-                                      Insurance
-                                    </Text>
-                                    {isEditMode ? (
-                                      <TextInput
-                                        style={styles.detailInput}
-                                        value={
-                                          editedPrescription?.insurance || ""
-                                        }
-                                        onChangeText={(value) =>
-                                          updatePrescriptionField(
-                                            "insurance",
-                                            value
-                                          )
-                                        }
-                                        placeholder="Insurance"
-                                      />
-                                    ) : (
-                                      <Text style={styles.detailValue}>
-                                        {generatedPrescription.insurance}
+                                        {generatedPrescription.patientName ||
+                                          ""}
                                       </Text>
                                     )}
                                   </View>
 
                                   {/* Age */}
-                                  <View style={styles.detailItem}>
+                                  <View style={styles.detailItemHalf}>
                                     <Text style={styles.detailLabel}>Age</Text>
                                     {isEditMode ? (
                                       <TextInput
@@ -697,17 +658,21 @@ const Prescription = ({ navigation, route }) => {
                                         onChangeText={(value) =>
                                           updatePrescriptionField("age", value)
                                         }
-                                        placeholder="Age"
+                                        placeholder="Enter age"
+                                        placeholderTextColor="#999999"
                                       />
                                     ) : (
                                       <Text style={styles.detailValue}>
-                                        {generatedPrescription.age || "N/A"}
+                                        {generatedPrescription.age || ""}
                                       </Text>
                                     )}
                                   </View>
+                                </View>
 
+                                {/* Row 2: Gender + Diagnosis */}
+                                <View style={styles.detailRow}>
                                   {/* Gender */}
-                                  <View style={styles.detailItem}>
+                                  <View style={styles.detailItemHalf}>
                                     <Text style={styles.detailLabel}>
                                       Gender
                                     </Text>
@@ -721,11 +686,40 @@ const Prescription = ({ navigation, route }) => {
                                             value
                                           )
                                         }
-                                        placeholder="Gender"
+                                        placeholder="Enter gender"
+                                        placeholderTextColor="#999999"
                                       />
                                     ) : (
                                       <Text style={styles.detailValue}>
-                                        {generatedPrescription.gender || "N/A"}
+                                        {generatedPrescription.gender || ""}
+                                      </Text>
+                                    )}
+                                  </View>
+
+                                  {/* Diagnosis */}
+                                  <View style={styles.detailItemHalf}>
+                                    <Text style={styles.detailLabel}>
+                                      Diagnosis
+                                    </Text>
+                                    {isEditMode ? (
+                                      <TextInput
+                                        style={styles.detailInput}
+                                        value={
+                                          editedPrescription?.diagnosis || ""
+                                        }
+                                        onChangeText={(value) =>
+                                          updatePrescriptionField(
+                                            "diagnosis",
+                                            value
+                                          )
+                                        }
+                                        placeholder="Enter diagnosis"
+                                        placeholderTextColor="#999999"
+                                        multiline
+                                      />
+                                    ) : (
+                                      <Text style={styles.detailValue}>
+                                        {generatedPrescription.diagnosis || ""}
                                       </Text>
                                     )}
                                   </View>
@@ -750,12 +744,14 @@ const Prescription = ({ navigation, route }) => {
                                         )
                                       }
                                       placeholder="Prescription Report"
+                                      placeholderTextColor="#999999"
                                       multiline
                                     />
                                   ) : (
                                     <Text style={styles.rxText} multiline>
-                                      {generatedPrescription.prescriptionReport ||
-                                        "No prescription report generated"}
+                                      {formatPrescriptionText(
+                                        generatedPrescription.prescriptionReport
+                                      ) || "No prescription report generated"}
                                     </Text>
                                   )}
                                 </View>
@@ -1142,21 +1138,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateText: {
-    fontSize: 15,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     color: "#666666",
     fontFamily: "Poppins",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   doctorInfoContainer: {
     alignItems: "flex-end",
     gap: 4,
   },
   doctorNameText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#333333",
+    color: "#666666",
     fontFamily: "Poppins",
     textAlign: "right",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   specialtyText: {
     fontSize: 13,
@@ -1171,10 +1171,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   editLabelInline: {
-    fontSize: 15,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     color: "#666666",
     fontFamily: "Poppins",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   editInputInline: {
     fontSize: 15,
@@ -1233,18 +1235,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 6,
   },
-  dateText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#666666",
-    fontFamily: "Poppins",
-  },
-  doctorText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#666666",
-    fontFamily: "Poppins",
-  },
   specialtyText: {
     fontSize: 14,
     fontWeight: "400",
@@ -1258,33 +1248,31 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   patientDetailsContainer: {
+    flexDirection: "column",
+    gap: 20,
+    marginBottom: 16,
+    padding: 12,
+  },
+  detailRow: {
     flexDirection: "row",
     gap: 16,
-    marginBottom: 8,
-    padding: 12,
-    // backgroundColor: "#FFFFFF",
-    // borderRadius: 12,
-    // borderWidth: 1,
-    // borderColor: "#F0F0F0",
-  },
-  patientDetailsColumnLeft: {
-    flex: 1.6,
-    gap: 2,
-  },
-  patientDetailsColumnRight: {
-    flex: 1,
-    gap: 2,
+    alignItems: "flex-start",
   },
   detailItem: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 0,
-    gap: 12,
+    gap: 16,
+  },
+  detailItemHalf: {
+    flex: 1,
+    flexDirection: "column",
+    gap: 8,
   },
   detailLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#888888",
+    color: "#666666",
     fontFamily: "Poppins",
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -1293,11 +1281,11 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 15,
-    fontWeight: "500",
+    fontWeight: "400",
     color: "#333333",
     fontFamily: "Poppins",
     lineHeight: 20,
-    flex: 1,
+    width: "100%",
   },
   detailInput: {
     fontSize: 15,
@@ -1307,10 +1295,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E0E0",
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     backgroundColor: "#FFFFFF",
-    flex: 1,
+    width: "100%",
+    minHeight: 44,
   },
   detailInputInline: {
     fontSize: 15,
@@ -1320,11 +1309,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E0E0",
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     backgroundColor: "#FFFFFF",
     flex: 1,
-    minHeight: 40,
+    minHeight: 60,
     textAlignVertical: "top",
   },
   rxContainer: {
@@ -1366,9 +1355,9 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   rxText: {
-    fontSize: 15,
-    fontWeight: "400",
-    color: "#333333",
+    fontSize: 14,
+    fontWeight: "300",
+    color: "#555555",
     fontFamily: "Poppins",
     flex: 1,
     lineHeight: 22,
