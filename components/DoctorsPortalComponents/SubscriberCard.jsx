@@ -8,6 +8,7 @@ const SubscriberCard = ({ user }) => {
   const handleContinueButtonApp = () => {
     navigation.navigate("GeneratePrescription", {
       userId: user.id,
+      doctorId: user.doctorId,
     });
   };
 
