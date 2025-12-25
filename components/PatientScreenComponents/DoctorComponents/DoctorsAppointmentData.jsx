@@ -1281,65 +1281,7 @@ const DoctorAppointmentScreen = ({
     fetchDoctors();
   }, [priorityDoctors]);
 
-  // Filter doctors by category whenever doctors or selectedCategory change
-
-  // useEffect(() => {
-  //   if (doctors.length === 0) return;
-
-  //   const normalized = (selectedCategory?.value?.toLowerCase() || "").trim();
-
-  //   const filtered = doctors.filter((doc) =>
-  //     doc.category?.toLowerCase().includes(normalized)
-  //   );
-
-  //   setFilteredDoctors(filtered);
-  // }, [selectedCategory, doctors]);
-
-  // useEffect(() => {
-  //   if (!selectedCategory || !allDoctors.length) return;
-
-  //   if (!selectedCategory.value) {
-  //     // Default: show all doctors (priority on top)
-  //     setDoctorsToShow(allDoctors);
-  //   } else {
-  //     const filtered = allDoctors.filter(doc =>
-  //       doc.category?.toLowerCase().includes(selectedCategory.value.toLowerCase())
-  //     );
-  //     setDoctorsToShow(filtered);
-  //   }
-  // }, [selectedCategory, allDoctors]);
-
-  // useEffect(() => {
-  //   if (!allDoctors.length) return;
-
-  //   const categoryValue = selectedCategory?.value?.toLowerCase().trim();
-  //   const categoryLabel = selectedCategory?.label?.toLowerCase().trim();
-
-  //   // ✅ Default case: show all doctors (with priority sorting separately)
-  //   if (!categoryValue) {
-  //     console.log("✅ Showing all doctors:", allDoctors.length);
-  //     setDoctorsToShow(allDoctors);
-  //     return;
-  //   }
-
-  //   // ✅ Filter logic: match either label OR value against backend category
-  //   const filtered = allDoctors.filter((doc) => {
-  //     const docCategory = doc.category?.toLowerCase().trim();
-  //     return (
-  //       docCategory.includes(categoryLabel) ||
-  //       docCategory.includes(categoryValue)
-  //     );
-  //   });
-
-  //   console.log("✅ Filtered doctors:", filtered.length, "for", categoryLabel);
-  //   console.log(
-  //     "📋 Categories in data:",
-  //     allDoctors.map((d) => d.category)
-  //   );
-  //   console.log("🧩 Selected category:", selectedCategory);
-
-  //   setDoctorsToShow(filtered);
-  // }, [selectedCategory, allDoctors]);
+  
 
   useEffect(() => {
     if (!allDoctors.length) return;
