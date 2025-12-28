@@ -7,146 +7,206 @@ import {
   TextInput,
   Platform,
   ScrollView,
-  Dimensions,
   Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
-
+import NewestSidebarDr from "../../components/DoctorsPortalComponents/NewestSidebar";
+import { API_URL } from "../../env-vars";
+import { useAuth } from "../../contexts/AuthContext";
 
 const DrCalendarView = ({ navigation }) => {
-  const [viewMode, setViewMode] = useState("Week"); // Set default to Week view
+  const { user } = useAuth(); // doctor logged in
+  console.log("doctor:", user);
+  const doctorId = user?.doctor_id;
+
+  console.log("👤 Auth user object:", user);
+  console.log("🆔 Derived doctorId:", doctorId);
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [currentWeek, setCurrentWeek] = useState(generateWeekDates());
   const [appointmentData, setAppointmentData] = useState({});
+  const [bookings, setBookings] = useState([]);
+  const [selected, setSelected] = useState("Week");
   const horizontalScrollRef = useRef(null);
-  const [selected, setSelected] = useState("Day");
   const tabs = ["Day", "Week", "Month"];
+  const [usersMap, setUsersMap] = useState({});
 
-  // Generate current week dates
+  /* ==============================
+     DATE HELPERS
+  ============================== */
+
   function generateWeekDates() {
     const today = new Date();
-    const day = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
-
-    // Adjust to make Monday the first day (if day is 0/Sunday, go back 6 days)
-    const mondayOffset = day === 0 ? -6 : 1 - day;
-
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-
-    const weekDays = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      weekDays.push({
-        name: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()],
-        shortName: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-          date.getDay()
-        ],
-        date: date.getDate(),
-        fullDate: date,
-      });
-    }
-
-    // Reorder to have Monday first
-    return [
-      weekDays[1], // Mon
-      weekDays[2], // Tue
-      weekDays[3], // Wed
-      weekDays[4], // Thu
-      weekDays[5], // Fri
-      weekDays[6], // Sat
-      weekDays[0], // Sun
-    ];
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      return {
+        name: d.toLocaleDateString("en-US", { weekday: "short" }), // "Mon"
+        fullDate: d,
+        date: d.getDate(),
+      };
+    });
   }
 
-  // Custom predefined appointment data that matches the design
-  const generatePredefinedAppointments = () => {
-    // Create a base structure with all time slots and days
-    const timeSlots = ["9:00 AM", "11:00 AM", "1:00 PM", "3:00 PM", "5:00 PM"];
-    const days = [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday",
-    ];
+  const generateTimeSlots = (startHour = 9, endHour = 17) => {
+    const slots = [];
+    for (let hour = startHour; hour <= endHour; hour++) {
+      const suffix = hour < 12 ? "AM" : "PM";
+      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+      slots.push(`${displayHour}:00 ${suffix}`);
+    }
+    return slots;
+  };
 
-    // Initialize empty appointment data
-    const appointmentsData = {};
-    days.forEach((day) => {
-      appointmentsData[day] = {};
-      timeSlots.forEach((time) => {
-        appointmentsData[day][time] = {
-          hasAppointment: false,
-          data: null,
-        };
+  const TIME_SLOTS = generateTimeSlots(); // ["9:00 AM", "10:00 AM", ..., "5:00 PM"]
+
+  const generateEmptyCalendar = () => {
+    const calendar = {};
+    const weekDates = generateWeekDates();
+
+    weekDates.forEach((day) => {
+      const dayName = day.fullDate.toLocaleDateString("en-US", {
+        weekday: "long",
+      });
+      calendar[dayName] = {};
+      TIME_SLOTS.forEach((time) => {
+        calendar[dayName][time] = { hasAppointment: false, data: null };
       });
     });
 
-    
-    return appointmentsData;
+    return calendar;
   };
 
   useEffect(() => {
-    // Set predefined appointment data
-    setAppointmentData(generatePredefinedAppointments());
-  }, []);
+    const calendar = generateEmptyCalendar();
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+    bookings.forEach((b) => {
+      const dayName = new Date(b.date).toLocaleDateString("en-US", {
+        weekday: "long",
+      });
 
- 
+      // Convert "09:00" → "9:00 AM" dynamically
+      const [hour, minute] = b.start_time.split(":").map(Number);
+      const suffix = hour < 12 ? "AM" : "PM";
+      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+      const slot = `${displayHour}:${minute
+        .toString()
+        .padStart(2, "0")} ${suffix}`;
 
-  const renderTimeSlot = (time) => {
+      if (calendar[dayName] && calendar[dayName][slot]) {
+        calendar[dayName][slot] = {
+          hasAppointment: true,
+          data: b,
+        };
+      }
+    });
+
+    setAppointmentData(calendar);
+  }, [bookings]);
+
+  /* ==============================
+     FETCH BOOKINGS
+  ============================== */
+
+  useEffect(() => {
+    if (!doctorId) {
+      console.warn("❌ doctorId not found from auth");
+      return;
+    }
+
+    const fetchUpcomingBookings = async () => {
+      try {
+        const url = `${API_URL}/booking/doctors/${doctorId}/bookings?type=upcoming`;
+        console.log("📡 Fetching bookings:", url);
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        console.log("✅ Raw bookings from backend:", data);
+        setBookings(data);
+      } catch (err) {
+        console.error("❌ Failed to fetch bookings:", err);
+      }
+    };
+
+    fetchUpcomingBookings();
+  }, [doctorId]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const map = {};
+      for (const booking of bookings) {
+        try {
+          const res = await fetch(`${API_URL}/users/${booking.user_id}`);
+          const userData = await res.json();
+          console.log("👤 user api response:", booking.user_id, userData);
+          map[booking.user_id] = userData.user?.name; // assuming API returns {name: "..."}
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      setUsersMap(map);
+    };
+    if (bookings.length > 0) fetchUsers();
+  }, [bookings]);
+
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  const renderTimeSlot = (time) => (
+    <View style={styles.timeSlotContainer}>
+      <Text style={styles.timeSlotText}>{time}</Text>
+    </View>
+  );
+
+  const renderAppointment = (day, timeSlot) => {
+    const dayName = day.fullDate.toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+
+    const slotData = appointmentData?.[dayName]?.[timeSlot];
+
+    // 🟢 No booking → Available slot
+    if (!slotData || !slotData.hasAppointment) {
+      return (
+        <View style={styles.emptyAppointmentCard}>
+          <Text style={styles.availableText}>Available</Text>
+        </View>
+      );
+    }
+
+    const booking = slotData.data;
+
+    // 🟢 Booking card ONLY
     return (
-      <View style={styles.timeSlotContainer}>
-        <Text style={styles.timeSlotText}>{time}</Text>
+      <View
+        style={{
+          backgroundColor: "#FFECEC",
+          padding: 10,
+          borderRadius: 8,
+          minHeight: 100,
+          borderWidth: 1,
+          borderColor: "#FF6B6B",
+        }}
+      >
+        <Text style={{ fontWeight: "700", fontSize:15}}>{usersMap[booking.user_id] || "Unknown"}</Text>
+
+        <Text style={{ fontWeight: "500", marginBottom: 4 }}>Appointment</Text>
+
+        <Text style={{ fontSize: 13 }}>
+          Date: {booking.date?.split("T")[0]}
+        </Text>
+
+        <Text style={{ fontSize: 13 , fontWeight:"400"}}>Time: {timeSlot}</Text>
+
+        {/* <Text style={{ fontSize: 13 }}>Status: {booking.status}</Text> */}
       </View>
     );
   };
 
-  const renderAppointment = (day, timeSlot) => {
-    const dayName =
-      day.name === "Mon"
-        ? "Monday"
-        : day.name === "Tue"
-        ? "Tuesday"
-        : day.name === "Wed"
-        ? "Wednesday"
-        : day.name === "Thu"
-        ? "Thursday"
-        : day.name === "Fri"
-        ? "Friday"
-        : day.name === "Sat"
-        ? "Saturday"
-        : "Sunday";
-
-    const slotData =
-      appointmentData[dayName] && appointmentData[dayName][timeSlot];
-
-    if (!slotData || !slotData.hasAppointment) {
-      return (
-        <TouchableOpacity style={styles.emptyAppointmentCard}>
-          <Text style={styles.availableText}>Available</Text>
-        </TouchableOpacity>
-      );
-    }
-
-    const appointment = slotData.data;
-    let cardStyle;
-
-   
-   
-  };
-
   return (
     <View style={styles.container}>
-      {/* Sidebar for larger screens or when open */}
+      {/* Sidebar */}
       {sidebarOpen && (
         <View style={styles.sidebarContainer}>
           <NewestSidebar
@@ -159,98 +219,92 @@ const DrCalendarView = ({ navigation }) => {
 
       {/* Main Content */}
       <View style={styles.contentContainer}>
-        {/* Header with menu button for smaller screens */}
+        {/* Menu button for small screens */}
         {!sidebarOpen && (
           <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
             <MaterialIcons name="menu" size={24} color="black" />
           </TouchableOpacity>
         )}
 
-      <View style={{ backgroundColor:"#FDF8F8",paddingTop:"2%", }}>
-        {/* Calendar Header */}
-        <View style={styles.calendarHeader}>
-          <Text style={styles.calendarTitle}>Calendar</Text>
-          <View style={styles.tabsContainer}>
-            {tabs.map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[
-                  styles.tabButton,
-                  selected === tab && styles.selectedTab,
-                ]}
-                onPress={() => setSelected(tab)}
-                activeOpacity={0.8}
-              >
-                <Text
+        {/* Header */}
+        <View style={{ backgroundColor: "#FDF8F8", paddingTop: "2%" }}>
+          <View style={styles.calendarHeader}>
+            <Text style={styles.calendarTitle}>Calendar</Text>
+            <View style={styles.tabsContainer}>
+              {tabs.map((tab) => (
+                <TouchableOpacity
+                  key={tab}
                   style={[
-                    styles.tabText,
-                    selected === tab && styles.selectedText,
+                    styles.tabButton,
+                    selected === tab && styles.selectedTab,
                   ]}
+                  onPress={() => setSelected(tab)}
+                  activeOpacity={0.8}
                 >
-                  {tab}
-                </Text>
+                  <Text
+                    style={[
+                      styles.tabText,
+                      selected === tab && styles.selectedText,
+                    ]}
+                  >
+                    {tab}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Search & Filters */}
+          <View style={styles.controlsContainer}>
+            <View style={styles.searchContainer}>
+              <Image
+                source={require("../../assets/Icons/search.png")}
+                style={styles.imagepic}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search Appointment"
+                value={searchText}
+                onChangeText={setSearchText}
+              />
+              <Image
+                source={require("../../assets/Icons/search.png")}
+                style={styles.imagepicc}
+              />
+            </View>
+
+            <View style={styles.filterButton}>
+              <TouchableOpacity>
+                <Text style={styles.filterButtonText}>All Types</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            </View>
 
-       
-        </View>
+            <View style={styles.filterButton}>
+              <TouchableOpacity>
+                <Text style={styles.filterButtonText}>All Status</Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* Search and Filter Controls */}
-        <View style={styles.controlsContainer}>
-          <View style={styles.searchContainer}>
-            <Image
-              source={require("../../assets/Icons/search.png")}
-              style={styles.imagepic}
-            />
+            <View style={{ marginLeft: "5%", width: "22%" }}>
+              <TouchableOpacity style={styles.syncButton}>
+                <Text style={styles.syncButtonText}>Sync Google Calendar</Text>
+              </TouchableOpacity>
+            </View>
 
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search Appointment"
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-            <Image
-              source={require("../../assets/Icons/search.png")}
-              style={styles.imagepicc}
-            />
-          </View>
-
-          <View style={styles.filterButton}>
-            <TouchableOpacity>
-              <Text style={styles.filterButtonText}>All Types</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.filterButton}>
-            <TouchableOpacity>
-              <Text style={styles.filterButtonText}>All Status</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ marginLeft: "5%", width: "22%" }}>
-            <TouchableOpacity style={styles.syncButton}>
-              <Text style={styles.syncButtonText}>Sync Google Calendar</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ width: "22%" }}>
-            <TouchableOpacity style={styles.newAppointmentButton}>
-              <Text style={styles.newAppointmentText}>New Appointment</Text>
-            </TouchableOpacity>
+            <View style={{ width: "22%" }}>
+              <TouchableOpacity style={styles.newAppointmentButton}>
+                <Text style={styles.newAppointmentText}>New Appointment</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
 
-        {/* Calendar Grid with Horizontal Scrolling */}
+        {/* Calendar Grid */}
         <ScrollView style={styles.calendarGrid}>
-          <View style={styles.maintextBox}>
-            <Text style={styles.mainText}>No Schedule for now</Text>
-          </View>
-          {/* Day headers with dates */}
+          {/* Day Headers */}
           <View style={styles.daysHeaderRow}>
             <View style={styles.timeColumnHeader}>
-              {/* Empty corner cell */}
+              {/* Empty top-left corner */}
             </View>
             <ScrollView
               horizontal
@@ -267,35 +321,13 @@ const DrCalendarView = ({ navigation }) => {
             </ScrollView>
           </View>
 
-          {/* Time slots and appointments */}
-          <ScrollView>
-            {/* 9:00 AM Row */}
-            <View style={styles.timeRow}>
-              <View style={styles.timeColumn}>{renderTimeSlot("9:00AM")}</View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                onScroll={(e) => {
-                  if (horizontalScrollRef.current) {
-                    horizontalScrollRef.current.scrollTo({
-                      x: e.nativeEvent.contentOffset.x,
-                      animated: false,
-                    });
-                  }
-                }}
-                scrollEventThrottle={16}
-              >
-                {currentWeek.map((day, index) => (
-                  <View key={index} style={styles.appointmentSlot}>
-                    {renderAppointment(day, "9:00 AM")}
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
+          {/* Time Slots & Appointments */}
+          {TIME_SLOTS.map((time) => (
+            <View key={time} style={styles.timeRow}>
+              {/* Time Column */}
+              <View style={styles.timeColumn}>{renderTimeSlot(time)}</View>
 
-            {/* 11:00 AM Row */}
-            <View style={styles.timeRow}>
-              <View style={styles.timeColumn}>{renderTimeSlot("11:00AM")}</View>
+              {/* Appointments Row */}
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -311,84 +343,12 @@ const DrCalendarView = ({ navigation }) => {
               >
                 {currentWeek.map((day, index) => (
                   <View key={index} style={styles.appointmentSlot}>
-                    {renderAppointment(day, "11:00 AM")}
+                    {renderAppointment(day, time)}
                   </View>
                 ))}
               </ScrollView>
             </View>
-
-            {/* 1:00 PM Row */}
-            <View style={styles.timeRow}>
-              <View style={styles.timeColumn}>{renderTimeSlot("01:00PM")}</View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                onScroll={(e) => {
-                  if (horizontalScrollRef.current) {
-                    horizontalScrollRef.current.scrollTo({
-                      x: e.nativeEvent.contentOffset.x,
-                      animated: false,
-                    });
-                  }
-                }}
-                scrollEventThrottle={16}
-              >
-                {currentWeek.map((day, index) => (
-                  <View key={index} style={styles.appointmentSlot}>
-                    {renderAppointment(day, "1:00 PM")}
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-
-            {/* 3:00 PM Row */}
-            <View style={styles.timeRow}>
-              <View style={styles.timeColumn}>{renderTimeSlot("03:00PM")}</View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                onScroll={(e) => {
-                  if (horizontalScrollRef.current) {
-                    horizontalScrollRef.current.scrollTo({
-                      x: e.nativeEvent.contentOffset.x,
-                      animated: false,
-                    });
-                  }
-                }}
-                scrollEventThrottle={16}
-              >
-                {currentWeek.map((day, index) => (
-                  <View key={index} style={styles.appointmentSlot}>
-                    {renderAppointment(day, "3:00 PM")}
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-
-            {/* 5:00 PM Row */}
-            <View style={styles.timeRow}>
-              <View style={styles.timeColumn}>{renderTimeSlot("05:00PM")}</View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                onScroll={(e) => {
-                  if (horizontalScrollRef.current) {
-                    horizontalScrollRef.current.scrollTo({
-                      x: e.nativeEvent.contentOffset.x,
-                      animated: false,
-                    });
-                  }
-                }}
-                scrollEventThrottle={16}
-              >
-                {currentWeek.map((day, index) => (
-                  <View key={index} style={styles.appointmentSlot}>
-                    {renderAppointment(day, "5:00 PM")}
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          </ScrollView>
+          ))}
         </ScrollView>
       </View>
     </View>
@@ -432,7 +392,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: "1%",
     paddingHorizontal: "1%",
-    
   },
   maintextBox: {
     position: "absolute",
@@ -546,7 +505,7 @@ const styles = StyleSheet.create({
   calendarGrid: {
     flex: 1,
     // backgroundColor: "#f0f2ff",
-    backgroundColor:"#ffffff",
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     paddingTop: "3%",
   },
@@ -644,5 +603,4 @@ const styles = StyleSheet.create({
     marginBottom: "40%",
   },
 });
-
 export default DrCalendarView;

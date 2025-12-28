@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import {
   Image,
   ImageBackground,
@@ -15,10 +15,10 @@ import {
 
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-//import DoctorsHeader from "../../components/DoctorsPortalComponents/DoctorsHeader";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
-import MedilockerUsers from "../../components/DoctorsPortalComponents/MedilockerUsers";
+//import MedilockerUsers from "../../components/DoctorsPortalComponents/MedilockerUsers";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import { API_URL } from "../../env-vars";
 
 const { width, height } = Dimensions.get("window");
 
@@ -26,13 +26,81 @@ const GeneratePrescription = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const [searchText, setSearchText] = useState("");
   const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
-  //const [selectedButton, setSelectedButton] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [appointment, setAppointment] = useState(null);
+
+  const { userId, doctorId } = route.params || {};
 
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
     }, [setChatbotConfig])
   );
+
+  // useEffect(() => {
+  //   if (!userId) return;
+
+  //   const fetchUserDetails = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const res = await fetch(`${API_URL}/users/${userId}`);
+  //       const data = await res.json();
+
+  //       console.log("✅ User details:", data);
+
+  //       setUser(data.user || data);
+  //     } catch (err) {
+  //       console.error("❌ Failed to fetch user:", err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchUserDetails();
+  // }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !doctorId) return;
+
+    const fetchAllDetails = async () => {
+      try {
+        setLoading(true);
+
+        // USER
+        const userRes = await fetch(`${API_URL}/users/${userId}`);
+        const userData = await userRes.json();
+        setUser(userData.user || userData);
+
+        // APPOINTMENT (SOURCE OF TRUTH)
+        const apptRes = await fetch(
+          `${API_URL}/booking/doctors/${doctorId}/users/${userId}/latest`
+        );
+        const apptData = await apptRes.json();
+
+        console.log("📅 Appointment:", apptData);
+
+        setAppointment(apptData);
+      } catch (err) {
+        console.error("❌ Fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllDetails();
+  }, [userId, doctorId]);
+
+  const getInitials = (name = "") => {
+    if (!name) return "U";
+
+    const parts = name.trim().split(" ");
+    const first = parts[0]?.charAt(0).toUpperCase() || "";
+    const last =
+      parts.length > 1 ? parts[parts.length - 1].charAt(0).toUpperCase() : "";
+
+    return first + last;
+  };
 
   return (
     <>
@@ -72,11 +140,19 @@ const GeneratePrescription = ({ navigation, route }) => {
                       <View style={styles.container}>
                         <View style={{ flexDirection: "row" }}>
                           <View style={styles.imageBox}>
-                            <Image
-                              source={require("../../assets/DoctorsPortal/Images/userpic.png")}
-                              style={styles.imagepic}
-                            />
+                            {user?.image ? (
+                              <Image
+                                source={{ uri: user.image }}
+                                style={styles.imagepic}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <Text style={styles.initialText}>
+                                {getInitials(user?.name)}
+                              </Text>
+                            )}
                           </View>
+
                           <View style={styles.firstTextBox}>
                             <View style={styles.firstHeadSection}>
                               <Text
@@ -86,7 +162,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                                   color: "#000000",
                                 }}
                               >
-                                Anamika Singh
+                                {user?.name}
                               </Text>
                               <View style={styles.secondTextBox}>
                                 <View
@@ -109,7 +185,9 @@ const GeneratePrescription = ({ navigation, route }) => {
                                         <View>
                                           <Text style={styles.firstTexttwo}>
                                             {" "}
-                                            18 Oct 2025
+                                            {appointment?.date
+                                              ? appointment.date.split("T")[0]
+                                              : "-"}
                                           </Text>
                                         </View>
                                       </View>
@@ -154,19 +232,21 @@ const GeneratePrescription = ({ navigation, route }) => {
                               }}
                             >
                               <View>
-                                <Text style={styles.firstBoxText}>Age :</Text>
+                                <Text style={styles.firstBoxText}>
+                                  {user?.age}
+                                </Text>
                               </View>
                               <View>
-                                <Text style={styles.firstTexttwo}> 50</Text>
+                                <Text style={styles.firstTexttwo}></Text>
                               </View>
 
                               <View style={{ marginLeft: "20%" }}>
                                 <Text style={styles.firstBoxText}>
-                                  Gender :
+                                  {user?.gender}
                                 </Text>
                               </View>
                               <View>
-                                <Text style={styles.firstTexttwo}> Female</Text>
+                                <Text style={styles.firstTexttwo}></Text>
                               </View>
                             </View>
                             <View
@@ -177,7 +257,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                             >
                               <View>
                                 <Text style={styles.firstBoxText}>
-                                  Condition :
+                                  {user?.condition}
                                 </Text>
                               </View>
                               <View>
@@ -195,7 +275,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                             >
                               <View>
                                 <Text style={styles.firstBoxText}>
-                                  Status :
+                                  {user?.status}
                                 </Text>
                               </View>
                               <View>
@@ -334,7 +414,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                             <Text style={styles.mediText}>Actions</Text>
                           </View>
                         </View>
-                        <ScrollView>
+                        {/* <ScrollView>
                           <MedilockerUsers></MedilockerUsers>
                           <MedilockerUsers></MedilockerUsers>
                           <MedilockerUsers></MedilockerUsers>
@@ -343,7 +423,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                           <MedilockerUsers></MedilockerUsers>
                           <MedilockerUsers></MedilockerUsers>
                           <MedilockerUsers></MedilockerUsers>
-                        </ScrollView>
+                        </ScrollView> */}
                       </View>
                     </View>
                   </View>
@@ -476,14 +556,39 @@ const styles = StyleSheet.create({
     marginVertical: "2%",
     height: "25%",
   },
+  // imageBox: {
+  //   //margin: "1%",
+  //   //borderWidth: 1,
+  //   height: "49%",
+  // },
+  // imagepic: {
+  //   height: 70,
+  //   width: 70,
+  // },
+
   imageBox: {
-    //margin: "1%",
-    //borderWidth: 1,
-    height: "49%",
+    borderWidth: 1,
+    marginTop: "0%",
+    marginRight: "0.6%",
+    marginLeft: "1%",
+    height: "44%",
+    width: "5.7%",
+    borderRadius: 50,
+    backgroundColor: "#efefefff",
+    borderColor: "#fbf9f9ff",
   },
   imagepic: {
-    height: 70,
-    width: 70,
+    height: 45,
+    width: 45,
+    alignSelf: "center",
+  },
+
+  initialText: {
+    alignSelf: "center",
+    fontSize: 30,
+    fontWeight: 600,
+    color: "#d10f0fff",
+    marginTop: "10%",
   },
 
   firstBoxText: {

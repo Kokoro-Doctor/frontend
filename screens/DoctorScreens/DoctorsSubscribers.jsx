@@ -16,7 +16,8 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-
+import { API_URL } from "../../env-vars";
+import { useAuth } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -25,7 +26,8 @@ const DoctorsSubscribers = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const [searchText, setSearchText] = useState("");
   const { setChatbotConfig } = useChatbot();
-
+  const { user } = useAuth();
+  const doctorId = user?.doctor_id;
   const [subscribers, setSubscribers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,21 +38,125 @@ const DoctorsSubscribers = ({ navigation }) => {
   );
 
   // ✅ FETCH BACKEND DATA HERE (ONLY HERE)
+  // useEffect(() => {
+  //   fetchSubscribers();
+  // }, []);
+
+  // const fetchSubscribers = async () => {
+  //   try {
+  //     const response = await fetch(`${API_URL}/doctor/subscribers`);
+  //     const data = await response.json();
+
+  //     setSubscribers(data.subscribers || []);
+  //   } catch (error) {
+  //     console.log("Error fetching subscribers:", error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   useEffect(() => {
+    console.log("🧠 Auth user from context:", user);
+    console.log("🩺 Derived doctorId:", doctorId);
+
+    if (!doctorId) {
+      console.warn("❌ doctorId not available yet");
+      return;
+    }
+
     fetchSubscribers();
-  }, []);
+  }, [doctorId]);
 
   const fetchSubscribers = async () => {
     try {
-      const response = await fetch(
-        "https://your-api.com/doctor/subscribers"
-      );
-      const data = await response.json();
+      setLoading(true);
 
-      setSubscribers(data.subscribers || []);
+      console.log("🚀 Fetching subscribers for doctor:", doctorId);
+      console.log(
+        "📡 URL:",
+        `${API_URL}/booking/doctors/${doctorId}/subscribers`
+      );
+
+      // 1️⃣ Fetch subscriptions
+      const subRes = await fetch(
+        `${API_URL}/booking/doctors/${doctorId}/subscribers`
+      );
+
+      console.log("📥 Subscription response status:", subRes.status);
+
+      const subscriptions = await subRes.json();
+      console.log("📦 Raw subscriptions response:", subscriptions);
+
+      if (!Array.isArray(subscriptions)) {
+        console.error("❌ Subscriptions is NOT an array:", subscriptions);
+        setSubscribers([]);
+        return;
+      }
+
+      console.log("✅ Total subscriptions:", subscriptions.length);
+
+      // 2️⃣ Fetch user details
+      const usersWithDetails = await Promise.all(
+        subscriptions
+          .filter((sub) => {
+            console.log("🔎 Checking subscription:", sub);
+            return sub.status === "ACTIVE";
+          })
+          .map(async (sub) => {
+            try {
+              console.log("👤 Fetching user for user_id:", sub.user_id);
+              console.log("📡 User URL:", `${API_URL}/users/${sub.user_id}`);
+
+              const userRes = await fetch(`${API_URL}/users/${sub.user_id}`);
+
+              console.log(
+                "📥 User response status:",
+                userRes.status,
+                "for",
+                sub.user_id
+              );
+
+              const userData = await userRes.json();
+              console.log("✅ User data received:", userData);
+
+              const userProfile = userData.user || userData;
+
+              return {
+                id: sub.user_id,
+                name:
+                  userProfile.name ||
+                  userProfile.full_name ||
+                  userProfile.username ||
+                  "Unknown",
+
+                age: userProfile.age ?? "-",
+                gender: userProfile.gender ?? "-",
+                condition: userProfile.condition ?? "-",
+                image: userProfile.profile_image ?? null,
+                status: sub.status,
+                date: sub.start_date ? sub.start_date.split("T")[0] : "-",
+
+                time: userProfile.preferred_time || "-",
+              };
+            } catch (err) {
+              console.error(
+                "❌ Failed to fetch user details for:",
+                sub.user_id,
+                err
+              );
+              return null;
+            }
+          })
+      );
+
+      const finalUsers = usersWithDetails.filter(Boolean);
+      console.log("🎯 Final subscribers list:", finalUsers);
+
+      setSubscribers(finalUsers);
     } catch (error) {
-      console.log("Error fetching subscribers:", error);
+      console.error("🔥 Error in fetchSubscribers:", error);
     } finally {
+      console.log("✅ fetchSubscribers completed");
       setLoading(false);
     }
   };
@@ -77,20 +183,20 @@ const DoctorsSubscribers = ({ navigation }) => {
                   <View style={styles.contentContainer}>
                     {/* ---------- HEADER ---------- */}
                     <View style={styles.upperPart}>
-                      <Text style={styles.containerText}>
-                        Your Subscribers
-                      </Text>
+                      <Text style={styles.containerText}>Your Subscribers</Text>
 
                       <View style={styles.upperBox}>
-                        <TouchableOpacity style={styles.filterBox}>
+                        {/* <TouchableOpacity style={styles.filterBox}>
                           <Image
                             source={require("../../assets/DoctorsPortal/Icons/filterIcon.png")}
                             style={styles.filterIcon}
                           />
                           <Text style={styles.filterText}>Filter</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
 
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        {/* <View
+                          style={{ flexDirection: "row", alignItems: "center" }}
+                        >
                           <Text style={styles.dateText}>Date :</Text>
                           <View style={styles.filterBox}>
                             <TextInput
@@ -98,7 +204,7 @@ const DoctorsSubscribers = ({ navigation }) => {
                               placeholder="Select Date"
                             />
                           </View>
-                        </View>
+                        </View> */}
 
                         <View style={styles.SearchBox}>
                           <MaterialIcons
@@ -120,7 +226,9 @@ const DoctorsSubscribers = ({ navigation }) => {
                     <View style={styles.lowerPart}>
                       <ScrollView>
                         {loading ? (
-                          <Text style={{ textAlign: "center", marginTop: 40 }}>
+                          <Text
+                            style={{ textAlign: "center", marginTop: "2%" }}
+                          >
                             Loading subscribers...
                           </Text>
                         ) : subscribers.length > 0 ? (
@@ -211,87 +319,86 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     marginTop: "2%",
-
     backgroundColor: "#FFFFFF",
     marginBottom: "4%",
     borderRadius: 5,
     overflow: "hidden",
     width: "92%",
     marginHorizontal: "4%",
+    //borderWidth:1
   },
   upperPart: {
     flex: 1,
     backgroundColor: "#FCA2A21F",
-    height: "30%",
+    //height: "2%",
     width: "100%",
+    borderWidth:1
   },
   containerText: {
     fontSize: 34,
     fontWeight: "600",
     color: "#000000",
     paddingTop: "2%",
-    marginLeft: "4%",
+    marginLeft: "3%",
   },
   upperBox: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    gap: "2%",
-    paddingVertical: "2%",
-
-    marginLeft: "4%",
+    marginLeft: "3%",
+    marginVertical: "2%",
+    //height: "20%",
+    //borderWidth:1
   },
-  filterBox: {
-    flexDirection: "row",
-    borderRadius: 4,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
-    paddingVertical: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    alignContent: "center",
-    alignSelf: "center",
-    outlineStyle: "none",
-    borderWidth: 0,
-  },
+  // filterBox: {
+  //   flexDirection: "row",
+  //   borderRadius: 4,
+  //   backgroundColor: "#FFFFFF",
+  //   paddingHorizontal: 12,
+  //   paddingVertical: 1,
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  //   alignContent: "center",
+  //   alignSelf: "center",
+  //   outlineStyle: "none",
+  //   borderWidth: 0,
+  // },
   SearchBox: {
     flexDirection: "row",
     borderRadius: 4,
     backgroundColor: "#FFFFFF",
     width: "30%",
-    paddingVertical: 2,
+    paddingVertical: "0.5%",
   },
-  filterIcon: {
-    width: 20,
-    height: 20,
-  },
-  filterText: {
-    alignItems: "center",
-    justifyContent: "center",
-    alignContent: "center",
-    alignSelf: "center",
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#000000",
-  },
-  dateBox: {
-    borderRadius: 4,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  dateText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#000000",
-  },
-  selectdateText: {
-    fontSize: 14,
-    fontWeight: "300",
-    color: "#B9B9B9",
-    outlineStyle: "none",
-    borderWidth: 0,
-  },
+  // filterIcon: {
+  //   width: 20,
+  //   height: 20,
+  // },
+  // filterText: {
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  //   alignContent: "center",
+  //   alignSelf: "center",
+  //   fontSize: 14,
+  //   fontWeight: "500",
+  //   color: "#000000",
+  // },
+  // dateBox: {
+  //   borderRadius: 4,
+  //   backgroundColor: "#FFFFFF",
+  //   paddingHorizontal: 12,
+  //   flexDirection: "row",
+  //   justifyContent: "center",
+  // },
+  // dateText: {
+  //   fontSize: 16,
+  //   fontWeight: "500",
+  //   color: "#000000",
+  // },
+  // selectdateText: {
+  //   fontSize: 14,
+  //   fontWeight: "300",
+  //   color: "#B9B9B9",
+  //   outlineStyle: "none",
+  //   borderWidth: 0,
+  // },
   searchBoxText: {
     fontSize: 14,
     fontWeight: "300",
@@ -336,5 +443,3 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
 });
-
-
