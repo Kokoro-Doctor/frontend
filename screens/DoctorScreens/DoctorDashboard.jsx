@@ -17,6 +17,8 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../env-vars";
+import { useAuth } from "../../contexts/AuthContext";
+import { useFocusEffect } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
 
@@ -99,7 +101,9 @@ const DatePickerField = ({ value, onChange, style }) => {
 const DoctorDashboard = ({ navigation }) => {
   const { width } = useWindowDimensions();
 
-  const [user, setUser] = useState(null);
+  // Get user and role from AuthContext
+  const { user: authUser, role } = useAuth();
+  const [user, setUser] = useState(authUser);
   const [documents, setDocuments] = useState([]);
   const [issueDocs, setIssueDocs] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -111,9 +115,15 @@ const DoctorDashboard = ({ navigation }) => {
   const [doctorData, setDoctorData] = useState(null);
   const [appointmentData, setAppointmentData] = useState(null);
   const [consultationRemaining, setConsultationRemaining] = useState(0);
+  const [availableAmount, setAvailableAmount] = useState(0);
+  const [subscriberCount, setSubscriberCount] = useState(0);
+  const [bookings, setBookings] = useState([]);
 
-  // ✅ Keep this as Date always
+  // ✅ Keep this as Date always - for Upcoming Appointments calendar
   const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  // ✅ Separate date state for Patient History section
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState(new Date());
 
   const [selectedStatus, setSelectedStatus] = useState("All Status");
   const [searchQuery, setSearchQuery] = useState("");
@@ -220,6 +230,88 @@ const DoctorDashboard = ({ navigation }) => {
     }
   };
 
+  const fetchEarningsSummary = async (doctorId) => {
+    try {
+      const url = `${API_URL}/payouts/earnings/summary?doctor_id=${doctorId}`;
+      const res = await fetch(url);
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      setAvailableAmount(data?.available_amount ?? 0);
+      return data;
+    } catch (err) {
+      console.error("❌ fetchEarningsSummary ERROR:", err);
+      return null;
+    }
+  };
+
+  const fetchSubscriberCount = async (doctorId) => {
+    try {
+      const url = `${API_URL}/booking/doctors/${doctorId}/subscribers`;
+      const res = await fetch(url);
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      setSubscriberCount(Array.isArray(data) ? data.length : 0);
+      return data;
+    } catch (err) {
+      console.error("❌ fetchSubscriberCount ERROR:", err);
+      return null;
+    }
+  };
+
+  const fetchUserDetails = async (userId) => {
+    try {
+      const url = `${API_URL}/users/${userId}`;
+      const res = await fetch(url);
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.user || null;
+    } catch (err) {
+      console.error("❌ fetchUserDetails ERROR:", err);
+      return null;
+    }
+  };
+
+  const fetchTodayBookings = async (doctorId, dateToFetch = null) => {
+    try {
+      const dateParam = dateToFetch ? toDateKey(dateToFetch) : toDateKey(new Date());
+      const url = `${API_URL}/booking/doctors/${doctorId}/bookings?date=${dateParam}`;
+      
+      const res = await fetch(url);
+
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (!Array.isArray(data) || data.length === 0) {
+        setBookings([]);
+        return;
+      }
+
+      // Fetch user details for each booking and create enriched booking objects
+      const enrichedBookings = await Promise.all(
+        data.map(async (booking, index) => {
+          const userDetails = await fetchUserDetails(booking.user_id);
+          const consultationType = booking.meet_link
+            ? "Video Consultation"
+            : "Offline Consultation";
+
+          return {
+            ...booking,
+            serial: index + 1,
+            patientName: userDetails?.name || "Unknown",
+            consultationType: consultationType,
+          };
+        })
+      );
+
+      setBookings(enrichedBookings);
+    } catch (err) {
+      console.error("❌ fetchTodayBookings ERROR:", err);
+    }
+  };
+
   const fetchUpcomingAppointment = async (userId) => {
     try {
       const url = `${API_URL}/booking/users/${userId}/bookings?type=upcoming`;
@@ -260,19 +352,21 @@ const DoctorDashboard = ({ navigation }) => {
   };
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        let storedUser;
-        if (Platform.OS === "web") storedUser = localStorage.getItem("@user");
-        else storedUser = await AsyncStorage.getItem("@user");
+    // Sync AuthContext user with local state
+    if (authUser) {
+      setUser(authUser);
+    }
+  }, [authUser]);
 
-        if (storedUser) setUser(JSON.parse(storedUser));
-      } catch (err) {
-        console.error("❌ loadUser:", err);
-      }
-    };
-    loadUser();
-  }, []);
+  // // Check if user is a doctor - redirect if not
+  // useEffect(() => {
+  //   if (role && role !== "doctor") {
+  //     console.warn("❌ Access Denied: Only doctors can access this dashboard");
+  //     if (navigation?.navigate) {
+  //       navigation.navigate("LandingPage");
+  //     }
+  //   }
+  // }, [role, navigation]);
 
   useEffect(() => {
     if (!user?.user_id) return;
@@ -281,6 +375,13 @@ const DoctorDashboard = ({ navigation }) => {
     hasFetchedRef.current = true;
     fetchUpcomingAppointment(user.user_id);
   }, [user?.user_id]);
+
+  useEffect(() => {
+    if (!user?.doctor_id) return;
+    fetchEarningsSummary(user.doctor_id);
+    fetchSubscriberCount(user.doctor_id);
+    fetchTodayBookings(user.doctor_id, selectedDate);
+  }, [user?.doctor_id, selectedDate]);
 
   const handleJoinCall = () => {
     if (!appointmentData?.meet_link) return;
@@ -406,9 +507,9 @@ const DoctorDashboard = ({ navigation }) => {
       );
     }
 
-    // ✅ Date filter using stable keys
-    if (selectedDate) {
-      const selectedKey = toDateKey(selectedDate);
+    // ✅ Date filter using stable keys - now uses selectedHistoryDate
+    if (selectedHistoryDate) {
+      const selectedKey = toDateKey(selectedHistoryDate);
       filtered = filtered.filter((doc) => toDateKey(doc.date) === selectedKey);
     }
 
@@ -418,7 +519,7 @@ const DoctorDashboard = ({ navigation }) => {
 
     setFilteredDocuments(filtered);
     setCurrentPage(1);
-  }, [documents, searchQuery, selectedDate, selectedStatus]);
+  }, [documents, searchQuery, selectedHistoryDate, selectedStatus]);
 
   const statusOptions = [
     "All Status",
@@ -509,8 +610,12 @@ const DoctorDashboard = ({ navigation }) => {
                     </View>
                   </View>
 
-                  <Text style={styles.statLabel}>Today's Appointments</Text>
-                  <Text style={styles.statValue}>90</Text>
+                  <Text style={styles.statLabel}>
+                  Total No. Of Today's Appointments
+                  </Text>
+                  <Text style={styles.statValue}>
+                    {bookings && bookings.length > 0 ? bookings.length : 0}
+                  </Text>
                 </View>
 
                 <View style={styles.statCard}>
@@ -533,7 +638,7 @@ const DoctorDashboard = ({ navigation }) => {
                     </View>
                   </View>
                   <Text style={styles.statLabel}>Total Subscribers</Text>
-                  <Text style={styles.statValue}>150</Text>
+                  <Text style={styles.statValue}>{subscriberCount}</Text>
                 </View>
 
                 <View style={styles.statCard}>
@@ -580,13 +685,15 @@ const DoctorDashboard = ({ navigation }) => {
                   </View>
 
                   <Text style={styles.statLabel}>Earning This Month</Text>
-                  <Text style={styles.statValue}>₹90,000</Text>
+                  <Text style={styles.statValue}>
+                    ₹{availableAmount.toLocaleString()}
+                  </Text>
                 </View>
               </View>
 
               {/* Two-Column Layout */}
               <View style={styles.twoColumnLayout}>
-                {/* LEFT: Upcoming Appointments */}
+                {/* Upcoming Appointments */}
                 <View style={styles.upcomingSection}>
                   <View style={styles.sectionHeader}>
                     <View style={styles.statIconBox}>
@@ -739,30 +846,23 @@ const DoctorDashboard = ({ navigation }) => {
                       </Text>
                     </View>
 
-                    {appointmentData ? (
-                      [appointmentData].map((item, idx) => {
-                        const statusColor =
-                          item.status === "Completed"
-                            ? "#4CAF50"
-                            : item.status === "Urgent"
-                            ? "#E53935"
-                            : "#FF9800";
-
+                    {bookings && bookings.length > 0 ? (
+                      bookings.map((item, idx) => {
                         return (
                           <View key={idx} style={styles.tableRow}>
                             <Text style={[styles.tableCell, { flex: 0.6 }]}>
-                              #{idx + 1}
+                              #{item.serial}
                             </Text>
-                            <Text style={[styles.tableCell, { flex: 1.2 }]}>
+                            <Text style={[styles.tableName, { flex: 1.2 }]}>
                               {item.start_time}
                             </Text>
-                            <Text style={[styles.tableCell, { flex: 2 }]}>
-                              {user?.name}
+                            <Text style={[styles.tableName, { flex: 2 }]}>
+                              {item.patientName}
                             </Text>
 
                             <View style={[styles.tableBadge, { flex: 2 }]}>
                               <Text style={styles.tableBadgeText}>
-                                {item.type || "Video Consultation"}
+                                {item.consultationType}
                               </Text>
                             </View>
 
@@ -770,15 +870,13 @@ const DoctorDashboard = ({ navigation }) => {
                               style={[
                                 styles.statusBadge,
                                 {
-                                  flex: 1,
-                                  backgroundColor: `${statusColor}22`,
+                                  // flex: 1,
+                                  backgroundColor: "#C8E6C922",
                                 },
                               ]}
                             >
-                              <Text
-                                style={{ fontSize: 11, color: statusColor }}
-                              >
-                                {item.status || "Pending"}
+                              <Text style={{ fontSize: 12, color: "#388E3C" }}>
+                                Pending
                               </Text>
                             </View>
 
@@ -786,14 +884,22 @@ const DoctorDashboard = ({ navigation }) => {
                               style={[
                                 styles.actionBtn,
                                 {
-                                  flex: 0.8,
+                                  // flex: 0.8,
                                   backgroundColor: item.meet_link
                                     ? "#FF6B6B"
                                     : "#ccc",
                                 },
                               ]}
                               disabled={!item.meet_link}
-                              onPress={handleJoinCall}
+                              onPress={() => {
+                                if (item.meet_link) {
+                                  if (Platform.OS === "web") {
+                                    window.open(item.meet_link, "_blank");
+                                  } else {
+                                    Linking.openURL(item.meet_link);
+                                  }
+                                }
+                              }}
                             >
                               <Text style={styles.actionBtnText}>🎥</Text>
                             </TouchableOpacity>
@@ -864,52 +970,6 @@ const DoctorDashboard = ({ navigation }) => {
                     </View>
                   </View>
                 </View>
-
-                {/* RIGHT: Today's Appointments */}
-                <View style={styles.todaySection}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <View style={styles.statIconBox}>
-                      <Image
-                        source={require("../../assets/DoctorsPortal/Icons/secondrowicon.png")}
-                        style={styles.statIcon}
-                        resizeMode="contain"
-                      />
-                    </View>
-                    <Text style={styles.sectionTitle}>
-                      Today's Appointments
-                    </Text>
-                  </View>
-
-                  <View style={styles.todayList}>
-                    {appointmentData ? (
-                      <View style={styles.todayItem}>
-                        <View style={styles.todayTime}>
-                          <Text style={styles.todayTimeText}>
-                            {appointmentData.start_time?.substring(0, 5) ||
-                              "10:00"}
-                          </Text>
-                          <Text style={styles.todayAMPM}>AM</Text>
-                        </View>
-
-                        <View style={styles.todayInfo}>
-                          <Text style={styles.todayName}>{user?.name}</Text>
-                          <Text style={styles.todaySubtext}>
-                            Regular checkup
-                          </Text>
-                        </View>
-
-                        <TouchableOpacity
-                          style={styles.todayJoinBtn}
-                          onPress={handleJoinCall}
-                        >
-                          <Text style={styles.todayJoinText}>Join</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <Text style={styles.noData}>No appointments today</Text>
-                    )}
-                  </View>
-                </View>
               </View>
 
               {/* Bottom Section */}
@@ -940,10 +1000,10 @@ const DoctorDashboard = ({ navigation }) => {
 
                       <Text style={styles.dateLabel}>Date :</Text>
 
-                      {/* ✅ Real date picker */}
+                      {/* ✅ Real date picker - uses selectedHistoryDate */}
                       <DatePickerField
-                        value={selectedDate}
-                        onChange={(d) => setSelectedDate(d)}
+                        value={selectedHistoryDate}
+                        onChange={(d) => setSelectedHistoryDate(d)}
                         style={{ minWidth: 160 }}
                       />
 
@@ -986,7 +1046,7 @@ const DoctorDashboard = ({ navigation }) => {
                         Patient Name
                       </Text>
                       <Text style={[styles.tableHeadText, { flex: 1.5 }]}>
-                        Condition
+                        Consultation Type
                       </Text>
                       <Text style={[styles.tableHeadText, { flex: 1 }]}>
                         Status
@@ -1271,14 +1331,7 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   upcomingSection: {
-    flex: 0.65,
-    backgroundColor: "#fff",
-    borderRadius: 6,
-    padding: "1.5%",
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.08)",
-  },
-  todaySection: {
-    flex: 0.35,
+    flex: 1,
     backgroundColor: "#fff",
     borderRadius: 6,
     padding: "1.5%",
@@ -1347,29 +1400,38 @@ const styles = StyleSheet.create({
   },
   tableCell: {
     fontSize: 12,
-    color: "#333",
+    color: "#FFCC00",
+    fontWeight: "500",
+  },
+  tableName: {
+    fontSize: 14,
+    color: "#1E293B",
+    fontWeight: "500",
   },
   tableBadge: {
-    backgroundColor: "#E3F2FD",
+    // backgroundColor: "#E3F2FD",
     paddingVertical: "2%",
     paddingHorizontal: "1%",
     borderRadius: 3,
   },
   tableBadgeText: {
-    fontSize: 11,
-    color: "#1976D2",
+    fontSize: 14,
+    color: "#1680ECBF",
     fontWeight: "500",
   },
   statusBadge: {
-    backgroundColor: "#C8E6C9",
-    paddingVertical: "2%",
-    paddingHorizontal: "1%",
+    backgroundColor: "#FFEDD5",
+    paddingVertical: "1%",
+    paddingHorizontal: "2%",
     borderRadius: 3,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FFD7A2",
+    marginRight: "6%",
   },
   statusBadgeText: {
-    fontSize: 11,
-    color: "#388E3C",
+    fontSize: 12,
+    color: "#F67442",
     fontWeight: "500",
   },
   conditionBadge: {
@@ -1442,9 +1504,11 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     backgroundColor: "#FF6B6B",
-    paddingVertical: "2%",
+    paddingVertical: "1%",
+    paddingHorizontal: "1%",
     borderRadius: 3,
     alignItems: "center",
+    marginRight: "7%",
   },
   actionBtnText: {
     color: "#fff",
