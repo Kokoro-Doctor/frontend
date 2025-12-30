@@ -914,7 +914,6 @@
 
 // export default DoctorsInfoWithSubscription;
 
-
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -953,7 +952,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   const [selectedPlan, setSelectedPlan] = useState("week"); // "week" or "month"
   const { user } = useAuth();
   const { triggerLoginModal } = useLoginModal();
-  console.log("Shobhit:",user, doctors);
+  console.log("Shobhit:", user, doctors);
 
   useEffect(() => {
     const tryParseDoctorFromUrl = () => {
@@ -1026,10 +1025,9 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   //   });
   // };
 
-  
   // Plan details
   const weeklyPlan = {
-    plan_id:"PLAN_1_7D_ALL",
+    plan_id: "PLAN_1_7D_ALL",
     features: [
       "1 Specialist consultation within 24hrs",
       "Unlimited Medilocker access",
@@ -1039,7 +1037,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   };
 
   const monthlyPlan = {
-    plan_id:"PLAN_2_30D_ALL",
+    plan_id: "PLAN_2_30D_ALL",
     features: [
       "2 Specialist consultations per month",
       "Unlimited Medilocker storage",
@@ -1051,38 +1049,31 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   const currentPlan = selectedPlan === "week" ? weeklyPlan : monthlyPlan;
 
   const handleContinuePayment = async () => {
-  if (!user) {
-    triggerLoginModal({ mode: "login" });
-    return;
-  }
-
-  try {
-    const planId = currentPlan.plan_id;       // ✅ from selected plan
-    const doctorId = doctors?.doctor_id || doctors?.id;
-    const userId = user?.user_id || user?.id;
-
-    Alert.alert("Redirecting", "Opening payment gateway...");
-
-    const paymentLink = await payment_api(
-      planId,
-      doctorId,
-      userId,
-    );
-
-    if (paymentLink) {
-      if (Platform.OS === "web") {
-        window.location.href = paymentLink;
-      } else {
-        await Linking.openURL(paymentLink);
-      }
+    if (!user) {
+      triggerLoginModal({ mode: "login" });
+      return;
     }
-  } catch (error) {
-    Alert.alert("Payment Failed", error.message);
-  }
-};
 
+    try {
+      const planId = currentPlan.plan_id; // ✅ from selected plan
+      const doctorId = doctors?.doctor_id || doctors?.id;
+      const userId = user?.user_id || user?.id;
 
+      Alert.alert("Redirecting", "Opening payment gateway...");
 
+      const paymentLink = await payment_api(planId, doctorId, userId);
+
+      if (paymentLink) {
+        if (Platform.OS === "web") {
+          window.location.href = paymentLink;
+        } else {
+          await Linking.openURL(paymentLink);
+        }
+      }
+    } catch (error) {
+      Alert.alert("Payment Failed", error.message);
+    }
+  };
 
   return (
     <>
@@ -1199,7 +1190,8 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                           <Text
                             style={[
                               styles.rupeesText,
-                              selectedPlan === "week" && styles.rupeesTextSelected,
+                              selectedPlan === "week" &&
+                                styles.rupeesTextSelected,
                             ]}
                           >
                             ₹499/week
@@ -1208,14 +1200,16 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                         <TouchableOpacity
                           style={[
                             styles.rupeesBox,
-                            selectedPlan === "month" && styles.rupeesBoxSelected,
+                            selectedPlan === "month" &&
+                              styles.rupeesBoxSelected,
                           ]}
                           onPress={() => setSelectedPlan("month")}
                         >
                           <Text
                             style={[
                               styles.rupeesText,
-                              selectedPlan === "month" && styles.rupeesTextSelected,
+                              selectedPlan === "month" &&
+                                styles.rupeesTextSelected,
                             ]}
                           >
                             ₹999/month
@@ -1310,7 +1304,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
               <Text style={styles.firstTextstyle}>first subscribe them.</Text>
             </View>
 
-            <View style={styles.container}>
+            {/* <View style={styles.container}>
               <View style={styles.card}>
                 <Text style={styles.title}>Metrics Of subscription</Text>
                 {features.map((item, index) => (
@@ -1348,7 +1342,60 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
               >
                 Subscribe
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+            <View style={styles.appSubscriptionSection}>
+              <View style={styles.appSubscriptionTextHead}>
+                <TouchableOpacity
+                  style={[
+                    styles.rupeesBox,
+                    selectedPlan === "week" && styles.rupeesBoxSelected,
+                  ]}
+                  onPress={() => setSelectedPlan("week")}
+                >
+                  <Text
+                    style={[
+                      styles.rupeesText,
+                      selectedPlan === "week" && styles.rupeesTextSelected,
+                    ]}
+                  >
+                    ₹499/week
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.rupeesBox,
+                    selectedPlan === "month" && styles.rupeesBoxSelected,
+                  ]}
+                  onPress={() => setSelectedPlan("month")}
+                >
+                  <Text
+                    style={[
+                      styles.rupeesText,
+                      selectedPlan === "month" && styles.rupeesTextSelected,
+                    ]}
+                  >
+                    ₹999/month
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.appSubscriptionMetricsBox}>
+                {currentPlan.features.map((feature, index) => (
+                  <Text key={index} style={styles.appMetricsTitle}>
+                    - {feature}
+                  </Text>
+                ))}
+              </View>
+
+              <View style={styles.appSubscriptionButtonContainer}>
+                <TouchableOpacity
+                  style={styles.subscribeButton}
+                  onPress={handleContinuePayment}
+                >
+                  <Text style={styles.subscribeButtonText}>Purchase Plan</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </ScrollView>
         </View>
       )}
@@ -1435,9 +1482,10 @@ const styles = StyleSheet.create({
   },
   appImageContainer: {
     width: "75%",
-    marginVertical: "6%",
+    marginVertical: "4%",
     alignSelf: "center",
     marginBottom: "3%",
+    borderWidth: 1,
   },
   doctorImage: {
     height: 90,
@@ -1569,10 +1617,11 @@ const styles = StyleSheet.create({
     }),
   },
   ratingText: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: 600,
     color: " rgb(94, 93, 93)",
-    paddingHorizontal: "4%",
+    //paddingHorizontal: "5%",
+    //borderWidth:1,
     ...Platform.select({
       web: {
         marginLeft: "1%",
@@ -1776,7 +1825,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: "2%",
     marginLeft: "5%",
-    
+  },
+  appSubscriptionSection:{
+    borderWidth:1,
+    height:"52%",
+    width:"90%",
+    alignSelf:"center",
+    borderRadius:10
+  },
+  appSubscriptionTextHead:{
+    flexDirection: "row",
+    height: "12%",
+    width: "99%",
+    marginTop: "1%",
+    marginLeft: "1%",
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    overflow: "hidden",
+    borderWidth:1,
+    alignSelf:"center"
   },
   subscriptionTextHead: {
     flexDirection: "row",
@@ -1784,7 +1851,6 @@ const styles = StyleSheet.create({
     width: "85%",
     marginTop: "10%",
     marginLeft: "8%",
-    
     borderRadius: 5,
     overflow: "hidden",
   },
@@ -1822,6 +1888,16 @@ const styles = StyleSheet.create({
     marginTop: "4%",
     paddingTop: "3%",
   },
+  appSubscriptionMetricsBox:{
+    height: "45%",
+    width: "98%",
+    backgroundColor: "#F6F6F6",
+    borderRadius: 10,
+    alignSelf: "center",
+    marginTop: "1%",
+    paddingTop: "1%",
+    alignSelf:"center"
+  },
   metricsTitle: {
     fontSize: 13,
     fontWeight: 400,
@@ -1829,8 +1905,23 @@ const styles = StyleSheet.create({
     marginLeft: "3%",
     marginTop: "1%",
   },
+  appMetricsTitle:{
+    fontSize: 14,
+    fontWeight: 400,
+    color: "#000000",
+    marginLeft: "1%",
+    marginTop: "1%",
+  },
   subscriptionButtonContainer: {
     height: "30%",
+    width: "70%",
+    alignSelf: "center",
+    alignItems: "center",
+    marginTop: "3%",
+    flexDirection: "column",
+  },
+  appSubscriptionButtonContainer:{
+    height: "50%",
     width: "70%",
     alignSelf: "center",
     alignItems: "center",
