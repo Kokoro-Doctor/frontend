@@ -692,7 +692,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
             </ScrollView>
             <Pressable
               style={styles.bookAppointmentButton}
-              onPress={handleBookAppointment}
+              onPress={bookSlot}
               activeOpacity={0.7}
               // hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >

@@ -11,6 +11,7 @@ import {
   Animated,
   ScrollView,
   Linking,
+  StatusBar,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -136,86 +137,59 @@ const UserDashboard = ({ navigation }) => {
 
   // ------------------ Fetch Functions ------------------
 
-  // const fetchActiveSubscription = async (userId, doctorId) => {
-  //   try {
-  //     const res = await fetch(
-  //       `${API_URL}/subscriptions/user/${userId}/doctor/${doctorId}`,
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${user?.token}`, // 🔥 IMPORTANT
-  //         },
-  //       }
-  //     );
-
-  //     if (!res.ok) {
-  //       console.warn("Subscription API failed:", res.status);
-  //       return null;
-  //     }
-
-  //     return await res.json();
-  //   } catch (err) {
-  //     console.error("❌ fetchActiveSubscription:", err);
-  //     return null;
-  //   }
-  // };
+  const isSubscriptionActiveByDate = (startDate, endDate) => {
+    const now = new Date();
+    return new Date(startDate) <= now && now <= new Date(endDate);
+  };
 
   const fetchActiveSubscription = async (userId, doctorId) => {
     console.log("💳 fetchActiveSubscription START");
-
-    if (!user?.token) {
-      console.warn("⛔ Skipping subscription API — NO TOKEN");
-      return null;
-    }
+    console.log("➡️ userId:", userId);
+    console.log("➡️ doctorId:", doctorId);
 
     try {
       const url = `${API_URL}/booking/users/${userId}/subscriptions`;
       console.log("🌐 Subscription URL:", url);
 
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      });
-
+      const res = await fetch(url);
       console.log("📡 Subscription API status:", res.status);
 
-      if (!res.ok) return null;
-
-      const subscriptions = await res.json();
-      console.log("📦 All subscriptions:", subscriptions);
-
-      if (!Array.isArray(subscriptions)) {
-        console.warn("⚠️ Subscriptions response is not an array");
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("❌ Subscription API failed:", text);
         return null;
       }
 
-      // ✅ Find ACTIVE subscription for this doctor
-      const activeSubscription = subscriptions.find(
-        (sub) => sub.doctor_id === doctorId && sub.status === "active"
+      const subscriptions = await res.json();
+      console.log("📦 Subscriptions response:", subscriptions);
+
+      if (!Array.isArray(subscriptions)) {
+        console.warn("⚠️ Subscriptions is not an array");
+        return null;
+      }
+
+      const active = subscriptions.find(
+        (sub) =>
+          sub.status === "ACTIVE" &&
+          isSubscriptionActiveByDate(sub.start_date, sub.end_date)
       );
 
-      console.log("✅ Active subscription:", activeSubscription);
-
-      return activeSubscription || null;
+      console.log("✅ Active subscription:", active || "NONE");
+      return active || null;
     } catch (err) {
       console.error("❌ fetchActiveSubscription ERROR:", err);
       return null;
     }
   };
 
-  // const fetchDoctor = async (doctorId) => {
-  //   try {
-  //     const res = await fetch(`${API_URL}/doctorsService/doctor/${doctorId}`);
-  //     if (!res.ok) return null;
-  //     return await res.json();
-  //   } catch (err) {
-  //     console.error("❌ fetchDoctor:", err);
-  //     return null;
-  //   }
-  // };
   const fetchDoctor = async (doctorId) => {
     console.log("👨‍⚕️ fetchDoctor START");
     console.log("➡️ doctorId:", doctorId);
+
+    if (!doctorId) {
+      console.warn("⛔ fetchDoctor aborted — NO doctorId");
+      return null;
+    }
 
     try {
       const url = `${API_URL}/doctorsService/doctor/${doctorId}`;
@@ -225,221 +199,93 @@ const UserDashboard = ({ navigation }) => {
       console.log("📡 Doctor API status:", res.status);
 
       if (!res.ok) {
-        console.warn("❌ Doctor API failed");
+        const text = await res.text();
+        console.error("❌ Doctor API failed:", text);
         return null;
       }
 
       const data = await res.json();
-      console.log("📦 Doctor data:", data);
+      console.log("📦 Doctor API response:", data);
 
-      console.log("✅ fetchDoctor END");
+      console.log("🏁 fetchDoctor END");
       return data;
     } catch (err) {
-      console.error("❌ fetchDoctor ERROR:", err);
+      console.error("❌ fetchDoctor EXCEPTION:", err);
       return null;
     }
   };
 
-  // const fetchUpcomingAppointment = async (userId) => {
-  //   console.log("🚀 fetchUpcomingAppointment CALLED", userId);
+  const fetchDashboardData = async (userId) => {
+    console.log("🚀 fetchDashboardData START");
 
-  //   try {
-  //     const res = await fetch(
-  //       `${API_URL}/booking/users/${userId}/bookings?type=upcoming`
-  //     );
+    const subscription = await fetchActiveSubscription(userId);
 
-  //     if (!res.ok) return;
-
-  //     const data = await res.json();
-  //     if (!Array.isArray(data) || !data.length) return;
-
-  //     const booking = data[0];
-  //     setAppointmentData(booking);
-
-  //     // 🔹 fetch doctor safely
-  //     const doctor = await fetchDoctor(booking.doctor_id);
-  //     if (doctor) setDoctorData(doctor);
-
-  //     // 🔹 fetch subscription safely (optional feature)
-  //     const subscription = await fetchActiveSubscription(
-  //       userId,
-  //       booking.doctor_id
-  //     );
-
-  //     if (subscription) setActiveSubscription(subscription);
-  //     else setActiveSubscription(null);
-  //   } catch (err) {
-  //     console.error("❌ fetchUpcomingAppointment:", err);
-  //   }
-  // };
-
-  // const fetchUpcomingAppointment = async (userId) => {
-  //   console.log("🚀 fetchUpcomingAppointment START");
-  //   console.log("➡️ userId:", userId);
-
-  //   try {
-  //     const url = `${API_URL}/booking/users/${userId}/bookings?type=upcoming`;
-  //     console.log("🌐 Upcoming Appointment URL:", url);
-
-  //     const res = await fetch(url);
-
-  //     console.log("📡 Upcoming Appointment status:", res.status);
-
-  //     if (!res.ok) {
-  //       console.warn("❌ Upcoming appointment API failed");
-  //       return;
-  //     }
-
-  //     const data = await res.json();
-  //     console.log("📦 Upcoming Appointment data:", data);
-
-  //     if (!Array.isArray(data) || !data.length) {
-  //       console.warn("⚠️ No upcoming appointments");
-  //       return;
-  //     }
-
-  //     const booking = data[0];
-  //     console.log("📌 Selected booking:", booking);
-
-  //     setAppointmentData(booking);
-
-  //     console.log("➡️ Calling fetchDoctor with doctor_id:", booking.doctor_id);
-  //     const doctor = await fetchDoctor(booking.doctor_id);
-
-  //     if (doctor) {
-  //       console.log("✅ Doctor fetched successfully");
-  //       setDoctorData(doctor);
-  //     } else {
-  //       console.warn("⚠️ Doctor fetch returned null");
-  //     }
-
-  //     console.log(
-  //       "➡️ Calling fetchActiveSubscription with:",
-  //       userId,
-  //       booking.doctor_id
-  //     );
-
-  //     const subscription = await fetchActiveSubscription(
-  //       userId,
-  //       booking.doctor_id
-  //     );
-
-  //     if (subscription) {
-  //       console.log("✅ Subscription fetched:", subscription);
-  //       setActiveSubscription(subscription);
-  //     } else {
-  //       console.warn("⚠️ No active subscription / forbidden");
-  //       setActiveSubscription(null);
-  //     }
-
-  //     console.log("✅ fetchUpcomingAppointment END");
-  //   } catch (err) {
-  //     console.error("❌ fetchUpcomingAppointment ERROR:", err);
-  //   }
-  // };
-
-  // const fetchUpcomingAppointment = async (userId) => {
-  //   console.log("🚀 fetchUpcomingAppointment START");
-
-  //   try {
-  //     const res = await fetch(
-  //       `${API_URL}/booking/users/${userId}/bookings?type=upcoming`
-  //     );
-
-  //     if (!res.ok) return;
-
-  //     const data = await res.json();
-  //     console.log("📦 Upcoming bookings:", data);
-
-  //     if (!Array.isArray(data) || data.length === 0) {
-  //       console.warn("⚠️ No upcoming appointment");
-  //       setAppointmentData(null);
-  //       setDoctorData(null);
-  //       setActiveSubscription(null);
-  //       setConsultationRemaining(0);
-  //       return;
-  //     }
-
-  //     const booking = data[0];
-  //     setAppointmentData(booking);
-
-  //     // ✅ fetch doctor
-  //     const doctor = await fetchDoctor(booking.doctor_id);
-  //     if (doctor) setDoctorData(doctor);
-
-  //     // ✅ fetch subscription
-  //     const subscription = await fetchActiveSubscription(
-  //       userId,
-  //       booking.doctor_id
-  //     );
-
-  //     setActiveSubscription(subscription);
-  //     const remaining =
-  //       (subscription?.appointments_total ?? 0) -
-  //       (subscription?.appointments_used ?? 0);
-
-  //     setConsultationRemaining(Math.max(remaining, 0));
-  //   } catch (err) {
-  //     console.error("❌ fetchUpcomingAppointment ERROR:", err);
-  //   }
-  // };
-
-  const fetchUpcomingAppointment = async (userId) => {
-  console.log("🚀 fetchUpcomingAppointment START");
-  console.log("➡️ userId:", userId);
-
-  try {
-    const url = `${API_URL}/booking/users/${userId}/bookings?type=upcoming`;
-    console.log("🌐 URL:", url);
-
-    const res = await fetch(url);
-
-    console.log("📡 status:", res.status);
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ API ERROR:", text);
+    if (!subscription) {
+      console.warn("⚠️ No active subscription");
       return;
     }
-
-    const data = await res.json();
-    console.log("📦 Upcoming bookings:", data);
-
-    if (!Array.isArray(data) || data.length === 0) {
-      console.warn("⚠️ No upcoming appointment");
-      setAppointmentData(null);
-      setDoctorData(null);
-      setActiveSubscription(null);
-      setConsultationRemaining(0);
-      return;
-    }
-
-    const booking = data[0];
-    console.log("📌 booking:", booking);
-    setAppointmentData(booking);
-
-    const doctor = await fetchDoctor(booking.doctor_id);
-    if (doctor) setDoctorData(doctor);
-
-    const subscription = await fetchActiveSubscription(
-      userId,
-      booking.doctor_id
-    );
 
     setActiveSubscription(subscription);
 
-    const remaining =
-      (subscription?.appointments_total ?? 0) -
-      (subscription?.appointments_used ?? 0);
+    if (subscription.doctor_id) {
+      const doctor = await fetchDoctor(subscription.doctor_id);
+      if (doctor) setDoctorData(doctor);
 
-    setConsultationRemaining(Math.max(remaining, 0));
+      const remaining =
+        subscription.appointments_total - subscription.appointments_used;
 
-    console.log("✅ fetchUpcomingAppointment END");
-  } catch (err) {
-    console.error("❌ fetchUpcomingAppointment EXCEPTION:", err);
-  }
-};
+      setConsultationRemaining(Math.max(remaining, 0));
+    }
 
+    // 🔥 Appointment is OPTIONAL
+    await fetchUpcomingAppointment(userId);
+  };
+
+  const fetchUpcomingAppointment = async (userId) => {
+    console.log("📅 fetchUpcomingAppointment START");
+    console.log("➡️ userId:", userId);
+
+    try {
+      const url = `${API_URL}/booking/users/${userId}/bookings?type=upcoming`;
+      console.log("🌐 Upcoming Appointment URL:", url);
+
+      const res = await fetch(url);
+      console.log("📡 Upcoming Appointment status:", res.status);
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("❌ Upcoming Appointment API failed:", text);
+        return;
+      }
+
+      const data = await res.json();
+      console.log("📦 Upcoming appointments response:", data);
+
+      if (!Array.isArray(data) || data.length === 0) {
+        console.warn("⚠️ No upcoming appointments found");
+        setAppointmentData(null);
+        return;
+      }
+
+      const booking = data[0];
+      console.log("📌 Selected booking:", booking);
+
+      setAppointmentData(booking);
+
+      console.log("🏁 fetchUpcomingAppointment END");
+    } catch (err) {
+      console.error("❌ fetchUpcomingAppointment EXCEPTION:", err);
+    }
+  };
+
+  const addAmPm = (time) => {
+    if (!time) return "";
+
+    const hour = parseInt(time.split(":")[0], 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+
+    return `${time} ${ampm}`;
+  };
 
   // ------------------ User Load ------------------
   useEffect(() => {
@@ -459,17 +305,12 @@ const UserDashboard = ({ navigation }) => {
     loadUser();
   }, []);
 
-  // useEffect(() => {
-  //   if (!user?.user_id) return;
-  //   fetchUpcomingAppointment(user.user_id);
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [user?.user_id]);
   useEffect(() => {
     if (!user?.user_id) return;
     if (hasFetchedRef.current) return;
 
     hasFetchedRef.current = true;
-    fetchUpcomingAppointment(user.user_id);
+    fetchDashboardData(user.user_id);
   }, [user?.user_id]);
 
   // ------------------ Handle Video Call ------------------
@@ -570,7 +411,7 @@ const UserDashboard = ({ navigation }) => {
           />
         </>
       )}
-      {Platform.OS === "web" && (
+      {Platform.OS === "web" && width > 1000 && (
         <View style={styles.webContainer}>
           <View style={styles.parent}>
             <View style={styles.Left}>
@@ -609,7 +450,33 @@ const UserDashboard = ({ navigation }) => {
                           priority care pack
                         </Text>
                       </View>
-                      <View style={styles.dateSection}></View>
+                      <View style={styles.dateSection}>
+                        {activeSubscription && (
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 500,
+                              color: "#666",
+                            }}
+                          >
+                            {new Date(
+                              activeSubscription.start_date
+                            ).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                            {" - "}
+                            {new Date(
+                              activeSubscription.end_date
+                            ).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </Text>
+                        )}
+                      </View>
                     </View>
                     <View style={styles.doctorAssignedDetails}>
                       <Text style={styles.doctorAssignedText}>
@@ -665,7 +532,9 @@ const UserDashboard = ({ navigation }) => {
                     <View style={styles.cardSpecificDataSection}>
                       <Text style={styles.specificText}>
                         {appointmentData
-                          ? appointmentData.date
+                          ? `${appointmentData.date} at ${addAmPm(
+                              appointmentData.start_time
+                            )}`
                           : "No Appointment"}
                       </Text>
                     </View>
@@ -732,7 +601,9 @@ const UserDashboard = ({ navigation }) => {
                         }}
                       >
                         {appointmentData
-                          ? `${appointmentData.date} at ${appointmentData.start_time}`
+                          ? `${appointmentData.date} at ${addAmPm(
+                              appointmentData.start_time
+                            )}`
                           : "No Appointment"}
                       </Text>
                     </View>
@@ -921,6 +792,261 @@ const UserDashboard = ({ navigation }) => {
           </View>
         </View>
       )}
+      {(Platform.OS !== "web" || width < 1000) && (
+        <ScrollView style={styles.appContainer}>
+          <StatusBar barStyle="light-content" backgroundColor="#fff" />
+          <View
+            style={[
+              styles.header,
+              Platform.OS === "web" ? { height: "auto" } : { height: "15%" },
+            ]}
+          >
+            <HeaderLoginSignUp navigation={navigation} />
+          </View>
+          <HoverScale
+            style={[
+              styles.appUserDetailSection,
+              Platform.OS === "web" ? { marginTop: "3%" } : {},
+            ]}
+          >
+            {/* <View style={styles.userImageBox}></View> */}
+            <View style={styles.appUserImageBox}>
+              {user?.picture ? (
+                <Image
+                  source={{ uri: user.picture }}
+                  style={styles.appUserAvatar}
+                />
+              ) : (
+                <Text style={styles.appUserInitial}>
+                  {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.appUserDetailsBox}>
+              <Text style={styles.appUserName}>{user?.name || "User"}</Text>
+
+              <View style={styles.appPackDetails}>
+                <View style={styles.appPackTextBox}>
+                  <Text style={styles.appPackDetailsText}>
+                    {activeSubscription?.plan_price
+                      ? `₹${activeSubscription.plan_price}`
+                      : ""}{" "}
+                    priority care pack
+                  </Text>
+                </View>
+                <View style={styles.appDateSection}>
+                  {activeSubscription && (
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: "#888787ff",
+                      }}
+                    >
+                      {new Date(
+                        activeSubscription.start_date
+                      ).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                      {" - "}
+                      {new Date(activeSubscription.end_date).toLocaleDateString(
+                        "en-IN",
+                        {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        }
+                      )}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <View style={styles.appDoctorAssignedDetails}>
+                <Text style={styles.appDoctorAssignedText}>
+                  Doctor Assigned:{" "}
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "#000",
+                    }}
+                  >
+                    {getDoctorName()}, {getDoctorSpecialization()},{" "}
+                    {getDoctorExperience()}
+                  </Text>
+                </Text>
+              </View>
+            </View>
+          </HoverScale>
+          <Text style={styles.appHeadingText}>Subscription Usage Stats</Text>
+          <View style={styles.appCardSection}>
+            <HoverScale style={styles.appCardView}>
+              <Image
+                source={require("../../assets/Icons/Subscription.png")}
+                style={styles.appCardIcon}
+              />
+              <Text style={styles.appCardText}>Medilocker</Text>
+              <View style={styles.appCardSpecificDataSection}>
+                <Text style={styles.appSpecificText}>
+                  Unlimited document storage & uploads
+                </Text>
+              </View>
+            </HoverScale>
+            <HoverScale style={styles.appCardView}>
+              <Image
+                source={require("../../assets/Icons/consulting.png")}
+                style={styles.appCardIcon}
+              />
+              <Text style={styles.appCardText}>Consultation Remaining</Text>
+              <View style={styles.appCardSpecificDataSection}>
+                <Text style={styles.appSpecificText}>
+                  {activeSubscription
+                    ? `${consultationRemaining}/${activeSubscription.appointments_total}`
+                    : "0/0"}
+                </Text>
+              </View>
+            </HoverScale>
+            <HoverScale style={styles.appCardView}>
+              <Image
+                source={require("../../assets/Icons/upcoming.png")}
+                style={styles.appCardIcon}
+              />
+              <Text style={styles.appCardText}>Upcoming Appointment</Text>
+              <View style={styles.appCardSpecificDataSection}>
+                <Text style={styles.appSpecificText}>
+                  {/* {appointmentData ? appointmentData.date : "No Appointment"} */}
+                  {appointmentData
+                    ? `${appointmentData.date} at ${addAmPm(
+                        appointmentData.start_time
+                      )}`
+                    : "No Appointment"}
+                </Text>
+              </View>
+            </HoverScale>
+            <HoverScale style={styles.appCardView}>
+              <Image
+                source={require("../../assets/Icons/consulting.png")}
+                style={styles.appCardIcon}
+              />
+              <Text style={styles.appCardText}>AI Cardio Chatbot</Text>
+              <View style={styles.appCardSpecificDataSection}>
+                <Text style={styles.appSpecificText}>Unlimited Access</Text>
+              </View>
+            </HoverScale>
+          </View>
+          <Text style={styles.appHeadingText}>Upcoming Appointment</Text>
+          <HoverScale style={styles.appDoctorVideoAppointmentSection}>
+            <View style={styles.appDoctorDetail}>
+              <View style={styles.appDoctorImageBox}></View>
+              <View style={styles.appDoctorNameSpecializationSection}>
+                <Text style={{ margin: "1%", fontSize: 16, fontWeight: 600 }}>
+                  {getDoctorName()}
+                </Text>
+                <Text style={{ margin: "1%", fontSize: 12, color: "#777" }}>
+                  {getDoctorSpecialization()}, {getDoctorExperience()}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.appvideoCallSection}>
+              <Text style={styles.appVideoAppointmentText}>
+                Video Appointment
+              </Text>
+              <View style={styles.appvideoAppointmentDate}>
+                <Text
+                  style={{
+                    marginLeft: "5%",
+                    marginTop: "1%",
+                    fontSize: 14,
+                    color: "#f8f6f6ff",
+                  }}
+                >
+                  {/* {appointmentData
+                    ? `${appointmentData.date} at ${appointmentData.start_time}`
+                    : "No Appointment"} */}
+                  {appointmentData
+                    ? `${appointmentData.date} at ${addAmPm(
+                        appointmentData.start_time
+                      )}`
+                    : "No Appointment"}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.appVideoCallButton,
+                { opacity: appointmentData?.meet_link ? 1 : 0.3 },
+              ]}
+              disabled={!appointmentData?.meet_link}
+              onPress={handleJoinCall}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontWeight: "600",
+                  alignSelf: "center",
+                  fontSize: 20,
+                  marginTop: "3%",
+                }}
+              >
+                Join Call
+              </Text>
+            </TouchableOpacity>
+          </HoverScale>
+
+          <Text style={styles.appHeadingText}>Facing Any Issues</Text>
+          <View style={styles.appFacingIssueSection}>
+            <View style={styles.appFacingIssueInnerBox}>
+              <TouchableOpacity onPress={handleIssueUpload}>
+                <Text style={styles.appIssueUploadPlaceholder}>
+                  Upload report, prescription issue, or bug screenshot
+                </Text>
+              </TouchableOpacity>
+
+              {issueDocs.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginTop: 10 }}
+                  contentContainerStyle={{
+                    flexDirection: "row",
+                    gap: 10,
+                  }}
+                >
+                  {issueDocs.map((doc, idx) => (
+                    <View key={idx} style={styles.appIssueDocItem}>
+                      <Text numberOfLines={1} style={styles.appIssueDocName}>
+                        {doc.name}
+                      </Text>
+
+                      <TouchableOpacity
+                        style={styles.appIssueRemoveBtn}
+                        onPress={() => {
+                          const updated = issueDocs.filter((_, i) => i !== idx);
+                          setIssueDocs(updated);
+                        }}
+                      >
+                        <Text style={styles.appIssueRemoveBtnText}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+            <TouchableOpacity style={styles.appSubmitIssueButton}>
+              <Text style={styles.appSubmitIssueButtonText}>
+                Submit To Support Team
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.appIssueNoteText}>
+              Our Support team responds within 24 hours
+            </Text>
+          </View>
+        </ScrollView>
+      )}
     </>
   );
 };
@@ -932,6 +1058,16 @@ const styles = StyleSheet.create({
     width: "100%",
     backgroundColor: "#fff",
     flexDirection: "row",
+  },
+
+  appContainer: {
+    flex: 1,
+    height: "100%",
+    //width: "100%",
+    borderWidth: 1,
+    flexDirection: "column",
+    backgroundColor: "#fcfafaff",
+    padding: "1%",
   },
 
   parent: {
@@ -954,8 +1090,7 @@ const styles = StyleSheet.create({
   },
   header: {
     //borderWidth: 5,
-    // borderColor: "black",
-    paddingHorizontal: "2%",
+    //paddingHorizontal: "2%",
     zIndex: 2,
     ...Platform.select({
       web: {
@@ -975,6 +1110,18 @@ const styles = StyleSheet.create({
     boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
     borderRadius: 5,
   },
+  appUserDetailSection: {
+    borderWidth: 1,
+    height: "15%",
+    //height: "auto",
+    width: "98%",
+    borderColor: "#fff",
+    backgroundColor: "#fff",
+    alignSelf: "center",
+    flexDirection: "row",
+    boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
+    borderRadius: 5,
+  },
   userImageBox: {
     //borderWidth: 1,
     height: "48%",
@@ -984,12 +1131,25 @@ const styles = StyleSheet.create({
     borderColor: "#c8c7c7ff",
     borderRadius: 50,
   },
+  appUserImageBox: {
+    borderWidth: 1,
+    height: "32%",
+    width: "13%",
+    marginVertical: "1%",
+    marginHorizontal: "0.5%",
+    borderColor: "#c8c7c7ff",
+    borderRadius: 50,
+  },
   userAvatar: {
     width: "100%",
     height: "100%",
     borderRadius: 50,
   },
-
+  appUserAvatar: {
+    width: "90%",
+    height: "90%",
+    borderRadius: 50,
+  },
   userInitial: {
     fontSize: 32,
     fontWeight: "600",
@@ -1001,7 +1161,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     borderColor: "#e1e0e0ff",
   },
-
+  appUserInitial: {
+    fontSize: 26,
+    fontWeight: "600",
+    color: "#FF7072",
+    borderWidth: 1,
+    borderRadius: 50,
+    width: "100%",
+    height: "100%",
+    textAlign: "center",
+    borderColor: "#e1e0e0ff",
+  },
   userdetailsBox: {
     marginVertical: "1%",
     marginHorizontal: "0%",
@@ -1009,23 +1179,47 @@ const styles = StyleSheet.create({
     width: "50%",
     //borderWidth: 1,
   },
+  appUserDetailsBox: {
+    //borderWidth: 1,
+    height: "100%",
+    width: "87%",
+  },
+
   userName: {
     fontSize: 19,
     fontWeight: 600,
     marginHorizontal: "0%",
     //borderWidth:1
   },
+  appUserName: {
+    fontSize: 18,
+    fontWeight: 600,
+    marginHorizontal: "0%",
+  },
   packDetails: {
     height: "19%",
     width: "88%",
     //borderWidth: 1,
     flexDirection: "row",
-    //justifyContent:"space-between"
+    //justifyContent:"space-between
+  },
+  appPackDetails: {
+    height: "31%",
+    width: "100%",
+    //borderWidth: 2,
+    flexDirection: "column",
+    borderColor: "red",
   },
   packTextBox: {
     backgroundColor: "#E3F1FFBF",
     height: "100%",
     width: "20%",
+  },
+  appPackTextBox: {
+    backgroundColor: "#E3F1FFBF",
+    height: "50%",
+    width: "43%",
+    //borderWidth: 1,
   },
   packDetailsText: {
     color: "#007EFF",
@@ -1033,10 +1227,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     alignSelf: "center",
   },
+  appPackDetailsText: {
+    color: "#007EFF",
+    fontWeight: 500,
+    fontSize: 13,
+    alignSelf: "center",
+  },
   dateSection: {
     height: "100%",
     width: "76%",
     //borderWidth: 1,
+  },
+  appDateSection: {
+    height: "50%",
+    width: "100%",
+    //borderWidth: 1,
+    borderColor: "#e0e0e0ff",
+    marginVertical: "0.5%",
   },
   doctorAssignedDetails: {
     //borderWidth: 1,
@@ -1044,10 +1251,21 @@ const styles = StyleSheet.create({
     width: "100%",
     marginVertical: "1.5%",
   },
+  appDoctorAssignedDetails: {
+    //borderWidth: 1,
+    height: "36%",
+    width: "100%",
+    marginVertical: "1.8%",
+  },
   doctorAssignedText: {
     fontSize: 14,
     fontWeight: 400,
     color: "#444444",
+  },
+  appDoctorAssignedText: {
+    fontSize: 14,
+    fontWeight: 500,
+    color: "#5b5b5bff",
   },
   headingText: {
     // height: "4%",
@@ -1056,11 +1274,25 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
     backgroundColor: "#fff",
     alignSelf: "center",
-    marginVertical: "1%",
+    marginVertical: "2%",
     fontSize: 17,
     fontWeight: 600,
     paddingHorizontal: "1%",
     paddingVertical: "0.1%",
+    borderRadius: 5,
+  },
+  appHeadingText: {
+    height: "10%",
+    //height: "auto",
+    width: "98%",
+    borderColor: "#fff",
+    backgroundColor: "#fff",
+    alignSelf: "center",
+    marginVertical: "2%",
+    fontSize: 17,
+    fontWeight: 600,
+    paddingHorizontal: "1%",
+    paddingVertical: "0.2%",
     borderRadius: 5,
   },
   cardSection: {
@@ -1073,6 +1305,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     flexDirection: "row",
   },
+  appCardSection: {
+    //borderWidth: 1,
+    minHeight: 250,
+    height: "auto",
+    width: "98%",
+    flexWrap: "wrap",
+    backgroundColor: "#fff",
+    justifyContent: "space-around",
+    flexDirection: "row",
+    //paddingHorizontal: "0.5%",
+    paddingVertical: "1%",
+    alignSelf: "center",
+  },
   cardView: {
     //borderWidth: 2,
     borderColor: "#760606ff",
@@ -1082,17 +1327,40 @@ const styles = StyleSheet.create({
     boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
     borderRadius: 5,
   },
+  appCardView: {
+    borderWidth: 2,
+    borderColor: "#f3f0f0ff",
+    height: "48%",
+    width: "48%",
+    backgroundColor: "#fff",
+    boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
+    borderRadius: 5,
+    marginBottom: "2%",
+  },
   cardIcon: {
     height: "28%",
     width: "12%",
     marginVertical: "3%",
     marginHorizontal: "4%",
   },
+  appCardIcon: {
+    height: "34%",
+    width: "24%",
+    marginVertical: "5%",
+    marginHorizontal: "6%",
+  },
   cardText: {
     fontSize: 13,
     fontWeight: 500,
     color: "#000",
     marginVertical: "2%",
+    marginHorizontal: "4%",
+  },
+  appCardText: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#000",
+    marginVertical: "%",
     marginHorizontal: "4%",
   },
   cardSpecificDataSection: {
@@ -1102,10 +1370,22 @@ const styles = StyleSheet.create({
     marginVertical: "0.5%",
     marginHorizontal: "4%",
   },
+  appCardSpecificDataSection: {
+    height: "32%",
+    width: "84%",
+    //borderWidth: 1,
+    marginVertical: "0.5%",
+    marginHorizontal: "4%",
+  },
   specificText: {
     fontSize: 14,
     fontWeight: 500,
     color: "#FF7072",
+  },
+  appSpecificText: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: "#548de4ff",
   },
   doctorVideoAppointmentSection: {
     //borderWidth: 2,
@@ -1122,10 +1402,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
+  appDoctorVideoAppointmentSection: {
+    //borderWidth: 2,
+    //borderColor: "#760606ff",
+    minHeight: 170,
+    height: "auto",
+    width: "98%",
+    backgroundColor: "#fff",
+    boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
+    borderRadius: 5,
+    marginVertical: "0.1%",
+    marginHorizontal: "1%",
+    flexDirection: "column",
+    //justifyContent: "space-between",
+  },
   doctorDetail: {
-    //borderWidth:1,
+    //borderWidth: 1,
     height: "100%",
     width: "53%",
+    flexDirection: "row",
+  },
+  appDoctorDetail: {
+    //borderWidth: 1,
+    height: "37%",
+    width: "100%",
     flexDirection: "row",
   },
   doctorImageBox: {
@@ -1136,11 +1436,27 @@ const styles = StyleSheet.create({
     marginHorizontal: "4%",
     borderColor: "#c8c7c7ff",
   },
+  appDoctorImageBox: {
+    borderWidth: 1,
+    height: "68%",
+    width: "13%",
+    marginVertical: "2%",
+    marginHorizontal: "2%",
+    borderColor: "#c8c7c7ff",
+    borderRadius: 50,
+  },
   doctorNameSpecializationSection: {
     height: "73%",
     width: "80%",
     //borderWidth: 1,
     marginVertical: "4%",
+    borderColor: "#c8c7c7ff",
+  },
+  appDoctorNameSpecializationSection: {
+    height: "auto",
+    width: "78%",
+    //borderWidth: 1,
+    marginVertical: "2%",
     borderColor: "#c8c7c7ff",
   },
   videoCallSection: {
@@ -1152,6 +1468,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderColor: "#eceaeaff",
   },
+  appvideoCallSection: {
+    borderWidth: 2,
+    height: "30%",
+    width: "80%",
+    marginVertical: "1%",
+    marginHorizontal: "1.5%",
+    borderRadius: 5,
+    borderColor: "#eceaeaff",
+  },
+
   firstVideoSection: {
     height: "40%",
     width: "100%",
@@ -1165,22 +1491,20 @@ const styles = StyleSheet.create({
     marginVertical: "4%",
     marginHorizontal: "2%",
   },
+
   videoAppointmentText: {
     fontSize: 12,
     fontWeight: 500,
     marginHorizontal: "2.5%",
     marginVertical: "2.5%",
   },
-  videoCallButton: {
-    backgroundColor: "#FF7072",
-    color: "#fff",
-    height: "80%",
-    width: "26%",
-    marginLeft: "20%",
-    paddingLeft: "2.3%",
-    paddingTop: "1%",
-    borderRadius: 5,
+  appVideoAppointmentText: {
+    fontSize: 15,
+    fontWeight: 500,
+    marginHorizontal: "2.5%",
+    marginVertical: "0.5%",
   },
+
   videoAppointmentDate: {
     height: "30%",
     width: "70%",
@@ -1189,15 +1513,34 @@ const styles = StyleSheet.create({
     marginHorizontal: "1.5%",
     borderRadius: 5,
   },
-  //   medilockerSection: {
-  //     borderWidth: 1,
-  //     // height: "40%",
-  //     minHeight: 270,
-  //     height: "auto",
-  //     width: "97",
-  //     marginVertical: "1%",
-  //     marginHorizontal: "1%",
-  //   },
+  appvideoAppointmentDate: {
+    height: "50%",
+    width: "90%",
+    //borderWidth: 1,
+    backgroundColor: "#408CFF",
+    marginHorizontal: "1.5%",
+    borderRadius: 5,
+  },
+
+  videoCallButton: {
+    backgroundColor: "#FF7072",
+    color: "#fff",
+    height: "75%",
+    width: "30%",
+    marginLeft: "20%",
+    paddingLeft: "2.7%",
+    paddingTop: "1%",
+    borderRadius: 5,
+  },
+  appVideoCallButton: {
+    backgroundColor: "#FF7072",
+    color: "#fff",
+    height: "25%",
+    width: "70%",
+    borderRadius: 5,
+    alignSelf: "center",
+    textAlign: "center",
+  },
 
   medilockerSection: {
     width: "98%",
@@ -1208,7 +1551,17 @@ const styles = StyleSheet.create({
     marginVertical: "1%",
     boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
   },
-
+  appMedilockerSection: {
+    width: "98%",
+    backgroundColor: "#fff",
+    borderRadius: 5,
+    alignSelf: "center",
+    padding: "1%",
+    marginVertical: "1%",
+    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+    borderWidth: 1,
+    height: "20%",
+  },
   medilockerHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1402,6 +1755,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
   },
+  appFacingIssueSection: {
+    borderWidth: 1,
+    height: "18%",
+    width: "98%",
+    alignSelf: "center",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+    marginBottom: "8%",
+  },
   facingIssueInnerBox: {
     // padding: "2%",
     // width: "100%",
@@ -1417,19 +1780,24 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginVertical: "1%",
   },
-
-  //   issueUploadBox: {
-  //     height: 130,
-  //     borderWidth: 2,
-  //     borderStyle: "dashed",
-  //     borderColor: "#dddddd",
-  //     backgroundColor: "#fafafa",
-  //     borderRadius: 8,
-  //     justifyContent: "center",
-  //     paddingHorizontal: 20,
-  //   },
+  appFacingIssueInnerBox: {
+    width: "97%",
+    minHeight: 100,
+    borderWidth: 1,
+    borderColor: "#cdd3d8",
+    backgroundColor: "#f4f7fb",
+    borderRadius: 14,
+    padding: "2%",
+    justifyContent: "flex-start",
+    alignSelf: "center",
+    marginVertical: "1%",
+  },
 
   issueUploadPlaceholder: {
+    color: "#8e8e8e",
+    fontSize: 13,
+  },
+  appIssueUploadPlaceholder: {
     color: "#8e8e8e",
     fontSize: 13,
   },
@@ -1439,7 +1807,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: "#333",
   },
-
   issueDocItem: {
     minWidth: 140,
     maxWidth: 180,
@@ -1451,8 +1818,25 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     position: "relative",
   },
-
+  appIssueDocItem: {
+    minWidth: 120,
+    maxWidth: 70,
+    height: "100%",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    backgroundColor: "#fafafa",
+    borderRadius: 8,
+    position: "relative",
+  },
   issueDocName: {
+    fontSize: 12,
+    color: "#333",
+    maxWidth: 140,
+  },
+
+  appIssueDocName: {
     fontSize: 12,
     color: "#333",
     maxWidth: 140,
@@ -1487,6 +1871,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: "1%",
   },
+  appSubmitIssueButton: {
+    backgroundColor: "#FF7072",
+    width: "50%",
+    paddingVertical: "1%",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: "1%",
+  },
 
   submitIssueButtonText: {
     color: "#fff",
@@ -1496,6 +1889,12 @@ const styles = StyleSheet.create({
 
   issueNoteText: {
     fontSize: 11,
+    color: "#888",
+    marginTop: "0.5%",
+    marginHorizontal: "1%",
+  },
+  appIssueNoteText: {
+    fontSize: 13,
     color: "#888",
     marginTop: "0.5%",
     marginHorizontal: "1%",

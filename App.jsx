@@ -10,6 +10,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import RootNavigation, { linking } from "./navigation/RootNavigator";
 // ✅ import your init
 import { initGoogleSignin } from "./utils/AuthService";
+//import UserDashboard from "./screens/PatientScreens/UserDashboard";
 
 const App = () => {
   const navigationRef = useRef(null);
@@ -62,6 +63,7 @@ const App = () => {
               <NavigationContainer linking={linking} ref={navigationRef}>
                 <RootNavigation />
                 <ChatBotOverlay navigationRef={navigationRef} />
+                {/* <UserDashboard/> */}
               </NavigationContainer>
             </LoginModalProvider>
           </RoleProvider>

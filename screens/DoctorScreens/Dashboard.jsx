@@ -235,7 +235,7 @@ const Dashboard = ({ navigation, route }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={[styles.header, { height: "15%" }]}>
-            <HeaderLoginSignUp navigation={navigation} />
+            <HeaderLoginSignUp navigation={navigation} isDoctorPortal={true} />
           </View>
 
           <View style={styles.searchBar}>
@@ -247,26 +247,26 @@ const Dashboard = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.cardStyle}
                 onPress={() => {
-                  navigation.navigate("PatientAppNavigation", {
-                    screen: "Doctors",
+                  navigation.navigate("DoctorAppNavigation", {
+                    screen: "DoctorsSubscribers",
                   });
                 }}
               >
                 <Image
-                  source={require("../../assets/Images/Consultation.png")}
+                  source={require("../../assets/DoctorsPortal/Images/Subscribers.png")}
                   style={styles.image}
                 />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.cardStyle}
                 onPress={() => {
-                  navigation.navigate("PatientAppNavigation", {
-                    screen: "Medilocker",
+                  navigation.navigate("DoctorAppNavigation", {
+                    screen: "GeneratePrescription",
                   });
                 }}
               >
                 <Image
-                  source={require("../../assets/Images/Medilocker.png")}
+                  source={require("../../assets/DoctorsPortal/Images/Prescription.png")}
                   style={styles.image}
                 />
               </TouchableOpacity>
@@ -327,7 +327,7 @@ const Dashboard = ({ navigation, route }) => {
                     style={{ width: "100%", height: "100%" }}
                   >
                     <ImageBackground
-                      source={require("../../assets/Images/AI_Support.png")}
+                      source={require("../../assets/DoctorsPortal/Images/DrBuddy.png")}
                       style={{
                         width: "auto",
                         height: "100%",
@@ -385,13 +385,13 @@ const Dashboard = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.cardStyle}
                 onPress={() => {
-                  navigation.navigate("PatientAppNavigation", {
-                    screen: "Hospitals",
+                  navigation.navigate("DoctorAppNavigation", {
+                    screen: "DrCalendarView",
                   });
                 }}
               >
                 <Image
-                  source={require("../../assets/Images/BookHospital.png")}
+                  source={require("../../assets/DoctorsPortal/Images/Calender.png")}
                   style={styles.image}
                 />
               </TouchableOpacity>
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "transparent",
         justifyContent: "center",
-        height:"100%"
+        height: "100%",
       },
     }),
   },
