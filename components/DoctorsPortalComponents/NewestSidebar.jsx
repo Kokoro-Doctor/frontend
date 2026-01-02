@@ -102,7 +102,7 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
       {/* Top Section with Logo */}
       <TouchableOpacity
         style={styles.top_sidebar}
-        onPress={() => navigation.navigate("DoctorPatientLandingPage")}
+        // onPress={() => navigation.navigate("DoctorPatientLandingPage")}
       >
         <View style={styles.topimage_sidebar}>
           <Image

@@ -121,7 +121,7 @@ const DoctorDashboard = ({ navigation }) => {
 
   // ✅ Keep this as Date always - for Upcoming Appointments calendar
   const [selectedDate, setSelectedDate] = useState(new Date());
-  
+
   // ✅ Separate date state for Patient History section
   const [selectedHistoryDate, setSelectedHistoryDate] = useState(new Date());
 
@@ -276,9 +276,11 @@ const DoctorDashboard = ({ navigation }) => {
 
   const fetchTodayBookings = async (doctorId, dateToFetch = null) => {
     try {
-      const dateParam = dateToFetch ? toDateKey(dateToFetch) : toDateKey(new Date());
+      const dateParam = dateToFetch
+        ? toDateKey(dateToFetch)
+        : toDateKey(new Date());
       const url = `${API_URL}/booking/doctors/${doctorId}/bookings?date=${dateParam}`;
-      
+
       const res = await fetch(url);
 
       if (!res.ok) return;
@@ -611,7 +613,7 @@ const DoctorDashboard = ({ navigation }) => {
                   </View>
 
                   <Text style={styles.statLabel}>
-                  Total No. Of Today's Appointments
+                    Total No. Of Today's Appointments
                   </Text>
                   <Text style={styles.statValue}>
                     {bookings && bookings.length > 0 ? bookings.length : 0}
@@ -912,12 +914,14 @@ const DoctorDashboard = ({ navigation }) => {
 
                     <View style={styles.paginationFooter}>
                       <Text style={styles.paginationText}>
+                        {" "}
                         Showing{" "}
-                        {Math.min(
-                          itemsPerPage,
-                          filteredDocuments.length - indexOfFirst
-                        )}{" "}
-                        of {filteredDocuments.length} result
+                        {bookings && bookings.length > 0
+                          ? bookings.length
+                          : 0}{" "}
+                        Of{" "}
+                        {bookings && bookings.length > 0 ? bookings.length : 0}{" "}
+                        result
                       </Text>
 
                       <View style={styles.paginationControls}>

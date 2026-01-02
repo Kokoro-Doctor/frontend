@@ -32,8 +32,11 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const [authModalMode, setAuthModalMode] = useState("login");
   const [doctorModalVisible, setDoctorModalVisible] = useState(false);
   const { registerOpenModal } = useLoginModal();
-  const { user: contextUser, logout } = useAuth();
+  // const { user: contextUser, logout } = useAuth();
+  const { user: contextUser, role, logout } = useAuth();
   const user = userOverride ?? contextUser;
+  const resolvedIsDoctorPortal = isDoctorPortal || role === "doctor";
+
   const displayName = user?.name || user?.fullName || user?.username || "User";
   const displayEmail = user?.email || user?.emailId || "";
   const avatarUri =
@@ -116,7 +119,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
           >
             <View style={styles.modalContainer}>
               <View style={styles.mobileSidebar}>
-                {isDoctorPortal ? (
+                {resolvedIsDoctorPortal ? (
                   <NewestSidebar
                     navigation={navigation}
                     closeSidebar={() => setIsSideBarVisible(false)}
@@ -183,16 +186,28 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                         </TouchableOpacity>
                       </>
                     ) : (
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        style={styles.dropdownItem}
+                      // <TouchableOpacity
+                      //   activeOpacity={0.7}
+                      //   style={styles.dropdownItem}
+                      //   onPress={() => {
+                      //     setDropdownVisible(false);
+                      //     openAuthModal("login");
+                      //   }}
+                      // >
+                      //   <Text style={styles.dropdownText}>Login / Signup</Text>
+                      // </TouchableOpacity>
+                      <Pressable
                         onPress={() => {
                           setDropdownVisible(false);
                           openAuthModal("login");
                         }}
+                        style={({ pressed }) => [
+                          styles.dropdownItem,
+                          pressed && { backgroundColor: "#F3F4F6" },
+                        ]}
                       >
                         <Text style={styles.dropdownText}>Login / Signup</Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     )}
                   </View>
                 )}
@@ -204,7 +219,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
             </View>
           </View>
 
-          {!isDoctorPortal && (
+          {/* {!resolvedIsDoctorPortal && (
             <View style={styles.usernameApp}>
               <Text style={{ fontWeight: "600", fontSize: 19 }}>Welcome,</Text>
               <Text
@@ -218,7 +233,21 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                 {displayName}!
               </Text>
             </View>
-          )}
+          )} */}
+          <View style={styles.usernameApp}>
+            <Text style={{ fontWeight: "600", fontSize: 19 }}>Welcome,</Text>
+            <Text
+              style={{
+                fontWeight: "800",
+                color: "#000",
+                fontSize: 19,
+              }}
+            >
+              {user
+                ? `${resolvedIsDoctorPortal ? " " : " "}${displayName}!`
+                : " User!"}
+            </Text>
+          </View>
         </View>
       ) : user ? (
         <View style={styles.webHeaderShell}>
@@ -326,7 +355,7 @@ const styles = StyleSheet.create({
   },
   appHeaderContainer: {
     backgroundColor: "#fff",
-    padding: 12,
+    padding: 11,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -408,48 +437,96 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    //position: "relative",
-    zIndex: 10,
+    position: "relative",
+    zIndex: 100,
+    elevation: 10,
     //borderWidth:1
   },
   authButtonBox: {
-    padding: "2%",
+    padding: 4,
     borderRadius: 8,
     //borderWidth:1
   },
+  // dropdownMain: {
+  //   position: "absolute",
+  //   backgroundColor: "#fff",
+  //   borderRadius: 6,
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 4 },
+  //   shadowOpacity: 0.15,
+  //   shadowRadius: 8,
+  //   elevation: 10,
+  //   minWidth: 110,
+  //   overflow: "hidden",
+  //   right: "5%",
+  //   top:40,
+  //   height: "auto",
+  //   maxHeight:230,
+  //   zIndex:9999,
+  //   borderColor: "#4a4a4aff",
+  //   borderWidth: 1,
+  // },
   dropdownMain: {
     position: "absolute",
+    top: 45,
+    right: 0,
+
     backgroundColor: "#fff",
-    borderRadius: 6,
+    borderRadius: 8,
+    minWidth: 140,
+
+    elevation: 20, // ✅ ANDROID
+    zIndex: 9999, // ✅ WEB
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 10,
-    minWidth: 110,
-    overflow: "hidden",
-    right: "5%",
-    top:40,
-    height: "auto",
-    maxHeight:230,
-    zIndex:9999,
-    borderColor: "#4a4a4aff",
+
     borderWidth: 1,
+    borderColor: "#E5E7EB",
+    pointerEvents: "box-none",
   },
+
+  // dropdownItem: {
+  //   flexDirection: "row",
+  //   //alignItems: "center",
+  //   paddingVertical: "4%",
+  //   paddingHorizontal: "1%",
+  //   width: "100%",
+  //   justifyContent: "center",
+  //   borderWidth:1,
+  // },
+
+  // dropdownItem: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   justifyContent: "center",
+
+  //   paddingVertical: 12, // ✅ numeric
+  //   paddingHorizontal: 16, // ✅ numeric
+
+  //   width: "100%",
+  // },
+
   dropdownItem: {
     flexDirection: "row",
-    //alignItems: "center",
-    paddingVertical: "2%",
-    paddingHorizontal: "1%",
-    width:"100%",
-    justifyContent:"center"
+    alignItems: "center",
+    justifyContent: "center",
+
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+
+    width: "100%",
+    alignSelf: "stretch", // 🔥 IMPORTANT
+    minHeight: 44, // 🔥 iOS/Android tap standard
   },
+
   dropdownText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
     color: "#0c0c0cff",
-    paddingHorizontal: "6%",
-    paddingVertical: "2%",
+    //paddingHorizontal: "6%",
+    //paddingVertical: "2%",
   },
   usernameApp: {
     marginTop: 5,
