@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { API_URL } from "../../../env-vars";
 import { useAuth } from "../../../contexts/AuthContext";
-//import { useLinkTo } from "@react-navigation/native";
 import { useFocusEffect } from "@react-navigation/native";
 
 const DoctorAppointmentScreen = ({
@@ -29,8 +28,6 @@ const DoctorAppointmentScreen = ({
   const [subscriberCounts, setSubscriberCounts] = useState({});
   const { user } = useAuth();
   const userIdentifier = user?.user_id || user?.email || null;
-  // const getDoctorKey = (doctor) =>
-  //   doctor?.doctor_id || doctor?.id || doctor?.email;
   const getDoctorKey = (doctor) =>
     String(doctor?.doctor_id || doctor?.id || doctor?.email);
 
@@ -115,80 +112,6 @@ const DoctorAppointmentScreen = ({
     setDoctorsToShow(filtered);
   }, [selectedCategory, allDoctors]);
 
-  // useEffect(() => {
-  //   if (!allDoctors.length) return;
-
-  //   // const counts = allDoctors.reduce((acc, doctor) => {
-  //   //   const key = getDoctorKey(doctor);
-  //   //   if (key) {
-  //   //     acc[key] = doctor.subscribers?.length || 0;
-  //   //   }
-  //   //   return acc;
-  //   // }, {});
-
-  //   // // ✅ Increase count if THIS user is subscribed
-  //   // Object.keys(subscribedDoctors).forEach((doctorId) => {
-  //   //   if (counts[doctorId] !== undefined) {
-  //   //     counts[doctorId] += 1;
-  //   //   }
-  //   // });
-  //   const counts = sortedDoctors.reduce((acc, doctor) => {
-  //     const key = getDoctorKey(doctor);
-  //     acc[key] = doctor.subscribers?.length || 0;
-  //     return acc;
-  //   }, {});
-  //   setSubscriberCounts(counts);
-
-  //   setSubscriberCounts(counts);
-  // }, [allDoctors]);
-
-  // useEffect(() => {
-  //   if (!allDoctors.length) return;
-
-  //   const counts = {};
-  //   allDoctors.forEach((doctor) => {
-  //     const key = getDoctorKey(doctor);
-  //     if (key) counts[key] = 0;
-  //   });
-
-  //   setSubscriberCounts(counts);
-  // }, [allDoctors]);
-
-  // const fetchUserSubscription = async () => {
-  //   if (!user?.user_id) return;
-
-  //   try {
-  //     const res = await fetch(
-  //       `${API_URL}/booking/users/${user.user_id}/subscriptions`
-  //     );
-  //     const data = await res.json();
-
-  //     let activeDoctorId = null;
-  //     let expiryDate = null;
-
-  //     if (Array.isArray(data)) {
-  //       // const activeSub = data.find(
-  //       //   (s) =>
-  //       //     s.status === "ACTIVE" &&
-  //       //     s.expires_at &&
-  //       //     new Date(s.expires_at) > new Date()
-  //       // );
-  //       const activeSub = data.find((s) =>
-  //         ["ACTIVE", "CREATED", "PAID"].includes(s.status)
-  //       );
-
-  //       if (activeSub) {
-  //         activeDoctorId = String(activeSub.doctor_id);
-  //         expiryDate = activeSub.expires_at;
-  //       }
-  //     }
-
-  //     setActiveSubscriptionDoctorId(activeDoctorId);
-  //     setSubscriptionExpiry(expiryDate);
-  //   } catch (err) {
-  //     console.error("❌ Failed to fetch subscription:", err);
-  //   }
-  // };
   const fetchUserSubscription = async (retries = 5) => {
     if (!user?.user_id) return;
 
@@ -553,7 +476,7 @@ const DoctorAppointmentScreen = ({
                               Subscription Fees
                             </Text>
                             <Text style={styles.feesText}>
-                              1999 / Per month
+                              499 / for 3 days
                               {/* {item.consultationFees || `₹${item.fees || 0}`} */}
                             </Text>
                           </View>
