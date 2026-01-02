@@ -296,7 +296,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                                 styles.rupeesTextSelected,
                             ]}
                           >
-                            ₹999/month
+                            ₹1999/month
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -388,45 +388,6 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
               <Text style={styles.firstTextstyle}>first subscribe them.</Text>
             </View>
 
-            {/* <View style={styles.container}>
-              <View style={styles.card}>
-                <Text style={styles.title}>Metrics Of subscription</Text>
-                {features.map((item, index) => (
-                  <View key={index} style={styles.featureItem}>
-                    <Image
-                      source={require("../../../assets/Icons/icostarr.png")}
-                    ></Image>
-                    <Text style={styles.featureText}>{item}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.feeSection}>
-                <View style={styles.rupees}>
-                  <Image
-                    source={require("../../../assets/Icons/rs.png")}
-                    style={styles.rupeeImg}
-                  />
-                </View>
-
-                <Text style={styles.price}>1999</Text>
-
-                <View style={styles.line}></View>
-
-                <Text style={styles.feeLabel}>Subscription fees</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.bookAppointmentButton}>
-              <Text
-                style={styles.bookAppointmentText}
-                onPress={() => {
-                  handleContinuePayment(1);
-                }}
-              >
-                Subscribe
-              </Text>
-            </TouchableOpacity> */}
             <View style={styles.appSubscriptionSection}>
               <View style={styles.appSubscriptionTextHead}>
                 <TouchableOpacity
@@ -458,7 +419,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                       selectedPlan === "month" && styles.rupeesTextSelected,
                     ]}
                   >
-                    ₹999/month
+                    ₹1999/month
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -910,14 +871,14 @@ const styles = StyleSheet.create({
     marginTop: "2%",
     marginLeft: "5%",
   },
-  appSubscriptionSection:{
-    borderWidth:1,
-    height:"52%",
-    width:"90%",
-    alignSelf:"center",
-    borderRadius:10
+  appSubscriptionSection: {
+    borderWidth: 1,
+    height: "52%",
+    width: "90%",
+    alignSelf: "center",
+    borderRadius: 10,
   },
-  appSubscriptionTextHead:{
+  appSubscriptionTextHead: {
     flexDirection: "row",
     height: "12%",
     width: "99%",
@@ -926,8 +887,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
     overflow: "hidden",
-    borderWidth:1,
-    alignSelf:"center"
+    borderWidth: 1,
+    alignSelf: "center",
   },
   subscriptionTextHead: {
     flexDirection: "row",
@@ -972,7 +933,7 @@ const styles = StyleSheet.create({
     marginTop: "4%",
     paddingTop: "3%",
   },
-  appSubscriptionMetricsBox:{
+  appSubscriptionMetricsBox: {
     height: "45%",
     width: "98%",
     backgroundColor: "#F6F6F6",
@@ -980,7 +941,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: "1%",
     paddingTop: "1%",
-    alignSelf:"center"
+    alignSelf: "center",
   },
   metricsTitle: {
     fontSize: 13,
@@ -989,7 +950,7 @@ const styles = StyleSheet.create({
     marginLeft: "3%",
     marginTop: "1%",
   },
-  appMetricsTitle:{
+  appMetricsTitle: {
     fontSize: 14,
     fontWeight: 400,
     color: "#000000",
@@ -1004,7 +965,7 @@ const styles = StyleSheet.create({
     marginTop: "3%",
     flexDirection: "column",
   },
-  appSubscriptionButtonContainer:{
+  appSubscriptionButtonContainer: {
     height: "50%",
     width: "70%",
     alignSelf: "center",
