@@ -12,13 +12,11 @@ import {
   Animated,
   Text,
 } from "react-native";
-//import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
-//import { TrackEvent } from "../../utils/TrackEvent";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 
 const { width, height } = Dimensions.get("window");
@@ -26,12 +24,7 @@ const Dashboard = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
   const borderAnim = useRef(new Animated.Value(0)).current;
-  //const [showBorder, setShowBorder] = useState(false);
   const [showLabel, setShowLabel] = useState(false);
-  // const handlePress = (eventName, params, navigateTo) => {
-  //   TrackEvent(eventName, params);
-  //   navigation.navigate("PatientAppNavigation", { screen: navigateTo });
-  // };
 
   useFocusEffect(
     useCallback(() => {
@@ -235,7 +228,7 @@ const Dashboard = ({ navigation, route }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={[styles.header, { height: "15%" }]}>
-            <HeaderLoginSignUp navigation={navigation} isDoctorPortal={true} />
+            <HeaderLoginSignUp />
           </View>
 
           <View style={styles.searchBar}>

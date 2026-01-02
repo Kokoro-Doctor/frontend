@@ -32,8 +32,11 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const [authModalMode, setAuthModalMode] = useState("login");
   const [doctorModalVisible, setDoctorModalVisible] = useState(false);
   const { registerOpenModal } = useLoginModal();
-  const { user: contextUser, logout } = useAuth();
+  // const { user: contextUser, logout } = useAuth();
+  const { user: contextUser, role, logout } = useAuth();
   const user = userOverride ?? contextUser;
+  const resolvedIsDoctorPortal = isDoctorPortal || role === "doctor";
+
   const displayName = user?.name || user?.fullName || user?.username || "User";
   const displayEmail = user?.email || user?.emailId || "";
   const avatarUri =
@@ -116,7 +119,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
           >
             <View style={styles.modalContainer}>
               <View style={styles.mobileSidebar}>
-                {isDoctorPortal ? (
+                {resolvedIsDoctorPortal ? (
                   <NewestSidebar
                     navigation={navigation}
                     closeSidebar={() => setIsSideBarVisible(false)}
@@ -216,7 +219,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
             </View>
           </View>
 
-          {!isDoctorPortal && (
+          {/* {!resolvedIsDoctorPortal && (
             <View style={styles.usernameApp}>
               <Text style={{ fontWeight: "600", fontSize: 19 }}>Welcome,</Text>
               <Text
@@ -230,7 +233,21 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                 {displayName}!
               </Text>
             </View>
-          )}
+          )} */}
+          <View style={styles.usernameApp}>
+            <Text style={{ fontWeight: "600", fontSize: 19 }}>Welcome,</Text>
+            <Text
+              style={{
+                fontWeight: "800",
+                color: "#000",
+                fontSize: 19,
+              }}
+            >
+              {user
+                ? `${resolvedIsDoctorPortal ? " " : " "}${displayName}!`
+                : " User!"}
+            </Text>
+          </View>
         </View>
       ) : user ? (
         <View style={styles.webHeaderShell}>
