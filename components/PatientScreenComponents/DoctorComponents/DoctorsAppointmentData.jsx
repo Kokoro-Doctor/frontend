@@ -426,9 +426,28 @@ const DoctorAppointmentScreen = ({
                           isDisabled && { backgroundColor: "#B0B0B0" },
                         ]}
                         disabled={isDisabled}
+                        // onPress={() => {
+                        //   if (canBookMore) {
+                        //     navigation.navigate("DoctorsInfoWithBooking", {
+                        //       doctors: item,
+                        //     });
+                        //   }
+                        // }}
                         onPress={() => {
+                          // 1️⃣ User has active subscription for this doctor and can book
                           if (canBookMore) {
                             navigation.navigate("DoctorsInfoWithBooking", {
+                              doctors: item,
+                            });
+                            return;
+                          }
+
+                          // 2️⃣ User does NOT have subscription → go to subscribe screen
+                          if (
+                            !hasActiveSubscription ||
+                            !isSubscribedToThisDoctor
+                          ) {
+                            navigation.navigate("DoctorsInfoWithSubscription", {
                               doctors: item,
                             });
                           }
@@ -608,10 +627,25 @@ const DoctorAppointmentScreen = ({
                           ]}
                           disabled={isDisabled}
                           onPress={() => {
+                            // 1️⃣ User has active subscription for this doctor and can book
                             if (canBookMore) {
                               navigation.navigate("DoctorsInfoWithBooking", {
                                 doctors: item,
                               });
+                              return;
+                            }
+
+                            // 2️⃣ User does NOT have subscription → go to subscribe screen
+                            if (
+                              !hasActiveSubscription ||
+                              !isSubscribedToThisDoctor
+                            ) {
+                              navigation.navigate(
+                                "DoctorsInfoWithSubscription",
+                                {
+                                  doctors: item,
+                                }
+                              );
                             }
                           }}
                         >
