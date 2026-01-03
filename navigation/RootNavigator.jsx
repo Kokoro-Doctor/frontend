@@ -216,9 +216,6 @@ const RootNavigation = () => {
   const role = authRole || roleContextRole;
   const isLoading = authLoading || roleLoading;
 
-  // Show loader while role or auth is loading
-  if (isLoading) return <Loader />;
-
   // Determine initial route based on authentication and role
   const getInitialRouteName = () => {
     // If user is authenticated and has a role, redirect to appropriate dashboard
@@ -237,18 +234,8 @@ const RootNavigation = () => {
 
   const initialRouteName = getInitialRouteName();
 
-  // Add navigation listener to handle role-based redirects after mount
-  // This ensures redirects work even if initialRouteName was set before role was loaded
-  React.useEffect(() => {
-    if (!isLoading && user && role) {
-      // Small delay to ensure navigation is ready
-      const timer = setTimeout(() => {
-        // This will be handled by LandingPageWithAuth if user lands on LandingPage
-        // But we can also add a global navigation listener here if needed
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, user, role]);
+  // Show loader while role or auth is loading
+  if (isLoading) return <Loader />;
 
   return (
     <RegistrationProvider>
