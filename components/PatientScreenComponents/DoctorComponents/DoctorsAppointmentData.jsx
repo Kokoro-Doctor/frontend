@@ -341,9 +341,9 @@ const DoctorAppointmentScreen = ({
                 ? subscription.total - subscription.used
                 : 0;
 
-              // const isAlreadyBooked = bookedDoctorIds.has(doctorId);
-              const isAlreadyBooked =
-                isSubscribedToThisDoctor && consultationsRemaining === 0;
+              const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+              // const isAlreadyBooked =
+              //   isSubscribedToThisDoctor && consultationsRemaining === 0;
 
               const canBookMore =
                 isSubscribedToThisDoctor &&
@@ -354,17 +354,17 @@ const DoctorAppointmentScreen = ({
                 if (hasActiveSubscription && !isSubscribedToThisDoctor)
                   return "Subscribe later";
 
-                if (isSubscribedToThisDoctor && isAlreadyBooked)
-                  return "Booked";
+                if (isAlreadyBooked) return "Booked";
 
                 if (canBookMore) return "Book Slot";
 
                 return "Subscribe";
               })();
 
-              const isDisabled =
-                (hasActiveSubscription && !isSubscribedToThisDoctor) ||
-                isAlreadyBooked;
+              // const isDisabled =
+              //   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
+              //   isAlreadyBooked;
+              const isDisabled = isAlreadyBooked;
 
               return (
                 <View style={styles.card}>
@@ -529,9 +529,9 @@ const DoctorAppointmentScreen = ({
                   ? subscription.total - subscription.used
                   : 0;
 
-                // const isAlreadyBooked = bookedDoctorIds.has(doctorId);
-                const isAlreadyBooked =
-                  isSubscribedToThisDoctor && consultationsRemaining === 0;
+                const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+                // const isAlreadyBooked =
+                //   isSubscribedToThisDoctor && consultationsRemaining === 0;
 
                 const canBookMore =
                   isSubscribedToThisDoctor &&
@@ -542,17 +542,17 @@ const DoctorAppointmentScreen = ({
                   if (hasActiveSubscription && !isSubscribedToThisDoctor)
                     return "Subscribe later";
 
-                  if (isSubscribedToThisDoctor && isAlreadyBooked)
-                    return "Booked";
+                  if (isAlreadyBooked) return "Booked";
 
                   if (canBookMore) return "Book Slot";
 
                   return "Subscribe";
                 })();
 
-                const isDisabled =
-                  (hasActiveSubscription && !isSubscribedToThisDoctor) ||
-                  isAlreadyBooked;
+                // const isDisabled =
+                //   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
+                //   isAlreadyBooked;
+                const isDisabled = isAlreadyBooked;
 
                 return (
                   <View style={styles.cardContainer}>
