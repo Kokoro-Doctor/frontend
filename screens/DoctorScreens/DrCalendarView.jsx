@@ -158,22 +158,63 @@ const DrCalendarView = ({ navigation }) => {
     fetchUpcomingBookings();
   }, [doctorId]);
 
+  // useEffect(() => {
+  //   const fetchUsers = async () => {
+  //     const map = {};
+  //     for (const booking of bookings) {
+  //       try {
+  //         const res = await fetch(`${API_URL}/users/${booking.user_id}`);
+  //         const userData = await res.json();
+  //         console.log("👤 user api response:", booking.user_id, userData);
+  //         map[booking.user_id] = userData.user?.name;
+  //       } catch (err) {
+  //         console.error(err);
+  //       }
+  //     }
+  //     setUsersMap(map);
+  //   };
+  //   if (bookings.length > 0) fetchUsers();
+  // }, [bookings]);
   useEffect(() => {
+    if (!bookings.length) return;
+
     const fetchUsers = async () => {
-      const map = {};
-      for (const booking of bookings) {
-        try {
-          const res = await fetch(`${API_URL}/users/${booking.user_id}`);
-          const userData = await res.json();
-          console.log("👤 user api response:", booking.user_id, userData);
-          map[booking.user_id] = userData.user?.name;
-        } catch (err) {
-          console.error(err);
-        }
+      try {
+        const uniqueUserIds = [
+          ...new Set(bookings.map((b) => b.user_id).filter(Boolean)),
+        ];
+
+        const missingUserIds = uniqueUserIds.filter((id) => !usersMap[id]);
+
+        if (missingUserIds.length === 0) return;
+
+        const results = await Promise.all(
+          missingUserIds.map(async (userId) => {
+            const res = await fetch(`${API_URL}/users/${userId}`);
+            const data = await res.json();
+
+            if (!data?.user) {
+              console.warn("⚠️ User not found:", userId);
+              return null;
+            }
+
+            return { userId, name: data.user.name };
+          })
+        );
+
+        setUsersMap((prev) => {
+          const updated = { ...prev };
+          results.forEach((item) => {
+            if (item) updated[item.userId] = item.name;
+          });
+          return updated;
+        });
+      } catch (err) {
+        console.error("❌ Failed to fetch users:", err);
       }
-      setUsersMap(map);
     };
-    if (bookings.length > 0) fetchUsers();
+
+    fetchUsers();
   }, [bookings]);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
