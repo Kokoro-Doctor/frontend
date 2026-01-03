@@ -296,7 +296,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                                 styles.rupeesTextSelected,
                             ]}
                           >
-                            ₹1999/month
+                            ₹999/month
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -419,7 +419,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                       selectedPlan === "month" && styles.rupeesTextSelected,
                     ]}
                   >
-                    ₹1999/month
+                    ₹999/month
                   </Text>
                 </TouchableOpacity>
               </View>

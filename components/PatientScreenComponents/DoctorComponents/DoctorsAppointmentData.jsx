@@ -877,6 +877,7 @@ const styles = StyleSheet.create({
     height: "28%",
     width: "100%",
     //borderWidth: 1,
+    marginTop:"2%",
   },
   addressText: {
     fontSize: 13,
