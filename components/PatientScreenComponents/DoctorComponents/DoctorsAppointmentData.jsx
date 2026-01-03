@@ -337,14 +337,13 @@ const DoctorAppointmentScreen = ({
               const isSubscribedToThisDoctor =
                 hasActiveSubscription && subscription.doctorId === doctorId;
 
-              // const isSubscribedToAnotherDoctor =
-              //   hasActiveSubscription && subscription.doctorId !== doctorId;
-
               const consultationsRemaining = hasActiveSubscription
                 ? subscription.total - subscription.used
                 : 0;
 
-              const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+              // const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+              const isAlreadyBooked =
+                isSubscribedToThisDoctor && consultationsRemaining === 0;
 
               const canBookMore =
                 isSubscribedToThisDoctor &&
@@ -526,14 +525,13 @@ const DoctorAppointmentScreen = ({
                 const isSubscribedToThisDoctor =
                   hasActiveSubscription && subscription.doctorId === doctorId;
 
-                // const isSubscribedToAnotherDoctor =
-                //   hasActiveSubscription && subscription.doctorId !== doctorId;
-
                 const consultationsRemaining = hasActiveSubscription
                   ? subscription.total - subscription.used
                   : 0;
 
-                const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+                // const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+                const isAlreadyBooked =
+                  isSubscribedToThisDoctor && consultationsRemaining === 0;
 
                 const canBookMore =
                   isSubscribedToThisDoctor &&
