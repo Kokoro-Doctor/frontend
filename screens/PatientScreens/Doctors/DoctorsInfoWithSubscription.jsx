@@ -111,7 +111,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
 
   // Plan details
   const weeklyPlan = {
-    plan_id: "PLAN_1_3D_ALL",
+    plan_id: "PLAN_1_7D_ALL",
     features: [
       "1 Specialist consultation within 24hrs",
       "Unlimited Medilocker access",
