@@ -342,8 +342,6 @@ const DoctorAppointmentScreen = ({
                 : 0;
 
               const isAlreadyBooked = bookedDoctorIds.has(doctorId);
-              // const isAlreadyBooked =
-              //   isSubscribedToThisDoctor && consultationsRemaining === 0;
 
               const canBookMore =
                 isSubscribedToThisDoctor &&
@@ -351,20 +349,31 @@ const DoctorAppointmentScreen = ({
                 !isAlreadyBooked;
 
               const buttonText = (() => {
-                if (hasActiveSubscription && !isSubscribedToThisDoctor)
-                  return "Subscribe later";
+                // Subscribed doctor
+                if (isSubscribedToThisDoctor) {
+                  if (isAlreadyBooked && consultationsRemaining === 0)
+                    return "Booked";
+                  return "Book Slot";
+                }
 
-                if (isAlreadyBooked) return "Booked";
+                // Other doctors when subscription exists
+                if (hasActiveSubscription) return "Subscribe later";
 
-                if (canBookMore) return "Book Slot";
-
+                // No subscription at all
                 return "Subscribe";
               })();
 
               // const isDisabled =
               //   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
               //   isAlreadyBooked;
-              const isDisabled = isAlreadyBooked;
+              //const isDisabled = isAlreadyBooked;
+              const isDisabled =
+                // Disable other doctors when subscription exists
+                (hasActiveSubscription && !isSubscribedToThisDoctor) ||
+                // Disable booked doctor only when no consultations left
+                (isSubscribedToThisDoctor &&
+                  isAlreadyBooked &&
+                  consultationsRemaining === 0);
 
               return (
                 <View style={styles.card}>
@@ -478,10 +487,15 @@ const DoctorAppointmentScreen = ({
                           }
 
                           // 2️⃣ User does NOT have subscription → go to subscribe screen
-                          if (
-                            !hasActiveSubscription ||
-                            !isSubscribedToThisDoctor
-                          ) {
+                          // if (
+                          //   !hasActiveSubscription ||
+                          //   !isSubscribedToThisDoctor
+                          // ) {
+                          //   navigation.navigate("DoctorsInfoWithSubscription", {
+                          //     doctors: item,
+                          //   });
+                          // }
+                          if (!hasActiveSubscription) {
                             navigation.navigate("DoctorsInfoWithSubscription", {
                               doctors: item,
                             });
@@ -530,8 +544,6 @@ const DoctorAppointmentScreen = ({
                   : 0;
 
                 const isAlreadyBooked = bookedDoctorIds.has(doctorId);
-                // const isAlreadyBooked =
-                //   isSubscribedToThisDoctor && consultationsRemaining === 0;
 
                 const canBookMore =
                   isSubscribedToThisDoctor &&
@@ -539,20 +551,31 @@ const DoctorAppointmentScreen = ({
                   !isAlreadyBooked;
 
                 const buttonText = (() => {
-                  if (hasActiveSubscription && !isSubscribedToThisDoctor)
-                    return "Subscribe later";
+                  // Subscribed doctor
+                  if (isSubscribedToThisDoctor) {
+                    if (isAlreadyBooked && consultationsRemaining === 0)
+                      return "Booked";
+                    return "Book Slot";
+                  }
 
-                  if (isAlreadyBooked) return "Booked";
+                  // Other doctors when subscription exists
+                  if (hasActiveSubscription) return "Subscribe later";
 
-                  if (canBookMore) return "Book Slot";
-
+                  // No subscription at all
                   return "Subscribe";
                 })();
 
                 // const isDisabled =
                 //   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
                 //   isAlreadyBooked;
-                const isDisabled = isAlreadyBooked;
+                //const isDisabled = isAlreadyBooked;
+                const isDisabled =
+                  // Disable other doctors when subscription exists
+                  (hasActiveSubscription && !isSubscribedToThisDoctor) ||
+                  // Disable booked doctor only when no consultations left
+                  (isSubscribedToThisDoctor &&
+                    isAlreadyBooked &&
+                    consultationsRemaining === 0);
 
                 return (
                   <View style={styles.cardContainer}>
@@ -670,10 +693,18 @@ const DoctorAppointmentScreen = ({
                             }
 
                             // 2️⃣ User does NOT have subscription → go to subscribe screen
-                            if (
-                              !hasActiveSubscription ||
-                              !isSubscribedToThisDoctor
-                            ) {
+                            // if (
+                            //   !hasActiveSubscription ||
+                            //   !isSubscribedToThisDoctor
+                            // ) {
+                            //   navigation.navigate(
+                            //     "DoctorsInfoWithSubscription",
+                            //     {
+                            //       doctors: item,
+                            //     }
+                            //   );
+                            // }
+                            if (!hasActiveSubscription) {
                               navigation.navigate(
                                 "DoctorsInfoWithSubscription",
                                 {
