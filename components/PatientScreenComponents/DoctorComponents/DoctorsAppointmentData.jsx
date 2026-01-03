@@ -219,28 +219,64 @@ const DoctorAppointmentScreen = ({
     }
   };
 
+  // const fetchUserAppointments = async () => {
+  //   if (!user?.user_id) return;
+
+  //   try {
+  //     const res = await fetch(
+  //       // `${API_URL}/booking/users/${user.user_id}/appointments`
+  //       `${API_URL}/booking/users/${user.user_id}/bookings?type=upcoming`
+  //     );
+
+  //     const data = await res.json();
+  //     console.log("📡 Appointments API response:", data);
+
+  //     // ✅ normalize response
+  //     const appointmentsArray = Array.isArray(data)
+  //       ? data
+  //       : Array.isArray(data.appointments)
+  //       ? data.appointments
+  //       : [];
+
+  //     const bookedSet = new Set(
+  //       appointmentsArray
+  //         .filter((a) => a.doctor_id) // defensive
+  //         .map((a) => String(a.doctor_id))
+  //     );
+
+  //     setBookedDoctorIds(bookedSet);
+  //   } catch (err) {
+  //     console.error("❌ Appointment fetch failed:", err);
+  //   }
+  // };
   const fetchUserAppointments = async () => {
     if (!user?.user_id) return;
 
     try {
       const res = await fetch(
-        // `${API_URL}/booking/users/${user.user_id}/appointments`
         `${API_URL}/booking/users/${user.user_id}/bookings?type=upcoming`
       );
 
       const data = await res.json();
       console.log("📡 Appointments API response:", data);
 
-      // ✅ normalize response
       const appointmentsArray = Array.isArray(data)
         ? data
         : Array.isArray(data.appointments)
         ? data.appointments
         : [];
 
+      /**
+       * ✅ ONLY count real booked slots
+       */
       const bookedSet = new Set(
         appointmentsArray
-          .filter((a) => a.doctor_id) // defensive
+          .filter(
+            (a) =>
+              a.doctor_id &&
+              a.slot_time && // 🔑 IMPORTANT
+              ["BOOKED", "CONFIRMED"].includes(a.status)
+          )
           .map((a) => String(a.doctor_id))
       );
 
@@ -319,7 +355,7 @@ const DoctorAppointmentScreen = ({
                 if (hasActiveSubscription && !isSubscribedToThisDoctor)
                   return "Subscribe later";
 
-                if (isSubscribedToThisDoctor && consultationsRemaining === 0)
+                if (isSubscribedToThisDoctor && isAlreadyBooked)
                   return "Booked";
 
                 if (canBookMore) return "Book Slot";
@@ -329,7 +365,7 @@ const DoctorAppointmentScreen = ({
 
               const isDisabled =
                 (hasActiveSubscription && !isSubscribedToThisDoctor) ||
-                (isSubscribedToThisDoctor && consultationsRemaining === 0);
+                isAlreadyBooked;
 
               return (
                 <View style={styles.card}>
@@ -508,7 +544,7 @@ const DoctorAppointmentScreen = ({
                   if (hasActiveSubscription && !isSubscribedToThisDoctor)
                     return "Subscribe later";
 
-                  if (isSubscribedToThisDoctor && consultationsRemaining === 0)
+                  if (isSubscribedToThisDoctor && isAlreadyBooked)
                     return "Booked";
 
                   if (canBookMore) return "Book Slot";
@@ -518,7 +554,7 @@ const DoctorAppointmentScreen = ({
 
                 const isDisabled =
                   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
-                  (isSubscribedToThisDoctor && consultationsRemaining === 0);
+                  isAlreadyBooked;
 
                 return (
                   <View style={styles.cardContainer}>
