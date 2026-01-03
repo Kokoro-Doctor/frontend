@@ -79,63 +79,115 @@ const DoctorsSubscribers = ({ navigation }) => {
       console.log("✅ Total subscriptions:", subscriptions.length);
 
       // 2️⃣ Fetch user details
+      // const usersWithDetails = await Promise.all(
+      //   subscriptions
+
+      //     .map(async (sub) => {
+      //       try {
+      //         console.log("👤 Fetching user for user_id:", sub.user_id);
+      //         console.log("📡 User URL:", `${API_URL}/users/${sub.user_id}`);
+
+      //         const userRes = await fetch(`${API_URL}/users/${sub.user_id}`);
+
+      //         console.log(
+      //           "📥 User response status:",
+      //           userRes.status,
+      //           "for",
+      //           sub.user_id
+      //         );
+
+      //         const userData = await userRes.json();
+      //         console.log("✅ User data received:", userData);
+
+      //         const userProfile = userData.user || userData;
+
+      //         return {
+      //           id: sub.user_id,
+      //           name:
+      //             userProfile.name ||
+      //             userProfile.full_name ||
+      //             userProfile.username ||
+      //             "Unknown",
+
+      //           age: userProfile.age ?? "-",
+      //           gender: userProfile.gender ?? "-",
+      //           condition: userProfile.condition ?? "-",
+      //           image: userProfile.profile_image ?? null,
+      //           status: sub.status,
+      //           date: sub.start_date ? sub.start_date.split("T")[0] : "-",
+
+      //           time: userProfile.preferred_time || "-",
+      //         };
+      //       } catch (err) {
+      //         console.error(
+      //           "❌ Failed to fetch user details for:",
+      //           sub.user_id,
+      //           err
+      //         );
+      //         return null;
+      //       }
+      //     })
+      // );
+
+      // const finalUsers = usersWithDetails.filter(Boolean);
+      // console.log("🎯 Final subscribers list:", finalUsers);
+
+      // setSubscribers(finalUsers);
       const usersWithDetails = await Promise.all(
-        subscriptions
-          .filter((sub) => {
-            console.log("🔎 Checking subscription:", sub);
-            return sub.status === "ACTIVE";
-          })
-          .map(async (sub) => {
-            try {
-              console.log("👤 Fetching user for user_id:", sub.user_id);
-              console.log("📡 User URL:", `${API_URL}/users/${sub.user_id}`);
+        subscriptions.map(async (sub) => {
+          try {
+            const userRes = await fetch(`${API_URL}/users/${sub.user_id}`);
+            const userData = await userRes.json();
+            const userProfile = userData.user || userData;
 
-              const userRes = await fetch(`${API_URL}/users/${sub.user_id}`);
-
-              console.log(
-                "📥 User response status:",
-                userRes.status,
-                "for",
-                sub.user_id
-              );
-
-              const userData = await userRes.json();
-              console.log("✅ User data received:", userData);
-
-              const userProfile = userData.user || userData;
-
-              return {
-                id: sub.user_id,
-                name:
-                  userProfile.name ||
-                  userProfile.full_name ||
-                  userProfile.username ||
-                  "Unknown",
-
-                age: userProfile.age ?? "-",
-                gender: userProfile.gender ?? "-",
-                condition: userProfile.condition ?? "-",
-                image: userProfile.profile_image ?? null,
-                status: sub.status,
-                date: sub.start_date ? sub.start_date.split("T")[0] : "-",
-
-                time: userProfile.preferred_time || "-",
-              };
-            } catch (err) {
-              console.error(
-                "❌ Failed to fetch user details for:",
-                sub.user_id,
-                err
-              );
-              return null;
-            }
-          })
+            return {
+              user_id: sub.user_id,
+              name:
+                userProfile.name ||
+                userProfile.full_name ||
+                userProfile.username ||
+                "Unknown",
+              age: userProfile.age ?? "-",
+              gender: userProfile.gender ?? "-",
+              condition: userProfile.condition ?? "-",
+              image: userProfile.profile_image ?? null,
+              status: sub.status,
+              date: sub.start_date ? sub.start_date.split("T")[0] : "-",
+              time: userProfile.preferred_time || "-",
+            };
+          } catch (err) {
+            console.error(
+              "Failed to fetch user details for:",
+              sub.user_id,
+              err
+            );
+            return null;
+          }
+        })
       );
 
-      const finalUsers = usersWithDetails.filter(Boolean);
-      console.log("🎯 Final subscribers list:", finalUsers);
+      // Merge duplicates by user_id
+      const mergedUsers = [];
+      const userMap = {};
 
-      setSubscribers(finalUsers);
+      usersWithDetails.filter(Boolean).forEach((user) => {
+        if (userMap[user.user_id]) {
+          // merge statuses if user already exists
+          const existing = userMap[user.user_id];
+          existing.status = Array.from(
+            new Set([...existing.status.split(", "), user.status])
+          ).join(", ");
+          // optionally merge dates or appointments if needed
+        } else {
+          userMap[user.user_id] = { ...user };
+        }
+      });
+
+      for (const key in userMap) {
+        mergedUsers.push(userMap[key]);
+      }
+
+      setSubscribers(mergedUsers);
     } catch (error) {
       console.error("🔥 Error in fetchSubscribers:", error);
     } finally {
@@ -215,8 +267,14 @@ const DoctorsSubscribers = ({ navigation }) => {
                             Loading subscribers...
                           </Text>
                         ) : subscribers.length > 0 ? (
-                          subscribers.map((item) => (
-                            <SubscriberCard key={item.id} user={item} />
+                          // subscribers.map((item) => (
+                          //   <SubscriberCard key={item.id} user={item} />
+                          // ))
+                          subscribers.map((item, index) => (
+                            <SubscriberCard
+                              key={`${item.id}_${index}`}
+                              user={item}
+                            />
                           ))
                         ) : (
                           <View style={styles.lowerCenterSection}>
@@ -261,8 +319,11 @@ const DoctorsSubscribers = ({ navigation }) => {
                   Loading subscribers...
                 </Text>
               ) : subscribers.length > 0 ? (
-                subscribers.map((item) => (
-                  <SubscriberCard key={item.id} user={item} />
+                // subscribers.map((item) => (
+                //   <SubscriberCard key={item.id} user={item} />
+                // ))
+                subscribers.map((item, index) => (
+                  <SubscriberCard key={`${item.id}_${index}`} user={item} />
                 ))
               ) : (
                 <View style={styles.appLowerCenterSection}>
