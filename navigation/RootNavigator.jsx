@@ -216,10 +216,52 @@ const RootNavigation = () => {
   const role = authRole || roleContextRole;
   const isLoading = authLoading || roleLoading;
 
+  // Check current URL pathname to preserve route on refresh (web only)
+  const getRouteFromUrl = () => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const pathname = window.location.pathname;
+      // If already on doctor route, preserve it
+      if (pathname.startsWith("/doctor")) {
+        return "DoctorAppNavigation";
+      }
+      // If already on patient route, preserve it
+      if (pathname.startsWith("/patient")) {
+        return "PatientAppNavigation";
+      }
+      // If on Home, check role
+      if (pathname === "/" || pathname === "/Home") {
+        return null; // Will be determined by role
+      }
+    }
+    return null;
+  };
+
+  // Check current URL pathname to preserve route on refresh (web only)
+  const urlRoute = getRouteFromUrl();
+
   // Determine initial route based on authentication and role
   const getInitialRouteName = () => {
-    // If user is authenticated and has a role, redirect to appropriate dashboard
-    if (user && role) {
+    // First, check if we're already on a specific route (preserves deep links on refresh)
+    if (urlRoute) {
+      console.log("🔍 Using route from URL:", urlRoute);
+      return urlRoute;
+    }
+
+    // Log for debugging (especially useful in production)
+    console.log("🔍 Determining initial route:", {
+      hasUser: !!user,
+      authRole,
+      roleContextRole,
+      finalRole: role,
+      isLoading,
+      pathname:
+        Platform.OS === "web" && typeof window !== "undefined"
+          ? window.location.pathname
+          : "N/A",
+    });
+
+    // If we have a role (even without user, for role-based routing on refresh)
+    if (role) {
       if (role === "doctor") {
         return "DoctorAppNavigation";
       }
@@ -228,6 +270,19 @@ const RootNavigation = () => {
         return "PatientAppNavigation";
       }
     }
+
+    // If user exists but no role, still try to route based on user data
+    // This handles edge cases where role might not be set but user exists
+    if (user) {
+      // Check if user has doctor_id (doctor) or user_id (user)
+      if (user.doctor_id) {
+        return "DoctorAppNavigation";
+      }
+      if (user.user_id) {
+        return "PatientAppNavigation";
+      }
+    }
+
     // Not authenticated, go to landing page
     return "LandingPage";
   };
@@ -235,14 +290,17 @@ const RootNavigation = () => {
   const initialRouteName = getInitialRouteName();
 
   // Show loader while role or auth is loading
-  if (isLoading) return <Loader />;
+  // BUT: if we're on a deep link URL, don't show loader (let navigation handle it)
+  if (isLoading && !urlRoute) return <Loader />;
 
   return (
     <RegistrationProvider>
       <Suspense fallback={<Loader />}>
         <Stack.Navigator
           screenOptions={{ headerShown: false }}
-          initialRouteName={initialRouteName}
+          // Only set initialRouteName if not on a deep link URL
+          // This allows React Navigation's deep linking to handle URL-based routing
+          initialRouteName={urlRoute || initialRouteName}
         >
           {/* Always loaded instantly */}
           <Stack.Screen name="LandingPage" component={LandingPageWithAuth} />

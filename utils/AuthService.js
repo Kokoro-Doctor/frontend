@@ -527,10 +527,73 @@ export const logOut = async () => {
 };
 
 export const restoreUserState = async () => {
-  const token = await AsyncStorage.getItem("@token");
-  const user = await AsyncStorage.getItem("@user");
-  const role = await AsyncStorage.getItem("userRole");
-  return token && user ? { token, user: JSON.parse(user), role } : null;
+  try {
+    const token = await AsyncStorage.getItem("@token");
+    const user = await AsyncStorage.getItem("@user");
+    let role = await AsyncStorage.getItem("userRole");
+    
+    // On web, also check localStorage directly as fallback
+    // (AsyncStorage uses localStorage on web, but there might be timing issues in production)
+    if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage && !role) {
+      try {
+        const localRole = window.localStorage.getItem("userRole");
+        if (localRole) {
+          role = localRole;
+          // Sync back to AsyncStorage
+          await AsyncStorage.setItem("userRole", localRole);
+        }
+      } catch (localError) {
+        console.log("Error reading role from localStorage:", localError);
+      }
+    }
+    
+    // Return state even if only role exists (for role-based routing on refresh)
+    // This ensures role is available even if token/user parsing fails
+    if (token && user) {
+      try {
+        return { token, user: JSON.parse(user), role };
+      } catch (parseError) {
+        console.error("Failed to parse user from storage:", parseError);
+        // If role exists, return it even if user parse fails
+        if (role) {
+          return { token: null, user: null, role };
+        }
+      }
+    }
+    
+    // If only role exists, return it (helps with role-based routing)
+    if (role) {
+      return { token: null, user: null, role };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error restoring user state:", error);
+    // Try to at least get the role (with web fallback)
+    try {
+      let role = await AsyncStorage.getItem("userRole");
+      
+      // Web fallback
+      if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage && !role) {
+        try {
+          const localRole = window.localStorage.getItem("userRole");
+          if (localRole) {
+            role = localRole;
+            await AsyncStorage.setItem("userRole", localRole);
+          }
+        } catch (localError) {
+          console.error("Error reading role from localStorage fallback:", localError);
+        }
+      }
+      
+      if (role) {
+        return { token: null, user: null, role };
+      }
+    } catch (roleError) {
+      console.error("Error restoring role:", roleError);
+    }
+    return null;
+  }
 };
 
 // ================= Utilities =================

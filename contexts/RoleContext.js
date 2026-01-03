@@ -27,8 +27,38 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Platform } from "react-native";
 
 const RoleContext = createContext();
+
+// Helper to get role from storage (with web fallback)
+const getRoleFromStorage = async () => {
+  try {
+    // Try AsyncStorage first
+    const stored = await AsyncStorage.getItem("userRole");
+    if (stored) return stored;
+    
+    // On web, also check localStorage directly as fallback
+    // (AsyncStorage uses localStorage on web, but there might be timing issues)
+    if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+      try {
+        const localRole = window.localStorage.getItem("userRole");
+        if (localRole) {
+          // Sync back to AsyncStorage
+          await AsyncStorage.setItem("userRole", localRole);
+          return localRole;
+        }
+      } catch (localError) {
+        console.log("Error reading from localStorage:", localError);
+      }
+    }
+    
+    return null;
+  } catch (err) {
+    console.log("Error loading stored role:", err);
+    return null;
+  }
+};
 
 export const RoleProvider = ({ children }) => {
   const [role, setRole] = useState(null);
@@ -38,8 +68,11 @@ export const RoleProvider = ({ children }) => {
   useEffect(() => {
     const loadRole = async () => {
       try {
-        const stored = await AsyncStorage.getItem("userRole");
-        if (stored) setRole(stored);
+        const stored = await getRoleFromStorage();
+        if (stored) {
+          setRole(stored);
+          console.log("✅ RoleContext: Role restored:", stored);
+        }
       } catch (err) {
         console.log("Error loading stored role:", err);
       } finally {
