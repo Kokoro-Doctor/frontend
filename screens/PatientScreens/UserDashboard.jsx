@@ -168,9 +168,14 @@ const UserDashboard = ({ navigation }) => {
         return null;
       }
 
+      // const active = subscriptions.find(
+      //   (sub) =>
+      //     sub.status === "ACTIVE" &&
+      //     isSubscriptionActiveByDate(sub.start_date, sub.end_date)
+      // );
       const active = subscriptions.find(
         (sub) =>
-          sub.status === "ACTIVE" &&
+          ["ACTIVE", "EXHAUSTED"].includes(sub.status) &&
           isSubscriptionActiveByDate(sub.start_date, sub.end_date)
       );
 
@@ -225,20 +230,37 @@ const UserDashboard = ({ navigation }) => {
       return;
     }
 
+    // setActiveSubscription(subscription);
+
+    // if (subscription.doctor_id) {
+    //   const doctor = await fetchDoctor(subscription.doctor_id);
+    //   if (doctor) setDoctorData(doctor);
+
+    //   const remaining =
+    //     subscription.appointments_total - subscription.appointments_used;
+
+    //   setConsultationRemaining(Math.max(remaining, 0));
+    // }
+
+    // // 🔥 Appointment is OPTIONAL
+    // await fetchUpcomingAppointment(userId);
     setActiveSubscription(subscription);
 
     if (subscription.doctor_id) {
       const doctor = await fetchDoctor(subscription.doctor_id);
       if (doctor) setDoctorData(doctor);
-
-      const remaining =
-        subscription.appointments_total - subscription.appointments_used;
-
-      setConsultationRemaining(Math.max(remaining, 0));
     }
 
-    // 🔥 Appointment is OPTIONAL
     await fetchUpcomingAppointment(userId);
+
+    let used = subscription.appointments_used ?? 0;
+
+    if (!appointmentData) {
+      used = 0;
+    }
+
+    const remaining = subscription.appointments_total - used;
+    setConsultationRemaining(Math.max(remaining, 0));
   };
 
   const fetchUpcomingAppointment = async (userId) => {

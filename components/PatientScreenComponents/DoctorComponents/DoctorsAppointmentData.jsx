@@ -28,13 +28,12 @@ const DoctorAppointmentScreen = ({
   const [subscriberCounts, setSubscriberCounts] = useState({});
   const { user } = useAuth();
   const userIdentifier = user?.user_id || user?.email || null;
-  const getDoctorKey = (doctor) =>
-    String(doctor?.doctor_id || doctor?.id || doctor?.email);
-
+  const normalizeDoctorId = (doctor) =>
+    String(doctor?.doctor_id ?? doctor?.id ?? "");
   const [showFull, setShowFull] = useState(false);
   const [activeSubscriptionDoctorId, setActiveSubscriptionDoctorId] =
     useState(null);
-  const [subscriptionExpiry, setSubscriptionExpiry] = useState(null);
+  const [bookedDoctorIds, setBookedDoctorIds] = useState(new Set());
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -65,7 +64,7 @@ const DoctorAppointmentScreen = ({
 
         // Set subscriber counts
         const counts = sortedDoctors.reduce((acc, doctor) => {
-          const key = getDoctorKey(doctor);
+          const key = normalizeDoctorId(doctor);
           if (key) {
             acc[key] = doctor.subscribers?.length || 0;
           }
@@ -112,7 +111,80 @@ const DoctorAppointmentScreen = ({
     setDoctorsToShow(filtered);
   }, [selectedCategory, allDoctors]);
 
-  const fetchUserSubscription = async (retries = 5) => {
+  // const fetchUserSubscription = async (retries = 5) => {
+  //   if (!user?.user_id) return;
+
+  //   try {
+  //     const res = await fetch(
+  //       `${API_URL}/booking/users/${user.user_id}/subscriptions`
+  //     );
+  //     const data = await res.json();
+
+  //     console.log("📡 Subscription retry data:", data);
+
+  //     const activeSub = data.find(
+  //       (s) =>
+  //         ["ACTIVE", "USED", "COMPLETED"].includes(s.status) &&
+  //         (!s.expires_at || new Date(s.expires_at) > new Date())
+  //     );
+
+  //     if (activeSub) {
+  //       setActiveSubscriptionDoctorId(String(activeSub.doctor_id));
+  //       setSubscriptionExpiry(activeSub.expires_at);
+  //       return;
+  //     }
+
+  //     if (retries > 0) {
+  //       setTimeout(() => {
+  //         fetchUserSubscription(retries - 1);
+  //       }, 3000);
+  //     }
+  //   } catch (err) {
+  //     console.error("❌ Subscription retry failed:", err);
+  //   }
+  // };
+
+  // const fetchUserSubscription = async (retries = 5) => {
+  //   if (!user?.user_id) return;
+
+  //   try {
+  //     const res = await fetch(
+  //       `${API_URL}/booking/users/${user.user_id}/subscriptions`
+  //     );
+  //     const data = await res.json();
+
+  //     console.log("📡 Subscription data:", data);
+
+  //     const now = new Date();
+
+  //     const activeSub = data.find((s) => {
+  //       const endDate = s.end_date ? new Date(s.end_date) : null;
+
+  //       return (
+  //         ["ACTIVE", "USED", "COMPLETED", "EXHAUSTED"].includes(s.status) &&
+  //         (!endDate || endDate > now)
+  //       );
+  //     });
+
+  //     if (activeSub) {
+  //       console.log("✅ Active subscription found:", activeSub);
+
+  //       setActiveSubscriptionDoctorId(String(activeSub.doctor_id));
+  //       setSubscriptionExpiry(activeSub.end_date);
+  //       return;
+  //     }
+
+  //     console.log("❌ No active subscription");
+
+  //     if (retries > 0) {
+  //       setTimeout(() => fetchUserSubscription(retries - 1), 3000);
+  //     }
+  //   } catch (err) {
+  //     console.error("❌ Subscription fetch failed:", err);
+  //   }
+  // };
+
+  const fetchUserSubscription = async () => {
     if (!user?.user_id) return;
 
     try {
@@ -121,39 +193,69 @@ const DoctorAppointmentScreen = ({
       );
       const data = await res.json();
 
-      console.log("📡 Subscription retry data:", data);
+      const now = new Date();
 
-      const activeSub = data.find(
-        (s) =>
-          s.status === "ACTIVE" &&
-          (!s.expires_at || new Date(s.expires_at) > new Date())
-      );
+      const activeSub = data.find((s) => {
+        const endDate = s.end_date ? new Date(s.end_date) : null;
+
+        return (
+          ["ACTIVE", "USED", "EXHAUSTED"].includes(s.status) &&
+          (!endDate || endDate > now)
+        );
+      });
 
       if (activeSub) {
-        setActiveSubscriptionDoctorId(String(activeSub.doctor_id));
-        setSubscriptionExpiry(activeSub.expires_at);
-        return;
-      }
-
-      if (retries > 0) {
-        setTimeout(() => {
-          fetchUserSubscription(retries - 1);
-        }, 3000);
+        setActiveSubscriptionDoctorId({
+          doctorId: String(activeSub.doctor_id),
+          expiry: activeSub.end_date,
+          total: Number(activeSub.consultations_total ?? 0),
+          used: Number(activeSub.consultations_used ?? 0),
+        });
+      } else {
+        setActiveSubscriptionDoctorId(null);
       }
     } catch (err) {
-      console.error("❌ Subscription retry failed:", err);
+      console.error("❌ Subscription fetch failed:", err);
     }
   };
 
-  // useEffect(() => {
-  //   fetchUserSubscription();
-  // }, [user?.user_id]);
+  const fetchUserAppointments = async () => {
+    if (!user?.user_id) return;
+
+    try {
+      const res = await fetch(
+        // `${API_URL}/booking/users/${user.user_id}/appointments`
+        `${API_URL}/booking/users/${user.user_id}/bookings?type=upcoming`
+      );
+
+      const data = await res.json();
+      console.log("📡 Appointments API response:", data);
+
+      // ✅ normalize response
+      const appointmentsArray = Array.isArray(data)
+        ? data
+        : Array.isArray(data.appointments)
+        ? data.appointments
+        : [];
+
+      const bookedSet = new Set(
+        appointmentsArray
+          .filter((a) => a.doctor_id) // defensive
+          .map((a) => String(a.doctor_id))
+      );
+
+      setBookedDoctorIds(bookedSet);
+    } catch (err) {
+      console.error("❌ Appointment fetch failed:", err);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       if (user?.user_id) {
         console.log("🔁 Screen focused → refetch subscription");
         fetchUserSubscription();
+        fetchUserAppointments(); // ✅ ADD THIS
       }
     }, [user?.user_id])
   );
@@ -183,23 +285,51 @@ const DoctorAppointmentScreen = ({
           <FlatList
             data={doctorsToShow}
             keyExtractor={(item, index) =>
-              getDoctorKey(item) || index.toString()
+              normalizeDoctorId(item) || index.toString()
             }
             renderItem={({ item }) => {
-              const doctorId = String(getDoctorKey(item));
+              const doctorId = normalizeDoctorId(item);
+
+              const subscription = activeSubscriptionDoctorId;
 
               const hasActiveSubscription =
-                Boolean(activeSubscriptionDoctorId) &&
-                (!subscriptionExpiry ||
-                  new Date(subscriptionExpiry) > new Date());
+                subscription &&
+                subscription.doctorId &&
+                (!subscription.expiry ||
+                  new Date(subscription.expiry) > new Date());
 
               const isSubscribedToThisDoctor =
-                hasActiveSubscription &&
-                activeSubscriptionDoctorId === doctorId;
+                hasActiveSubscription && subscription.doctorId === doctorId;
 
-              const isSubscribedToAnotherDoctor =
-                hasActiveSubscription &&
-                activeSubscriptionDoctorId !== doctorId;
+              // const isSubscribedToAnotherDoctor =
+              //   hasActiveSubscription && subscription.doctorId !== doctorId;
+
+              const consultationsRemaining = hasActiveSubscription
+                ? subscription.total - subscription.used
+                : 0;
+
+              const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+
+              const canBookMore =
+                isSubscribedToThisDoctor &&
+                consultationsRemaining > 0 &&
+                !isAlreadyBooked;
+
+              const buttonText = (() => {
+                if (hasActiveSubscription && !isSubscribedToThisDoctor)
+                  return "Subscribe later";
+
+                if (isSubscribedToThisDoctor && consultationsRemaining === 0)
+                  return "Booked";
+
+                if (canBookMore) return "Book Slot";
+
+                return "Subscribe";
+              })();
+
+              const isDisabled =
+                (hasActiveSubscription && !isSubscribedToThisDoctor) ||
+                (isSubscribedToThisDoctor && consultationsRemaining === 0);
 
               return (
                 <View style={styles.card}>
@@ -267,7 +397,7 @@ const DoctorAppointmentScreen = ({
                               />
                             </View>
                             <Text style={styles.numberText}>
-                              {subscriberCounts[getDoctorKey(item)] || 0}
+                              {subscriberCounts[normalizeDoctorId(item)] || 0}
                             </Text>
                           </View>
                           <Text style={styles.subscriberCountText}>
@@ -289,62 +419,23 @@ const DoctorAppointmentScreen = ({
                         {/* <Text style={styles.priceText}>₹1999</Text> */}
                         <Text style={styles.feeText}> Subscribe Here</Text>
                       </View>
-                      {/* <Pressable
-                      // style={[
-                      //   styles.button,
-                      //   !userIdentifier && { backgroundColor: "gray" },
-                      // ]}
-                      style={styles.button}
-                      onPress={() => {
-                        const doctorId = getDoctorKey(item);
 
-                        if (subscribedDoctors[doctorId]) {
-                          // Already subscribed → go to booking
-                          navigation.navigate("DoctorsInfoWithBooking", {
-                            doctors: item,
-                          });
-                        } else {
-                          // Not subscribed → open subscription payment screen
-                          navigation.navigate("DoctorsInfoWithSubscription", {
-                            doctorId,
-                            doctors: item,
-                          });
-                        }
-                      }}
-                    >
-                      <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
-                        {subscribedDoctors[getDoctorKey(item)]
-                          ? "Book Slot"
-                          : "Subscribe"}
-                      </Text>
-                    </Pressable> */}
                       <Pressable
                         style={[
                           styles.button,
-                          isSubscribedToAnotherDoctor && {
-                            backgroundColor: "#B0B0B0",
-                          },
+                          isDisabled && { backgroundColor: "#B0B0B0" },
                         ]}
-                        disabled={isSubscribedToAnotherDoctor}
+                        disabled={isDisabled}
                         onPress={() => {
-                          if (isSubscribedToThisDoctor) {
+                          if (canBookMore) {
                             navigation.navigate("DoctorsInfoWithBooking", {
-                              doctors: item,
-                            });
-                          } else {
-                            navigation.navigate("DoctorsInfoWithSubscription", {
-                              doctorId,
                               doctors: item,
                             });
                           }
                         }}
                       >
                         <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
-                          {isSubscribedToThisDoctor
-                            ? "Book Slot"
-                            : isSubscribedToAnotherDoctor
-                            ? "Subscribe later"
-                            : "Subscribe"}
+                          {buttonText}
                         </Text>
                       </Pressable>
                     </View>
@@ -367,20 +458,48 @@ const DoctorAppointmentScreen = ({
                 paddingVertical: 10,
               }}
               renderItem={({ item }) => {
-                const doctorId = String(getDoctorKey(item));
+                const doctorId = normalizeDoctorId(item);
+
+                const subscription = activeSubscriptionDoctorId;
 
                 const hasActiveSubscription =
-                  Boolean(activeSubscriptionDoctorId) &&
-                  (!subscriptionExpiry ||
-                    new Date(subscriptionExpiry) > new Date());
+                  subscription &&
+                  subscription.doctorId &&
+                  (!subscription.expiry ||
+                    new Date(subscription.expiry) > new Date());
 
                 const isSubscribedToThisDoctor =
-                  hasActiveSubscription &&
-                  activeSubscriptionDoctorId === doctorId;
+                  hasActiveSubscription && subscription.doctorId === doctorId;
 
-                const isSubscribedToAnotherDoctor =
-                  hasActiveSubscription &&
-                  activeSubscriptionDoctorId !== doctorId;
+                // const isSubscribedToAnotherDoctor =
+                //   hasActiveSubscription && subscription.doctorId !== doctorId;
+
+                const consultationsRemaining = hasActiveSubscription
+                  ? subscription.total - subscription.used
+                  : 0;
+
+                const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+
+                const canBookMore =
+                  isSubscribedToThisDoctor &&
+                  consultationsRemaining > 0 &&
+                  !isAlreadyBooked;
+
+                const buttonText = (() => {
+                  if (hasActiveSubscription && !isSubscribedToThisDoctor)
+                    return "Subscribe later";
+
+                  if (isSubscribedToThisDoctor && consultationsRemaining === 0)
+                    return "Booked";
+
+                  if (canBookMore) return "Book Slot";
+
+                  return "Subscribe";
+                })();
+
+                const isDisabled =
+                  (hasActiveSubscription && !isSubscribedToThisDoctor) ||
+                  (isSubscribedToThisDoctor && consultationsRemaining === 0);
 
                 return (
                   <View style={styles.cardContainer}>
@@ -435,7 +554,7 @@ const DoctorAppointmentScreen = ({
                               />
                             </View>
                             <Text style={styles.numberText}>
-                              {subscriberCounts[getDoctorKey(item)] || 0}
+                              {subscriberCounts[normalizeDoctorId(item)] || 0}
                             </Text>
                           </View>
                           <View style={styles.rating}>
@@ -481,66 +600,23 @@ const DoctorAppointmentScreen = ({
                             </Text>
                           </View>
                         </View>
-                        {/* <TouchableOpacity
-                        style={[styles.button]}
-                        onPress={() => {
-                          const doctorId = getDoctorKey(item);
 
-                          if (subscribedDoctors[doctorId]) {
-                            // Already subscribed → go to booking
-                            navigation.navigate("DoctorsInfoWithBooking", {
-                              doctors: item,
-                            });
-                          } else {
-                            // Not subscribed → open subscription payment screen
-                            navigation.navigate("DoctorsInfoWithSubscription", {
-                              doctorId,
-                              doctors: item,
-                            });
-                          }
-                        }}
-                      >
-                        <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
-                          {subscribedDoctors[getDoctorKey(item)]
-                            ? "Book Slot"
-                            : "Subscribe"}
-                        </Text>
-
-                        <Image
-                          source={require("../../../assets/Icons/arrow.png")}
-                          style={styles.arrowIcon}
-                        />
-                      </TouchableOpacity> */}
                         <Pressable
                           style={[
                             styles.button,
-                            isSubscribedToAnotherDoctor && {
-                              backgroundColor: "#B0B0B0",
-                            },
+                            isDisabled && { backgroundColor: "#B0B0B0" },
                           ]}
-                          disabled={isSubscribedToAnotherDoctor}
+                          disabled={isDisabled}
                           onPress={() => {
-                            if (isSubscribedToThisDoctor) {
+                            if (canBookMore) {
                               navigation.navigate("DoctorsInfoWithBooking", {
                                 doctors: item,
                               });
-                            } else {
-                              navigation.navigate(
-                                "DoctorsInfoWithSubscription",
-                                {
-                                  doctorId,
-                                  doctors: item,
-                                }
-                              );
                             }
                           }}
                         >
                           <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
-                            {isSubscribedToThisDoctor
-                              ? "Book Slot"
-                              : isSubscribedToAnotherDoctor
-                              ? "Subscribe later"
-                              : "Subscribe"}
+                            {buttonText}
                           </Text>
                         </Pressable>
                       </View>
@@ -877,7 +953,7 @@ const styles = StyleSheet.create({
     height: "28%",
     width: "100%",
     //borderWidth: 1,
-    marginTop:"2%",
+    marginTop: "2%",
   },
   addressText: {
     fontSize: 13,
