@@ -420,7 +420,7 @@ const DoctorAppointmentScreen = ({
                         <Text style={styles.feeText}> Subscribe Here</Text>
                       </View>
 
-                      <Pressable
+                      <TouchableOpacity
                         style={[
                           styles.button,
                           isDisabled && { backgroundColor: "#B0B0B0" },
@@ -437,7 +437,7 @@ const DoctorAppointmentScreen = ({
                         <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
                           {buttonText}
                         </Text>
-                      </Pressable>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </View>
@@ -601,7 +601,7 @@ const DoctorAppointmentScreen = ({
                           </View>
                         </View>
 
-                        <Pressable
+                        <TouchableOpacity
                           style={[
                             styles.button,
                             isDisabled && { backgroundColor: "#B0B0B0" },
@@ -618,7 +618,7 @@ const DoctorAppointmentScreen = ({
                           <Text style={{ fontWeight: "600", color: "#FFFFFF" }}>
                             {buttonText}
                           </Text>
-                        </Pressable>
+                        </TouchableOpacity>
                       </View>
                     </View>
                   </View>
