@@ -45,6 +45,15 @@ export const AuthProvider = ({ children }) => {
     const initializeUser = async () => {
       try {
         const storedState = await restoreUserState();
+        
+        // Restore role first (critical for routing)
+        if (storedState?.role) {
+          setRole(storedState.role);
+          // Ensure role is synced to AsyncStorage for RoleContext consistency
+          await AsyncStorage.setItem("userRole", storedState.role);
+        }
+        
+        // Restore user if available
         if (storedState?.user) {
           // Normalize doctor profile: ensure 'name' field exists from 'doctorname' if needed
           const user = storedState.user;
@@ -53,13 +62,27 @@ export const AuthProvider = ({ children }) => {
           }
           setUser(user);
         }
-        if (storedState?.role) {
-          setRole(storedState.role);
-          // Ensure role is synced to AsyncStorage for RoleContext consistency
-          await AsyncStorage.setItem("userRole", storedState.role);
+        
+        // Log restoration for debugging (especially in production)
+        if (storedState) {
+          console.log("✅ Auth state restored:", {
+            hasUser: !!storedState.user,
+            hasToken: !!storedState.token,
+            role: storedState.role,
+          });
         }
       } catch (error) {
         console.error("Failed to restore user state:", error);
+        // Try to restore role even if user restore fails
+        try {
+          const role = await AsyncStorage.getItem("userRole");
+          if (role) {
+            setRole(role);
+            console.log("✅ Role restored from fallback:", role);
+          }
+        } catch (roleError) {
+          console.error("Failed to restore role:", roleError);
+        }
       } finally {
         setIsLoading(false);
       }
