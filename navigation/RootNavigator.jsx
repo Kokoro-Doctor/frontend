@@ -139,7 +139,7 @@ const LandingPageWithAuth = ({ navigation, route }) => {
           routes: [
             {
               name: "DoctorAppNavigation",
-              params: { screen: "Dashboard" },
+              params: { screen: "DoctorPortalLandingPage" },
             },
           ],
         });
@@ -164,7 +164,7 @@ const LandingPageWithAuth = ({ navigation, route }) => {
             routes: [
               {
                 name: "DoctorAppNavigation",
-                params: { screen: "Dashboard" },
+                params: { screen: "DoctorPortalLandingPage" },
               },
             ],
           });
