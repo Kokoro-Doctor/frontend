@@ -53,7 +53,11 @@ export const AuthProvider = ({ children }) => {
           }
           setUser(user);
         }
-        if (storedState?.role) setRole(storedState.role);
+        if (storedState?.role) {
+          setRole(storedState.role);
+          // Ensure role is synced to AsyncStorage for RoleContext consistency
+          await AsyncStorage.setItem("userRole", storedState.role);
+        }
       } catch (error) {
         console.error("Failed to restore user state:", error);
       } finally {

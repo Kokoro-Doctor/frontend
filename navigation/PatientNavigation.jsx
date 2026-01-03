@@ -3,6 +3,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { HeaderButtonsProvider } from "react-navigation-header-buttons/HeaderButtonsProvider";
 import { useTheme } from "../contexts/ThemeContext";
 import { lightTheme, darkTheme } from "../contexts/Themes";
+import { useAuth } from "../contexts/AuthContext";
+import { useRole } from "../contexts/RoleContext";
+import { useFocusEffect } from "@react-navigation/native";
 import PrivacyPolicy from "../screens/PatientScreens/Auth/PrivacyPolicy";
 import LandingPage from "../screens/PatientScreens/LandingPage";
 //import DoctorPatientLandingPage from "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage";
@@ -267,9 +270,38 @@ const AboutUsNavigator = () => {
   );
 };
 
-const AppNavigation = () => {
+const AppNavigation = ({ navigation }) => {
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? darkTheme : lightTheme;
+  const { user, role: authRole, isLoading: authLoading } = useAuth();
+  const { role: roleContextRole, loading: roleLoading } = useRole();
+  const role = authRole || roleContextRole;
+  const isLoading = authLoading || roleLoading;
+
+  // Redirect doctors away from patient portal
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isLoading) return;
+
+      if (user && role === "doctor") {
+        // Doctor trying to access patient portal - redirect to doctor portal
+        // Get root navigator to navigate to root level screens
+        const rootNav = navigation.getParent();
+        if (rootNav) {
+          rootNav.reset({
+            index: 0,
+            routes: [
+              {
+                name: "DoctorAppNavigation",
+                params: { screen: "DoctorPortalLandingPage" },
+              },
+            ],
+          });
+        }
+      }
+    }, [user, role, isLoading, navigation])
+  );
+
   return (
     <HeaderButtonsProvider stackType={"native"}>
       <Stack.Navigator
