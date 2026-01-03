@@ -3,6 +3,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { HeaderButtonsProvider } from "react-navigation-header-buttons/HeaderButtonsProvider";
 import { useTheme } from "../contexts/ThemeContext";
 import { lightTheme, darkTheme } from "../contexts/Themes";
+import { useAuth } from "../contexts/AuthContext";
+import { useRole } from "../contexts/RoleContext";
+import { useFocusEffect } from "@react-navigation/native";
 //import DoctorPatientLandingPage from "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage";
 import DoctorCongrats from "../screens/DoctorScreens/DoctorRegistration/DoctorCongrats";
 import DoctorMedicalRegistration from "../screens/DoctorScreens/DoctorRegistration/DoctorMedicalRegistration";
@@ -30,9 +33,38 @@ import DoctorDashboard from "../screens/DoctorScreens/DoctorDashboard";
 
 const Stack = createNativeStackNavigator();
 
-const DoctorAppNavigation = () => {
+const DoctorAppNavigation = ({ navigation }) => {
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? darkTheme : lightTheme;
+  const { user, role: authRole, isLoading: authLoading } = useAuth();
+  const { role: roleContextRole, loading: roleLoading } = useRole();
+  const role = authRole || roleContextRole;
+  const isLoading = authLoading || roleLoading;
+
+  // Redirect users away from doctor portal
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isLoading) return;
+
+      if (user && role === "user") {
+        // User trying to access doctor portal - redirect to patient portal
+        // Get root navigator to navigate to root level screens
+        const rootNav = navigation.getParent();
+        if (rootNav) {
+          rootNav.reset({
+            index: 0,
+            routes: [
+              {
+                name: "PatientAppNavigation",
+                params: { screen: "UserDashboard" },
+              },
+            ],
+          });
+        }
+      }
+    }, [user, role, isLoading, navigation])
+  );
+
   return (
     <HeaderButtonsProvider stackType={"native"}>
       <Stack.Navigator

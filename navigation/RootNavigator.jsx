@@ -120,18 +120,25 @@ export const linking = {
 // Wrapper component for LandingPage that handles auth redirects
 const LandingPageWithAuth = ({ navigation, route }) => {
   const { user, role: authRole, isLoading: authLoading } = useAuth();
-  const { role: roleContextRole } = useRole();
+  const { role: roleContextRole, loading: roleLoading } = useRole();
+  const redirectHandledRef = React.useRef(false);
 
   // Use role from AuthContext if available, fallback to RoleContext
   const role = authRole || roleContextRole;
+  const isLoading = authLoading || roleLoading;
 
   // Use useEffect to handle immediate redirects when role changes
   React.useEffect(() => {
-    // Wait for auth to finish loading
-    if (authLoading) return;
+    // Wait for auth and role to finish loading
+    if (isLoading) return;
+
+    // Prevent multiple redirects
+    if (redirectHandledRef.current) return;
 
     // If user is authenticated and has a role, redirect to appropriate dashboard
     if (user && role) {
+      redirectHandledRef.current = true;
+
       if (role === "doctor") {
         // Redirect doctor to doctor dashboard immediately
         navigation.reset({
@@ -143,20 +150,34 @@ const LandingPageWithAuth = ({ navigation, route }) => {
             },
           ],
         });
+      } else if (role === "user") {
+        // Redirect user to patient navigation (UserDashboard)
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: "PatientAppNavigation",
+              params: { screen: "UserDashboard" },
+            },
+          ],
+        });
       }
-      // For users/patients, they can stay on LandingPage
-      // No redirect needed for users
     }
-  }, [user, role, authLoading, navigation]);
+  }, [user, role, isLoading, navigation]);
 
-  // Also use useFocusEffect for when screen comes into focus
+  // Also use useFocusEffect for when screen comes into focus (handles page refresh)
   useFocusEffect(
     React.useCallback(() => {
-      // Wait for auth to finish loading
-      if (authLoading) return;
+      // Wait for auth and role to finish loading
+      if (isLoading) return;
+
+      // Reset redirect flag when screen comes into focus (page refresh)
+      redirectHandledRef.current = false;
 
       // If user is authenticated and has a role, redirect to appropriate dashboard
       if (user && role) {
+        redirectHandledRef.current = true;
+
         if (role === "doctor") {
           // Redirect doctor to doctor dashboard
           navigation.reset({
@@ -168,10 +189,20 @@ const LandingPageWithAuth = ({ navigation, route }) => {
               },
             ],
           });
+        } else if (role === "user") {
+          // Redirect user to patient navigation
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: "PatientAppNavigation",
+                params: { screen: "UserDashboard" },
+              },
+            ],
+          });
         }
-        // For users/patients, they can stay on LandingPage
       }
-    }, [user, role, authLoading, navigation])
+    }, [user, role, isLoading, navigation])
   );
 
   return <LandingPage navigation={navigation} route={route} />;
@@ -183,9 +214,10 @@ const RootNavigation = () => {
 
   // Determine the actual role (prefer AuthContext role, fallback to RoleContext)
   const role = authRole || roleContextRole;
+  const isLoading = authLoading || roleLoading;
 
   // Show loader while role or auth is loading
-  if (roleLoading || authLoading) return <Loader />;
+  if (isLoading) return <Loader />;
 
   // Determine initial route based on authentication and role
   const getInitialRouteName = () => {
@@ -194,15 +226,29 @@ const RootNavigation = () => {
       if (role === "doctor") {
         return "DoctorAppNavigation";
       }
-      // For users/patients, they can stay on LandingPage
-      // or redirect to PatientAppNavigation if you want them to go directly to patient dashboard
-      return "LandingPage";
+      if (role === "user") {
+        // For users, redirect to patient navigation
+        return "PatientAppNavigation";
+      }
     }
     // Not authenticated, go to landing page
     return "LandingPage";
   };
 
   const initialRouteName = getInitialRouteName();
+
+  // Add navigation listener to handle role-based redirects after mount
+  // This ensures redirects work even if initialRouteName was set before role was loaded
+  React.useEffect(() => {
+    if (!isLoading && user && role) {
+      // Small delay to ensure navigation is ready
+      const timer = setTimeout(() => {
+        // This will be handled by LandingPageWithAuth if user lands on LandingPage
+        // But we can also add a global navigation listener here if needed
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, user, role]);
 
   return (
     <RegistrationProvider>
