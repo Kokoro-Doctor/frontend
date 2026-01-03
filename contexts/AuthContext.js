@@ -19,7 +19,7 @@ import { clearSession } from "../utils/sessionManager";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState({name:'Abhishek'});
+  const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true); // Track loading state
 
