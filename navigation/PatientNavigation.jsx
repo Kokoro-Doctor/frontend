@@ -5,7 +5,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { lightTheme, darkTheme } from "../contexts/Themes";
 import PrivacyPolicy from "../screens/PatientScreens/Auth/PrivacyPolicy";
 import LandingPage from "../screens/PatientScreens/LandingPage";
-import DoctorPatientLandingPage from "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage";
+//import DoctorPatientLandingPage from "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage";
 import UserDashboard from "../screens/PatientScreens/UserDashboard";
 
 //Doctors
@@ -347,11 +347,11 @@ const AppNavigation = () => {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="Error" component={Error} />
-        <Stack.Screen
+        {/* <Stack.Screen
           name="DoctorPatientLandingPage"
           component={DoctorPatientLandingPage}
           options={{ headerShown: false }}
-        />
+        /> */}
       </Stack.Navigator>
     </HeaderButtonsProvider>
   );

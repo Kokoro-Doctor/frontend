@@ -20,7 +20,7 @@ import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 
 const { width, height } = Dimensions.get("window");
-const Dashboard = ({ navigation, route }) => {
+const DoctorPortalLandingPage = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
   const borderAnim = useRef(new Animated.Value(0)).current;
@@ -513,4 +513,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Dashboard;
+export default DoctorPortalLandingPage;

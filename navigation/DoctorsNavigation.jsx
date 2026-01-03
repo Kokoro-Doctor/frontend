@@ -3,14 +3,13 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { HeaderButtonsProvider } from "react-navigation-header-buttons/HeaderButtonsProvider";
 import { useTheme } from "../contexts/ThemeContext";
 import { lightTheme, darkTheme } from "../contexts/Themes";
-import DoctorPatientLandingPage from "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage";
+//import DoctorPatientLandingPage from "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage";
 import DoctorCongrats from "../screens/DoctorScreens/DoctorRegistration/DoctorCongrats";
 import DoctorMedicalRegistration from "../screens/DoctorScreens/DoctorRegistration/DoctorMedicalRegistration";
 import EstablishmentTiming from "../screens/DoctorScreens/DoctorRegistration/EstablishmentTiming";
 import NewDoctorMedicalReg from "../screens/DoctorScreens/DoctorRegistration/NewDoctorMedicalReg";
 import ReminderScreen from "../screens/DoctorScreens/ReminderView";
 import HistoryScreen from "../screens/DoctorScreens/History";
-//import Calendar from "../screens/DoctorScreens/Calendar";
 import AppointmentsView from "../screens/DoctorScreens/AppointmentsView";
 import AccountSettings from "../screens/DoctorScreens/Settings/AccountSettings";
 import LanguagePreference from "../screens/DoctorScreens/Settings/LanguagePreference";
@@ -22,7 +21,7 @@ import ThemeSettings from "../screens/DoctorScreens/Settings/ThemeSettings";
 import Reminder from "../screens/DoctorScreens/ReminderNewest";
 import LandingPage from "../screens/PatientScreens/LandingPage";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
-import Dashboard from "../screens/DoctorScreens/Dashboard";
+import DoctorPortalLandingPage from "../screens/DoctorScreens/DoctorPortalLandingPage";
 import Prescription from "../screens/DoctorScreens/Prescription";
 import DoctorsSubscribers from "../screens/DoctorScreens/DoctorsSubscribers";
 import GeneratePrescription from "../screens/DoctorScreens/GeneratePrescription";
@@ -37,7 +36,7 @@ const DoctorAppNavigation = () => {
   return (
     <HeaderButtonsProvider stackType={"native"}>
       <Stack.Navigator
-        initialRouteName="Dashboard"
+        initialRouteName="DoctorPortalLandingPage"
         screenOptions={{
           headerStyle: {
             backgroundColor: theme.container.backgroundColor,
@@ -45,14 +44,14 @@ const DoctorAppNavigation = () => {
           headerTintColor: theme.text.color,
         }}
       >
-        <Stack.Screen
+        {/* <Stack.Screen
           name="DoctorPatientLandingPage"
           component={DoctorPatientLandingPage}
           options={{ headerShown: false }}
-        />
+        /> */}
         <Stack.Screen
-          name="Dashboard"
-          component={Dashboard}
+          name="DoctorPortalLandingPage"
+          component={DoctorPortalLandingPage}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -105,11 +104,7 @@ const DoctorAppNavigation = () => {
           component={DoctorsSubscribers}
           options={{ headerShown: false }}
         />
-        {/* <Stack.Screen
-          name="Calendar"
-          component={Calendar}
-          options={{ headerShown: false }}
-        /> */}
+
         <Stack.Screen
           name="DrCalendarView"
           component={DrCalendarView}

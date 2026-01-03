@@ -17,7 +17,7 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../env-vars";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext"
 import { useFocusEffect } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
