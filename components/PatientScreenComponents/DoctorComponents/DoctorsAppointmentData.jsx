@@ -33,7 +33,8 @@ const DoctorAppointmentScreen = ({
   const [showFull, setShowFull] = useState(false);
   const [activeSubscriptionDoctorId, setActiveSubscriptionDoctorId] =
     useState(null);
-  const [bookedDoctorIds, setBookedDoctorIds] = useState(new Set());
+  // const [bookedDoctorIds, setBookedDoctorIds] = useState(new Set());
+  const [bookedCountByDoctor, setBookedCountByDoctor] = useState({});
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -249,6 +250,42 @@ const DoctorAppointmentScreen = ({
   //     console.error("❌ Appointment fetch failed:", err);
   //   }
   // };
+  // const fetchUserAppointments = async () => {
+  //   if (!user?.user_id) return;
+
+  //   try {
+  //     const res = await fetch(
+  //       `${API_URL}/booking/users/${user.user_id}/bookings?type=upcoming`
+  //     );
+
+  //     const data = await res.json();
+  //     console.log("📡 Appointments API response:", data);
+
+  //     const appointmentsArray = Array.isArray(data)
+  //       ? data
+  //       : Array.isArray(data.appointments)
+  //       ? data.appointments
+  //       : [];
+
+  //     /**
+  //      * ✅ ONLY count real booked slots
+  //      */
+  //     const bookedSet = new Set(
+  //       appointmentsArray
+  //         .filter(
+  //           (a) =>
+  //             a.doctor_id &&
+  //             a.slot_time && // 🔑 IMPORTANT
+  //             ["BOOKED", "CONFIRMED"].includes(a.status)
+  //         )
+  //         .map((a) => String(a.doctor_id))
+  //     );
+
+  //     setBookedDoctorIds(bookedSet);
+  //   } catch (err) {
+  //     console.error("❌ Appointment fetch failed:", err);
+  //   }
+  // };
   const fetchUserAppointments = async () => {
     if (!user?.user_id) return;
 
@@ -258,7 +295,6 @@ const DoctorAppointmentScreen = ({
       );
 
       const data = await res.json();
-      console.log("📡 Appointments API response:", data);
 
       const appointmentsArray = Array.isArray(data)
         ? data
@@ -266,21 +302,20 @@ const DoctorAppointmentScreen = ({
         ? data.appointments
         : [];
 
-      /**
-       * ✅ ONLY count real booked slots
-       */
-      const bookedSet = new Set(
-        appointmentsArray
-          .filter(
-            (a) =>
-              a.doctor_id &&
-              a.slot_time && // 🔑 IMPORTANT
-              ["BOOKED", "CONFIRMED"].includes(a.status)
-          )
-          .map((a) => String(a.doctor_id))
-      );
+      const countMap = {};
 
-      setBookedDoctorIds(bookedSet);
+      appointmentsArray.forEach((a) => {
+        if (
+          a.doctor_id &&
+          a.slot_time &&
+          ["BOOKED", "CONFIRMED"].includes(a.status)
+        ) {
+          const id = String(a.doctor_id);
+          countMap[id] = (countMap[id] || 0) + 1;
+        }
+      });
+
+      setBookedCountByDoctor(countMap);
     } catch (err) {
       console.error("❌ Appointment fetch failed:", err);
     }
@@ -324,8 +359,58 @@ const DoctorAppointmentScreen = ({
               normalizeDoctorId(item) || index.toString()
             }
             renderItem={({ item }) => {
-              const doctorId = normalizeDoctorId(item);
+              // const doctorId = normalizeDoctorId(item);
 
+              // const subscription = activeSubscriptionDoctorId;
+
+              // const hasActiveSubscription =
+              //   subscription &&
+              //   subscription.doctorId &&
+              //   (!subscription.expiry ||
+              //     new Date(subscription.expiry) > new Date());
+
+              // const isSubscribedToThisDoctor =
+              //   hasActiveSubscription && subscription.doctorId === doctorId;
+
+              // const consultationsRemaining = hasActiveSubscription
+              //   ? subscription.total - subscription.used
+              //   : 0;
+
+              // const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+
+              // const canBookMore =
+              //   isSubscribedToThisDoctor &&
+              //   consultationsRemaining > 0 &&
+              //   !isAlreadyBooked;
+
+              // const buttonText = (() => {
+              //   // Subscribed doctor
+              //   if (isSubscribedToThisDoctor) {
+              //     if (isAlreadyBooked && consultationsRemaining === 0)
+              //       return "Booked";
+              //     return "Book Slot";
+              //   }
+
+              //   // Other doctors when subscription exists
+              //   if (hasActiveSubscription) return "Subscribe later";
+
+              //   // No subscription at all
+              //   return "Subscribe";
+              // })();
+
+              // const isDisabled =
+              //   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
+              //   isAlreadyBooked;
+              //const isDisabled = isAlreadyBooked;
+
+              // const isDisabled =
+              //   // Disable other doctors when subscription exists
+              //   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
+              //   // Disable booked doctor only when no consultations left
+              //   (isSubscribedToThisDoctor &&
+              //     isAlreadyBooked &&
+              //     consultationsRemaining === 0);
+              const doctorId = normalizeDoctorId(item);
               const subscription = activeSubscriptionDoctorId;
 
               const hasActiveSubscription =
@@ -337,43 +422,28 @@ const DoctorAppointmentScreen = ({
               const isSubscribedToThisDoctor =
                 hasActiveSubscription && subscription.doctorId === doctorId;
 
-              const consultationsRemaining = hasActiveSubscription
-                ? subscription.total - subscription.used
-                : 0;
+              const totalAllowed = subscription?.total ?? 0;
+              const bookedCount = bookedCountByDoctor[doctorId] || 0;
 
-              const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+              const hasReachedLimit = bookedCount >= totalAllowed;
 
-              const canBookMore =
-                isSubscribedToThisDoctor &&
-                consultationsRemaining > 0 &&
-                !isAlreadyBooked;
-
+              const canBookMore = isSubscribedToThisDoctor && !hasReachedLimit;
               const buttonText = (() => {
-                // Subscribed doctor
                 if (isSubscribedToThisDoctor) {
-                  if (isAlreadyBooked && consultationsRemaining === 0)
-                    return "Booked";
+                  if (hasReachedLimit) return "Booked";
                   return "Book Slot";
                 }
 
-                // Other doctors when subscription exists
                 if (hasActiveSubscription) return "Subscribe later";
 
-                // No subscription at all
                 return "Subscribe";
               })();
 
-              // const isDisabled =
-              //   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
-              //   isAlreadyBooked;
-              //const isDisabled = isAlreadyBooked;
               const isDisabled =
-                // Disable other doctors when subscription exists
+                // Other doctors blocked when subscription exists
                 (hasActiveSubscription && !isSubscribedToThisDoctor) ||
-                // Disable booked doctor only when no consultations left
-                (isSubscribedToThisDoctor &&
-                  isAlreadyBooked &&
-                  consultationsRemaining === 0);
+                // Block only when limit reached
+                (isSubscribedToThisDoctor && hasReachedLimit);
 
               return (
                 <View style={styles.card}>
@@ -477,8 +547,33 @@ const DoctorAppointmentScreen = ({
                         //     });
                         //   }
                         // }}
+
+                        // onPress={() => {
+                        //   // 1️⃣ User has active subscription for this doctor and can book
+                        //   if (canBookMore) {
+                        //     navigation.navigate("DoctorsInfoWithBooking", {
+                        //       doctors: item,
+                        //     });
+                        //     return;
+                        //   }
+
+                        //   // 2️⃣ User does NOT have subscription → go to subscribe screen
+                        //   // if (
+                        //   //   !hasActiveSubscription ||
+                        //   //   !isSubscribedToThisDoctor
+                        //   // ) {
+                        //   //   navigation.navigate("DoctorsInfoWithSubscription", {
+                        //   //     doctors: item,
+                        //   //   });
+                        //   // }
+                        //   if (!hasActiveSubscription) {
+                        //     navigation.navigate("DoctorsInfoWithSubscription", {
+                        //       doctors: item,
+                        //     });
+                        //   }
+                        // }}
+
                         onPress={() => {
-                          // 1️⃣ User has active subscription for this doctor and can book
                           if (canBookMore) {
                             navigation.navigate("DoctorsInfoWithBooking", {
                               doctors: item,
@@ -486,15 +581,6 @@ const DoctorAppointmentScreen = ({
                             return;
                           }
 
-                          // 2️⃣ User does NOT have subscription → go to subscribe screen
-                          // if (
-                          //   !hasActiveSubscription ||
-                          //   !isSubscribedToThisDoctor
-                          // ) {
-                          //   navigation.navigate("DoctorsInfoWithSubscription", {
-                          //     doctors: item,
-                          //   });
-                          // }
                           if (!hasActiveSubscription) {
                             navigation.navigate("DoctorsInfoWithSubscription", {
                               doctors: item,
@@ -527,7 +613,6 @@ const DoctorAppointmentScreen = ({
               }}
               renderItem={({ item }) => {
                 const doctorId = normalizeDoctorId(item);
-
                 const subscription = activeSubscriptionDoctorId;
 
                 const hasActiveSubscription =
@@ -539,43 +624,29 @@ const DoctorAppointmentScreen = ({
                 const isSubscribedToThisDoctor =
                   hasActiveSubscription && subscription.doctorId === doctorId;
 
-                const consultationsRemaining = hasActiveSubscription
-                  ? subscription.total - subscription.used
-                  : 0;
+                const totalAllowed = subscription?.total ?? 0;
+                const bookedCount = bookedCountByDoctor[doctorId] || 0;
 
-                const isAlreadyBooked = bookedDoctorIds.has(doctorId);
+                const hasReachedLimit = bookedCount >= totalAllowed;
 
                 const canBookMore =
-                  isSubscribedToThisDoctor &&
-                  consultationsRemaining > 0 &&
-                  !isAlreadyBooked;
-
+                  isSubscribedToThisDoctor && !hasReachedLimit;
                 const buttonText = (() => {
-                  // Subscribed doctor
                   if (isSubscribedToThisDoctor) {
-                    if (isAlreadyBooked && consultationsRemaining === 0)
-                      return "Booked";
+                    if (hasReachedLimit) return "Booked";
                     return "Book Slot";
                   }
 
-                  // Other doctors when subscription exists
                   if (hasActiveSubscription) return "Subscribe later";
 
-                  // No subscription at all
                   return "Subscribe";
                 })();
 
-                // const isDisabled =
-                //   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
-                //   isAlreadyBooked;
-                //const isDisabled = isAlreadyBooked;
                 const isDisabled =
-                  // Disable other doctors when subscription exists
+                  // Other doctors blocked when subscription exists
                   (hasActiveSubscription && !isSubscribedToThisDoctor) ||
-                  // Disable booked doctor only when no consultations left
-                  (isSubscribedToThisDoctor &&
-                    isAlreadyBooked &&
-                    consultationsRemaining === 0);
+                  // Block only when limit reached
+                  (isSubscribedToThisDoctor && hasReachedLimit);
 
                 return (
                   <View style={styles.cardContainer}>
@@ -683,8 +754,25 @@ const DoctorAppointmentScreen = ({
                             isDisabled && { backgroundColor: "#B0B0B0" },
                           ]}
                           disabled={isDisabled}
+                          // onPress={() => {
+                          //   // 1️⃣ User has active subscription for this doctor and can book
+                          //   if (canBookMore) {
+                          //     navigation.navigate("DoctorsInfoWithBooking", {
+                          //       doctors: item,
+                          //     });
+                          //     return;
+                          //   }
+
+                          //   if (!hasActiveSubscription) {
+                          //     navigation.navigate(
+                          //       "DoctorsInfoWithSubscription",
+                          //       {
+                          //         doctors: item,
+                          //       }
+                          //     );
+                          //   }
+                          // }}
                           onPress={() => {
-                            // 1️⃣ User has active subscription for this doctor and can book
                             if (canBookMore) {
                               navigation.navigate("DoctorsInfoWithBooking", {
                                 doctors: item,
@@ -692,18 +780,6 @@ const DoctorAppointmentScreen = ({
                               return;
                             }
 
-                            // 2️⃣ User does NOT have subscription → go to subscribe screen
-                            // if (
-                            //   !hasActiveSubscription ||
-                            //   !isSubscribedToThisDoctor
-                            // ) {
-                            //   navigation.navigate(
-                            //     "DoctorsInfoWithSubscription",
-                            //     {
-                            //       doctors: item,
-                            //     }
-                            //   );
-                            // }
                             if (!hasActiveSubscription) {
                               navigation.navigate(
                                 "DoctorsInfoWithSubscription",
