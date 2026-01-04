@@ -11,6 +11,7 @@ import {
   ScrollView,
   Linking,
   TextInput,
+  StatusBar,
 } from "react-native";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -19,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../env-vars";
 import { useAuth } from "../../contexts/AuthContext"
 import { useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -175,21 +177,6 @@ const DoctorDashboard = ({ navigation }) => {
       uri: URL.createObjectURL(file),
     }));
     setIssueDocs((prev) => [...prev, ...newDocs]);
-  };
-
-  const getTagColor = (type) => {
-    switch (type) {
-      case "Report":
-        return { bg: "#FFD7A2", text: "#8A4A00", borderColor: "#8A4A00" };
-      case "Scan":
-        return { bg: "#AFE2CA", text: "#006644", borderColor: "#006644" };
-      case "Lab test":
-        return { bg: "#AFE2CA", text: "#004D33", borderColor: "#004D33" };
-      case "Prescription":
-        return { bg: "#FF92D3BF", text: "#A30063", borderColor: "#A30063" };
-      default:
-        return { bg: "#EEEEEE", text: "#444444", borderColor: "#444444" };
-    }
   };
 
   const fetchActiveSubscription = async (userId, doctorId) => {
@@ -385,62 +372,6 @@ const DoctorDashboard = ({ navigation }) => {
     fetchTodayBookings(user.doctor_id, selectedDate);
   }, [user?.doctor_id, selectedDate]);
 
-  const handleJoinCall = () => {
-    if (!appointmentData?.meet_link) return;
-    if (Platform.OS === "web") window.open(appointmentData.meet_link, "_blank");
-    else Linking.openURL(appointmentData.meet_link);
-  };
-
-  const handleUpload = async () => {
-    if (Platform.OS === "web") return uploadInputRef.current?.click();
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        multiple: false,
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-
-      const file = result.assets[0];
-      const now = new Date();
-
-      setDocuments((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          date: toDateKey(now), // ✅ stable date
-          time: now.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          name: file.name,
-          format: "." + file.name.split(".").pop(),
-          type: detectType(file.name),
-          uri: file.uri,
-        },
-      ]);
-    } catch (err) {
-      console.error("❌ handleUpload:", err);
-    }
-  };
-
-  const handleIssueUpload = async () => {
-    if (Platform.OS === "web") return issueInputRef.current?.click();
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        multiple: true,
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-
-      const file = result.assets[0];
-      setIssueDocs((prev) => [...prev, { name: file.name, uri: file.uri }]);
-    } catch (err) {
-      console.error("❌ handleIssueUpload:", err);
-    }
-  };
-
   const formatDate = (date) => {
     if (!date) return "Select Date";
     return date.toLocaleDateString("en-GB", {
@@ -523,14 +454,7 @@ const DoctorDashboard = ({ navigation }) => {
     setCurrentPage(1);
   }, [documents, searchQuery, selectedHistoryDate, selectedStatus]);
 
-  const statusOptions = [
-    "All Status",
-    "Report",
-    "Scan",
-    "Prescription",
-    "Lab test",
-    "Other",
-  ];
+ 
 
   const scrollForward = () => {
     dateScrollRef.current?.scrollTo({
@@ -567,7 +491,7 @@ const DoctorDashboard = ({ navigation }) => {
         </>
       )}
 
-      {Platform.OS === "web" && (
+      {Platform.OS === "web" && width > 1000 && (
         <View style={styles.webContainer}>
           <View style={styles.Left}>
             <NewestSidebar navigation={navigation} />
@@ -647,7 +571,7 @@ const DoctorDashboard = ({ navigation }) => {
                   <View style={styles.statIconRow}>
                     <View style={styles.statIconBox}>
                       <Image
-                        source={require("../../assets/DoctorsPortal/Icons/todayappointment.png")}
+                        source={require("../../assets/DoctorsPortal/Icons/pending consultation.png")}
                         style={styles.statIcon}
                         resizeMode="contain"
                       />
@@ -1259,6 +1183,422 @@ const DoctorDashboard = ({ navigation }) => {
           </View>
         </View>
       )}
+
+      {(Platform.OS !== "web" || width < 1000) && (
+        <ScrollView
+          style={stylesMobile.container}
+          contentContainerStyle={{ paddingBottom: 30 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+
+          <StatusBar barStyle="light-content" backgroundColor="#fff" />
+          <View
+            style={[
+              styles.header,
+              Platform.OS === "web" ? { height: "auto" } : { height: "8%" },
+            ]}
+          >
+            <HeaderLoginSignUp navigation={navigation} />
+          </View>
+
+          <View style={stylesMobile.welcomeSection}>
+            <Text style={stylesMobile.welcomeText}>
+              Subscription Usage Stats
+            </Text>
+          </View>
+          {/* Stats Cards */}
+          <View style={stylesMobile.statsGrid}>
+            <View style={stylesMobile.statCard}>
+              <View style={styles.statIconRow}>
+                <View style={styles.statIconBox}>
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/todayappointment.png")}
+                    style={styles.statIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+
+                <View style={styles.statsIconBox}>
+                  <Text style={styles.statsIconText}>15.8%</Text>
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/upArrow.png")}
+                    style={styles.statsIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+              <Text style={stylesMobile.statTitle}>Today's Appointments</Text>
+              <Text style={stylesMobile.statValue}>
+                {bookings?.length || 0}
+              </Text>
+            </View>
+
+            <View style={stylesMobile.statCard}>
+              <View style={styles.statIconRow}>
+                <View style={styles.statIconBox}>
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/todayappointment.png")}
+                    style={styles.statIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+
+                <View style={styles.statsIconBox}>
+                  <Text style={styles.statsIconText}>15.8%</Text>
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/upArrow.png")}
+                    style={styles.statsIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+              <Text style={stylesMobile.statTitle}>Total Subscribers</Text>
+              <Text style={stylesMobile.statValue}>{subscriberCount}</Text>
+            </View>
+
+            <View style={stylesMobile.statCard}>
+              <View style={styles.statIconRow}>
+                <View style={styles.statIconBox}>
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/pending consultation.png")}
+                    style={styles.statIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+
+                <View style={styles.statsIconBox}>
+                  <Text style={styles.statsIconText}>15.8%</Text>
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/downArrow.png")}
+                    style={styles.statsIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+              <Text style={stylesMobile.statTitle}>Pending Consultation</Text>
+              <Text style={stylesMobile.statValue}>0</Text>
+            </View>
+
+            <View style={stylesMobile.statCard}>
+              <View style={styles.statIconRow}>
+                <View style={styles.statIconBox}>
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/todayappointment.png")}
+                    style={styles.statIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+
+                <View style={styles.statsIconBox}>
+                  <Text style={styles.statsIconText}>15.8%</Text>
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/upArrow.png")}
+                    style={styles.statsIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+              <Text style={stylesMobile.statTitle}>Earning This Month</Text>
+              <Text style={stylesMobile.statValue}>
+                ₹{availableAmount.toLocaleString()}
+              </Text>
+            </View>
+          </View>
+
+          {/* Upcoming Appointments */}
+          <View style={stylesMobile.section}>
+            <Text style={stylesMobile.sectionTitle}>Upcoming Appointment</Text>
+
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 10,
+                // marginLeft: "auto",
+                // marginRight: "2%",
+                marginTop: "3%",
+                marginBottom: "4%",
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: "#D9D9D9",
+                  }}
+                />
+                <Text style={{ fontSize: 13 }}>Available Slots</Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: "#FF7072",
+                  }}
+                />
+                <Text style={{ fontSize: 13 }}>Selected</Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: "#FFFFFF",
+                    borderWidth: 1,
+                    borderColor: "#D2D6DB",
+                  }}
+                />
+                <Text style={{ fontSize: 13 }}>Unavailable</Text>
+              </View>
+            </View>
+
+            {/* Date Scroll */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={stylesMobile.dateRow}>
+                {getCurrentMonthDays().map((date, index) => {
+                  const isActive = isSameDate(date, selectedDate);
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        stylesMobile.dateBox,
+                        isActive && stylesMobile.dateBoxActive,
+                      ]}
+                      onPress={() => setSelectedDate(date)}
+                    >
+                      <Text
+                        style={[
+                          stylesMobile.dateText,
+                          isActive && stylesMobile.dateTextActive,
+                        ]}
+                      >
+                        {date.getDate()}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            {/* Appointment Cards */}
+            {bookings?.length > 0 ? (
+              bookings.map((item, idx) => (
+                <View key={idx} style={stylesMobile.appointmentCard}>
+                  <View style={stylesMobile.appointmentLeft}>
+                    <View style={{ marginTop: "4%" }}>
+                      <Image
+                        source={require("../../assets/DoctorsPortal/Icons/mobilevideos.png")}
+                        style={styles.statIcon}
+                        resizeMode="contain"
+                      />
+                    </View>
+
+                    <View>
+                      <Text style={stylesMobile.patientName}>
+                        {item.patientName}
+                      </Text>
+                      <Text style={stylesMobile.subText}>
+                        Consultation type : {item.consultationType}
+                      </Text>
+                      <Text style={stylesMobile.subText}>
+                        Time: {item.start_time}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={stylesMobile.joinBtn}
+                    onPress={() => {
+                      if (item.meet_link) {
+                        Linking.openURL(item.meet_link);
+                      }
+                    }}
+                  >
+                    <Text style={stylesMobile.joinBtnText}>Join Call</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            ) : (
+              <Text style={stylesMobile.noData}>No Appointments</Text>
+            )}
+          </View>
+
+          {/* Patient History */}
+          <View style={stylesMobile.section}>
+            <Text style={stylesMobile.sectionTitle}>Patient History</Text>
+
+            <View style={{ flexDirection: "row" }}>
+              <View
+                style={{
+                  width: "85%",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: "#ddd",
+                  borderRadius: 5,
+                  paddingHorizontal: 15,
+                  paddingVertical: 6,
+                  marginTop: 10,
+                  marginBottom: 10,
+                }}
+              >
+                <Ionicons name="search-outline" size={20} color="#9CA3AF" />
+                <TextInput
+                  style={stylesMobile.searchInputFields}
+                  placeholder="Search For Document"
+                  placeholderTextColor="#999"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
+              <TouchableOpacity
+                style={{
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginTop: "1%",
+                  marginLeft: "4%",
+                }}
+              >
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/mobilefilter.png")}
+                  style={styles.statIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {filteredDocuments.length > 0 ? (
+              filteredDocuments.map((doc, idx) => (
+                <View key={idx} style={stylesMobile.historyCard}>
+                  <Text style={stylesMobile.patientName}>{doc.name}</Text>
+                  <Text style={stylesMobile.subText}>
+                    Date: {formatDate(fromDateKey(doc.date))}
+                  </Text>
+                  <Text style={stylesMobile.statusBadgeMobile}>Scheduled</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={stylesMobile.noData}>No History Found</Text>
+            )}
+          </View>
+
+          {/* Notifications */}
+          <View style={stylesMobile.section}>
+            <View style={stylesMobile.statIconBoxtwo}>
+              <Image
+                source={require("../../assets/DoctorsPortal/Icons/secondrowicon.png")}
+                style={styles.statIcon}
+                resizeMode="contain"
+              />
+              <Text style={stylesMobile.sectionTitle}>Notification</Text>
+            </View>
+
+            <TouchableOpacity style={styles.notifItem}>
+              <View style={styles.notifIcon}>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
+                  style={styles.statIcon}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.notifBody}>
+                <Text style={styles.notifTitle}>
+                  New Patient Subscribed Preeti Sabrawal
+                </Text>
+                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notifItem}>
+              <View style={styles.notifIcon}>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
+                  style={styles.statIcon}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.notifBody}>
+                <Text style={styles.notifTitle}>
+                  New Patient Subscribed Preeti Sabrawal
+                </Text>
+                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notifItem}>
+              <View style={styles.notifIcon}>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
+                  style={styles.statIcon}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.notifBody}>
+                <Text style={styles.notifTitle}>
+                  New Patient Subscribed Preeti Sabrawal
+                </Text>
+                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notifItem}>
+              <View style={styles.notifIcon}>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
+                  style={styles.statIcon}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.notifBody}>
+                <Text style={styles.notifTitle}>
+                  New Patient Subscribed Preeti Sabrawal
+                </Text>
+                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notifItem}>
+              <View style={styles.notifIcon}>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
+                  style={styles.statIcon}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.notifBody}>
+                <Text style={styles.notifTitle}>
+                  New Patient Subscribed Preeti Sabrawal
+                </Text>
+                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      )}
     </>
   );
 };
@@ -1582,61 +1922,7 @@ const styles = StyleSheet.create({
   pageBtnTextActive: {
     color: "#fff",
   },
-  todayList: {
-    gap: 8,
-  },
-  todayItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f9f9f9",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 4,
-    paddingVertical: "1.5%",
-    paddingHorizontal: "1.5%",
-    gap: 10,
-  },
-  todayTime: {
-    backgroundColor: "#FFE5E5",
-    paddingVertical: "1%",
-    paddingHorizontal: "1.5%",
-    borderRadius: 3,
-    alignItems: "center",
-  },
-  todayTimeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#FF6B6B",
-  },
-  todayAMPM: {
-    fontSize: 10,
-    color: "#FF6B6B",
-    fontWeight: "600",
-  },
-  todayInfo: {
-    flex: 1,
-  },
-  todayName: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#333",
-  },
-  todaySubtext: {
-    fontSize: 11,
-    color: "#999",
-    marginTop: "2%",
-  },
-  todayJoinBtn: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: "2%",
-    paddingHorizontal: "3%",
-    borderRadius: 3,
-  },
-  todayJoinText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
-  },
+
   bottomLayout: {
     flexDirection: "row",
     paddingHorizontal: "2%",
@@ -1775,11 +2061,6 @@ const styles = StyleSheet.create({
     color: "#999",
     marginTop: "2%",
   },
-  notifMenu: {
-    fontSize: 12,
-    color: "#999",
-    fontWeight: "bold",
-  },
 
   // ✅ web date input styles
   webDateWrap: {
@@ -1787,40 +2068,225 @@ const styles = StyleSheet.create({
   },
   webDateInput: {
     width: "100%",
-    padding: "8px 10px",
+    padding: "2%",
     borderRadius: "3px",
     border: "1px solid #ddd",
     fontSize: "11px",
     backgroundColor: "#fff",
-    outline: "none",
+    outlineStyle: "none",
+  },
+});
+const stylesMobile = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 14,
   },
 
-  // (dropdown styles used in your status dropdown – keep them if you already had them elsewhere)
-  statusDropdown: {
-    position: "absolute",
-    top: 38,
-    left: 0,
+  mobileHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+
+  logo: {
+    width: 120,
+    height: 35,
+    resizeMode: "contain",
+  },
+
+  headerIcons: {
+    flexDirection: "row",
+    gap: 14,
+  },
+
+  headerIcon: {
+    fontSize: 20,
+  },
+
+  welcomeText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#222",
+    marginBottom: 14,
+  },
+  welcomeSection: {
+    marginTop: 14,
+    marginBottom: 10,
+    backgroundColor: "#FFFFFF",
+    width: "100%",
+  },
+  welcomeText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#000000",
+    padding: 14,
+  },
+  statIconBoxtwo: {
+    flexDirection: "row",
+    width: "100%",
+    height: 42,
+    borderRadius: 8,
+    gap: 10,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  searchInputFields: {
+    paddingHorizontal: 10,
+    borderRadius: 3,
+    flex: 1,
+    minWidth: 150,
+    fontSize: 14,
+    color: "#333",
     backgroundColor: "#fff",
+    outlineStyle: "none",
+  },
+  statCard: {
+    width: "48%",
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+    elevation: 2,
+  },
+
+  statTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#000000",
+  },
+
+  statValue: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1680ECBF",
+    marginTop: 6,
+  },
+
+  section: {
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    padding: 14,
+    marginTop: 16,
+    elevation: 2,
+    marginBottom: 12,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: "2%",
+    color: "#222",
+  },
+
+  dateRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+
+  dateBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 4,
-    zIndex: 999,
-    minWidth: 140,
-    paddingVertical: 6,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  statusOption: {
+
+  dateBoxActive: {
+    backgroundColor: "#FF6B6B",
+    borderColor: "#FF6B6B",
+  },
+
+  dateText: {
+    color: "#555",
+    fontWeight: "600",
+  },
+
+  dateTextActive: {
+    color: "#fff",
+  },
+
+  appointmentCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: "#eee",
+  },
+
+  appointmentLeft: {
+    flexDirection: "row",
+    gap: "4%",
+
+    flex: 1,
+  },
+
+  patientName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#444444",
+  },
+
+  subText: {
+    fontSize: 12,
+    color: "#999999",
+    fontWeight: "400",
+    marginTop: 2,
+  },
+
+  joinBtn: {
+    marginTop: "19%",
+    marginLeft: "4%",
+    backgroundColor: "#FF6B6B",
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
+    borderRadius: 6,
   },
-  statusOptionActive: {
-    backgroundColor: "#FFE7E8",
+
+  joinBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 12,
   },
-  statusOptionText: {
+
+  historyCard: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: "#eee",
+  },
+
+  statusBadgeMobile: {
+    marginTop: 4,
     fontSize: 11,
-    color: "#333",
+    color: "#4CAF50",
+    fontWeight: "600",
   },
-  statusOptionTextActive: {
-    fontWeight: "700",
+
+  notificationCard: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: "#eee",
+  },
+
+  notifText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#222",
+  },
+
+  noData: {
+    textAlign: "center",
+    color: "#999",
+    fontSize: 13,
+    paddingVertical: 10,
   },
 });
 
