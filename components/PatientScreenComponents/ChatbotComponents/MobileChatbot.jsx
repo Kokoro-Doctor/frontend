@@ -345,14 +345,14 @@ const MobileChatbot = () => {
         </View>
 
         <View style={styles.languageContainer}>
-          <Pressable onPress={() => setModalVisible(!modalVisible)}>
+          {/* <Pressable onPress={() => setModalVisible(!modalVisible)}>
             <Image
               source={require("../../../assets/Icons/languageSelector.png")}
               style={{ width: 30, height: 30 }}
             />
-          </Pressable>
+          </Pressable> */}
 
-          {modalVisible && (
+          {/* {modalVisible && (
             <View style={styles.dropdown}>
               {languages.map((lang) => (
                 <Pressable
@@ -376,7 +376,7 @@ const MobileChatbot = () => {
                 </Pressable>
               ))}
             </View>
-          )}
+          )} */}
         </View>
       </View>
       <FlatList
