@@ -39,6 +39,7 @@ const LandingPage = ({ navigation, route }) => {
   const [showDoctorAuth, setShowDoctorAuth] = useState(false);
   const { user, role, isLoading } = useAuth();
   const isAuthenticated = !!user;
+  //const hasRedirectedRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -142,12 +143,14 @@ const LandingPage = ({ navigation, route }) => {
 
     if (!isAuthenticated) {
       setShowPatientAuth(true);
+      //setShowDoctorAuth(true);
     } else {
       setShowPatientAuth(false);
       setShowDoctorAuth(false);
     }
   }, [isAuthenticated, isLoading]);
 
+  
   return (
     <>
       {Platform.OS === "web" && width > 1000 && (

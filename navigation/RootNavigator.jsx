@@ -69,7 +69,7 @@ import { ActivityIndicator, Platform, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { RegistrationProvider } from "../contexts/RegistrationContext";
 import { useRole } from "../contexts/RoleContext";
-
+import AuthGate from "../navigation/AuthGate";
 // ✅ Direct imports (always needed instantly)
 import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
@@ -221,11 +221,11 @@ const RootNavigation = () => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
       const pathname = window.location.pathname;
       // If already on doctor route, preserve it
-      if (pathname.startsWith("/doctor")) {
+      if (!user && pathname.startsWith("/doctor")) {
         return "DoctorAppNavigation";
       }
       // If already on patient route, preserve it
-      if (pathname.startsWith("/patient")) {
+      if (!user && pathname.startsWith("/patient")) {
         return "PatientAppNavigation";
       }
       // If on Home, check role
@@ -304,6 +304,7 @@ const RootNavigation = () => {
         >
           {/* Always loaded instantly */}
           <Stack.Screen name="LandingPage" component={LandingPageWithAuth} />
+          <Stack.Screen name="AuthGate" component={AuthGate} />
 
           {/* Conditionally lazy/static screens */}
           <Stack.Screen
