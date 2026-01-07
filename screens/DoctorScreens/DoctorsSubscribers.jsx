@@ -22,6 +22,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import { Ionicons } from "@expo/vector-icons";
 
 const DoctorsSubscribers = ({ navigation }) => {
   const { width } = useWindowDimensions();
@@ -31,6 +32,7 @@ const DoctorsSubscribers = ({ navigation }) => {
   const doctorId = user?.doctor_id;
   const [subscribers, setSubscribers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useFocusEffect(
     useCallback(() => {
@@ -272,8 +274,9 @@ const DoctorsSubscribers = ({ navigation }) => {
                           // ))
                           subscribers.map((item, index) => (
                             <SubscriberCard
-                              key={`${item.id}_${index}`}
+                              key={`${item.user_id}_${index}`}
                               user={item}
+                              doctorId={doctorId}
                             />
                           ))
                         ) : (
@@ -303,14 +306,52 @@ const DoctorsSubscribers = ({ navigation }) => {
             <HeaderLoginSignUp navigation={navigation} isDoctorPortal={true} />
           </View>
           <Text style={styles.appContainerText}>Your Subscribers</Text>
-          <View style={styles.appSearchBox}>
-            <MaterialIcons name="search" size={20} color="#B9B9B988" />
-            <TextInput
-              style={styles.appSearchBoxText}
-              placeholder="Search For Patient"
-              value={searchText}
-              onChangeText={setSearchText}
-            />
+          <View style={{ flexDirection: "row" }}>
+            <View
+              style={{
+                width: "90%",
+                flexDirection: "row",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: "#ddd",
+                borderRadius: 5,
+                paddingHorizontal: 15,
+                paddingVertical: 6,
+                marginTop: 10,
+                marginBottom: 10,
+                marginLeft:"4%",
+              }}
+            >
+              <Ionicons name="search-outline" size={20} color="#9CA3AF" />
+              <TextInput
+                style={{
+                  paddingHorizontal: 10,
+                  borderRadius: 3,
+                  flex: 1,
+                  minWidth: 150,
+                  fontSize: 14,
+                  color: "#333",
+                  backgroundColor: "#fff",
+                  outlineStyle: "none",
+                }}
+                placeholder="Search Patients"
+                placeholderTextColor="#999"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              <TouchableOpacity
+                style={{
+                  marginTop: "1%",
+                  marginLeft: "44%",
+                }}
+              >
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/filter__Icon.png")}
+                  style={styles.statIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.appLowerPart}>
             <ScrollView>
@@ -323,7 +364,7 @@ const DoctorsSubscribers = ({ navigation }) => {
                 //   <SubscriberCard key={item.id} user={item} />
                 // ))
                 subscribers.map((item, index) => (
-                  <SubscriberCard key={`${item.id}_${index}`} user={item} />
+                  <SubscriberCard key={`${item.user_id}_${index}`} user={item} doctorId={doctorId} />
                 ))
               ) : (
                 <View style={styles.appLowerCenterSection}>

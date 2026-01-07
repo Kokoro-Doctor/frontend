@@ -10,14 +10,16 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
-const SubscriberCard = ({ user }) => {
+const SubscriberCard = ({ user, doctorId }) => {
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
 
   const handleContinueButtonApp = () => {
     navigation.navigate("GeneratePrescription", {
-      userId: user.id,
-      doctorId: user.doctorId,
+      userId: user.user_id,
+      doctorId: doctorId,
+      userName: user.name,
+      appointmentDate: user.date,
     });
   };
 
@@ -127,9 +129,12 @@ const SubscriberCard = ({ user }) => {
                 <Text style={styles.appSecondText}>Time : {user.time}</Text>
               </View>
               <View style={styles.appButton}>
-                <TouchableOpacity onPress={""}>
+                {/* <TouchableOpacity onPress={""}>
                   <Text style={styles.appButtonText}>Details</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
+                <TouchableOpacity onPress={handleContinueButtonApp}>
+              <Text style={styles.appButtonText}>Details</Text>
+            </TouchableOpacity>
               </View>
             </View>
           </View>

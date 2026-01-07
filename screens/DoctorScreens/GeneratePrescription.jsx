@@ -19,6 +19,7 @@ import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSideba
 //import MedilockerUsers from "../../components/DoctorsPortalComponents/MedilockerUsers";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import { API_URL } from "../../env-vars";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -29,15 +30,17 @@ const GeneratePrescription = ({ navigation, route }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const { userId, doctorId } = route.params || {};
+  const { userId, doctorId, userName, appointmentDate } = route.params || {};
 
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
     }, [setChatbotConfig])
   );
-
+  
   // useEffect(() => {
   //   if (!userId) return;
 
@@ -70,7 +73,8 @@ const GeneratePrescription = ({ navigation, route }) => {
         // USER
         const userRes = await fetch(`${API_URL}/users/${userId}`);
         const userData = await userRes.json();
-        setUser(userData.user || userData);
+        const userProfile = userData.user || userData;
+        setUser({ ...userProfile, name: userName || userProfile.name });
 
         // APPOINTMENT (SOURCE OF TRUTH)
         const apptRes = await fetch(
@@ -80,7 +84,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
         console.log("📅 Appointment:", apptData);
 
-        setAppointment(apptData);
+        setAppointment({ ...apptData, date: appointmentDate || apptData?.date });
       } catch (err) {
         console.error("❌ Fetch failed:", err);
       } finally {
@@ -101,6 +105,195 @@ const GeneratePrescription = ({ navigation, route }) => {
 
     return first + last;
   };
+  const MobileGeneratePrescription = ({
+    user,
+    appointment,
+    searchText,
+    setSearchText,
+  }) => {
+    return (
+      <ScrollView style={m.container} showsVerticalScrollIndicator={false}>
+        {/* PROFILE */}
+        <View style={m.profileCard}>
+          {menuVisible && (
+            <View style={m.dropdown}>
+              <TouchableOpacity
+                style={m.dropdownItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  // CALL ACTION
+                }}
+              >
+                <Text style={m.dropdownText}>Call</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={m.dropdownItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  // NAVIGATE OR GENERATE
+                }}
+              >
+                <Text style={m.dropdownText}>Generate Prescription</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={m.dropdownItem}
+                onPress={() => {
+                  setMenuVisible(false);
+                  // OPEN MEDILOCKER
+                }}
+              >
+                <Text style={m.dropdownText}>Medilocker</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={m.profileTop}>
+            <View style={m.avatar}>
+              {user?.image ? (
+                <Image source={{ uri: user.image }} style={m.avatarImg} />
+              ) : (
+                <Text style={m.avatarText}>
+                  {user?.name?.charAt(0)?.toUpperCase()}
+                </Text>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={{position: "absolute", marginLeft: "85%"}}
+              onPress={() => setMenuVisible(!menuVisible)}
+            >
+              <Text style={m.menu}>⋮</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={m.name}>{user?.name}</Text>
+          <Text style={m.subtitle}>(Heart Patient)</Text>
+        </View>
+
+        {/* DETAILS */}
+        <View style={m.infoCard}>
+          {/* <InfoRow label="Age" value={user?.age} /> */}
+          <View style={{ marginTop: "2%", marginLeft: "3%" }}>
+            <Text style={m.infoText}>Age</Text>
+            <Text style={m.infoTxt}>{user?.age}</Text>
+          </View>
+          <View style={{ marginTop: "5%", marginLeft: "3%" }}>
+            <Text style={m.infoText}>Gender</Text>
+            <Text style={m.infoTxt}>{user?.gender}</Text>
+          </View>
+          {/* <InfoRow label="Gender" value={user?.gender} /> */}
+        </View>
+
+        <View style={m.infoCard}>
+          {/* <InfoRow
+            label="Appointment Date"
+            value={appointment?.date?.split("T")[0]}
+          /> */}
+          <View style={{ marginTop: "2%", marginLeft: "3%" }}>
+            <Text style={m.infoText}>Appointment Date</Text>
+            <Text style={m.infoTxt}>{appointment?.date?.split("T")[0]}</Text>
+          </View>
+
+          <View style={{ marginTop: "5%", marginLeft: "3%" }}>
+            <Text style={m.infoText}>Time</Text>
+            <Text style={m.infoTxt}>11:00 AM</Text>
+          </View>
+
+          {/* <InfoRow label="Time" value="11:00 AM" />
+          <InfoRow label="Status" value="Cancelled" /> */}
+        </View>
+
+        <View style={m.infoCard}>
+          <View style={{ marginTop: "2%", marginLeft: "3%" }}>
+            <Text style={m.infoText}>Status</Text>
+            <Text style={m.infoTxt}>Cancelled</Text>
+          </View>
+        </View>
+
+        {/* DOCUMENTS */}
+        <View style={m.docsCard}>
+          <View style={m.docsHeader}>
+            <Text style={m.docsTitle}>Patients Uploaded Documents</Text>
+            <TouchableOpacity>
+              <Text style={m.filter}>⏷</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ flexDirection: "row" }}>
+            <View
+              style={{
+                width: "100%",
+                flexDirection: "row",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: "#ddd",
+                borderRadius: 5,
+                paddingHorizontal: 15,
+                paddingVertical: 6,
+                marginTop: 10,
+                marginBottom: 10,
+              }}
+            >
+              <Ionicons name="search-outline" size={20} color="#9CA3AF" />
+              <TextInput
+                style={{
+                  paddingHorizontal: 10,
+                  borderRadius: 3,
+                  flex: 1,
+                  minWidth: 150,
+                  fontSize: 14,
+                  color: "#333",
+                  backgroundColor: "#fff",
+                  outlineStyle: "none",
+                }}
+                placeholder="Search For Document"
+                placeholderTextColor="#999"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              <TouchableOpacity
+                style={{
+                  marginTop: "1%",
+                  marginLeft: "44%",
+                }}
+              >
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/filter__Icon.png")}
+                  style={styles.statIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* SAMPLE FILE ITEM */}
+          {[1, 2, 3].map((_, i) => (
+            <TouchableOpacity key={i} style={m.fileRow}>
+              <Text style={m.fileIcon}>📄</Text>
+
+              <View style={{ flex: 1 }}>
+                <Text style={m.fileName}>Blood sample report</Text>
+                <Text style={m.fileMeta}>PDF · 200KB</Text>
+              </View>
+
+              <TouchableOpacity>
+                <Text style={m.more}>⋯</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const InfoRow = ({ label, value }) => (
+    <View style={m.infoRow}>
+      <Text style={m.infoLabel}>{label}</Text>
+      <Text style={m.infoValue}>{value || "-"}</Text>
+    </View>
+  );
 
   return (
     <>
@@ -433,6 +626,14 @@ const GeneratePrescription = ({ navigation, route }) => {
           </View>
         </View>
       )}
+      {(Platform.OS !== "web" || width < 1000) && (
+        <MobileGeneratePrescription
+          user={user}
+          appointment={appointment}
+          searchText={searchText}
+          setSearchText={setSearchText}
+        />
+      )}
     </>
   );
 };
@@ -701,6 +902,201 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#444444",
     fontFamily: "Poppins - Medium",
+  },
+});
+const m = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F6F6F6",
+    padding: 16,
+    zIndex: 1,
+  },
+
+  profileCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 12,
+    zIndex: 10,
+  },
+
+  profileTop: {
+    width: "100%",
+    flexDirection: "row",
+
+    justifyContent: "center",
+  },
+
+  avatar: {
+    borderWidth: 1,
+    height: 72,
+    width: 72,
+    borderRadius: 36,
+    backgroundColor: "#FFE5E5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  avatarImg: {
+    height: 72,
+    width: 72,
+    borderRadius: 36,
+  },
+
+  avatarText: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#FF7072",
+  },
+
+  menu: {
+    fontSize: 22,
+    color: "#999",
+  },
+
+  name: {
+    marginTop: "3%",
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#000000",
+  },
+
+  subtitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000000",
+    marginTop: "2%",
+  },
+
+  infoCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 2,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: "column",
+    borderColor: "#D6D7D8",
+    zIndex: 1,
+    // borderWidth: 1,
+  },
+  infoText: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#444444",
+  },
+  infoTxt: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000000",
+  },
+
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+    borderBottomWidth: 0.5,
+    borderColor: "#EEE",
+  },
+
+  infoLabel: {
+    fontSize: 14,
+    color: "#777",
+  },
+
+  infoValue: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#000",
+  },
+
+  docsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+  },
+
+  docsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+
+  docsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  filter: {
+    fontSize: 18,
+  },
+
+  searchBox: {
+    borderWidth: 1,
+    borderColor: "#FF7072",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+
+  searchInput: {
+    height: 40,
+    fontSize: 14,
+  },
+
+  fileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 0.5,
+    borderColor: "#EEE",
+  },
+
+  fileIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+
+  fileName: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+
+  fileMeta: {
+    fontSize: 12,
+    color: "#777",
+  },
+
+  more: {
+    fontSize: 30,
+    color: "#444444",
+    fontWeight: "800",
+  },
+  dropdown: {
+    position: "absolute",
+    top: 90,
+    right: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 6,
+    width: 180,
+    elevation: 6, // Android shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    zIndex: 10,
+  },
+
+  dropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 0.5,
+    borderColor: "#EEE",
+  },
+
+  dropdownText: {
+    fontSize: 14,
+    color: "#000",
   },
 });
 

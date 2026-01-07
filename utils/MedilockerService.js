@@ -120,6 +120,7 @@ export const extractStructuredData = async (files) => {
     const apiUrl = `${medilocker_API}/extract-structured-data`;
     
     console.log("[extractStructuredData] Starting prescription extraction...");
+    console.log("[extractStructuredData] API URL:", apiUrl);
     console.log("[extractStructuredData] Number of files:", files?.length || 0);
     
     // Log file info (without base64 content)
@@ -141,13 +142,24 @@ export const extractStructuredData = async (files) => {
     
     try {
         console.log("[extractStructuredData] Sending fetch request...");
+        
+        // Create an AbortController for timeout handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.error("[extractStructuredData] Request timeout - aborting after 60 seconds");
+            controller.abort();
+        }, 60000); // 60 second timeout for mobile networks
+        
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: requestBodyString,
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         console.log("[extractStructuredData] Response received:", {
             status: response.status,
@@ -166,8 +178,12 @@ export const extractStructuredData = async (files) => {
                 errorDetails = errorData;
             } catch (e) {
                 console.error("[extractStructuredData] Failed to parse error response:", e);
-                const errorText = await response.text().catch(() => "Could not read error response");
-                console.error("[extractStructuredData] Error response text:", errorText);
+                try {
+                    const errorText = await response.text();
+                    console.error("[extractStructuredData] Error response text:", errorText);
+                } catch (textError) {
+                    console.error("[extractStructuredData] Could not read error response");
+                }
                 errorMessage = response.statusText || errorMessage;
             }
             
@@ -177,9 +193,15 @@ export const extractStructuredData = async (files) => {
             throw fullError;
         }
 
-        console.log("[extractStructuredData] Parsing response JSON...");
+        console.log("[extractStructuredData] Parsing response...");
         const responseText = await response.text();
-        console.log("[extractStructuredData] Raw response text:", responseText.substring(0, 500));
+        console.log("[extractStructuredData] Raw response length:", responseText.length);
+        console.log("[extractStructuredData] Raw response preview:", responseText.substring(0, 500));
+        
+        if (!responseText || responseText.trim() === "") {
+            console.error("[extractStructuredData] Empty response received");
+            throw new Error("Server returned an empty response");
+        }
         
         let data;
         try {
@@ -190,12 +212,13 @@ export const extractStructuredData = async (files) => {
             throw new Error(`Failed to parse response: ${parseError.message}`);
         }
         
-        console.log("[extractStructuredData] Parsed data:", JSON.stringify(data, null, 2));
-        console.log("[extractStructuredData] Extraction successful:", {
+        console.log("[extractStructuredData] Parsed data successfully");
+        console.log("[extractStructuredData] Data keys:", Object.keys(data || {}));
+        console.log("[extractStructuredData] Extraction result:", {
             hasPrescription: !!data.prescription,
             prescriptionLength: data.prescription?.length || 0,
-            prescriptionValue: data.prescription?.substring(0, 100) || "EMPTY",
-            dataKeys: Object.keys(data || {})
+            hasPatinetDetails: !!data.patient_details,
+            patientDetailsKeys: Object.keys(data.patient_details || {}),
         });
         
         return data;
@@ -212,9 +235,22 @@ export const extractStructuredData = async (files) => {
         // Handle different error types
         let userFriendlyMessage = "Failed to extract prescription data";
         
-        if (err.name === "TypeError" && err.message.includes("Failed to fetch")) {
-            userFriendlyMessage = `Network error: Unable to connect to the server. Please check:\n- Your internet connection\n- API URL: ${apiUrl}\n- CORS settings\n\nOriginal error: ${err.message}`;
-            console.error("[extractStructuredData] Network/CORS error detected");
+        if (err.name === "AbortError") {
+            userFriendlyMessage = "Request timeout: The server took too long to respond. Please try again with a smaller file or check your network connection.";
+            console.error("[extractStructuredData] Request timeout error");
+        } else if (err.name === "TypeError") {
+            if (err.message.includes("Failed to fetch")) {
+                userFriendlyMessage = `Network error: Unable to connect to the server.\n- Check your internet connection\n- Make sure the API is accessible\n- Try again in a moment`;
+                console.error("[extractStructuredData] Network/fetch error detected");
+            } else {
+                userFriendlyMessage = `Network error: ${err.message}`;
+            }
+        } else if (err.status === 413) {
+            userFriendlyMessage = "File too large: The file size exceeds the server limit. Please try with a smaller file.";
+        } else if (err.status === 408) {
+            userFriendlyMessage = "Request timeout: The server took too long to respond. Please try again.";
+        } else if (err.status >= 500) {
+            userFriendlyMessage = `Server error: The server is temporarily unavailable. Please try again later.`;
         } else if (err.status) {
             userFriendlyMessage = `Server error (${err.status}): ${err.message}`;
         } else {

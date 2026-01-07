@@ -1196,7 +1196,7 @@ const DoctorDashboard = ({ navigation }) => {
           <View
             style={[
               styles.header,
-              Platform.OS === "web" ? { height: "auto" } : { height: "8%" },
+              Platform.OS === "web" ? { height: "auto" } : { height: "auto" },
             ]}
           >
             <HeaderLoginSignUp navigation={navigation} />
