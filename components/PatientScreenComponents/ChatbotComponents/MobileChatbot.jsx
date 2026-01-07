@@ -391,9 +391,9 @@ const MobileChatbot = () => {
       />
       <View style={styles.inputContainer}>
         <View style={styles.inputIcons}>
-          <Pressable>
+          {/* <Pressable>
             <MaterialIcons name="mic" size={24} color="#333" />
-          </Pressable>
+          </Pressable> */}
           <Pressable>
             <MaterialIcons name="camera-alt" size={24} color="#333" />
           </Pressable>
