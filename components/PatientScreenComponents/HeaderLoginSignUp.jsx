@@ -29,7 +29,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [isSideBarVisible, setIsSideBarVisible] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState("login");
+  const [authModalMode, setAuthModalMode] = useState("signup");
   const [doctorModalVisible, setDoctorModalVisible] = useState(false);
   const { registerOpenModal } = useLoginModal();
   // const { user: contextUser, logout } = useAuth();

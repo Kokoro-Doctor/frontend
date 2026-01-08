@@ -31,7 +31,7 @@ const WEB_CARD_WIDTH = 300;
 const PatientAuthModal = ({
   visible,
   onRequestClose,
-  initialMode = "login",
+  initialMode = "signup",
   onDoctorRegister,
 }) => {
   const navigation = useNavigation();
@@ -372,10 +372,10 @@ const PatientAuthModal = ({
         setInfoMessage("Login successful! Redirecting...");
         setShowOtpModal(false);
         setIsProcessing(false);
-        
+
         // Close modal first
         onRequestClose();
-        
+
         // Navigate based on role immediately after login
         const userRole = result?.role;
         if (userRole === "doctor") {
@@ -398,7 +398,7 @@ const PatientAuthModal = ({
             navigation.navigate("LandingPage");
           }, 100);
         }
-        
+
         return result;
       }
       setIsProcessing(false);
