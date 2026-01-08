@@ -686,25 +686,6 @@ const PatientAuthModal = ({
               <TouchableOpacity
                 style={[
                   styles.modeToggleButton,
-                  mode === "login" && styles.modeToggleButtonActive,
-                ]}
-                onPress={() => {
-                  setMode("login");
-                  resetFlow();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modeToggleText,
-                    mode === "login" && styles.modeToggleTextActive,
-                  ]}
-                >
-                  Login
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modeToggleButton,
                   mode === "signup" && styles.modeToggleButtonActive,
                 ]}
                 onPress={() => {
@@ -719,6 +700,25 @@ const PatientAuthModal = ({
                   ]}
                 >
                   Sign Up
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modeToggleButton,
+                  mode === "login" && styles.modeToggleButtonActive,
+                ]}
+                onPress={() => {
+                  setMode("login");
+                  resetFlow();
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modeToggleText,
+                    mode === "login" && styles.modeToggleTextActive,
+                  ]}
+                >
+                  Login
                 </Text>
               </TouchableOpacity>
             </View>
