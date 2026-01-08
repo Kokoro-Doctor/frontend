@@ -29,6 +29,9 @@ export const askBot = async (user, role, messageToSend, selectedLanguage) => {
   try {
     let bodyPayload;
 
+    // Normalize role: "doctor" stays "doctor", everything else (including null/undefined) becomes "patient"
+    const normalizedRole = role === "doctor" ? "doctor" : "patient";
+
     // If user is logged in, get the appropriate identifier
     if (user && role) {
       const identifier = getUserIdentifier(user, role);
@@ -42,16 +45,18 @@ export const askBot = async (user, role, messageToSend, selectedLanguage) => {
           doctor_id: identifier,
           message: messageToSend,
           language: selectedLanguage,
+          role: normalizedRole,
         };
       } else {
         bodyPayload = {
           user_id: identifier,
           message: messageToSend,
           language: selectedLanguage,
+          role: normalizedRole,
         };
       }
     } else {
-      // If anonymous user — use session_id
+      // If anonymous user — use session_id and default role to "patient"
       const sessionId = await getSessionId();
       
       if (!sessionId) {
@@ -61,6 +66,7 @@ export const askBot = async (user, role, messageToSend, selectedLanguage) => {
         session_id: sessionId,
         message: messageToSend,
         language: selectedLanguage,
+        role: normalizedRole, // Default to "patient" for anonymous users
       };
     }
 
