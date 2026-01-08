@@ -129,98 +129,136 @@ const Prescription = ({ navigation, route }) => {
   // Convert File object to base64
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
-      try {
-        // Check if this is a mobile file (from DocumentPicker) or web file
-        if (file.uri) {
-          // Mobile file - use fetch to read from URI
-          console.log(
-            "[fileToBase64] Mobile file detected, reading from URI:",
-            file.uri
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const result = reader.result;
+          // Extract base64 string (remove data:type;base64, prefix)
+          const base64String = result.split(",")[1];
+          resolve(base64String);
+        } catch (parseError) {
+          console.error(
+            "[fileToBase64] Error parsing base64 result:",
+            parseError
           );
-          fetch(file.uri)
-            .then((response) => response.blob())
-            .then((blob) => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                try {
-                  const result = reader.result;
-                  const base64String = result.split(",")[1];
-                  console.log(
-                    "[fileToBase64] Mobile file converted successfully"
-                  );
-                  resolve(base64String);
-                } catch (parseError) {
-                  console.error(
-                    "[fileToBase64] Error parsing base64 result:",
-                    parseError
-                  );
-                  reject(
-                    new Error(
-                      `Failed to parse base64 result: ${parseError.message}`
-                    )
-                  );
-                }
-              };
-              reader.onerror = (err) => {
-                console.error("[fileToBase64] FileReader error:", err);
-                reject(
-                  new Error(
-                    `Failed to read file "${file.name}": ${
-                      err.message || "Unknown error"
-                    }`
-                  )
-                );
-              };
-              reader.readAsDataURL(blob);
-            })
-            .catch((fetchError) => {
-              console.error("[fileToBase64] Fetch error:", fetchError);
-              reject(
-                new Error(
-                  `Failed to fetch file "${file.name}": ${fetchError.message}`
-                )
-              );
-            });
-        } else {
-          // Web file - use FileReader directly
-          console.log("[fileToBase64] Web file detected");
-          const reader = new FileReader();
-          reader.onload = () => {
-            try {
-              const result = reader.result;
-              const base64String = result.split(",")[1];
-              console.log("[fileToBase64] Web file converted successfully");
-              resolve(base64String);
-            } catch (parseError) {
-              console.error(
-                "[fileToBase64] Error parsing base64 result:",
-                parseError
-              );
-              reject(
-                new Error(
-                  `Failed to parse base64 result: ${parseError.message}`
-                )
-              );
-            }
-          };
-          reader.onerror = (err) => {
-            console.error("[fileToBase64] FileReader error:", {
-              error: err,
-              filename: file.name,
-            });
-            reject(
-              new Error(
-                `Failed to read file "${file.name}": ${
-                  err.message || "Unknown error"
-                }`
-              )
-            );
-          };
-          reader.readAsDataURL(file);
+          reject(
+            new Error(`Failed to parse base64 result: ${parseError.message}`)
+            // try {
+            //   // Check if this is a mobile file (from DocumentPicker) or web file
+            //   if (file.uri) {
+            //     // Mobile file - use fetch to read from URI
+            //     console.log(
+            //       "[fileToBase64] Mobile file detected, reading from URI:",
+            //       file.uri
+          );
+          //   fetch(file.uri)
+          //     .then((response) => response.blob())
+          //     .then((blob) => {
+          //       const reader = new FileReader();
+          //       reader.onload = () => {
+          //         try {
+          //           const result = reader.result;
+          //           const base64String = result.split(",")[1];
+          //           console.log(
+          //             "[fileToBase64] Mobile file converted successfully"
+          //           );
+          //           resolve(base64String);
+          //         } catch (parseError) {
+          //           console.error(
+          //             "[fileToBase64] Error parsing base64 result:",
+          //             parseError
+          //           );
+          //           reject(
+          //             new Error(
+          //               `Failed to parse base64 result: ${parseError.message}`
+          //             )
+          //           );
+          //         }
+          //       };
+          //       reader.onerror = (err) => {
+          //         console.error("[fileToBase64] FileReader error:", err);
+          //         reject(
+          //           new Error(
+          //             `Failed to read file "${file.name}": ${
+          //               err.message || "Unknown error"
+          //             }`
+          //           )
+          //         );
+          //       };
+          //       reader.readAsDataURL(blob);
+          //     })
+          //     .catch((fetchError) => {
+          //       console.error("[fileToBase64] Fetch error:", fetchError);
+          //       reject(
+          //         new Error(
+          //           `Failed to fetch file "${file.name}": ${fetchError.message}`
+          //         )
+          //       );
+          //     });
+          // } else {
+          //   // Web file - use FileReader directly
+          //   console.log("[fileToBase64] Web file detected");
+          //   const reader = new FileReader();
+          //   reader.onload = () => {
+          //     try {
+          //       const result = reader.result;
+          //       const base64String = result.split(",")[1];
+          //       console.log("[fileToBase64] Web file converted successfully");
+          //       resolve(base64String);
+          //     } catch (parseError) {
+          //       console.error(
+          //         "[fileToBase64] Error parsing base64 result:",
+          //         parseError
+          //       );
+          //       reject(
+          //         new Error(
+          //           `Failed to parse base64 result: ${parseError.message}`
+          //         )
+          //       );
+          //     }
+          //   };
+          //   reader.onerror = (err) => {
+          //     console.error("[fileToBase64] FileReader error:", {
+          //       error: err,
+          //       filename: file.name,
+          //     });
+          //     reject(
+          //       new Error(
+          //         `Failed to read file "${file.name}": ${
+          //           err.message || "Unknown error"
+          //         }`
+          //       )
+          //     );
+          //   };
+          //   reader.readAsDataURL(file);
         }
-      } catch (error) {
-        console.error("[fileToBase64] Unexpected error:", error);
-        reject(new Error(`Unexpected error: ${error.message}`));
+      };
+      reader.onerror = (err) => {
+        console.error("[fileToBase64] FileReader error:", {
+          error: err,
+          filename: file.name,
+        });
+        reject(
+          new Error(
+            `Failed to read file "${file.name}": ${
+              err.message || "Unknown error"
+            }`
+          )
+        );
+      };
+
+      try {
+        reader.readAsDataURL(file);
+      } catch (readError) {
+        console.error("[fileToBase64] Error starting file read:", readError);
+        reject(
+          new Error(
+            `Failed to start reading file "${file.name}": ${readError.message}`
+          )
+        );
+        // } catch (error) {
+        //   console.error("[fileToBase64] Unexpected error:", error);
+        //   reject(new Error(`Unexpected error: ${error.message}`));
       }
     });
   };
@@ -246,7 +284,6 @@ const Prescription = ({ navigation, route }) => {
 
   // Extract structured data from files
   const extractFromFiles = async (files) => {
-    
     if (files.length === 0) {
       console.warn("⚠️ [extractFromFiles] No files provided");
       return;
@@ -543,6 +580,14 @@ const Prescription = ({ navigation, route }) => {
                             onDrop={handleDrop}
                             onDragOver={(e) => e.preventDefault()}
                           >
+                            <input
+                              type="file"
+                              multiple
+                              style={{ display: "none" }}
+                              ref={fileInputRef}
+                              onChange={handleFileSelect}
+                            />
+
                             <TouchableOpacity
                               style={styles.uploadButton}
                               onPress={() => fileInputRef.current?.click()}
@@ -996,8 +1041,10 @@ const Prescription = ({ navigation, route }) => {
                     style={stylesMobile.uploadButtons}
                     onPress={() => {
                       if (Platform.OS === "web") {
+                        console.log("web - nik");
                         fileInputRef.current?.click();
                       } else {
+                        console.log("pickDocument - nik");
                         pickDocument();
                       }
                     }}
@@ -1078,25 +1125,8 @@ const Prescription = ({ navigation, route }) => {
                     style={styles.statIcon}
                     resizeMode="contain"
                   />
-                  {/* {isEditMode ? (
-                    <TextInput
-                      style={stylesMobile.mobileClinicNameInput}
-                      value={editedPrescription?.clinicName || ""}
-                      onChangeText={(value) =>
-                        updatePrescriptionField("clinicName", value)
-                      }
-                      placeholder="Clinic Name"
-                      placeholderTextColor="#999999"
-                    />
-                  ) : (
-                    <Text style={stylesMobile.logoText}>
-                      {generatedPrescription?.clinicName || "Kokoro.Doctor"}
-                    </Text>
-                  )} */}
 
-                  <Text style={stylesMobile.logoText}>
-                      {generatedPrescription?.clinicName || "Kokoro.Doctor"}
-                    </Text>
+                  <Text style={stylesMobile.logoText}>"Kokoro.Doctor"</Text>
                 </View>
                 <View style={stylesMobile.summaryBadge}>
                   <View style={stylesMobile.summaryBadgeContent}>
@@ -1111,7 +1141,7 @@ const Prescription = ({ navigation, route }) => {
               <View style={stylesMobile.rowBetween}>
                 <View style={{ flexDirection: "row", gap: 1 }}>
                   <Text style={stylesMobile.metaText}>Date : </Text>
-                  {/* {isEditMode ? (
+                  {isEditMode ? (
                     <TextInput
                       style={stylesMobile.mobileEditInputInline}
                       value={editedPrescription?.date || ""}
@@ -1130,62 +1160,23 @@ const Prescription = ({ navigation, route }) => {
                           year: "numeric",
                         })}
                     </Text>
-                  )} */}
-                  <Text style={stylesMobile.secondText}>
-                      {generatedPrescription?.date ||
-                        new Date().toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                    </Text>
+                  )}
                 </View>
                 <View style={{ paddingRight: 16 }}>
-                  {/* {isEditMode ? (
-                    <View style={{ gap: 4 }}>
-                      <View style={{ flexDirection: "row", gap: 4 }}>
-                        <Text style={stylesMobile.metaText}>DR :</Text>
-                        <TextInput
-                          style={[
-                            stylesMobile.mobileEditInputInline,
-                            { flex: 1 },
-                          ]}
-                          value={editedPrescription?.doctorName || ""}
-                          onChangeText={(value) =>
-                            updatePrescriptionField("doctorName", value)
-                          }
-                          placeholder="Doctor Name"
-                          placeholderTextColor="#999999"
-                        />
-                      </View>
-                      <TextInput
-                        style={stylesMobile.mobileEditInputSpecialty}
-                        value={editedPrescription?.doctorSpecialty || ""}
-                        onChangeText={(value) =>
-                          updatePrescriptionField("doctorSpecialty", value)
-                        }
-                        placeholder="Specialty"
-                        placeholderTextColor="#999999"
-                      />
-                    </View>
-                  ) : (
-                    <Text style={stylesMobile.metaText}>
-                      <Text style={{ fontWeight: "600" }}>DR :</Text>{" "}
-                      {user?.name || user?.doctorname || "Doctor"}{" "}
-                      <Text style={{ color: "#999" }}>
-                        {" "}
-                        {user?.specialization || ""}
-                      </Text>
-                    </Text>
-                  )} */}
                   <Text style={stylesMobile.metaText}>
-                      <Text style={{ fontWeight: "600" }}>DR :</Text>{" "}
-                      {user?.name || user?.doctorname || "Doctor"}{" "}
-                    </Text>
-                    <Text style={{ color: "#999" , alignSelf: 'flex-end', marginRight:"1%" }}>
-                        {" "}
-                        {user?.specialization || ""}
-                      </Text>
+                    <Text style={{ fontWeight: "600" }}>DR :</Text>{" "}
+                    {user?.name || user?.doctorname || "Doctor"}{" "}
+                  </Text>
+                  <Text
+                    style={{
+                      color: "#999",
+                      alignSelf: "flex-end",
+                      marginRight: "1%",
+                    }}
+                  >
+                    {" "}
+                    {user?.specialization || ""}
+                  </Text>
                 </View>
               </View>
 
@@ -1309,17 +1300,13 @@ const Prescription = ({ navigation, route }) => {
                     style={stylesMobile.cancelButton}
                     onPress={handleCancelEdit}
                   >
-                    <Text style={stylesMobile.cancelButtonText}>
-                      Cancel
-                    </Text>
+                    <Text style={stylesMobile.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={stylesMobile.saveButton}
                     onPress={handleSavePrescription}
                   >
-                    <Text style={stylesMobile.saveButtonText}>
-                      Save
-                    </Text>
+                    <Text style={stylesMobile.saveButtonText}>Save</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -2013,13 +2000,10 @@ const stylesMobile = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
-    paddingTop:12,
+    paddingTop: 12,
   },
-  
-  
 
   header: {
-
     paddingHorizontal: "2%",
     paddingVertical: "1%",
     backgroundColor: "#fff",
@@ -2031,7 +2015,6 @@ const stylesMobile = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 12,
     marginLeft: "3%",
-   
   },
 
   headerRow: {
@@ -2063,7 +2046,7 @@ const stylesMobile = StyleSheet.create({
   },
 
   card: {
-    flex:1,
+    flex: 1,
     width: "100%",
     // height: "auto",
     // ...Platform.select({
@@ -2247,7 +2230,6 @@ const stylesMobile = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginTop: 4,
-    
   },
   divider: {
     height: 1,

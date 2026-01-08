@@ -132,7 +132,6 @@ export const extractStructuredData = async (files) => {
                 "Content-Type": "application/json",
             },
             body: requestBodyString,
-            signal: controller.signal,
         });
 
         if (!response.ok) {
