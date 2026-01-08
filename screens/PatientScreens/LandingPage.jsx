@@ -150,7 +150,6 @@ const LandingPage = ({ navigation, route }) => {
     }
   }, [isAuthenticated, isLoading]);
 
-  
   return (
     <>
       {Platform.OS === "web" && width > 1000 && (
@@ -502,6 +501,7 @@ const LandingPage = ({ navigation, route }) => {
       {showPatientAuth && (
         <PatientAuthModal
           visible={showPatientAuth}
+          initialMode="signup"
           onRequestClose={() => setShowPatientAuth(false)}
           onDoctorRegister={() => {
             setShowPatientAuth(false);

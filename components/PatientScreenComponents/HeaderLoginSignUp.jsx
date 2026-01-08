@@ -56,7 +56,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
     Platform.OS === "web" && Dimensions.get("window").width <= 820;
   const isMobile = isApp || isSmallScreen;
 
-  const openAuthModal = useCallback((mode = "login") => {
+  const openAuthModal = useCallback((mode = "signup") => {
     setAuthModalMode(mode);
     setAuthModalVisible(true);
   }, []);
@@ -66,7 +66,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   };
 
   useEffect(() => {
-    registerOpenModal(({ mode = "login" } = {}) => {
+    registerOpenModal(({ mode = "signup" } = {}) => {
       openAuthModal(mode);
     });
   }, [registerOpenModal, openAuthModal]);
