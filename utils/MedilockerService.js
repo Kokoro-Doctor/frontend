@@ -119,37 +119,13 @@ export const shortenUrl = async (longUrl) => {
 export const extractStructuredData = async (files) => {
     const apiUrl = `${medilocker_API}/extract-structured-data`;
     
-    console.log("[extractStructuredData] Starting prescription extraction...");
-    console.log("[extractStructuredData] API URL:", apiUrl);
-    console.log("[extractStructuredData] Number of files:", files?.length || 0);
-    
-    // Log file info (without base64 content)
-    if (files && files.length > 0) {
-        files.forEach((file, index) => {
-            console.log(`[extractStructuredData] File ${index + 1}:`, {
-                filename: file.filename,
-                contentLength: file.content?.length || 0
-            });
-        });
-    }
-    
     const requestBody = {
         files: files,
     };
     
     const requestBodyString = JSON.stringify(requestBody);
-    console.log("[extractStructuredData] Request body size:", requestBodyString.length, "bytes");
     
     try {
-        console.log("[extractStructuredData] Sending fetch request...");
-        
-        // Create an AbortController for timeout handling
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-            console.error("[extractStructuredData] Request timeout - aborting after 60 seconds");
-            controller.abort();
-        }, 60000); // 60 second timeout for mobile networks
-        
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: {
@@ -159,110 +135,22 @@ export const extractStructuredData = async (files) => {
             signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
-
-        console.log("[extractStructuredData] Response received:", {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok
-        });
-
         if (!response.ok) {
-            let errorMessage = `Extraction failed with status ${response.status}`;
-            let errorDetails = null;
-            
-            try {
-                const errorData = await response.json();
-                console.error("[extractStructuredData] Error response data:", errorData);
-                errorMessage = errorData.detail || errorData.message || errorMessage;
-                errorDetails = errorData;
-            } catch (e) {
-                console.error("[extractStructuredData] Failed to parse error response:", e);
-                try {
-                    const errorText = await response.text();
-                    console.error("[extractStructuredData] Error response text:", errorText);
-                } catch (textError) {
-                    console.error("[extractStructuredData] Could not read error response");
-                }
-                errorMessage = response.statusText || errorMessage;
-            }
-            
-            const fullError = new Error(errorMessage);
-            fullError.status = response.status;
-            fullError.details = errorDetails;
-            throw fullError;
+            throw new Error(`Extraction failed with status ${response.status}`);
         }
 
-        console.log("[extractStructuredData] Parsing response...");
         const responseText = await response.text();
-        console.log("[extractStructuredData] Raw response length:", responseText.length);
-        console.log("[extractStructuredData] Raw response preview:", responseText.substring(0, 500));
-        
-        if (!responseText || responseText.trim() === "") {
-            console.error("[extractStructuredData] Empty response received");
-            throw new Error("Server returned an empty response");
-        }
         
         let data;
         try {
             data = JSON.parse(responseText);
-        } catch (parseError) {
-            console.error("[extractStructuredData] Failed to parse JSON:", parseError);
-            console.error("[extractStructuredData] Response text:", responseText);
+            return data;
+        }
+        catch (parseError) {
             throw new Error(`Failed to parse response: ${parseError.message}`);
         }
         
-        console.log("[extractStructuredData] Parsed data successfully");
-        console.log("[extractStructuredData] Data keys:", Object.keys(data || {}));
-        console.log("[extractStructuredData] Extraction result:", {
-            hasPrescription: !!data.prescription,
-            prescriptionLength: data.prescription?.length || 0,
-            hasPatinetDetails: !!data.patient_details,
-            patientDetailsKeys: Object.keys(data.patient_details || {}),
-        });
-        
-        return data;
-
     } catch (err) {
-        console.error("[extractStructuredData] Error caught:", {
-            name: err.name,
-            message: err.message,
-            stack: err.stack,
-            status: err.status,
-            details: err.details
-        });
-        
-        // Handle different error types
-        let userFriendlyMessage = "Failed to extract prescription data";
-        
-        if (err.name === "AbortError") {
-            userFriendlyMessage = "Request timeout: The server took too long to respond. Please try again with a smaller file or check your network connection.";
-            console.error("[extractStructuredData] Request timeout error");
-        } else if (err.name === "TypeError") {
-            if (err.message.includes("Failed to fetch")) {
-                userFriendlyMessage = `Network error: Unable to connect to the server.\n- Check your internet connection\n- Make sure the API is accessible\n- Try again in a moment`;
-                console.error("[extractStructuredData] Network/fetch error detected");
-            } else {
-                userFriendlyMessage = `Network error: ${err.message}`;
-            }
-        } else if (err.status === 413) {
-            userFriendlyMessage = "File too large: The file size exceeds the server limit. Please try with a smaller file.";
-        } else if (err.status === 408) {
-            userFriendlyMessage = "Request timeout: The server took too long to respond. Please try again.";
-        } else if (err.status >= 500) {
-            userFriendlyMessage = `Server error: The server is temporarily unavailable. Please try again later.`;
-        } else if (err.status) {
-            userFriendlyMessage = `Server error (${err.status}): ${err.message}`;
-        } else {
-            userFriendlyMessage = `Error: ${err.message}`;
-        }
-        
-        console.error("[extractStructuredData] User-friendly error message:", userFriendlyMessage);
-        
-        throw {
-            ...err,
-            userFriendlyMessage: userFriendlyMessage,
-            originalMessage: err.message
-        };
+        throw new Error(`Error: ${err.message}`);
     }
 };

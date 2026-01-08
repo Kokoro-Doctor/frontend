@@ -20,6 +20,9 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 import { TrackEvent } from "../../utils/TrackEvent";
+import PatientAuthModal from "../../components/Auth/PatientAuthModal";
+import DoctorSignupModal from "../../components/Auth/DoctorSignupModal";
+import { useAuth } from "../../contexts/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 const LandingPage = ({ navigation, route }) => {
@@ -32,6 +35,11 @@ const LandingPage = ({ navigation, route }) => {
     TrackEvent(eventName, params);
     navigation.navigate("PatientAppNavigation", { screen: navigateTo });
   };
+  const [showPatientAuth, setShowPatientAuth] = useState(false);
+  const [showDoctorAuth, setShowDoctorAuth] = useState(false);
+  const { user, role, isLoading } = useAuth();
+  const isAuthenticated = !!user;
+  //const hasRedirectedRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -130,6 +138,19 @@ const LandingPage = ({ navigation, route }) => {
     }
   }, [doctorId, navigation, paymentSuccess]);
 
+  useEffect(() => {
+    if (isLoading) return; // wait for restoreUserState()
+
+    if (!isAuthenticated) {
+      setShowPatientAuth(true);
+      //setShowDoctorAuth(true);
+    } else {
+      setShowPatientAuth(false);
+      setShowDoctorAuth(false);
+    }
+  }, [isAuthenticated, isLoading]);
+
+  
   return (
     <>
       {Platform.OS === "web" && width > 1000 && (
@@ -477,6 +498,28 @@ const LandingPage = ({ navigation, route }) => {
         </View>
       )}
       {/* <ChatBot/> */}
+      {/* AUTH MODALS */}
+      {showPatientAuth && (
+        <PatientAuthModal
+          visible={showPatientAuth}
+          onRequestClose={() => setShowPatientAuth(false)}
+          onDoctorRegister={() => {
+            setShowPatientAuth(false);
+            setShowDoctorAuth(true);
+          }}
+        />
+      )}
+
+      {showDoctorAuth && (
+        <DoctorSignupModal
+          visible={showDoctorAuth}
+          onRequestClose={() => setShowDoctorAuth(false)}
+          onDoctorRegister={() => {
+            setShowDoctorAuth(false);
+            setShowPatientAuth(true);
+          }}
+        />
+      )}
     </>
   );
 };

@@ -329,6 +329,24 @@ const Prescription = ({ navigation, route }) => {
         );
       }
 
+      // Extract patient details from API response if available
+      const patientDetails = result?.patient_details || {};
+      const patientName = patientDetails?.name || "";
+      const patientAge =
+        patientDetails?.age !== null && patientDetails?.age !== undefined
+          ? String(patientDetails.age)
+          : "";
+      const patientGender = patientDetails?.gender || "";
+      const patientDiagnosis = patientDetails?.diagnosis || "";
+
+      console.log("[extractFromFiles] Patient details extracted:", {
+        hasPatientDetails: !!result?.patient_details,
+        patientName,
+        patientAge,
+        patientGender,
+        patientDiagnosis,
+      });
+
       // Update prescription with extracted data
       const prescription = {
         clinicName: "Kokoro.Doctor",
@@ -337,10 +355,11 @@ const Prescription = ({ navigation, route }) => {
           month: "short",
           year: "numeric",
         }),
-        patientName: result?.patient_details?.name || "",
-        age: result?.patient_details?.age || "",
-        gender: result?.patient_details?.gender || "",
-        diagnosis: result?.patient_details?.diagnosis || "",
+
+        patientName: patientName,
+        age: patientAge,
+        gender: patientGender,
+        diagnosis: patientDiagnosis,
         diagnosisDate: "",
         prescriptionReport: prescriptionText,
       };
@@ -533,10 +552,7 @@ const Prescription = ({ navigation, route }) => {
                                 style={styles.uploadIcon}
                               />
                               <Text style={styles.uploadButtonText}>
-                                Drag & Drop Here
-                              </Text>
-                              <Text style={styles.uploadHintText}>
-                                or click to upload documents
+                                click to upload documents
                               </Text>
                             </TouchableOpacity>
 
@@ -619,26 +635,9 @@ const Prescription = ({ navigation, route }) => {
                                     style={styles.logoImage}
                                     resizeMode="contain"
                                   />
-                                  {isEditMode ? (
-                                    <TextInput
-                                      style={styles.clinicNameInput}
-                                      value={
-                                        editedPrescription?.clinicName || ""
-                                      }
-                                      onChangeText={(value) =>
-                                        updatePrescriptionField(
-                                          "clinicName",
-                                          value
-                                        )
-                                      }
-                                      placeholder="Clinic Name"
-                                      placeholderTextColor="#999999"
-                                    />
-                                  ) : (
-                                    <Text style={styles.clinicName}>
-                                      {generatedPrescription.clinicName}
-                                    </Text>
-                                  )}
+                                  <Text style={styles.clinicName}>
+                                    Kokoro.Doctor
+                                  </Text>
                                 </View>
                               </View>
 
