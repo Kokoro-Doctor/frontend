@@ -55,6 +55,7 @@ const MobileChatbot = () => {
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   const [showSignInPopup, setShowSignInPopup] = useState(false);
   const { user, role } = useContext(AuthContext);
+  const [feedback, setFeedback] = useState({});
 
   // Stop speaking when user refreshes the page
   useEffect(() => {
@@ -240,28 +241,57 @@ const MobileChatbot = () => {
   //     setPlayingMessage(index);
   //   }
   // };
-  const toggleTTS = async (index, text) => {
-    try {
-      const { available } = await Speech.getAvailableVoicesAsync();
-      if (!available) {
-        console.warn("Speech not available on this device");
-        return;
-      }
+  // const toggleTTS = async (index, text) => {
+  //   try {
+  //     const { available } = await Speech.getAvailableVoicesAsync();
+  //     if (!available) {
+  //       console.warn("Speech not available on this device");
+  //       return;
+  //     }
 
-      if (playingMessage === index) {
-        await Speech.stop();
-        setPlayingMessage(null);
-      } else {
-        await Speech.speak(text, {
-          language: selectedLanguage.value,
-          onDone: () => setPlayingMessage(null),
-          onStopped: () => setPlayingMessage(null),
-        });
-        setPlayingMessage(index);
-      }
-    } catch (error) {
-      console.error("Speech error:", error);
+  //     if (playingMessage === index) {
+  //       await Speech.stop();
+  //       setPlayingMessage(null);
+  //     } else {
+  //       await Speech.speak(text, {
+  //         language: selectedLanguage.value,
+  //         onDone: () => setPlayingMessage(null),
+  //         onStopped: () => setPlayingMessage(null),
+  //       });
+  //       setPlayingMessage(index);
+  //     }
+  //   } catch (error) {
+  //     console.error("Speech error:", error);
+  //   }
+  // };
+
+  const toggleTTS = (index, text) => {
+    if (playingMessage === index) {
+      // Stop current speech
+      Speech.stop();
+      setPlayingMessage(null);
+    } else {
+      // Stop any previous speech first
+      Speech.stop();
+
+      setPlayingMessage(index);
+      Speech.speak(text, {
+        language: selectedLanguage.value,
+        onDone: () => setPlayingMessage(null),
+        onStopped: () => setPlayingMessage(null),
+        onError: () => setPlayingMessage(null),
+      });
     }
+  };
+
+  const handleFeedback = (messageId, type) => {
+    setFeedback((prev) => ({
+      ...prev,
+      [messageId]: type, // "up" or "down"
+    }));
+
+    // Optional: send to backend
+    // sendFeedback(messageId, type);
   };
 
   const renderItem = ({ item, index }) => {
@@ -315,15 +345,25 @@ const MobileChatbot = () => {
                   color="gray"
                 />
               </Pressable>
-              <Pressable>
-                <MaterialIcons name="thumb-up" size={16} color="gray" />
+              <Pressable onPress={() => handleFeedback(item.id, "up")}>
+                <MaterialIcons
+                  name="thumb-up"
+                  size={16}
+                  color={feedback[item.id] === "up" ? "green" : "gray"}
+                />
               </Pressable>
-              <Pressable>
-                <MaterialIcons name="thumb-down" size={16} color="gray" />
+
+              <Pressable onPress={() => handleFeedback(item.id, "down")}>
+                <MaterialIcons
+                  name="thumb-down"
+                  size={16}
+                  color={feedback[item.id] === "down" ? "red" : "gray"}
+                />
               </Pressable>
-              <Pressable>
+
+              {/* <Pressable>
                 <MaterialIcons name="share" size={16} color="gray" />
-              </Pressable>
+              </Pressable> */}
             </View>
           )}
         </View>
