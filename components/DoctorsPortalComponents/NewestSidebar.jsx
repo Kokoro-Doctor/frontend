@@ -12,7 +12,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-const NewestSidebar = ({closeSidebar, activeItem = "Home" }) => {
+const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const [selectedItem, setSelectedItem] = useState(activeItem);
@@ -27,10 +27,10 @@ const NewestSidebar = ({closeSidebar, activeItem = "Home" }) => {
       name: "Calendar",
       icon: require("../../assets/DoctorsPortal/Icons/calendar.png"),
     },
-    {
-      name: "Appointments",
-      icon: require("../../assets/DoctorsPortal/Icons/appointment.png"),
-    },
+    // {
+    //   name: "Appointments",
+    //   icon: require("../../assets/DoctorsPortal/Icons/appointment.png"),
+    // },
     {
       name: "Prescription",
       icon: require("../../assets/DoctorsPortal/Icons/PrescriptionIcon.png"),
@@ -39,14 +39,14 @@ const NewestSidebar = ({closeSidebar, activeItem = "Home" }) => {
       name: "History",
       icon: require("../../assets/DoctorsPortal/Icons/history.png"),
     },
-    {
-      name: "Reminder",
-      icon: require("../../assets/DoctorsPortal/Icons/reminder.png"),
-    },
-    {
-      name: "Notification",
-      icon: require("../../assets/DoctorsPortal/Icons/notification2.png"),
-    },
+    // {
+    //   name: "Reminder",
+    //   icon: require("../../assets/DoctorsPortal/Icons/reminder.png"),
+    // },
+    // {
+    //   name: "Notification",
+    //   icon: require("../../assets/DoctorsPortal/Icons/notification2.png"),
+    // },
   ];
 
   const lowerMenuItems = [
@@ -75,22 +75,23 @@ const NewestSidebar = ({closeSidebar, activeItem = "Home" }) => {
       navigation.navigate("DoctorDashboard");
     } else if (menu === "Calendar") {
       navigation.navigate("DrCalendarView");
-    } else if (menu === "Appointments") {
-      navigation.navigate("AppointmentsView");
+    // } else if (menu === "Appointments") {
+    //   navigation.navigate("AppointmentsView");
+    // }
     } else if (menu === "Prescription") {
       navigation.navigate("Prescription");
     } else if (menu === "History") {
       navigation.navigate("History");
-    } else if (menu === "Reminder") {
-      navigation.navigate("ReminderView");
-    } else if (menu === "Notification") {
-      navigation.navigate("Notification");
     } else if (menu === "Settings") {
       navigation.navigate("ProfileSetting");
     } else if (menu === "Contact Us") {
-      navigation.navigate("ContactUs");
+      navigation.navigate("PatientAppNavigation", {
+        screen: "ContactUs",
+      });
     } else if (menu === "Help") {
-      navigation.navigate("Help");
+      navigation.navigate("PatientAppNavigation", {
+        screen: "Help",
+      });
     } else {
       navigation.navigate(menu);
     }
