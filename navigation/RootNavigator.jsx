@@ -105,17 +105,64 @@ const Loader = () => (
   </View>
 );
 
+// export const linking = {
+//   prefixes: ["/", "https://kokoro.doctor"],
+//   config: {
+//     screens: {
+//       LandingPage: "Home",
+//       DoctorPatientLandingPage: "Role",
+//       DoctorAppNavigation: { path: "doctor" },
+//       PatientAppNavigation: { path: "patient" },
+//     },
+//   },
+// };
+
+
 export const linking = {
-  prefixes: ["/", "https://kokoro.doctor"],
+  prefixes: [
+    "https://kokoro.doctor",
+    "http://localhost:8081",
+  ],
   config: {
     screens: {
       LandingPage: "Home",
       DoctorPatientLandingPage: "Role",
-      DoctorAppNavigation: { path: "doctor" },
-      PatientAppNavigation: { path: "patient" },
+
+      DoctorAppNavigation: {
+        path: "doctor",
+        screens: {
+          Home: "Home",
+          Profile: "Profile",
+        },
+      },
+
+      PatientAppNavigation: {
+        path: "patient",
+        screens: {
+          Home: "Home",
+
+          // ✅ ADDED
+          UserDashboard: "UserDashboard",
+          Medilocker:"Medilocker",
+
+
+          Doctors: {
+            path: "Doctors",
+            screens: {
+              DoctorsList: "",
+              DoctorsInfoWithSubscription:
+                "DoctorsInfoWithSubscription",
+              DoctorResultShow: "DoctorResultShow",
+            },
+          },
+        },
+      },
     },
   },
 };
+
+
+
 
 // Wrapper component for LandingPage that handles auth redirects
 const LandingPageWithAuth = ({ navigation, route }) => {
