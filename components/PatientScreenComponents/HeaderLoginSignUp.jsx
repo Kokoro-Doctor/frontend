@@ -29,7 +29,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [isSideBarVisible, setIsSideBarVisible] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState("login");
+  const [authModalMode, setAuthModalMode] = useState("signup");
   const [doctorModalVisible, setDoctorModalVisible] = useState(false);
   const { registerOpenModal } = useLoginModal();
   // const { user: contextUser, logout } = useAuth();
@@ -56,7 +56,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
     Platform.OS === "web" && Dimensions.get("window").width <= 820;
   const isMobile = isApp || isSmallScreen;
 
-  const openAuthModal = useCallback((mode = "login") => {
+  const openAuthModal = useCallback((mode = "signup") => {
     setAuthModalMode(mode);
     setAuthModalVisible(true);
   }, []);
@@ -66,7 +66,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   };
 
   useEffect(() => {
-    registerOpenModal(({ mode = "login" } = {}) => {
+    registerOpenModal(({ mode = "signup" } = {}) => {
       openAuthModal(mode);
     });
   }, [registerOpenModal, openAuthModal]);

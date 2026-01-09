@@ -192,7 +192,7 @@ const DoctorPortalLandingPage = ({ navigation, route }) => {
                         style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("DoctorAppNavigation", {
-                            screen: "GeneratePrescription",
+                            screen: "Prescription",
                           });
                         }}
                       >
@@ -254,7 +254,7 @@ const DoctorPortalLandingPage = ({ navigation, route }) => {
                 style={styles.cardStyle}
                 onPress={() => {
                   navigation.navigate("DoctorAppNavigation", {
-                    screen: "GeneratePrescription",
+                    screen: "Prescription",
                   });
                 }}
               >

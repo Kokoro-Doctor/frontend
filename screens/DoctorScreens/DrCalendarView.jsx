@@ -539,13 +539,13 @@ const DrCalendarView = ({ navigation }) => {
                 <Text style={styles.filterButtonText}>All Status</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.syncButton}>
+              {/* <TouchableOpacity style={styles.syncButton}>
                 <Text style={styles.syncButtonText}>Sync Google Calendar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.newAppointmentButton}>
                 <Text style={styles.newAppointmentText}>New Appointment</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           )}
         </View>

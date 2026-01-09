@@ -150,7 +150,6 @@ const LandingPage = ({ navigation, route }) => {
     }
   }, [isAuthenticated, isLoading]);
 
-  
   return (
     <>
       {Platform.OS === "web" && width > 1000 && (
@@ -174,6 +173,16 @@ const LandingPage = ({ navigation, route }) => {
                 <View style={styles.Right}>
                   <View style={styles.header}>
                     <HeaderLoginSignUp navigation={navigation} />
+                    <TouchableOpacity
+                      style={styles.doctorPortalBox}
+                      onPress={() => {
+                        navigation.navigate("DoctorAppNavigation", {
+                          screen: "DoctorPortalLandingPage",
+                        });
+                      }}
+                    >
+                      <Text style={styles.doctorText}>Doctor Portal</Text>
+                    </TouchableOpacity>
                   </View>
                   <View style={styles.title}>
                     <Title />
@@ -502,6 +511,7 @@ const LandingPage = ({ navigation, route }) => {
       {showPatientAuth && (
         <PatientAuthModal
           visible={showPatientAuth}
+          initialMode="signup"
           onRequestClose={() => setShowPatientAuth(false)}
           onDoctorRegister={() => {
             setShowPatientAuth(false);
@@ -581,6 +591,29 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  doctorPortalBox: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    marginRight: 16,
+    marginVertical: 8,
+    minWidth: 140,
+    alignSelf: "flex-end",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#DDD",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  doctorText: {
+    fontSize: 14,
+    fontWeight: 500,
+  },
+
   title: {
     // borderColor: "#FFFFFF",
     // borderWidth: 1,

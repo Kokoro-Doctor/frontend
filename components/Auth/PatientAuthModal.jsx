@@ -31,7 +31,7 @@ const WEB_CARD_WIDTH = 300;
 const PatientAuthModal = ({
   visible,
   onRequestClose,
-  initialMode = "login",
+  initialMode = "signup",
   onDoctorRegister,
 }) => {
   const navigation = useNavigation();
@@ -372,10 +372,10 @@ const PatientAuthModal = ({
         setInfoMessage("Login successful! Redirecting...");
         setShowOtpModal(false);
         setIsProcessing(false);
-        
+
         // Close modal first
         onRequestClose();
-        
+
         // Navigate based on role immediately after login
         const userRole = result?.role;
         if (userRole === "doctor") {
@@ -398,7 +398,7 @@ const PatientAuthModal = ({
             navigation.navigate("LandingPage");
           }, 100);
         }
-        
+
         return result;
       }
       setIsProcessing(false);
@@ -686,25 +686,6 @@ const PatientAuthModal = ({
               <TouchableOpacity
                 style={[
                   styles.modeToggleButton,
-                  mode === "login" && styles.modeToggleButtonActive,
-                ]}
-                onPress={() => {
-                  setMode("login");
-                  resetFlow();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modeToggleText,
-                    mode === "login" && styles.modeToggleTextActive,
-                  ]}
-                >
-                  Login
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modeToggleButton,
                   mode === "signup" && styles.modeToggleButtonActive,
                 ]}
                 onPress={() => {
@@ -719,6 +700,25 @@ const PatientAuthModal = ({
                   ]}
                 >
                   Sign Up
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modeToggleButton,
+                  mode === "login" && styles.modeToggleButtonActive,
+                ]}
+                onPress={() => {
+                  setMode("login");
+                  resetFlow();
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modeToggleText,
+                    mode === "login" && styles.modeToggleTextActive,
+                  ]}
+                >
+                  Login
                 </Text>
               </TouchableOpacity>
             </View>
@@ -932,7 +932,7 @@ const PatientAuthModal = ({
             ) : null}
 
             <TouchableOpacity onPress={onRequestClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color="#6B7280" />
+              <Ionicons name="close" size={14} color="#9CA3AF" />
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -967,7 +967,7 @@ const PatientAuthModal = ({
                 setOtpTargetPhone("");
               }}
             >
-              <Ionicons name="close" size={20} color="#6B7280" />
+              <Ionicons name="close" size={14} color="#9CA3AF" />
             </TouchableOpacity>
 
             <Text style={styles.titleHead}>Verify OTP</Text>
@@ -1276,16 +1276,16 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    backgroundColor: "#F4F6F8",
-    borderRadius: 20,
-    width: 32,
-    height: 32,
+    top: 12,
+    right: 12,
+    backgroundColor: "rgba(244, 246, 248, 0.6)",
+    borderRadius: 12,
+    width: 10,
+    height: 10,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
+    borderWidth: 0,
+    opacity: 0.1,
   },
   resendBtn: {
     marginTop: 12,
