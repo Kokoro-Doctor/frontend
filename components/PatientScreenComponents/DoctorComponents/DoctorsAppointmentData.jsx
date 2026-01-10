@@ -1045,11 +1045,11 @@ const DoctorAppointmentScreen = ({
                       <View style={styles.cardHeaderInfo}>
                         <TouchableOpacity
                           style={styles.imageContainer}
-                          // onPress={() =>
-                          //   navigation.navigate("DoctorsInfoWithSubscription", {
-                          //     doctors: item,
-                          //   })
-                          // }
+                          onPress={() =>
+                            navigation.navigate("DoctorsInfoWithSubscription", {
+                              doctors: item,
+                            })
+                          }
                         >
                           <Image
                             source={{ uri: item.profilePhoto }}
