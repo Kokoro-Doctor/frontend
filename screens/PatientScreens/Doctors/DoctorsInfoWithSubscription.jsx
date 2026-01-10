@@ -38,6 +38,8 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   const { triggerLoginModal } = useLoginModal();
   console.log("Shobhit:", user, doctors);
 
+  const descriptionPlaceholder = "Dr. Kislay Shrivastava is a highly accomplished cardiologist with over 15 years of specialized experience in the comprehensive diagnosis and management of cardiovascular diseases. His clinical expertise is complemented by significant contributions to cardiovascular research and medical literature. Dr. Shrivastav maintains an active presence in cardiovascular research, with numerous publications in prestigious peer-reviewed medical journals. His research focuses on advancing clinical outcomes in cardiac care and contributing to evidence-based practices in cardiology. With a decade and a half of clinical experience, Dr. Shrivastav combines evidence-based medicine with personalized treatment protocols, ensuring that each patient receives care tailored to their unique cardiovascular profile."
+
   useEffect(() => {
     const tryParseDoctorFromUrl = () => {
       try {
@@ -184,14 +186,13 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                   <View style={[styles.header, { height: "12%" }]}>
                     <HeaderLoginSignUp navigation={navigation} />
                   </View>
-
                   <View style={styles.contentContainer}>
                     {/* Doctor profile card */}
                     <View style={styles.doctorProfileCard}>
                       <View style={styles.doctorProfileDetail}>
                         <View style={styles.doctorLeftSection}>
                           <Image
-                            source={doctors.profilePhoto}
+                            source={doctors?.profilePhoto ?  doctors.profilePhoto : require("../../../assets/Images/dr_kislay.jpg")}
                             style={styles.doctorImage}
                           />
                           <View style={styles.ratingContainer}>
@@ -205,16 +206,16 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                         </View>
                         <View style={styles.doctorInfoSection}>
                           <Text style={styles.doctorName}>
-                            {doctors.doctorname}
+                            {doctors?.doctorname ? doctors.doctorname : "Dr. Kislay Shrivastava"}
                           </Text>
                           <Text style={styles.doctorCredentials}>
-                            {doctors.specialization}
+                            {doctors?.specialization ? doctors.specialization : "Consultant Cardiologist"}
                           </Text>
                           <Text style={styles.doctorExperience}>
-                            {`${doctors.experience} experience`}
+                            {`${doctors?.experience ? doctors.experience : "24"} experience`}
                           </Text>
                           <Text style={styles.doctorBio}>
-                            {doctors.description}
+                            {doctors?.description ? doctors.description : descriptionPlaceholder}
                           </Text>
                         </View>
                       </View>
