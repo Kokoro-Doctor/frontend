@@ -931,9 +931,9 @@ const PatientAuthModal = ({
               <Text style={styles.infoText}>{infoMessage}</Text>
             ) : null}
 
-            <TouchableOpacity onPress={onRequestClose} style={styles.closeBtn}>
+            {/* <TouchableOpacity onPress={onRequestClose} style={styles.closeBtn}>
               <Ionicons name="close" size={14} color="#9CA3AF" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </Animated.View>
         </View>
       </Modal>
