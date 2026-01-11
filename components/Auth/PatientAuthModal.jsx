@@ -931,9 +931,9 @@ const PatientAuthModal = ({
               <Text style={styles.infoText}>{infoMessage}</Text>
             ) : null}
 
-            {/* <TouchableOpacity onPress={onRequestClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={onRequestClose} style={styles.closeBtn}>
               <Ionicons name="close" size={14} color="#9CA3AF" />
-            </TouchableOpacity> */}
+            </TouchableOpacity>
           </Animated.View>
         </View>
       </Modal>
@@ -969,12 +969,15 @@ const PatientAuthModal = ({
             >
               <Ionicons name="close" size={14} color="#9CA3AF" />
             </TouchableOpacity>
-
             <Text style={styles.titleHead}>Verify OTP</Text>
-            <Text style={styles.title}>
-              Enter OTP sent to {otpTargetPhone || mobile || signupIdentifier}
+            <Text style={{ fontSize: 11.7, color: "#000", fontWeight: "600" }}>
+              Enter OTP sent to
+            </Text>{" "}
+            <Text
+              style={{ fontSize: 11.7, color: "#16a34a", fontWeight: "500" }}
+            >
+              {otpTargetPhone || email || signupIdentifier}
             </Text>
-
             <Text style={styles.inputLabel}>Enter OTP</Text>
             <TextInput
               placeholder="Enter OTP"
@@ -986,12 +989,10 @@ const PatientAuthModal = ({
               maxLength={4}
               autoFocus
             />
-
             {errorMessage && (
               <Text style={styles.errorText}>{errorMessage}</Text>
             )}
             {infoMessage && <Text style={styles.infoText}>{infoMessage}</Text>}
-
             <TouchableOpacity
               style={[
                 styles.btn,
@@ -1010,7 +1011,6 @@ const PatientAuthModal = ({
                   : "Verify & Sign Up"}
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.resendBtn,
@@ -1105,6 +1105,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: "center",
     letterSpacing: -0.5,
+  },
+  title: {
+    //borderWidth: 1,
+    width: "100%",
   },
   subtitle: {
     fontSize: 14,
