@@ -10,15 +10,10 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import RootNavigation, { linking } from "./navigation/RootNavigator";
 // ✅ import your init
 import { initGoogleSignin } from "./utils/AuthService";
-//import UserDashboard from "./screens/PatientScreens/UserDashboard";
+import { AuthPopupProvider } from "./contexts/AuthPopupContext";
 
 const App = () => {
   const navigationRef = useRef(null);
-
-  // useEffect(() => {
-  //   // configure Google Sign-In once
-  //   initGoogleSignin();
-  // }, []);
 
   useEffect(() => {
     // Initialize Google Sign-in (existing)
@@ -61,9 +56,10 @@ const App = () => {
           <RoleProvider>
             <LoginModalProvider>
               <NavigationContainer linking={linking} ref={navigationRef}>
-                <RootNavigation />
-                <ChatBotOverlay navigationRef={navigationRef} />
-                {/* <UserDashboard/> */}
+                <AuthPopupProvider>
+                  <RootNavigation />
+                  <ChatBotOverlay navigationRef={navigationRef} />
+                </AuthPopupProvider>
               </NavigationContainer>
             </LoginModalProvider>
           </RoleProvider>
