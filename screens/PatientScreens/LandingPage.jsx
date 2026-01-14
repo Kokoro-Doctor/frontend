@@ -320,12 +320,12 @@ const LandingPage = ({ navigation, route }) => {
                         style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("PatientAppNavigation", {
-                            screen: "Hospitals",
+                            screen: "UserDashboard",
                           });
                         }}
                       >
                         <Image
-                          source={require("../../assets/Images/BookHospital.png")}
+                          source={require("../../assets/Images/DashboardCard.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>
@@ -493,12 +493,12 @@ const LandingPage = ({ navigation, route }) => {
                 style={styles.cardStyle}
                 onPress={() => {
                   navigation.navigate("PatientAppNavigation", {
-                    screen: "Hospitals",
+                    screen: "UserDashboard",
                   });
                 }}
               >
                 <Image
-                  source={require("../../assets/Images/BookHospital.png")}
+                  source={require("../../assets/Images/DashboardCard.png")}
                   style={styles.image}
                 />
               </TouchableOpacity>

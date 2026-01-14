@@ -699,7 +699,7 @@ const PatientAuthModal = ({
                     mode === "signup" && styles.modeToggleTextActive,
                   ]}
                 >
-                  Sign Up
+                  Try Free
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -718,7 +718,7 @@ const PatientAuthModal = ({
                     mode === "login" && styles.modeToggleTextActive,
                   ]}
                 >
-                  Login
+                  Already a member!
                 </Text>
               </TouchableOpacity>
             </View>
@@ -784,7 +784,9 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing ? "Sending OTP..." : "Send OTP"}
+                      {isProcessing
+                        ? "Sending OTP..."
+                        : "Free Medical chat now"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -795,9 +797,22 @@ const PatientAuthModal = ({
                     { width: cardWidth, flexShrink: 0 },
                   ]}
                 >
-                  <Text style={styles.titleHead}>Join Kokoro Doctor</Text>
+                  <Text style={styles.titleHead}>
+                    Got a health question you are overthinking ?{" "}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: "#999999",
+                      alignSelf: "center",
+                      fontFamily:"Farsan",
+                      fontWeight:400
+                    }}
+                  >
+                    Let’s Talk!
+                  </Text>
 
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     style={styles.doctorRegisterLinkTop}
                     onPress={() => {
                       onRequestClose();
@@ -810,10 +825,10 @@ const PatientAuthModal = ({
                         Register Here
                       </Text>
                     </Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
 
                   <Text style={styles.inputLabel}>
-                    Full Name <Text style={styles.requiredIndicator}>*</Text>
+                    Name <Text style={styles.requiredIndicator}>*</Text>
                   </Text>
                   <TextInput
                     placeholder="Enter your full name"
@@ -917,7 +932,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled || isProcessing}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing ? "Sending..." : "Send OTP"}
+                      {isProcessing ? "Sending..." : "Free Medical chat now"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1099,7 +1114,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   titleHead: {
-    fontSize: 26,
+    fontSize: 21,
     fontWeight: "700",
     color: "#333",
     marginBottom: 8,
@@ -1221,7 +1236,7 @@ const styles = StyleSheet.create({
   btnText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: 0.3,
   },
   doctorRegisterLink: {
