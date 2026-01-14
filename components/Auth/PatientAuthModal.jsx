@@ -976,7 +976,7 @@ const PatientAuthModal = ({
             <Text
               style={{ fontSize: 11.7, color: "#16a34a", fontWeight: "500" }}
             >
-              {otpTargetPhone || email || signupIdentifier}
+              {email}
             </Text>
             <Text style={styles.inputLabel}>Enter OTP</Text>
             <TextInput
