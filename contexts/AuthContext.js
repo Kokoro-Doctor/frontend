@@ -503,9 +503,12 @@ export const AuthProvider = ({ children }) => {
       await syncSession(result, "user");
 
       // 🔥 Track successful signup
+      // Detect experimental flow: mobile-only (no email, otp, name)
+      const isExperimentalFlow = !payload.email && !payload.otp && !payload.name;
       mixpanel.track("User Signed Up", {
         role: "user",
-        signup_method: payload.signup_method || "otp",
+        signup_method: isExperimentalFlow ? "mobile_only" : (payload.signup_method || "otp"),
+        is_experimental: isExperimentalFlow,
       });
 
       return result;
@@ -513,9 +516,11 @@ export const AuthProvider = ({ children }) => {
       const message = getErrorMessage(error);
       console.error("Patient signup error:", message, error);
       // 🔥 Track failed signup
+      const isExperimentalFlow = !payload.email && !payload.otp && !payload.name;
       mixpanel.track("Signup Failed", {
         error_message: message,
         role: "user",
+        is_experimental: isExperimentalFlow,
       });
       throw ensureError(error);
     }
