@@ -300,7 +300,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
           onMouseEnter={onHoverIn}
           onMouseLeave={onHoverOut}
         >
-          <TouchableOpacity onPress={() => openAuthModal("login")}>
+          <TouchableOpacity onPress={() => openAuthModal("signup")}>
             <Text
               style={[
                 styles.headerBtnText,
