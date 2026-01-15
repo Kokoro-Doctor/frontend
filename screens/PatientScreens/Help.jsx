@@ -15,6 +15,7 @@ import SideBarNavigation from "../../components/PatientScreenComponents/SideBarN
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -44,6 +45,7 @@ const Help = ({ navigation, route }) => {
                   <View style={styles.header}>
                     <HeaderLoginSignUp navigation={navigation} />
                   </View>
+                  <BackButton />
                   <View style={styles.title}>
                     <Title />
                   </View>

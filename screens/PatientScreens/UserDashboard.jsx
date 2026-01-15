@@ -12,12 +12,16 @@ import {
   ScrollView,
   Linking,
   StatusBar,
+  Alert,
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import * as DocumentPicker from "expo-document-picker";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../env-vars";
+import { FetchFromServer, download, remove } from "../../utils/MedilockerService";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -299,7 +303,79 @@ const UserDashboard = ({ navigation }) => {
       console.error("❌ fetchUpcomingAppointment EXCEPTION:", err);
     }
   };
+  
+   const downloadFile = async (fileName) => {
+      try {
+        const data = await download(user?.user_id || user?.email, fileName);
+        const downloadUrl = data.download_url;
+  
+        if (Platform.OS === "web") {
+          window.open(downloadUrl, "_blank");
+        } else {
+          await WebBrowser.openBrowserAsync(downloadUrl);
+        }
+      } catch (error) {
+        Alert.alert("Download Error", error.message);
+      }
+    }; 
 
+    const removeFile = async (fileName) => {
+        try {
+          const data = await remove(user?.user_id || user?.email, fileName);
+    
+          setFiles(files.filter((file) => file.name !== fileName));
+          Alert.alert("Deleted", `${fileName} has been removed`);
+        } catch (error) {
+          Alert.alert("Error", error.message);
+        }
+      };
+
+
+  const shareFile = async (fileName) => {
+    try {
+      const data = await download(user?.user_id || user?.email, fileName);
+      const downloadUrl = data.download_url;
+
+      if (Platform.OS === "web") {
+        //Shorten URL
+        let urlToShare = downloadUrl;
+        try {
+          urlToShare = await shortenUrl(downloadUrl);
+        } catch (error) {
+          console.error("Failed to shorten URL:", error);
+        }
+
+        if (navigator.share) {
+          await navigator.share({
+            title: fileName,
+            url: urlToShare,
+            text: `Check out this file: ${fileName}`,
+          });
+        } else {
+          // Fallback to opening the download URL in a new tab.
+          window.open(downloadUrl, "_blank");
+        }
+      } else {
+        const localUri = FileSystem.cacheDirectory + fileName;
+
+        const downloadResult = await FileSystem.downloadAsync(
+          downloadUrl,
+          localUri
+        );
+
+        if (!(await Sharing.isAvailableAsync())) {
+          console.error("Sharing is not available on this device");
+          return;
+        }
+
+        await Sharing.shareAsync(downloadResult.uri);
+        await FileSystem.deleteAsync(downloadResult.uri);
+      }
+    } catch (error) {
+      console.error("Sharing error:", error);
+    }
+    setMenuVisible(false);
+  };
   const addAmPm = (time) => {
     if (!time) return "";
 
@@ -334,6 +410,55 @@ const UserDashboard = ({ navigation }) => {
     hasFetchedRef.current = true;
     fetchDashboardData(user.user_id);
   }, [user?.user_id]);
+
+  // ------------------ Fetch Medilocker Files ------------------
+  useEffect(() => {
+    if (!user) {
+      console.log("🚫 No user, skipping medilocker fetch");
+      return;
+    }
+
+    const loadFilesFromServer = async () => {
+      try {
+        const userIdentifier = user?.user_id || user?.email;
+        console.log("📁 Starting Medilocker fetch for:", userIdentifier);
+
+        if (!userIdentifier) {
+          console.warn("⚠️ No user identifier found");
+          return;
+        }
+
+        const data = await FetchFromServer(userIdentifier);
+        console.log("📦 FetchFromServer response:", data);
+
+        if (data?.files) {
+          console.log("✅ Files found:", data.files.length);
+
+          const mappedFiles = data.files.map((file) => ({
+            id: file.filename,
+            date: file.metadata.upload_date,
+            time: file.metadata.upload_time,
+            name: file.filename,
+            format: "." + file.metadata.file_type,
+            type: detectType(file.filename),
+            size: file.metadata.file_size,
+          }));
+
+          console.log("🔄 Mapped files:", mappedFiles);
+          console.log("📊 Setting", mappedFiles.length, "documents");
+
+          setDocuments(mappedFiles);
+          console.log("✨ Documents state updated");
+        } else {
+          console.warn("⚠️ No files property in response");
+        }
+      } catch (error) {
+        console.error("❌ Failed to fetch medilocker files:", error);
+      }
+    };
+
+    loadFilesFromServer();
+  }, [user]);
 
   // ------------------ Handle Video Call ------------------
   const handleJoinCall = () => {
@@ -390,15 +515,27 @@ const UserDashboard = ({ navigation }) => {
   };
 
   // ------------------ Local Storage Web ------------------
+  // Only load from localStorage if no user data yet (initial load)
   useEffect(() => {
-    if (Platform.OS === "web") {
+    if (Platform.OS === "web" && !user) {
+      console.log("💾 Loading documents from localStorage (initial load)");
       const savedDocs = localStorage.getItem("medilocker_docs");
-      if (savedDocs) setDocuments(JSON.parse(savedDocs));
+      if (savedDocs) {
+        const parsed = JSON.parse(savedDocs);
+        console.log("📂 Loaded from localStorage:", parsed.length, "documents");
+        setDocuments(parsed);
+      } else {
+        console.log("📭 No saved documents in localStorage");
+      }
     }
   }, []);
+
+  // Persist documents to localStorage whenever they change
   useEffect(() => {
-    if (Platform.OS === "web")
+    if (Platform.OS === "web") {
+      console.log("💾 Saving", documents.length, "documents to localStorage");
       localStorage.setItem("medilocker_docs", JSON.stringify(documents));
+    }
   }, [documents]);
 
   useEffect(() => {
@@ -448,6 +585,7 @@ const UserDashboard = ({ navigation }) => {
                 <View style={styles.header}>
                   <HeaderLoginSignUp navigation={navigation} />
                 </View>
+                <BackButton />
                 <HoverScale style={styles.userDetailSection}>
                   {/* <View style={styles.userImageBox}></View> */}
                   <View style={styles.userImageBox}>
@@ -673,7 +811,7 @@ const UserDashboard = ({ navigation }) => {
                     <Text style={styles.thLarge}>Document Name</Text>
                     <Text style={styles.th}>Format</Text>
                     <Text style={styles.th}>Type</Text>
-                    <Text style={styles.th}>Action</Text>
+                    <Text style={styles.the}>Action</Text>
                   </View>
 
                   {/* TABLE ROWS */}
@@ -707,9 +845,38 @@ const UserDashboard = ({ navigation }) => {
                           </View>{" "}
                         </View>
 
-                        <View style={{ width: "12%", alignItems: "center" }}>
-                          <TouchableOpacity style={styles.actionAddButton}>
-                            <Text style={styles.actionAddButtonText}>–</Text>
+                        <View style={styles.actionButtons}>
+                          {/* Download Button */}
+                          <TouchableOpacity
+                            onPress={() => downloadFile(row.name)}
+                          >
+                            <MaterialIcons
+                              name="file-download"
+                              size={24}
+                              color="#FF7072"
+                            />
+                          </TouchableOpacity>
+
+                          {/* Delete Button */}
+                          <TouchableOpacity
+                            onPress={() => removeFile(row.name)}
+                          >
+                            <MaterialIcons
+                              name="delete"
+                              size={24}
+                              color="#FF7072"
+                            />
+                          </TouchableOpacity>
+
+                          {/* Share Button */}
+                          <TouchableOpacity
+                            onPress={() => shareFile(row.name)}
+                          >
+                            <MaterialIcons
+                              name="share"
+                              size={24}
+                              color="#FF7072"
+                            />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -1119,6 +1286,12 @@ const styles = StyleSheet.create({
         width: "100%",
       },
     }),
+  },
+   actionButtons: {
+    flexDirection: "row",
+    flex: 1,
+    justifyContent: "center", // Ensures equal spacing
+    alignItems: "center",
   },
   userDetailSection: {
     borderWidth: 1,
@@ -1666,6 +1839,12 @@ const styles = StyleSheet.create({
   },
 
   th: {
+    width: "12%",
+    fontWeight: 600,
+    fontSize: 12,
+  },
+  the: {
+    marginLeft:"2.5%",
     width: "12%",
     fontWeight: 600,
     fontSize: 12,

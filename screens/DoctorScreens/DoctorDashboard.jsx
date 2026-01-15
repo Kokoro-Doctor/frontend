@@ -15,10 +15,11 @@ import {
 } from "react-native";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../env-vars";
-import { useAuth } from "../../contexts/AuthContext"
+import { useAuth } from "../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -254,6 +255,7 @@ const DoctorDashboard = ({ navigation }) => {
 
       if (!res.ok) return null;
       const data = await res.json();
+
       return data?.user || null;
     } catch (err) {
       console.error("❌ fetchUserDetails ERROR:", err);
@@ -454,8 +456,6 @@ const DoctorDashboard = ({ navigation }) => {
     setCurrentPage(1);
   }, [documents, searchQuery, selectedHistoryDate, selectedStatus]);
 
- 
-
   const scrollForward = () => {
     dateScrollRef.current?.scrollTo({
       x: scrollX + SCROLL_STEP,
@@ -501,7 +501,7 @@ const DoctorDashboard = ({ navigation }) => {
             <View style={styles.header}>
               <HeaderLoginSignUp navigation={navigation} />
             </View>
-
+            <BackButton />
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{ paddingBottom: 40 }}
@@ -984,66 +984,7 @@ const DoctorDashboard = ({ navigation }) => {
                       </Text>
                     </View>
 
-                    {filteredDocuments.length > 0 ? (
-                      filteredDocuments
-                        .slice(indexOfFirst, indexOfLast)
-                        .map((doc, idx) => (
-                          <View key={idx} style={styles.tableRow}>
-                            <Text style={[styles.tableCell, { flex: 0.5 }]}>
-                              {idx + indexOfFirst + 1}
-                            </Text>
-
-                            {/* ✅ Pretty display */}
-                            <Text style={[styles.tableCell, { flex: 1 }]}>
-                              {doc.date
-                                ? formatDate(fromDateKey(doc.date))
-                                : "—"}
-                            </Text>
-
-                            <Text style={[styles.tableCell, { flex: 1 }]}>
-                              {doc.time}
-                            </Text>
-
-                            <Text style={[styles.tableCell, { flex: 2 }]}>
-                              {doc.name}
-                            </Text>
-
-                            <TouchableOpacity
-                              style={[styles.conditionBadge, { flex: 1.5 }]}
-                            >
-                              <Text style={styles.conditionText}>
-                                Regular Checkup
-                              </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                              style={[styles.statusBadge, { flex: 1 }]}
-                            >
-                              <Text style={styles.statusBadgeText}>
-                                Scheduled
-                              </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                              style={[styles.actionBtn, { flex: 0.8 }]}
-                              onPress={() => {
-                                setDocuments(
-                                  documents.filter(
-                                    (_, i) => i !== idx + indexOfFirst
-                                  )
-                                );
-                                console.log("Delete record", idx);
-                              }}
-                            >
-                              <Text style={styles.actionBtnText}>−</Text>
-                            </TouchableOpacity>
-                          </View>
-                        ))
-                    ) : (
-                      <Text style={styles.noData}>
-                        No patient history found
-                      </Text>
-                    )}
+                    <Text style={styles.noData}>No patient history found</Text>
 
                     <View style={styles.paginationFooter}>
                       <Text style={styles.paginationText}>
@@ -1490,7 +1431,7 @@ const DoctorDashboard = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {filteredDocuments.length > 0 ? (
+            {/* {filteredDocuments.length > 0 ? (
               filteredDocuments.map((doc, idx) => (
                 <View key={idx} style={stylesMobile.historyCard}>
                   <Text style={stylesMobile.patientName}>{doc.name}</Text>
@@ -1500,9 +1441,9 @@ const DoctorDashboard = ({ navigation }) => {
                   <Text style={stylesMobile.statusBadgeMobile}>Scheduled</Text>
                 </View>
               ))
-            ) : (
+            ) : ( */}
               <Text style={stylesMobile.noData}>No History Found</Text>
-            )}
+            
           </View>
 
           {/* Notifications */}

@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   ScrollView,
+  Alert,
 } from "react-native";
 
 import { useChatbot } from "../../contexts/ChatbotContext";
@@ -18,8 +19,15 @@ import { useFocusEffect } from "@react-navigation/native";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 //import MedilockerUsers from "../../components/DoctorsPortalComponents/MedilockerUsers";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 import { API_URL } from "../../env-vars";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  FetchFromServer,
+  download,
+  remove,
+} from "../../utils/MedilockerService";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -31,7 +39,14 @@ const GeneratePrescription = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedFilePreview, setSelectedFilePreview] = useState(null);
+  const [previewModalVisible, setPreviewModalVisible] = useState(false);
+  const [fileMenuVisible, setFileMenuVisible] = useState(false);
+  const [selectedFileForMenu, setSelectedFileForMenu] = useState(null);
+  const [files, setFiles] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const { userId, doctorId, userName, appointmentDate } = route.params || {};
 
@@ -40,7 +55,7 @@ const GeneratePrescription = ({ navigation, route }) => {
       setChatbotConfig({ height: "57%" });
     }, [setChatbotConfig])
   );
-  
+
   // useEffect(() => {
   //   if (!userId) return;
 
@@ -84,7 +99,44 @@ const GeneratePrescription = ({ navigation, route }) => {
 
         console.log("📅 Appointment:", apptData);
 
-        setAppointment({ ...apptData, date: appointmentDate || apptData?.date });
+        setAppointment({
+          ...apptData,
+          date: appointmentDate || apptData?.date,
+        });
+
+        // MEDILOCKER FILES - FETCH USER DOCUMENTS
+        try {
+          const userIdentifier =
+            userProfile.user_id || userProfile.email || userId;
+          console.log("📁 Fetching files for:", userIdentifier);
+
+          const filesData = await FetchFromServer(userIdentifier);
+          console.log("📦 FetchFromServer response:", filesData);
+
+          if (filesData?.files) {
+            console.log("✅ Files received:", filesData.files.length);
+
+            const mappedFiles = filesData.files.map((file) => ({
+              name: file.filename,
+              type: detectType(file.filename),
+              size: file.metadata.file_size,
+              date: file.metadata.upload_date,
+              time: file.metadata.upload_time,
+            }));
+
+            console.log("🔄 Mapped files:", mappedFiles);
+            setFiles(mappedFiles);
+            console.log(
+              "✨ Files state updated with",
+              mappedFiles.length,
+              "files"
+            );
+          } else {
+            console.warn("⚠️ No files in response");
+          }
+        } catch (fileErr) {
+          console.error("❌ Failed to fetch files:", fileErr);
+        }
       } catch (err) {
         console.error("❌ Fetch failed:", err);
       } finally {
@@ -105,6 +157,109 @@ const GeneratePrescription = ({ navigation, route }) => {
 
     return first + last;
   };
+
+  const detectType = (fileName) => {
+    const ext = fileName.split(".").pop().toLowerCase();
+    if (["pdf"].includes(ext)) return "Report";
+    if (["png", "jpg", "jpeg"].includes(ext)) return "Scan";
+    if (["txt", "doc", "docx"].includes(ext)) return "Prescription";
+    return "Other";
+  };
+
+  const openQuickPreview = async (file) => {
+    try {
+      const data = await download(user?.user_id || user?.email, file.name);
+
+      setSelectedFilePreview(file);
+      setPreviewUrl(data.download_url);
+      setPreviewModalVisible(true);
+    } catch (error) {
+      Alert.alert("Preview Error", "Unable to load file preview");
+    }
+  };
+
+  const openFileMenu = (file) => {
+    setSelectedFileForMenu(file);
+    setFileMenuVisible(true);
+  };
+
+  // const downloadFile = async (fileName) => {
+  //   console.log("📥 Downloading file:", fileName);
+  //   Alert.alert("Download", `Downloading ${fileName}...`);
+  // };
+
+  const downloadFile = async (fileName) => {
+    try {
+      const data = await download(user?.user_id || user?.email, fileName);
+      const downloadUrl = data.download_url;
+
+      if (Platform.OS === "web") {
+        window.open(downloadUrl, "_blank");
+      } else {
+        await WebBrowser.openBrowserAsync(downloadUrl);
+      }
+    } catch (error) {
+      Alert.alert("Download Error", error.message);
+    }
+  };
+
+  const removeFile = async (fileName) => {
+    try {
+      const data = await remove(user?.user_id || user?.email, fileName);
+
+      setFiles(files.filter((file) => file.name !== fileName));
+      Alert.alert("Deleted", `${fileName} has been removed`);
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    }
+  };
+
+  const shareFile = async (fileName) => {
+    try {
+      const data = await download(user?.user_id || user?.email, fileName);
+      const downloadUrl = data.download_url;
+
+      if (Platform.OS === "web") {
+        //Shorten URL
+        let urlToShare = downloadUrl;
+        try {
+          urlToShare = await shortenUrl(downloadUrl);
+        } catch (error) {
+          console.error("Failed to shorten URL:", error);
+        }
+
+        if (navigator.share) {
+          await navigator.share({
+            title: fileName,
+            url: urlToShare,
+            text: `Check out this file: ${fileName}`,
+          });
+        } else {
+          // Fallback to opening the download URL in a new tab.
+          window.open(downloadUrl, "_blank");
+        }
+      } else {
+        const localUri = FileSystem.cacheDirectory + fileName;
+
+        const downloadResult = await FileSystem.downloadAsync(
+          downloadUrl,
+          localUri
+        );
+
+        if (!(await Sharing.isAvailableAsync())) {
+          console.error("Sharing is not available on this device");
+          return;
+        }
+
+        await Sharing.shareAsync(downloadResult.uri);
+        await FileSystem.deleteAsync(downloadResult.uri);
+      }
+    } catch (error) {
+      console.error("Sharing error:", error);
+    }
+    setMenuVisible(false);
+  };
+
   const MobileGeneratePrescription = ({
     user,
     appointment,
@@ -161,7 +316,7 @@ const GeneratePrescription = ({ navigation, route }) => {
             </View>
 
             <TouchableOpacity
-              style={{position: "absolute", marginLeft: "85%"}}
+              style={{ position: "absolute", marginLeft: "85%" }}
               onPress={() => setMenuVisible(!menuVisible)}
             >
               <Text style={m.menu}>⋮</Text>
@@ -269,20 +424,34 @@ const GeneratePrescription = ({ navigation, route }) => {
           </View>
 
           {/* SAMPLE FILE ITEM */}
-          {[1, 2, 3].map((_, i) => (
-            <TouchableOpacity key={i} style={m.fileRow}>
-              <Text style={m.fileIcon}>📄</Text>
+          {files.length > 0 ? (
+            files
+              .filter((file) =>
+                file.name.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((file, i) => (
+                <TouchableOpacity key={i} style={m.fileRow}>
+                  <Text style={m.fileIcon}>📄</Text>
 
-              <View style={{ flex: 1 }}>
-                <Text style={m.fileName}>Blood sample report</Text>
-                <Text style={m.fileMeta}>PDF · 200KB</Text>
-              </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={m.fileName}>{file.name}</Text>
+                    <Text style={m.fileMeta}>
+                      {file.type} · {file.size}
+                    </Text>
+                  </View>
 
-              <TouchableOpacity>
-                <Text style={m.more}>⋯</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+                  <TouchableOpacity>
+                    <Text style={m.more}>⋯</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))
+          ) : (
+            <Text
+              style={{ textAlign: "center", color: "#999", marginVertical: 20 }}
+            >
+              No documents uploaded
+            </Text>
+          )}
         </View>
       </ScrollView>
     );
@@ -311,15 +480,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <HeaderLoginSignUp navigation={navigation} />
-
-                  <View style={styles.backPicBox}>
-                    <TouchableOpacity>
-                      <Image
-                        source={require("../../assets/DoctorsPortal/Icons/backscreen.png")}
-                        style={styles.backpic}
-                      />
-                    </TouchableOpacity>
-                  </View>
+                  <BackButton />
                   <View style={styles.contentContainer}>
                     <View style={styles.upperPart}>
                       <View>
@@ -500,7 +661,19 @@ const GeneratePrescription = ({ navigation, route }) => {
                             </View>
                           </View>
 
-                          <TouchableOpacity style={styles.generateButton}>
+                          {/* <TouchableOpacity style={styles.generateButton}>
+                            <Text style={styles.generateText}>
+                              Generate Prescription
+                            </Text>
+                          </TouchableOpacity> */}
+                          <TouchableOpacity
+                            style={styles.generateButton}
+                            onPress={() =>
+                              navigation.navigate("DoctorAppNavigation", {
+                                screen: "Prescription",
+                              })
+                            }
+                          >
                             <Text style={styles.generateText}>
                               Generate Prescription
                             </Text>
@@ -585,38 +758,441 @@ const GeneratePrescription = ({ navigation, route }) => {
                         </View>
 
                         <View style={styles.medilockerBox}>
-                          <View style={{ marginLeft: "2%" }}>
+                          <View style={{ marginLeft: "0.5%" }}>
                             <Text style={styles.mediText}>File Name</Text>
                           </View>
-                          <View style={{ marginLeft: "15%" }}>
+                          <View style={{ marginLeft: "1%" }}>
                             <Text style={styles.mediText}>Document Type</Text>
                           </View>
-                          <View style={{ marginLeft: "6%" }}>
+                          <View style={{ marginLeft: "1%" }}>
                             <Text style={styles.mediText}>File size</Text>
                           </View>
-                          <View style={{ marginLeft: "3%" }}>
+                          <View style={{ marginLeft: "1%" }}>
                             <Text style={styles.mediText}>Creation Date</Text>
                           </View>
-                          <View style={{ marginLeft: "6%" }}>
+                          <View style={{ marginLeft: "1%" }}>
                             <Text style={styles.mediText}>Time</Text>
                           </View>
-                          <View style={{ marginLeft: "4%" }}>
+                          <View style={{ marginLeft: "1%" }}>
                             <Text style={styles.mediText}>Quick Preview</Text>
                           </View>
-                          <View style={{ marginLeft: "2%" }}>
+                          <View style={{ marginLeft: "1%" }}>
                             <Text style={styles.mediText}>Actions</Text>
                           </View>
                         </View>
-                        {/* <ScrollView>
-                          <MedilockerUsers></MedilockerUsers>
-                          <MedilockerUsers></MedilockerUsers>
-                          <MedilockerUsers></MedilockerUsers>
-                          <MedilockerUsers></MedilockerUsers>
-                          <MedilockerUsers></MedilockerUsers>
-                          <MedilockerUsers></MedilockerUsers>
-                          <MedilockerUsers></MedilockerUsers>
-                          <MedilockerUsers></MedilockerUsers>
-                        </ScrollView> */}
+
+                        {/* FILE ROWS - WEB VIEW */}
+                        <ScrollView style={{ height: "100%", width: "100%" }}>
+                          {files.length > 0 ? (
+                            files
+                              .filter((file) =>
+                                file.name
+                                  .toLowerCase()
+                                  .includes(searchText.toLowerCase())
+                              )
+                              .map((file, index) => (
+                                <View
+                                  key={index}
+                                  style={{
+                                    marginLeft: "3%",
+                                    flexDirection: "row",
+                                    minHeight: 60,
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: "#EEEEEE",
+                                    alignItems: "center",
+                                    paddingVertical: 10,
+                                    paddingHorizontal: 10,
+                                  }}
+                                >
+                                  {/* File Name */}
+                                  <View
+                                    style={{ width: "15%", paddingRight: 10 }}
+                                  >
+                                    <Text
+                                      style={{
+                                        ...styles.mediText,
+                                        fontSize: 13,
+                                        fontWeight: "400",
+                                      }}
+                                      numberOfLines={2}
+                                    >
+                                      {file.name}
+                                    </Text>
+                                  </View>
+
+                                  {/* Document Type */}
+                                  <View
+                                    style={{
+                                      width: "15%",
+                                      paddingRight: 10,
+                                      marginLeft: "3%",
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        ...styles.mediText,
+                                        fontSize: 13,
+                                        fontWeight: "400",
+                                      }}
+                                    >
+                                      {file.type}
+                                    </Text>
+                                  </View>
+
+                                  {/* File Size */}
+                                  <View
+                                    style={{ width: "12%", paddingRight: 10 }}
+                                  >
+                                    <Text
+                                      style={{
+                                        ...styles.mediText,
+                                        fontSize: 13,
+                                        fontWeight: "400",
+                                      }}
+                                    >
+                                      {file.size}
+                                    </Text>
+                                  </View>
+
+                                  {/* Creation Date */}
+                                  <View
+                                    style={{
+                                      width: "15%",
+                                      paddingRight: 10,
+                                      marginLeft: "2%",
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        ...styles.mediText,
+                                        fontSize: 13,
+                                        fontWeight: "400",
+                                      }}
+                                    >
+                                      {file.date}
+                                    </Text>
+                                  </View>
+
+                                  {/* Time */}
+                                  <View
+                                    style={{
+                                      width: "12%",
+                                      paddingRight: 10,
+                                      marginLeft: "1%",
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        ...styles.mediText,
+                                        fontSize: 13,
+                                        fontWeight: "400",
+                                      }}
+                                    >
+                                      {file.time}
+                                    </Text>
+                                  </View>
+
+                                  {/* Quick Preview */}
+                                  <View
+                                    style={{
+                                      width: "15%",
+                                      paddingRight: 10,
+                                      marginLeft: "0.2%",
+                                    }}
+                                  >
+                                    <TouchableOpacity
+                                      onPress={() => openQuickPreview(file)}
+                                      style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                      }}
+                                    >
+                                      <Text
+                                        style={{ fontSize: 16, marginRight: 5 }}
+                                      >
+                                        👁️
+                                      </Text>
+                                      <Text
+                                        style={{
+                                          ...styles.mediText,
+                                          color: "#FF7072",
+                                          fontWeight: "500",
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        Preview
+                                      </Text>
+                                    </TouchableOpacity>
+                                  </View>
+
+                                  {/* Actions Menu */}
+                                  <View style={styles.actionButtons}>
+                                    {/* Download Button */}
+                                    <TouchableOpacity
+                                      onPress={() => downloadFile(file.name)}
+                                    >
+                                      <MaterialIcons
+                                        name="file-download"
+                                        size={24}
+                                        color="#FF7072"
+                                      />
+                                    </TouchableOpacity>
+
+                                    {/* Delete Button */}
+                                    <TouchableOpacity
+                                      onPress={() => removeFile(file.name)}
+                                    >
+                                      <MaterialIcons
+                                        name="delete"
+                                        size={24}
+                                        color="#FF7072"
+                                      />
+                                    </TouchableOpacity>
+
+                                    {/* Share Button */}
+                                    <TouchableOpacity
+                                      onPress={() => shareFile(file.name)}
+                                    >
+                                      <MaterialIcons
+                                        name="share"
+                                        size={24}
+                                        color="#FF7072"
+                                      />
+                                    </TouchableOpacity>
+                                  </View>
+                                </View>
+                              ))
+                          ) : (
+                            <View
+                              style={{
+                                height: 100,
+                                justifyContent: "center",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Text style={{ color: "#999", fontSize: 14 }}>
+                                No files uploaded
+                              </Text>
+                            </View>
+                          )}
+                        </ScrollView>
+
+                        {/* QUICK PREVIEW MODAL */}
+                        {/* QUICK PREVIEW MODAL */}
+                        {previewModalVisible && selectedFilePreview && (
+                          <View
+                            style={{
+                              position:
+                                Platform.OS === "web" ? "fixed" : "absolute",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: "rgba(0,0,0,0.85)",
+                              zIndex: 999999,
+                              padding: "2%",
+                              alignItems: "center",
+                            }}
+                          >
+                            <View
+                              style={{
+                                backgroundColor: "#000",
+                                width: "95%",
+                                height: "90%",
+                                overflow: "hidden",
+                                position: "relative",
+                              }}
+                            >
+                              {/* HEADER */}
+                              <View
+                                style={{
+                                  padding: 14,
+                                  backgroundColor: "#FF7072",
+                                  flexDirection: "row",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Text
+                                  style={{ fontSize: 16, fontWeight: "600" }}
+                                >
+                                  {selectedFilePreview.name}
+                                </Text>
+
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    setPreviewModalVisible(false);
+                                    setPreviewUrl(null);
+                                    setZoomLevel(1); // ✅ reset zoom
+                                  }}
+                                >
+                                  <Text style={{ fontSize: 16, color: "#111" }}>
+                                    Close
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+
+                              {/* ZOOM CONTROLS (WEB ONLY) */}
+                              {Platform.OS === "web" && (
+                                <View
+                                  style={{
+                                    position: "absolute",
+                                    bottom: 30,
+                                    right: 30,
+                                    flexDirection: "row",
+                                    gap: 12,
+                                    zIndex: 1000000,
+                                  }}
+                                >
+                                  {/* Zoom In */}
+                                  <TouchableOpacity
+                                    onPress={() =>
+                                      setZoomLevel((z) => Math.min(z + 0.25, 4))
+                                    }
+                                    style={{
+                                      backgroundColor: "#FF7072",
+                                      paddingVertical: 10,
+                                      paddingHorizontal: 14,
+                                      borderRadius: 6,
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        color: "#fff",
+                                        fontSize: 18,
+                                        fontWeight: "700",
+                                      }}
+                                    >
+                                      +
+                                    </Text>
+                                  </TouchableOpacity>
+
+                                  {/* Zoom Out */}
+                                  <TouchableOpacity
+                                    onPress={() =>
+                                      setZoomLevel((z) => Math.max(z - 0.25, 1))
+                                    }
+                                    style={{
+                                      backgroundColor: "#FF7072",
+                                      paddingVertical: 10,
+                                      paddingHorizontal: 14,
+                                      borderRadius: 6,
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        color: "#fff",
+                                        fontSize: 18,
+                                        fontWeight: "700",
+                                      }}
+                                    >
+                                      −
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
+                              )}
+
+                              {/* CONTENT */}
+                              <View
+                                style={{ flex: 1, backgroundColor: "#f5f5f5" }}
+                              >
+                                {/* IMAGE FILES */}
+                                {["png", "jpg", "jpeg"].includes(
+                                  selectedFilePreview.name
+                                    .split(".")
+                                    .pop()
+                                    .toLowerCase()
+                                ) &&
+                                  (Platform.OS === "web" ? (
+                                    <div
+                                      style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        overflow: "auto",
+                                        backgroundColor: "#f5f5f5",
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "center",
+                                          alignItems: "flex-start",
+                                          padding: 20,
+                                        }}
+                                      >
+                                        <img
+                                          src={previewUrl}
+                                          alt="Preview"
+                                          style={{
+                                            maxWidth: "100%", // ✅ ALWAYS fit initially
+                                            height: "auto",
+                                            transform: `scale(${zoomLevel})`,
+                                            transformOrigin: "top center",
+                                            transition: "transform 0.2s ease",
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <ScrollView
+                                      contentContainerStyle={{
+                                        flexGrow: 1,
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                      }}
+                                      maximumZoomScale={4}
+                                      minimumZoomScale={1}
+                                    >
+                                      <Image
+                                        source={{ uri: previewUrl }}
+                                        style={{
+                                          width: "100%",
+                                          height: "100%",
+                                        }}
+                                        resizeMode="contain"
+                                      />
+                                    </ScrollView>
+                                  ))}
+
+                                {/* PDF FILES */}
+                                {selectedFilePreview.name
+                                  .toLowerCase()
+                                  .endsWith(".pdf") &&
+                                  Platform.OS === "web" && (
+                                    <iframe
+                                      src={previewUrl}
+                                      title="PDF Preview"
+                                      style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        border: "none",
+                                      }}
+                                    />
+                                  )}
+
+                                {/* UNSUPPORTED */}
+                                {!["png", "jpg", "jpeg", "pdf"].includes(
+                                  selectedFilePreview.name
+                                    .split(".")
+                                    .pop()
+                                    .toLowerCase()
+                                ) && (
+                                  <View
+                                    style={{
+                                      flex: 1,
+                                      justifyContent: "center",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <Text style={{ color: "#666" }}>
+                                      Preview not available for this file type.
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          </View>
+                        )}
                       </View>
                     </View>
                   </View>
@@ -632,6 +1208,22 @@ const GeneratePrescription = ({ navigation, route }) => {
           appointment={appointment}
           searchText={searchText}
           setSearchText={setSearchText}
+        />
+      )}
+
+      {/* Overlay to close menu when clicking outside */}
+      {fileMenuVisible && (
+        <TouchableOpacity
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999,
+          }}
+          activeOpacity={1}
+          onPress={() => setFileMenuVisible(false)}
         />
       )}
     </>
@@ -783,7 +1375,12 @@ const styles = StyleSheet.create({
     width: 45,
     alignSelf: "center",
   },
-
+  actionButtons: {
+    flexDirection: "row",
+    flex: 1,
+    justifyContent: "center", // Ensures equal spacing
+    alignItems: "center",
+  },
   initialText: {
     alignSelf: "center",
     fontSize: 30,

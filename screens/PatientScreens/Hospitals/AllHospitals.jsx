@@ -29,6 +29,7 @@ import SearchBar from "../../../components/PatientScreenComponents/SearchBar";
 // import AppHospitalCard from "../../components/AppHospitalCard";
 import HospitalCard from "../../../components/PatientScreenComponents/HospitalComponents/HospitalCard";
 import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
+import BackButton from "../../../components/PatientScreenComponents/BackButton";
 
 const hospitals = [
   { id: "1" },
@@ -139,6 +140,7 @@ const AllHospitals = ({ navigation, route }) => {
                   <View style={styles.header}>
                     <HeaderLoginSignUp navigation={navigation} />
                   </View>
+                  <BackButton />
 
                   {/* {bodyVisible && */}
                   <View style={styles.body}>

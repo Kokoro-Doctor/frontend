@@ -12,9 +12,11 @@ import {
   Linking,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import { API_URL } from "../../env-vars";
 import { useAuth } from "../../contexts/AuthContext";
+
 
 const DrCalendarView = ({ navigation }) => {
   const { width } = useWindowDimensions();
@@ -347,6 +349,7 @@ const DrCalendarView = ({ navigation }) => {
             <MaterialIcons name="chevron-right" size={28} color="#333" />
           </TouchableOpacity>
         </View>
+        
 
         {/* Day Headers */}
         <View style={styles.dayHeadersRow}>
@@ -469,6 +472,7 @@ const DrCalendarView = ({ navigation }) => {
             <Text style={styles.calendarTitle}>Calendar</Text>
             {!isMobileLike && (
               <View style={styles.tabsContainer}>
+                <BackButton />
                 {tabs.map((tab) => (
                   <TouchableOpacity
                     key={tab}

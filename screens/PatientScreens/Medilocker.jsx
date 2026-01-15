@@ -34,6 +34,7 @@ import {
   shortenUrl,
 } from "../../utils/MedilockerService";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 const { width, height } = Dimensions.get("window");
 
 const Medilocker = ({ navigation }) => {
@@ -299,7 +300,7 @@ const Medilocker = ({ navigation }) => {
                   <View style={styles.header}>
                     <HeaderLoginSignUp navigation={navigation} />
                   </View>
-
+                  <BackButton />
                   <View style={styles.right_middle}>
                     <TouchableOpacity
                       style={styles.uploadBar}
