@@ -159,18 +159,26 @@ const PatientAuthModal = ({
     return null;
   };
 
-  const handleLoginIdentifierChange = (value) => {
-    // Allow email or phone input
-    setLoginIdentifier(value);
-    const detectedType = detectInputType(value);
-    if (detectedType === "phone") {
-      setMobile(value);
-      // Auto-detect country code if number starts with +
-      if (value.trim().startsWith("+")) {
-        const detected = detectCountryCode(value);
-        setLoginCountryCode(detected);
-      }
+  const handleLoginIdentifierChange = (value = "") => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setLoginIdentifier("");
+      setMobile("");
+      return;
     }
+
+    // Auto-detect country code if number starts with +
+    if (trimmed.startsWith("+")) {
+      const detected = detectCountryCode(trimmed);
+      setLoginCountryCode(detected);
+    }
+
+    const digitsOnly = sanitizeDigits(trimmed);
+    const normalized =
+      trimmed.startsWith("+") && digitsOnly ? `+${digitsOnly}` : digitsOnly;
+
+    setLoginIdentifier(normalized);
+    setMobile(normalized);
   };
 
   const handleSignupIdentifierChange = (value = "") => {
@@ -260,14 +268,15 @@ const PatientAuthModal = ({
     setOtpStatus("sending");
     try {
       if (flow === "signup") {
-        // Email is required for signup, OTP sent ONLY to email
+        // Email is required for OTP flow - if not provided, this function shouldn't be called
         const signupEmail = email.trim();
         if (!signupEmail) {
-          setErrorMessage("Email is required for signup.");
+          setErrorMessage("Email is required to send OTP.");
           setOtpStatus("idle");
           setIsProcessing(false);
           return false;
         }
+        // Normal flow: email provided, send OTP
         await requestSignupOtpHandler({
           phoneNumber,
           email: signupEmail,
@@ -411,26 +420,27 @@ const PatientAuthModal = ({
     }
   };
 
-  const handleCompleteProfile = async (
-    phoneNumberOverride = null,
-    otpOverride = null
-  ) => {
+  const handleExperimentalSignup = async () => {
+    const phoneNumberToUse = signupIdentifier || buildPhoneNumber();
     const nameToUse = fullName.trim();
-    const phoneNumberToUse =
-      phoneNumberOverride || otpTargetPhone || buildPhoneNumber();
-    const otpToUse = otpOverride || otp.trim();
+    
+    if (!phoneNumberToUse) {
+      setErrorMessage("Please enter your mobile number.");
+      return;
+    }
 
-    if (!nameToUse) {
-      setErrorMessage("Please enter your full name.");
+    const digitsOnly = sanitizeDigits(phoneNumberToUse);
+    if (!validatePhoneNumber(digitsOnly, signupCountryCode)) {
+      const country = getCountryByCode(signupCountryCode);
+      setErrorMessage(
+        `Please enter a valid mobile number for ${country.name}.`
+      );
       return;
     }
-    const emailToUse = email.trim();
-    if (!emailToUse) {
-      setErrorMessage("Email is required for signup.");
-      return;
-    }
-    if (!phoneNumberToUse || !otpToUse) {
-      setErrorMessage("Phone number and OTP are required.");
+
+    const normalizedPhone = buildPhoneNumber(phoneNumberToUse, signupCountryCode);
+    if (!normalizedPhone) {
+      setErrorMessage("Please enter a valid mobile number.");
       return;
     }
 
@@ -440,11 +450,94 @@ const PatientAuthModal = ({
     setIsProcessing(true);
 
     try {
+      // Simplified flow: signup with mobile and name only (no email, no OTP)
       await signupHandler({
-        name: nameToUse,
+        phoneNumber: normalizedPhone,
+        ...(nameToUse && { name: nameToUse }),
+        // email and otp are omitted
+      });
+
+      setRole("patient");
+      await AsyncStorage.setItem("userRole", "patient");
+
+      setInfoMessage("Signup successful! Redirecting...");
+      setIsSigningUp(false);
+      setIsProcessing(false);
+
+      setTimeout(() => {
+        onRequestClose();
+      }, 1500);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setErrorMessage(message);
+      setIsSigningUp(false);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCompleteProfile = async (
+    phoneNumberOverride = null,
+    otpOverride = null
+  ) => {
+    const nameToUse = fullName.trim() || undefined;
+    const phoneNumberToUse =
+      phoneNumberOverride || otpTargetPhone || buildPhoneNumber();
+    const otpToUse = otpOverride || otp.trim() || undefined;
+    const emailToUse = email.trim() || undefined;
+
+    if (!phoneNumberToUse) {
+      setErrorMessage("Phone number is required.");
+      return;
+    }
+
+    // If no email or OTP provided, use experimental flow
+    if (!emailToUse || !otpToUse) {
+      setErrorMessage("");
+      setInfoMessage("");
+      setIsSigningUp(true);
+      setIsProcessing(true);
+
+      try {
+        await signupHandler({
+          phoneNumber: phoneNumberToUse,
+          // email, otp, and name are optional
+          ...(nameToUse && { name: nameToUse }),
+          ...(emailToUse && { email: emailToUse }),
+          ...(otpToUse && { otp: otpToUse }),
+        });
+
+        setRole("patient");
+        await AsyncStorage.setItem("userRole", "patient");
+
+        setInfoMessage("Signup successful! Redirecting...");
+        setIsSigningUp(false);
+        setIsProcessing(false);
+
+        setTimeout(() => {
+          onRequestClose();
+        }, 1500);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        setErrorMessage(message);
+        setIsSigningUp(false);
+        setIsProcessing(false);
+        throw error;
+      }
+      return;
+    }
+
+    // Normal flow: email and OTP provided
+    setErrorMessage("");
+    setInfoMessage("");
+    setIsSigningUp(true);
+    setIsProcessing(true);
+
+    try {
+      await signupHandler({
         phoneNumber: phoneNumberToUse,
         email: emailToUse,
         otp: otpToUse,
+        ...(nameToUse && { name: nameToUse }),
       });
 
       setRole("patient");
@@ -466,89 +559,56 @@ const PatientAuthModal = ({
     }
   };
 
-  const handleSendLoginOtp = async () => {
+  const handleDirectLogin = async () => {
     if (isProcessing) return;
 
     const identifier = loginIdentifier.trim();
     if (!identifier) {
-      setErrorMessage("Please enter your email address or mobile number.");
+      setErrorMessage("Please enter your mobile number.");
       return;
     }
 
-    const detectedType = detectInputType(identifier);
-
-    if (detectedType === "email") {
-      // Email login - send OTP directly
-      setErrorMessage("");
-      setInfoMessage("");
-      setIsProcessing(true);
-      setOtp("");
-      setOtpStatus("sending");
-      try {
-        await requestLoginOtpHandler({ identifier, preferredChannel: "email" });
-        setOtpFlow("login");
-        setOtpTargetPhone(identifier); // Store identifier for later use
-        setOtpStatus("sent");
-        setOtpCountdown(60);
-        setShowOtpModal(true);
-        setInfoMessage("OTP sent to your email address.");
-        return true;
-      } catch (error) {
-        setOtpStatus("idle");
-        setErrorMessage(getErrorMessage(error));
-        setOtpFlow(null);
-        setOtpTargetPhone("");
-        return false;
-      } finally {
-        setIsProcessing(false);
-      }
-    } else if (detectedType === "phone") {
-      // Phone login - send OTP to email by default (prefer email)
-      const digitsOnly = sanitizeDigits(identifier);
-      if (!validatePhoneNumber(digitsOnly, loginCountryCode)) {
-        const country = getCountryByCode(loginCountryCode);
-        setErrorMessage(
-          `Please enter a valid mobile number for ${country.name}.`
-        );
-        return;
-      }
-
-      const phoneNumber = buildPhoneNumber(identifier, loginCountryCode);
-      if (!phoneNumber) {
-        setErrorMessage("Please enter a valid mobile number.");
-        return;
-      }
-
-      // Send OTP to email by default (prefer email)
-      setErrorMessage("");
-      setInfoMessage("");
-      setIsProcessing(true);
-      setOtp("");
-      setOtpStatus("sending");
-      try {
-        await requestLoginOtpHandler({
-          identifier: phoneNumber,
-          preferredChannel: "email",
-        });
-        setOtpFlow("login");
-        setOtpTargetPhone(phoneNumber);
-        setOtpStatus("sent");
-        setOtpCountdown(60);
-        setShowOtpModal(true);
-        setInfoMessage("OTP sent to your email address.");
-        return true;
-      } catch (error) {
-        setOtpStatus("idle");
-        setErrorMessage(getErrorMessage(error));
-        setOtpFlow(null);
-        setOtpTargetPhone("");
-        return false;
-      } finally {
-        setIsProcessing(false);
-      }
-    } else {
-      setErrorMessage("Please enter a valid email address or mobile number.");
+    // Simplified login: mobile-only, no OTP
+    const digitsOnly = sanitizeDigits(identifier);
+    if (!validatePhoneNumber(digitsOnly, loginCountryCode)) {
+      const country = getCountryByCode(loginCountryCode);
+      setErrorMessage(
+        `Please enter a valid mobile number for ${country.name}.`
+      );
       return;
+    }
+
+    const phoneNumber = buildPhoneNumber(identifier, loginCountryCode);
+    if (!phoneNumber) {
+      setErrorMessage("Please enter a valid mobile number.");
+      return;
+    }
+
+    setErrorMessage("");
+    setInfoMessage("");
+    setIsProcessing(true);
+
+    try {
+      // Use signup endpoint for login (it handles both existing and new users)
+      // This works because signup endpoint checks if user exists and returns them
+      await signupHandler({
+        phoneNumber: phoneNumber,
+        // No email, no OTP, no name for login
+      });
+
+      setRole("patient");
+      await AsyncStorage.setItem("userRole", "patient");
+
+      setInfoMessage("Login successful! Redirecting...");
+      setIsProcessing(false);
+
+      setTimeout(() => {
+        onRequestClose();
+      }, 1500);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setErrorMessage(message);
+      setIsProcessing(false);
     }
   };
 
@@ -556,7 +616,8 @@ const PatientAuthModal = ({
     if (isProcessing) return;
 
     if (mode === "login") {
-      await handleSendLoginOtp();
+      // Simplified login: mobile-only, no OTP
+      await handleDirectLogin();
       return;
     }
 
@@ -564,8 +625,8 @@ const PatientAuthModal = ({
       return;
     }
 
-    // Send OTP for signup - verification happens in OTP modal
-    await handleSendSignupOtp();
+    // Simplified flow: signup directly with mobile and name only (no email, no OTP)
+    await handleExperimentalSignup();
   };
 
   const handleResendOtp = async () => {
@@ -578,10 +639,10 @@ const PatientAuthModal = ({
     setErrorMessage("");
     try {
       if (otpFlow === "signup") {
-        // Signup: resend OTP to email
+        // Signup: resend OTP to email (if email provided)
         const signupEmail = email.trim();
         if (!signupEmail) {
-          setErrorMessage("Email is required for signup.");
+          setErrorMessage("Email is required to resend OTP.");
           setIsProcessing(false);
           return;
         }
@@ -608,14 +669,7 @@ const PatientAuthModal = ({
   };
 
   const validateSignupFields = () => {
-    if (!fullName.trim()) {
-      setErrorMessage("Please enter your full name.");
-      return false;
-    }
-    if (!email.trim()) {
-      setErrorMessage("Email is required for signup.");
-      return false;
-    }
+    // Only phone number is required for signup (name is optional)
     if (!signupIdentifier.trim()) {
       setErrorMessage("Please enter your mobile number.");
       return false;
@@ -631,16 +685,13 @@ const PatientAuthModal = ({
     return true;
   };
 
-  // Login validation: accept email or phone
-  const loginIdentifierType = detectInputType(loginIdentifier);
-  const loginDigitsValid =
-    loginIdentifierType === "phone"
-      ? validatePhoneNumber(sanitizeDigits(loginIdentifier), loginCountryCode)
-      : loginIdentifierType === "email";
+  // Login validation: mobile number only
+  const loginDigitsValid = validatePhoneNumber(
+    sanitizeDigits(loginIdentifier),
+    loginCountryCode
+  );
   const showLoginPhoneError =
-    loginIdentifier.trim().length > 0 &&
-    loginIdentifierType === "phone" &&
-    !loginDigitsValid;
+    loginIdentifier.trim().length > 0 && !loginDigitsValid;
 
   const signupDigitsValid = validatePhoneNumber(
     sanitizeDigits(signupIdentifier),
@@ -648,12 +699,11 @@ const PatientAuthModal = ({
   );
   const showSignupPhoneError =
     signupIdentifier.trim().length > 0 && !signupDigitsValid;
-  const baseSignupValid = fullName.trim() && email.trim() && signupDigitsValid;
+  // Only phone number is required for signup (name and email are optional)
+  const baseSignupValid = signupDigitsValid;
 
   const isLoginActionDisabled =
-    !loginIdentifier.trim() ||
-    (loginIdentifierType && !loginDigitsValid) ||
-    isProcessing;
+    !loginIdentifier.trim() || !loginDigitsValid || isProcessing;
 
   const isPrimaryDisabled =
     mode === "login" ? isLoginActionDisabled : !baseSignupValid || isProcessing;
@@ -699,7 +749,7 @@ const PatientAuthModal = ({
                     mode === "signup" && styles.modeToggleTextActive,
                   ]}
                 >
-                  Sign Up
+                  Try Free
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -718,7 +768,7 @@ const PatientAuthModal = ({
                     mode === "login" && styles.modeToggleTextActive,
                   ]}
                 >
-                  Login
+                  Already a member!
                 </Text>
               </TouchableOpacity>
             </View>
@@ -745,33 +795,77 @@ const PatientAuthModal = ({
                 >
                   <Text style={styles.titleHead}>Welcome Back!</Text>
                   <Text style={styles.subtitle}>
-                    Enter your email address or mobile number
+                    Enter your mobile number
                   </Text>
 
                   <Text style={styles.inputLabel}>
-                    Email or Mobile Number{" "}
+                    Mobile Number{" "}
                     <Text style={styles.requiredIndicator}>*</Text>
                   </Text>
-                  <TextInput
-                    placeholder="Enter email or mobile number"
-                    placeholderTextColor="#d3d3d3"
-                    style={styles.input}
-                    keyboardType="default"
-                    autoCapitalize="none"
-                    value={loginIdentifier}
-                    onChangeText={handleLoginIdentifierChange}
-                  />
-                  {showLoginPhoneError &&
-                  detectInputType(loginIdentifier) === "phone" ? (
+                  <View style={styles.phoneContainer}>
+                    <View style={styles.countryCodeContainer}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setIsLoginCountryDropdownOpen(
+                            !isLoginCountryDropdownOpen
+                          )
+                        }
+                        style={styles.countryCodeButton}
+                      >
+                        <Text style={styles.countryCodeText}>
+                          {getCountryByCode(loginCountryCode).flag}{" "}
+                          {loginCountryCode}
+                        </Text>
+                        <Ionicons
+                          name={
+                            isLoginCountryDropdownOpen
+                              ? "chevron-up"
+                              : "chevron-down"
+                          }
+                          size={16}
+                          color="#666"
+                          style={{ marginLeft: 4 }}
+                        />
+                      </TouchableOpacity>
+                      {isLoginCountryDropdownOpen && (
+                        <View style={styles.countryDropdown}>
+                          <ScrollView
+                            style={styles.countryDropdownScroll}
+                            nestedScrollEnabled
+                          >
+                            {COUNTRY_CODES.map((country) => (
+                              <TouchableOpacity
+                                key={country.code}
+                                style={styles.countryDropdownItem}
+                                onPress={() => {
+                                  setLoginCountryCode(country.code);
+                                  setIsLoginCountryDropdownOpen(false);
+                                }}
+                              >
+                                <Text style={styles.countryDropdownText}>
+                                  {country.flag} {country.code} {country.name}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                    <TextInput
+                      placeholder="Enter your mobile number"
+                      placeholderTextColor="#d3d3d3"
+                      keyboardType="phone-pad"
+                      autoCapitalize="none"
+                      style={styles.phoneInput}
+                      value={loginIdentifier}
+                      onChangeText={handleLoginIdentifierChange}
+                      maxLength={getCountryByCode(loginCountryCode).maxLength}
+                    />
+                  </View>
+                  {showLoginPhoneError ? (
                     <Text style={styles.inlineErrorText}>
                       Please enter a valid mobile number for{" "}
                       {getCountryByCode(loginCountryCode).name}.
-                    </Text>
-                  ) : null}
-                  {loginIdentifier.trim() &&
-                  detectInputType(loginIdentifier) === null ? (
-                    <Text style={styles.inlineErrorText}>
-                      Please enter a valid email address or mobile number.
                     </Text>
                   ) : null}
 
@@ -784,7 +878,9 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing ? "Sending OTP..." : "Send OTP"}
+                      {isProcessing
+                        ? "Logging in..."
+                        : "Free Medical chat now"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -795,9 +891,22 @@ const PatientAuthModal = ({
                     { width: cardWidth, flexShrink: 0 },
                   ]}
                 >
-                  <Text style={styles.titleHead}>Join Kokoro Doctor</Text>
+                  <Text style={styles.titleHead}>
+                    Got a health question you are overthinking ?{" "}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: "#999999",
+                      alignSelf: "center",
+                      fontFamily:"Farsan",
+                      fontWeight:400
+                    }}
+                  >
+                    Let’s Talk!
+                  </Text>
 
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     style={styles.doctorRegisterLinkTop}
                     onPress={() => {
                       onRequestClose();
@@ -810,10 +919,10 @@ const PatientAuthModal = ({
                         Register Here
                       </Text>
                     </Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
 
                   <Text style={styles.inputLabel}>
-                    Full Name <Text style={styles.requiredIndicator}>*</Text>
+                    Name <Text style={styles.optionalIndicator}>(Optional)</Text>
                   </Text>
                   <TextInput
                     placeholder="Enter your full name"
@@ -895,19 +1004,6 @@ const PatientAuthModal = ({
                     </Text>
                   ) : null}
 
-                  <Text style={styles.inputLabel}>
-                    Email <Text style={styles.requiredIndicator}>*</Text>
-                  </Text>
-                  <TextInput
-                    placeholder="Enter your email"
-                    placeholderTextColor="#d3d3d3"
-                    style={styles.input}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={setEmail}
-                  />
-
                   <TouchableOpacity
                     style={[
                       styles.btn,
@@ -917,7 +1013,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled || isProcessing}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing ? "Sending..." : "Send OTP"}
+                      {isProcessing ? "Signing up..." : "Free Medical chat now"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -969,12 +1065,15 @@ const PatientAuthModal = ({
             >
               <Ionicons name="close" size={14} color="#9CA3AF" />
             </TouchableOpacity>
-
             <Text style={styles.titleHead}>Verify OTP</Text>
-            <Text style={styles.title}>
-              Enter OTP sent to {otpTargetPhone || mobile || signupIdentifier}
+            <Text style={{ fontSize: 11.7, color: "#000", fontWeight: "600" }}>
+              Enter OTP sent to
+            </Text>{" "}
+            <Text
+              style={{ fontSize: 11.7, color: "#16a34a", fontWeight: "500" }}
+            >
+              {email}
             </Text>
-
             <Text style={styles.inputLabel}>Enter OTP</Text>
             <TextInput
               placeholder="Enter OTP"
@@ -986,12 +1085,10 @@ const PatientAuthModal = ({
               maxLength={4}
               autoFocus
             />
-
             {errorMessage && (
               <Text style={styles.errorText}>{errorMessage}</Text>
             )}
             {infoMessage && <Text style={styles.infoText}>{infoMessage}</Text>}
-
             <TouchableOpacity
               style={[
                 styles.btn,
@@ -1010,7 +1107,6 @@ const PatientAuthModal = ({
                   : "Verify & Sign Up"}
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.resendBtn,
@@ -1099,12 +1195,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   titleHead: {
-    fontSize: 26,
+    fontSize: 21,
     fontWeight: "700",
     color: "#333",
     marginBottom: 8,
     textAlign: "center",
     letterSpacing: -0.5,
+  },
+  title: {
+    //borderWidth: 1,
+    width: "100%",
   },
   subtitle: {
     fontSize: 14,
@@ -1217,7 +1317,7 @@ const styles = StyleSheet.create({
   btnText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: 0.3,
   },
   doctorRegisterLink: {
@@ -1318,6 +1418,22 @@ const styles = StyleSheet.create({
     marginTop: -2,
     marginBottom: 6,
     textAlign: "left",
+  },
+  experimentalBtn: {
+    backgroundColor: "transparent",
+    paddingVertical: 10,
+    borderRadius: 8,
+    width: "100%",
+    alignItems: "center",
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#f96166",
+  },
+  experimentalBtnText: {
+    color: "#f96166",
+    fontWeight: "600",
+    fontSize: 14,
+    letterSpacing: 0.2,
   },
 });
 

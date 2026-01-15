@@ -438,6 +438,39 @@ export const completeUserSignup = async ({
   otp,
   name,
 }) => {
+  // Experimental flow: mobile-only signup (no email, otp, or name)
+  const isExperimentalFlow = !email && !otp && !name;
+  
+  if (isExperimentalFlow) {
+    // Experimental flow: only phone number required
+    if (!phoneNumber) {
+      throw new Error("Phone number is required.");
+    }
+
+    const data = await postJson(
+      "/auth/user/signup",
+      { phoneNumber },
+      "Failed to complete signup"
+    );
+
+    let profile = data.profile;
+
+    // If profile is not in response, fetch it using user_id
+    if (!profile && data.user_id) {
+      profile = await fetchUserProfile(data.user_id);
+    }
+
+    await persistUserSession({
+      access_token: data.access_token,
+      profile: profile,
+      role: "user",
+    });
+
+    // Return data with profile included for consistency
+    return { ...data, profile };
+  }
+
+  // Normal flow: email, otp, and name required
   if (!phoneNumber || !otp) {
     throw new Error("Phone number and OTP are required to complete signup.");
   }

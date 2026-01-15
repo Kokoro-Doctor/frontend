@@ -1,5 +1,5 @@
 import { NavigationContainer } from "@react-navigation/native";
-import { Platform } from "react-native";
+//import { Platform } from "react-native";
 import { useEffect, useRef } from "react";
 import ChatBotOverlay from "./components/PatientScreenComponents/ChatbotComponents/ChatbotOverlay";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -10,60 +10,66 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import RootNavigation, { linking } from "./navigation/RootNavigator";
 // ✅ import your init
 import { initGoogleSignin } from "./utils/AuthService";
-//import UserDashboard from "./screens/PatientScreens/UserDashboard";
+import { AuthPopupProvider } from "./contexts/AuthPopupContext";
+import mixpanel from "./utils/Mixpanel";
 
 const App = () => {
   const navigationRef = useRef(null);
 
-  // useEffect(() => {
-  //   // configure Google Sign-In once
-  //   initGoogleSignin();
-  // }, []);
+  const routeNameRef = useRef(null); // 👈 IMPORTANT
+
+  const onStateChange = () => {
+    const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
+
+    // Track only if screen actually changed
+    if (currentRouteName && routeNameRef.current !== currentRouteName) {
+      routeNameRef.current = currentRouteName;
+
+      mixpanel.track("Screen Viewed", {
+        screen: currentRouteName,
+      });
+
+      console.log("📊 Screen tracked:", currentRouteName);
+    }
+  };
 
   useEffect(() => {
-    // Initialize Google Sign-in (existing)
     initGoogleSignin();
 
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      // Prevent duplicate GTM loading
-      if (window.dataLayer) return;
+    // Test Mixpanel immediately
+    console.log("🔥 Firing test Mixpanel event...");
 
-      // Inject the original GTM snippet dynamically
-      const script = document.createElement("script");
-      script.innerHTML = `
-      (function(w,d,s,l,i){
-        w[l]=w[l]||[];
-        w[l].push({'gtm.start': new Date().getTime(), event:'gtm.js'});
-        var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),
-        dl=l!='dataLayer'?'&l='+l:'';
-        j.async=true;
-        j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-        f.parentNode.insertBefore(j,f);
-      })(window,document,'script','dataLayer','GTM-NKV9V4WN');
-    `;
-      document.head.appendChild(script);
+    mixpanel.track("Web App Loaded", {
+      url: window.location.pathname,
+      timestamp: new Date().toISOString(),
+    });
 
-      // ✅ (Optional) Inject the <noscript> fallback
-      const noscript = document.createElement("noscript");
-      noscript.innerHTML = `
-      <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NKV9V4WN"
-      height="0" width="0" style="display:none;visibility:hidden"></iframe>
-    `;
-      document.body.prepend(noscript);
+    // Force flush immediately
+    if (mixpanel.flush) {
+      mixpanel.flush();
     }
-  }, []);
 
+    // Additional test after delay
+    setTimeout(() => {
+      console.log("🔥 Firing delayed test event...");
+      mixpanel.track("Test Event After Delay");
+    }, 2000);
+  }, []);
   return (
     <AuthProvider>
       <ThemeProvider>
         <ChatbotProvider>
           <RoleProvider>
             <LoginModalProvider>
-              <NavigationContainer linking={linking} ref={navigationRef}>
-                <RootNavigation />
-                <ChatBotOverlay navigationRef={navigationRef} />
-                {/* <UserDashboard/> */}
+              <NavigationContainer
+                linking={linking}
+                ref={navigationRef}
+                onStateChange={onStateChange}
+              >
+                <AuthPopupProvider>
+                  <RootNavigation />
+                  <ChatBotOverlay navigationRef={navigationRef} />
+                </AuthPopupProvider>
               </NavigationContainer>
             </LoginModalProvider>
           </RoleProvider>

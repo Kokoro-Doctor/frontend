@@ -20,8 +20,8 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 import { TrackEvent } from "../../utils/TrackEvent";
-import PatientAuthModal from "../../components/Auth/PatientAuthModal";
-import DoctorSignupModal from "../../components/Auth/DoctorSignupModal";
+// import PatientAuthModal from "../../components/Auth/PatientAuthModal";
+// import DoctorSignupModal from "../../components/Auth/DoctorSignupModal";
 import { useAuth } from "../../contexts/AuthContext";
 
 const { width, height } = Dimensions.get("window");
@@ -138,17 +138,17 @@ const LandingPage = ({ navigation, route }) => {
     }
   }, [doctorId, navigation, paymentSuccess]);
 
-  useEffect(() => {
-    if (isLoading) return; // wait for restoreUserState()
+  // useEffect(() => {
+  //   if (isLoading) return; // wait for restoreUserState()
 
-    if (!isAuthenticated) {
-      setShowPatientAuth(true);
-      //setShowDoctorAuth(true);
-    } else {
-      setShowPatientAuth(false);
-      setShowDoctorAuth(false);
-    }
-  }, [isAuthenticated, isLoading]);
+  //   if (!isAuthenticated) {
+  //     setShowPatientAuth(true);
+  //     //setShowDoctorAuth(true);
+  //   } else {
+  //     setShowPatientAuth(false);
+  //     setShowDoctorAuth(false);
+  //   }
+  // }, [isAuthenticated, isLoading]);
 
   return (
     <>
@@ -320,12 +320,12 @@ const LandingPage = ({ navigation, route }) => {
                         style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("PatientAppNavigation", {
-                            screen: "Hospitals",
+                            screen: "UserDashboard",
                           });
                         }}
                       >
                         <Image
-                          source={require("../../assets/Images/BookHospital.png")}
+                          source={require("../../assets/Images/DashboardCard.png")}
                           style={styles.image}
                         />
                       </TouchableOpacity>
@@ -493,12 +493,12 @@ const LandingPage = ({ navigation, route }) => {
                 style={styles.cardStyle}
                 onPress={() => {
                   navigation.navigate("PatientAppNavigation", {
-                    screen: "Hospitals",
+                    screen: "UserDashboard",
                   });
                 }}
               >
                 <Image
-                  source={require("../../assets/Images/BookHospital.png")}
+                  source={require("../../assets/Images/DashboardCard.png")}
                   style={styles.image}
                 />
               </TouchableOpacity>
@@ -508,7 +508,7 @@ const LandingPage = ({ navigation, route }) => {
       )}
       {/* <ChatBot/> */}
       {/* AUTH MODALS */}
-      {showPatientAuth && (
+      {/* {showPatientAuth && (
         <PatientAuthModal
           visible={showPatientAuth}
           initialMode="signup"
@@ -529,7 +529,7 @@ const LandingPage = ({ navigation, route }) => {
             setShowPatientAuth(true);
           }}
         />
-      )}
+      )} */}
     </>
   );
 };
