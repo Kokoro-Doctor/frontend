@@ -22,6 +22,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 import { Ionicons } from "@expo/vector-icons";
 
 const DoctorsSubscribers = ({ navigation }) => {
@@ -216,7 +217,7 @@ const DoctorsSubscribers = ({ navigation }) => {
 
                 <View style={styles.Right}>
                   <HeaderLoginSignUp navigation={navigation} />
-
+                  <BackButton />
                   <View style={styles.contentContainer}>
                     {/* ---------- HEADER ---------- */}
                     <View style={styles.upperPart}>

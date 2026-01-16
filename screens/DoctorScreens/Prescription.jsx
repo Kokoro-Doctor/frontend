@@ -20,6 +20,7 @@ import { useContext } from "react";
 import { AuthContext } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 import { extractStructuredData } from "../../utils/MedilockerService";
 import * as DocumentPicker from "expo-document-picker";
 
@@ -503,8 +504,8 @@ const Prescription = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <HeaderLoginSignUp navigation={navigation} />
-
-                  <View style={styles.contentContainer}>
+                  <BackButton />
+                  <ScrollView style={styles.contentContainer}>
                     {/* Header Section */}
                     <View style={styles.headerSection}>
                       <Text style={styles.headerTitle}>
@@ -946,7 +947,7 @@ const Prescription = ({ navigation, route }) => {
                         </View>
                       )}
                     </View>
-                  </View>
+                  </ScrollView>
                 </View>
               </View>
             </ImageBackground>

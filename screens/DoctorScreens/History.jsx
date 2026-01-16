@@ -10,6 +10,7 @@ import {
   Image,
 } from "react-native";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 // import axios from "axios" // Uncomment when integrating API
 
 const HistoryScreen = ({ navigation }) => {
@@ -147,6 +148,7 @@ const HistoryScreen = ({ navigation }) => {
 
         <View style={styles.mainContent}>
           <Text style={styles.title}>History</Text>
+          
 
           <View style={styles.filterContainer}>
             <View style={styles.searchContainer}>
@@ -182,7 +184,9 @@ const HistoryScreen = ({ navigation }) => {
                 <Text style={styles.clearButtonText}>Clear</Text>
               </TouchableOpacity>
             </View>
+            
           </View>
+          <BackButton />
 
           {/* <ScrollView style={styles.appointmentsContainer}>
             {Object.entries(groupedAppointments).map(

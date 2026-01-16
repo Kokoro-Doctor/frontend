@@ -945,6 +945,7 @@ import HeaderLoginSignUp from "../../../components/PatientScreenComponents/Heade
 import SearchBar from "../../../components/PatientScreenComponents/SearchBar";
 import DoctorAppointmentData from "../../../components/PatientScreenComponents/DoctorComponents/DoctorsAppointmentData";
 import PromoModal from "../../../components/PatientScreenComponents/PromoModal";
+import BackButton from "../../../components/PatientScreenComponents/BackButton";
 
 // Create a platform-specific location implementation
 const GetLocationPolyfill = {
@@ -1099,6 +1100,7 @@ const DoctorResultShow = ({ navigation, route }) => {
                   <View style={[styles.header, { height: "12%" }]}>
                     <HeaderLoginSignUp navigation={navigation} />
                   </View>
+                  <BackButton />
 
                   <View style={styles.contentContainer}>
                     <View style={styles.searchSection}>

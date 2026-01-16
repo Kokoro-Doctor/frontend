@@ -20,6 +20,7 @@ import HeaderLoginSignUp from "../../../components/PatientScreenComponents/Heade
 import { payment_api } from "../../../utils/PaymentService";
 import { useLoginModal } from "../../../contexts/LoginModalContext";
 import { useAuth } from "../../../contexts/AuthContext";
+import BackButton from "../../../components/PatientScreenComponents/BackButton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -186,6 +187,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                   <View style={[styles.header, { height: "12%" }]}>
                     <HeaderLoginSignUp navigation={navigation} />
                   </View>
+                  <BackButton />
                   <View style={styles.contentContainer}>
                     {/* Doctor profile card */}
                     <View style={styles.doctorProfileCard}>
@@ -764,7 +766,7 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         width: "100%",
-        marginBottom: 20,
+        // marginBottom: 20,
       },
     }),
   },
