@@ -199,7 +199,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                       <Pressable
                         onPress={() => {
                           setDropdownVisible(false);
-                          openAuthModal("login");
+                          openAuthModal("signup");
                         }}
                         style={({ pressed }) => [
                           styles.dropdownItem,
@@ -213,8 +213,18 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                 )}
               </View>
 
-              <Pressable>
-                <MaterialIcons name="notifications" size={30} color="black" />
+              <Pressable
+                onPress={() => {
+                  navigation.navigate("DoctorAppNavigation", {
+                    screen: "DoctorPortalLandingPage",
+                  });
+                }}
+              >
+                {/* <MaterialIcons name="notifications" size={30} color="black" /> */}
+                <Image
+                  source={require("../../assets/Icons/DoctorPortalIcon.png")}
+                  style={{ height: 40, width: 80 }}
+                />
               </Pressable>
             </View>
           </View>
@@ -469,22 +479,21 @@ const styles = StyleSheet.create({
   dropdownMain: {
     position: "absolute",
     top: 45,
-    right: 0,
-
+    //right: 20,
+    left:0,
     backgroundColor: "#fff",
     borderRadius: 8,
     minWidth: 140,
-
     elevation: 20, // ✅ ANDROID
     zIndex: 9999, // ✅ WEB
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-
     borderWidth: 1,
     borderColor: "#E5E7EB",
     pointerEvents: "box-none",
+    //marginLeft:"10%"
   },
 
   // dropdownItem: {
@@ -519,6 +528,7 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "stretch", // 🔥 IMPORTANT
     minHeight: 44, // 🔥 iOS/Android tap standard
+
   },
 
   dropdownText: {
