@@ -17,18 +17,36 @@ export async function getSessionId() {
     if (sessionId) return sessionId;
 
     // Otherwise create one
-    const res = await axios.post(`${API_URL}/auth/session/initiate`);
-    sessionId = res.data.session_id;
-    if (!sessionId) {
-      console.warn('API did not return a session ID. Check backend implementation.');
-      return null;
+    try {
+      const res = await axios.post(`${API_URL}/auth/session/initiate`, {}, {
+        timeout: 5000, // 5 second timeout
+        validateStatus: (status) => status < 500, // Don't throw on 4xx errors
+      });
+      
+      // Only proceed if we got a successful response
+      if (res.status >= 200 && res.status < 300 && res.data?.session_id) {
+        sessionId = res.data.session_id;
+        // Save locally
+        await AsyncStorage.setItem("session_id", sessionId);
+        return sessionId;
+      } else {
+        console.warn('API did not return a session ID. Status:', res.status);
+        return null;
+      }
+    } catch (apiError) {
+      // Silently fail - don't log 502 errors as they're server issues
+      if (apiError.response?.status === 502 || apiError.code === 'ECONNABORTED') {
+        console.warn('Session API unavailable, continuing without session');
+        return null;
+      }
+      // Re-throw other errors to be caught by outer catch
+      throw apiError;
     }
-
-    // Save locally
-    await AsyncStorage.setItem("session_id", sessionId);
-    return sessionId;
   } catch (error) {
-    console.error("Error getting session:", error);
+    // Only log non-network errors
+    if (error.response?.status !== 502 && error.code !== 'ECONNABORTED') {
+      console.error("Error getting session:", error);
+    }
     return null;
   }
 }
