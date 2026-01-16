@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 
@@ -48,6 +49,7 @@ const ContactUs = ({ navigation, route }) => {
                   <View style={styles.header}>
                     <HeaderLoginSignUp navigation={navigation} />
                   </View>
+                  <BackButton />
                   <View style={styles.title}>
                     <Title />
                   </View>
