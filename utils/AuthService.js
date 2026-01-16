@@ -438,18 +438,19 @@ export const completeUserSignup = async ({
   otp,
   name,
 }) => {
-  // Experimental flow: mobile-only signup (no email, otp, or name)
-  const isExperimentalFlow = !email && !otp && !name;
+  // Experimental flow: mobile-only signup (no email AND no otp required)
+  // Name is optional and can be provided in experimental flow
+  const isExperimentalFlow = !email && !otp;
   
   if (isExperimentalFlow) {
-    // Experimental flow: only phone number required
+    // Experimental flow: only phone number required (name is optional)
     if (!phoneNumber) {
       throw new Error("Phone number is required.");
     }
 
     const data = await postJson(
       "/auth/user/signup",
-      { phoneNumber },
+      { phoneNumber, ...(name && { name }) },
       "Failed to complete signup"
     );
 
@@ -470,7 +471,7 @@ export const completeUserSignup = async ({
     return { ...data, profile };
   }
 
-  // Normal flow: email, otp, and name required
+  // Normal flow: email, otp, and phoneNumber required
   if (!phoneNumber || !otp) {
     throw new Error("Phone number and OTP are required to complete signup.");
   }
@@ -480,7 +481,7 @@ export const completeUserSignup = async ({
 
   const data = await postJson(
     "/auth/user/signup",
-    { phoneNumber, email, otp, name },
+    { phoneNumber, email, otp, ...(name && { name }) },
     "Failed to complete signup"
   );
 

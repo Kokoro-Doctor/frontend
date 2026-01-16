@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_URL } from '../env-vars';
-import { cleanupSessionChatCount } from './chatLimitManager';
 
 /**
  * Get or create a session ID for anonymous users
@@ -43,7 +42,12 @@ export async function clearSession() {
     
     // Clean up session-specific chat count before clearing session
     if (sessionId) {
-      await cleanupSessionChatCount(sessionId);
+      try {
+        const key = `session_chat_count_${sessionId}`;
+        await AsyncStorage.removeItem(key);
+      } catch (cleanupError) {
+        console.error('Error cleaning up session chat count:', cleanupError);
+      }
     }
     
     // Remove session ID

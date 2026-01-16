@@ -1,5 +1,5 @@
 import { NavigationContainer } from "@react-navigation/native";
-//import { Platform } from "react-native";
+import { Platform } from "react-native";
 import { useEffect, useRef } from "react";
 import ChatBotOverlay from "./components/PatientScreenComponents/ChatbotComponents/ChatbotOverlay";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -40,7 +40,7 @@ const App = () => {
     console.log("🔥 Firing test Mixpanel event...");
 
     mixpanel.track("Web App Loaded", {
-      url: window.location.pathname,
+      url: Platform.OS === 'web' ? window.location.pathname : 'mobile',
       timestamp: new Date().toISOString(),
     });
 

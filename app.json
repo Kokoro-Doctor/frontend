@@ -29,7 +29,6 @@
       "favicon": "./assets/Icons/kokoro.png",
       "indexHtmlPath": "./web/index.html"
     },
-    "entryPoint": "./index.js",
     "android": {
       "package": "com.profcess.kokoro.doctor.app"
     },
