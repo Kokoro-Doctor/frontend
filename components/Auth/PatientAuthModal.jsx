@@ -423,7 +423,7 @@ const PatientAuthModal = ({
   const handleExperimentalSignup = async () => {
     const phoneNumberToUse = signupIdentifier || buildPhoneNumber();
     const nameToUse = fullName.trim();
-    
+
     if (!phoneNumberToUse) {
       setErrorMessage("Please enter your mobile number.");
       return;
@@ -438,7 +438,10 @@ const PatientAuthModal = ({
       return;
     }
 
-    const normalizedPhone = buildPhoneNumber(phoneNumberToUse, signupCountryCode);
+    const normalizedPhone = buildPhoneNumber(
+      phoneNumberToUse,
+      signupCountryCode
+    );
     if (!normalizedPhone) {
       setErrorMessage("Please enter a valid mobile number.");
       return;
@@ -625,8 +628,15 @@ const PatientAuthModal = ({
       return;
     }
 
-    // Simplified flow: signup directly with mobile and name only (no email, no OTP)
-    await handleExperimentalSignup();
+    // Check if email is provided - only then go to OTP flow
+    const signupEmail = email.trim();
+    if (signupEmail) {
+      // Email provided: use OTP flow
+      await handleSendSignupOtp();
+    } else {
+      // No email: use experimental flow (mobile + name, no OTP)
+      await handleExperimentalSignup();
+    }
   };
 
   const handleResendOtp = async () => {
@@ -794,9 +804,7 @@ const PatientAuthModal = ({
                   ]}
                 >
                   <Text style={styles.titleHead}>Welcome Back!</Text>
-                  <Text style={styles.subtitle}>
-                    Enter your mobile number
-                  </Text>
+                  <Text style={styles.subtitle}>Enter your mobile number</Text>
 
                   <Text style={styles.inputLabel}>
                     Mobile Number{" "}
@@ -878,9 +886,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing
-                        ? "Logging in..."
-                        : "Free Medical chat now"}
+                      {isProcessing ? "Logging in..." : "Free Medical chat now"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -899,8 +905,8 @@ const PatientAuthModal = ({
                       fontSize: 16,
                       color: "#999999",
                       alignSelf: "center",
-                      fontFamily:"Farsan",
-                      fontWeight:400
+                      fontFamily: "Farsan",
+                      fontWeight: 400,
                     }}
                   >
                     Let’s Talk!
@@ -922,7 +928,8 @@ const PatientAuthModal = ({
                   </TouchableOpacity> */}
 
                   <Text style={styles.inputLabel}>
-                    Name <Text style={styles.optionalIndicator}>(Optional)</Text>
+                    Name{" "}
+                    <Text style={styles.optionalIndicator}>(Optional)</Text>
                   </Text>
                   <TextInput
                     placeholder="Enter your full name"
