@@ -82,27 +82,13 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
   };
 
   const validateDoctorDetails = () => {
-    if (!doctorFullName.trim()) {
-      setErrorMessage("Please enter your full name.");
-      return false;
-    }
-    if (!doctorSpecialization.trim()) {
-      setErrorMessage("Please enter your specialization.");
-      return false;
-    }
-    const parsedExperience = parseInt(doctorExperience, 10);
-    if (Number.isNaN(parsedExperience) || parsedExperience < 0) {
-      setErrorMessage("Experience must be a valid number.");
-      return false;
-    }
+    // Only phone number is required
     if (!doctorPhone.trim()) {
       setErrorMessage("Please enter your mobile number.");
       return false;
     }
-    if (!doctorEmail.trim()) {
-      setErrorMessage("Email is required for doctor signup.");
-      return false;
-    }
+    
+    // Validate phone number format
     const digitsOnly = sanitizeDigits(doctorPhone);
     if (!validatePhoneNumber(digitsOnly, doctorCountryCode)) {
       const country = getCountryByCode(doctorCountryCode);
@@ -111,6 +97,16 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
       );
       return false;
     }
+    
+    // If experience is provided, validate it's a valid number
+    if (doctorExperience.trim()) {
+      const parsedExperience = parseInt(doctorExperience, 10);
+      if (Number.isNaN(parsedExperience) || parsedExperience < 0) {
+        setErrorMessage("Experience must be a valid number.");
+        return false;
+      }
+    }
+    
     return true;
   };
 
@@ -155,44 +151,64 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
   };
 
   const handleSendVerification = async () => {
+    // Since email field is removed, always use experimental flow
+    await handleExperimentalDoctorSignup();
+  };
+
+  const handleExperimentalDoctorSignup = async () => {
     if (!validateDoctorDetails()) {
       return;
     }
+
     const phoneNumber = buildDoctorPhoneNumber();
     if (!phoneNumber) {
       setErrorMessage("Please enter a valid mobile number.");
       return;
     }
 
+    // Parse experience only if provided
+    const parsedExperience = doctorExperience.trim() 
+      ? parseInt(doctorExperience, 10) 
+      : undefined;
+    
+    // Validate experience if provided
+    if (parsedExperience !== undefined && (Number.isNaN(parsedExperience) || parsedExperience < 0)) {
+      setErrorMessage("Experience must be a valid number.");
+      return;
+    }
+    
     setErrorMessage("");
     setInfoMessage("");
     setIsProcessing(true);
-    setDoctorOtpStatus("sending");
-
-    // Email is required for doctor signup
-    const doctorEmailValue = doctorEmail.trim();
-    if (!doctorEmailValue) {
-      setErrorMessage("Email is required for doctor signup.");
-      setIsProcessing(false);
-      setDoctorOtpStatus("idle");
-      return;
-    }
 
     try {
-      await requestSignupOtp({
+      // Experimental flow: signup with mobile only (name, specialization, experience are optional)
+      await doctorsSignup({
         phoneNumber,
-        email: doctorEmailValue,
-        role: "doctor",
+        ...(doctorFullName.trim() && { name: doctorFullName.trim() }),
+        ...(doctorSpecialization.trim() && { specialization: doctorSpecialization.trim() }),
+        ...(parsedExperience !== undefined && { experience: parsedExperience }),
+        // email and otp are omitted for experimental flow
       });
-      setInfoMessage("OTP sent to your email address.");
-      setDoctorOtpStatus("sent");
-      setOtpCountdown(60);
-      // Stack OTP modal on top of base doctor card
-      setShowOtpModal(true);
+
+      setInfoMessage("Doctor registration successful! Redirecting...");
+      setIsProcessing(false);
+      onRequestClose();
+      
+      // Navigate to doctor dashboard immediately after signup
+      setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: "DoctorAppNavigation",
+              params: { screen: "Dashboard" },
+            },
+          ],
+        });
+      }, 100);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
-      setDoctorOtpStatus("idle");
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -273,33 +289,9 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
   };
 
   const handleResendOtp = async () => {
-    if (isProcessing || otpCountdown > 0) return;
-    const phoneNumber = buildDoctorPhoneNumber();
-    if (!phoneNumber) {
-      setErrorMessage("Please enter a valid mobile number.");
-      return;
-    }
-    setIsProcessing(true);
-    setErrorMessage("");
-    const doctorEmailValue = doctorEmail.trim();
-    if (!doctorEmailValue) {
-      setErrorMessage("Email is required for doctor signup.");
-      setIsProcessing(false);
-      return;
-    }
-    try {
-      await requestSignupOtp({
-        phoneNumber,
-        email: doctorEmailValue,
-        role: "doctor",
-      });
-      setOtpCountdown(60);
-      setInfoMessage("OTP resent to your email address.");
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    } finally {
-      setIsProcessing(false);
-    }
+    // OTP flow is no longer used since email field is removed
+    // This function is kept for compatibility but shouldn't be called
+    setErrorMessage("OTP flow is not available. Please use signup without email.");
   };
 
   const doctorPhoneDigits = sanitizeDigits(doctorPhone);
@@ -342,10 +334,10 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
               </Text>
 
               <Text style={styles.inputLabel}>
-                Full Name <Text style={styles.requiredIndicator}>*</Text>
+                Full Name <Text style={styles.optionalIndicator}>(Optional)</Text>
               </Text>
               <TextInput
-                placeholder="Enter your full name"
+                placeholder="Enter your full name (optional)"
                 placeholderTextColor="#d3d3d3"
                 style={styles.input}
                 value={doctorFullName}
@@ -420,10 +412,10 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
               ) : null}
 
               <Text style={styles.inputLabel}>
-                Specialization <Text style={styles.requiredIndicator}>*</Text>
+                Specialization <Text style={styles.optionalIndicator}>(Optional)</Text>
               </Text>
               <TextInput
-                placeholder="e.g. Cardiologist"
+                placeholder="e.g. Cardiologist (optional)"
                 placeholderTextColor="#d3d3d3"
                 style={styles.input}
                 value={doctorSpecialization}
@@ -433,10 +425,10 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
 
               <Text style={styles.inputLabel}>
                 Years of Experience{" "}
-                <Text style={styles.requiredIndicator}>*</Text>
+                <Text style={styles.optionalIndicator}>(Optional)</Text>
               </Text>
               <TextInput
-                placeholder="e.g. 5"
+                placeholder="e.g. 5 (optional)"
                 placeholderTextColor="#d3d3d3"
                 style={styles.input}
                 keyboardType="numeric"
@@ -444,42 +436,19 @@ const DoctorSignupModal = ({ visible, onRequestClose }) => {
                 onChangeText={setDoctorExperience}
               />
 
-              <Text style={styles.inputLabel}>
-                Email <Text style={styles.requiredIndicator}>*</Text>
-              </Text>
-              <TextInput
-                placeholder="name@example.com"
-                placeholderTextColor="#d3d3d3"
-                style={styles.input}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={doctorEmail}
-                onChangeText={setDoctorEmail}
-              />
-
               <TouchableOpacity
                 style={[
                   styles.btn,
-                  (isProcessing ||
-                    !doctorFullName.trim() ||
-                    !isDoctorPhoneValid ||
-                    !doctorSpecialization.trim() ||
-                    !doctorExperience.trim() ||
-                    !doctorEmail.trim()) &&
+                  (isProcessing || !isDoctorPhoneValid) &&
                     styles.disabledBtn,
                 ]}
                 onPress={handleSendVerification}
                 disabled={
-                  isProcessing ||
-                  !doctorFullName.trim() ||
-                  !isDoctorPhoneValid ||
-                  !doctorSpecialization.trim() ||
-                  !doctorExperience.trim() ||
-                  !doctorEmail.trim()
+                  isProcessing || !isDoctorPhoneValid
                 }
               >
                 <Text style={styles.btnText}>
-                  {isProcessing ? "Processing..." : "Send OTP"}
+                  {isProcessing ? "Signing up..." : "Sign Up"}
                 </Text>
               </TouchableOpacity>
 

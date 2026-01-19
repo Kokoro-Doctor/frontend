@@ -77,7 +77,7 @@ const DoctorPortalLandingPage = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <HeaderLoginSignUp navigation={navigation} />
+                    <HeaderLoginSignUp navigation={navigation} isDoctorPortal={true} />
                   </View>
                   <View style={styles.title}>
                     <Title />
@@ -228,7 +228,7 @@ const DoctorPortalLandingPage = ({ navigation, route }) => {
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
           <View style={[styles.header, { height: "15%" }]}>
-            <HeaderLoginSignUp />
+            <HeaderLoginSignUp isDoctorPortal={true} />
           </View>
 
           <View style={styles.searchBar}>
