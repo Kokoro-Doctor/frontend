@@ -67,9 +67,14 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
 
   useEffect(() => {
     registerOpenModal(({ mode = "signup" } = {}) => {
-      openAuthModal(mode);
+      // If on doctor portal and mode is signup, open doctor signup modal
+      if (resolvedIsDoctorPortal && mode === "signup") {
+        setDoctorModalVisible(true);
+      } else {
+        openAuthModal(mode);
+      }
     });
-  }, [registerOpenModal, openAuthModal]);
+  }, [registerOpenModal, openAuthModal, resolvedIsDoctorPortal]);
 
   const onHoverIn = () => {
     setIsHovered(true);
@@ -199,7 +204,11 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                       <Pressable
                         onPress={() => {
                           setDropdownVisible(false);
-                          openAuthModal("signup");
+                          if (resolvedIsDoctorPortal) {
+                            setDoctorModalVisible(true);
+                          } else {
+                            openAuthModal("signup");
+                          }
                         }}
                         style={({ pressed }) => [
                           styles.dropdownItem,
@@ -310,7 +319,13 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
           onMouseEnter={onHoverIn}
           onMouseLeave={onHoverOut}
         >
-          <TouchableOpacity onPress={() => openAuthModal("signup")}>
+          <TouchableOpacity onPress={() => {
+            if (resolvedIsDoctorPortal) {
+              setDoctorModalVisible(true);
+            } else {
+              openAuthModal("signup");
+            }
+          }}>
             <Text
               style={[
                 styles.headerBtnText,
