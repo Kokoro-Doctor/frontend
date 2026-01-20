@@ -407,8 +407,6 @@
 //   );
 // };
 
-
-
 //2:---------------------####------------------------
 // import React, { useState, useRef, useEffect, useCallback } from "react";
 // import {
@@ -1406,7 +1404,6 @@
 
 // export default HeaderLoginSignUp;
 
-
 //3--------------#####----------------
 
 // import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -1447,7 +1444,7 @@
 //   const { user: contextUser, role, logout } = useAuth();
 //   const user = userOverride ?? contextUser;
 //   const resolvedIsDoctorPortal = isDoctorPortal || role === "doctor";
-  
+
 //   // 🔍 DEBUG LOGS
 //   console.log("=== HEADER DEBUG ===");
 //   console.log("1. user:", user);
@@ -1457,7 +1454,7 @@
 //   console.log("5. Should disable doctor portal?", user && !resolvedIsDoctorPortal);
 //   console.log("6. Should disable patient portal?", user && resolvedIsDoctorPortal);
 //   console.log("===================");
-  
+
 //   const displayName = user?.name || user?.fullName || user?.username || "User";
 //   const displayEmail = user?.email || user?.emailId || "";
 //   const avatarUri =
@@ -1660,7 +1657,7 @@
 
 //               {/* PORTAL TOGGLE BUTTONS FOR MOBILE */}
 //               {!resolvedIsDoctorPortal && user && (
-//                 <Pressable 
+//                 <Pressable
 //                   onPress={goToDoctorPortal}
 //                   style={{ opacity: 0.5 }}
 //                   disabled={true}
@@ -1673,7 +1670,7 @@
 //               )}
 
 //               {!resolvedIsDoctorPortal && !user && (
-//                 <Pressable 
+//                 <Pressable
 //                   onPress={goToDoctorPortal}
 //                 >
 //                   <Image
@@ -1725,11 +1722,11 @@
 //           <Text style={styles.webWelcome}>
 //             Welcome, <Text style={styles.webWelcomeName}>{displayName}</Text>
 //           </Text>
-          
+
 //           <View style={styles.webRightSection}>
 //             {/* PORTAL TOGGLE BUTTONS FOR WEB - LOGGED IN */}
 //             {!resolvedIsDoctorPortal && (
-//               <Pressable 
+//               <Pressable
 //                 onPress={goToDoctorPortal}
 //                 disabled={true}
 //                 style={[styles.webPortalButton, { opacity: 0.5 }]}
@@ -1790,7 +1787,7 @@
 //         <View style={styles.webHeaderNotLoggedIn}>
 //           {/* PORTAL TOGGLE BUTTONS FOR WEB - NOT LOGGED IN */}
 //           {!resolvedIsDoctorPortal && (
-//             <Pressable 
+//             <Pressable
 //               onPress={goToDoctorPortal}
 //               style={styles.webPortalButton}
 //             >
@@ -2131,7 +2128,6 @@
 
 // export default HeaderLoginSignUp;
 
-
 //4-------------#################-------------
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -2172,7 +2168,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const { user: contextUser, role, logout } = useAuth();
   const user = userOverride ?? contextUser;
   const resolvedIsDoctorPortal = isDoctorPortal || role === "doctor";
-  
+
   const displayName = user?.name || user?.fullName || user?.username || "User";
   const displayEmail = user?.email || user?.emailId || "";
   const avatarUri =
@@ -2203,9 +2199,14 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
 
   useEffect(() => {
     registerOpenModal(({ mode = "signup" } = {}) => {
-      openAuthModal(mode);
+      // If on doctor portal and mode is signup, open doctor signup modal
+      if (resolvedIsDoctorPortal && mode === "signup") {
+        setDoctorModalVisible(true);
+      } else {
+        openAuthModal(mode);
+      }
     });
-  }, [registerOpenModal, openAuthModal]);
+  }, [registerOpenModal, openAuthModal, resolvedIsDoctorPortal]);
 
   const onHoverIn = () => {
     setIsHovered(true);
@@ -2359,7 +2360,11 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                             user_state: user ? "logged_in" : "anonymous",
                           });
                           setDropdownVisible(false);
-                          openAuthModal("signup");
+                          if (resolvedIsDoctorPortal) {
+                            setDoctorModalVisible(true);
+                          } else {
+                            openAuthModal("signup");
+                          }
                         }}
                         style={({ pressed }) => [
                           styles.dropdownItem,
@@ -2454,8 +2459,8 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
         <View style={styles.webHeaderNotLoggedIn}>
           {/* PORTAL TOGGLE BUTTONS FOR WEB - NOT LOGGED IN */}
           {!resolvedIsDoctorPortal && (
-            <Pressable 
-              onPress={goToDoctorPortal} 
+            <Pressable
+              onPress={goToDoctorPortal}
               style={styles.webDoctorPortalButton}
             >
               <Text style={styles.webDoctorPortalText}>Doctor Portal</Text>
@@ -2491,7 +2496,12 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                   cta_text: "Login / Signup",
                   user_state: user ? "logged_in" : "anonymous",
                 });
-                openAuthModal("signup");
+
+                if (resolvedIsDoctorPortal) {
+                  setDoctorModalVisible(true);
+                } else {
+                  openAuthModal("signup");
+                }
               }}
             >
               <Text

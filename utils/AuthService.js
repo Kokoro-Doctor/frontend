@@ -318,10 +318,20 @@ export const requestLoginOtp = async ({ identifier, preferredChannel = "email" }
 
 export const initiateLogin = async ({ identifier }) => {
   // identifier can be email or phone number
+  // For experimental flow users (no email), this may return access_token directly
   if (!identifier) {
     throw new Error("Please provide an email address or mobile number.");
   }
-  return postJson("/auth/login", { identifier }, "Failed to start login");
+  const data = await postJson("/auth/login", { identifier }, "Failed to start login");
+
+  // If access_token is present, this is a direct login (experimental flow)
+  // Handle it the same way as loginWithOtp
+  if (data?.access_token) {
+    return handleLoginResponse(data);
+  }
+
+  // Otherwise, return discovery response (normal flow - OTP required)
+  return data;
 };
 
 
@@ -438,18 +448,19 @@ export const completeUserSignup = async ({
   otp,
   name,
 }) => {
-  // Experimental flow: mobile-only signup (no email, otp, or name)
-  const isExperimentalFlow = !email && !otp && !name;
-  
+  // Experimental flow: mobile-only signup (no email AND no otp required)
+  // Name is optional and can be provided in experimental flow
+  const isExperimentalFlow = !email && !otp;
+
   if (isExperimentalFlow) {
-    // Experimental flow: only phone number required
+    // Experimental flow: only phone number required (name is optional)
     if (!phoneNumber) {
       throw new Error("Phone number is required.");
     }
 
     const data = await postJson(
       "/auth/user/signup",
-      { phoneNumber },
+      { phoneNumber, ...(name && { name }) },
       "Failed to complete signup"
     );
 
@@ -470,7 +481,7 @@ export const completeUserSignup = async ({
     return { ...data, profile };
   }
 
-  // Normal flow: email, otp, and name required
+  // Normal flow: email, otp, and phoneNumber required
   if (!phoneNumber || !otp) {
     throw new Error("Phone number and OTP are required to complete signup.");
   }
@@ -480,7 +491,7 @@ export const completeUserSignup = async ({
 
   const data = await postJson(
     "/auth/user/signup",
-    { phoneNumber, email, otp, name },
+    { phoneNumber, email, otp, ...(name && { name }) },
     "Failed to complete signup"
   );
 
@@ -509,8 +520,58 @@ export const completeDoctorSignup = async ({
   experience,
   email,
 }) => {
+  // Experimental flow: mobile-only signup (no email AND no otp required)
+  // Name is optional and can be provided in experimental flow
+  const isExperimentalFlow = !email && !otp;
+
+  if (isExperimentalFlow) {
+    // Experimental flow: only phone number required (name, specialization, experience are optional)
+    if (!phoneNumber) {
+      throw new Error("Phone number is required.");
+    }
+
+    const data = await postJson(
+      "/auth/doctor/signup",
+      {
+        phoneNumber,
+        ...(name && { name }),
+        ...(specialization && { specialization }),
+        ...(experience !== undefined && { experience }),
+      },
+      "Failed to complete doctor signup"
+    );
+
+    let profile = data.profile;
+
+    // If profile is not in response, fetch it using doctor_id
+    if (!profile && data.doctor_id) {
+      profile = await fetchDoctorProfile(data.doctor_id, data.access_token);
+    }
+
+    // Normalize doctor profile: ensure 'name' field exists from 'doctorname' if needed
+    if (profile) {
+      if (!profile.name && profile.doctorname) {
+        profile.name = profile.doctorname;
+      }
+      console.log("Doctor signup profile normalized:", { name: profile.name, doctorname: profile.doctorname, allKeys: Object.keys(profile) });
+    }
+
+    await persistUserSession({
+      access_token: data.access_token,
+      profile: profile,
+      role: "doctor",
+    });
+
+    // Return data with profile included for consistency
+    return { ...data, profile };
+  }
+
+  // Normal flow: email, otp, and phoneNumber required
   if (!phoneNumber || !otp) {
     throw new Error("Phone number and OTP are required to complete signup.");
+  }
+  if (!email) {
+    throw new Error("Email is required to complete signup.");
   }
 
   const data = await postJson(
@@ -564,7 +625,7 @@ export const restoreUserState = async () => {
     const token = await AsyncStorage.getItem("@token");
     const user = await AsyncStorage.getItem("@user");
     let role = await AsyncStorage.getItem("userRole");
-    
+
     // On web, also check localStorage directly as fallback
     // (AsyncStorage uses localStorage on web, but there might be timing issues in production)
     if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage && !role) {
@@ -579,7 +640,7 @@ export const restoreUserState = async () => {
         console.log("Error reading role from localStorage:", localError);
       }
     }
-    
+
     // Return state even if only role exists (for role-based routing on refresh)
     // This ensures role is available even if token/user parsing fails
     if (token && user) {
@@ -593,19 +654,19 @@ export const restoreUserState = async () => {
         }
       }
     }
-    
+
     // If only role exists, return it (helps with role-based routing)
     if (role) {
       return { token: null, user: null, role };
     }
-    
+
     return null;
   } catch (error) {
     console.error("Error restoring user state:", error);
     // Try to at least get the role (with web fallback)
     try {
       let role = await AsyncStorage.getItem("userRole");
-      
+
       // Web fallback
       if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage && !role) {
         try {
@@ -618,7 +679,7 @@ export const restoreUserState = async () => {
           console.error("Error reading role from localStorage fallback:", localError);
         }
       }
-      
+
       if (role) {
         return { token: null, user: null, role };
       }

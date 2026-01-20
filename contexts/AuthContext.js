@@ -473,7 +473,14 @@ export const AuthProvider = ({ children }) => {
 
   const initiateLoginHandler = async (payload) => {
     try {
-      return await initiateLoginApi(payload);
+      const result = await initiateLoginApi(payload);
+      // If result has access_token, this is a direct login (experimental flow)
+      // Sync session same as loginWithOtp
+      if (result?.access_token) {
+        return await syncSession(result);
+      }
+      // Otherwise, return discovery response (normal flow - OTP required)
+      return result;
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Login initiation failed:", message, error);
