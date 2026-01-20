@@ -90,6 +90,18 @@ const PatientAuthModal = ({
       return;
     }
 
+    // Reset OTP-related state when modal opens to ensure experimental flow works
+    // This ensures email is cleared so experimental flow is used by default
+    setOtpStatus("idle");
+    setOtpCountdown(0);
+    setOtp("");
+    setEmail("");
+    setOtpFlow(null);
+    setOtpTargetPhone("");
+    setShowOtpModal(false);
+    setErrorMessage("");
+    setInfoMessage("");
+
     if (Platform.OS !== "web") {
       bottomAnim.setValue(Dimensions.get("window").height);
       Animated.timing(bottomAnim, {
@@ -455,22 +467,44 @@ const PatientAuthModal = ({
 
     try {
       // Simplified flow: signup with mobile and name only (no email, no OTP)
-      await signupHandler({
+      const result = await signupHandler({
         phoneNumber: normalizedPhone,
         ...(nameToUse && { name: nameToUse }),
         // email and otp are omitted
       });
 
-      setRole("patient");
-      await AsyncStorage.setItem("userRole", "patient");
+      // Get role from result (set by syncSession in AuthContext)
+      const userRole = result?.role || "user";
+      setRole(userRole);
+      await AsyncStorage.setItem("userRole", userRole);
 
       setInfoMessage("Signup successful! Redirecting...");
       setIsSigningUp(false);
       setIsProcessing(false);
 
-      setTimeout(() => {
-        onRequestClose();
-      }, 1500);
+      // Close modal first
+      onRequestClose();
+
+      // Navigate based on role immediately after signup
+      if (userRole === "doctor") {
+        // Navigate to doctor dashboard
+        setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: "DoctorAppNavigation",
+                params: { screen: "Dashboard" },
+              },
+            ],
+          });
+        }, 100);
+      } else if (userRole === "user") {
+        // User stays on LandingPage or navigates to patient dashboard
+        setTimeout(() => {
+          navigation.navigate("LandingPage");
+        }, 100);
+      }
     } catch (error) {
       const message = getErrorMessage(error);
       setErrorMessage(message);
@@ -502,7 +536,7 @@ const PatientAuthModal = ({
       setIsProcessing(true);
 
       try {
-        await signupHandler({
+        const result = await signupHandler({
           phoneNumber: phoneNumberToUse,
           // email, otp, and name are optional
           ...(nameToUse && { name: nameToUse }),
@@ -510,16 +544,38 @@ const PatientAuthModal = ({
           ...(otpToUse && { otp: otpToUse }),
         });
 
-        setRole("patient");
-        await AsyncStorage.setItem("userRole", "patient");
+        // Get role from result (set by syncSession in AuthContext)
+        const userRole = result?.role || "user";
+        setRole(userRole);
+        await AsyncStorage.setItem("userRole", userRole);
 
         setInfoMessage("Signup successful! Redirecting...");
         setIsSigningUp(false);
         setIsProcessing(false);
 
-        setTimeout(() => {
-          onRequestClose();
-        }, 1500);
+        // Close modal first
+        onRequestClose();
+
+        // Navigate based on role immediately after signup
+        if (userRole === "doctor") {
+          // Navigate to doctor dashboard
+          setTimeout(() => {
+            navigation.reset({
+              index: 0,
+              routes: [
+                {
+                  name: "DoctorAppNavigation",
+                  params: { screen: "Dashboard" },
+                },
+              ],
+            });
+          }, 100);
+        } else if (userRole === "user") {
+          // User stays on LandingPage or navigates to patient dashboard
+          setTimeout(() => {
+            navigation.navigate("LandingPage");
+          }, 100);
+        }
       } catch (error) {
         const message = getErrorMessage(error);
         setErrorMessage(message);
@@ -537,23 +593,45 @@ const PatientAuthModal = ({
     setIsProcessing(true);
 
     try {
-      await signupHandler({
+      const result = await signupHandler({
         phoneNumber: phoneNumberToUse,
         email: emailToUse,
         otp: otpToUse,
         ...(nameToUse && { name: nameToUse }),
       });
 
-      setRole("patient");
-      await AsyncStorage.setItem("userRole", "patient");
+      // Get role from result (set by syncSession in AuthContext)
+      const userRole = result?.role || "user";
+      setRole(userRole);
+      await AsyncStorage.setItem("userRole", userRole);
 
       setInfoMessage("Signup successful! Redirecting...");
       setIsSigningUp(false);
       setIsProcessing(false);
 
-      setTimeout(() => {
-        onRequestClose();
-      }, 1500);
+      // Close modal first
+      onRequestClose();
+
+      // Navigate based on role immediately after signup
+      if (userRole === "doctor") {
+        // Navigate to doctor dashboard
+        setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: "DoctorAppNavigation",
+                params: { screen: "Dashboard" },
+              },
+            ],
+          });
+        }, 100);
+      } else if (userRole === "user") {
+        // User stays on LandingPage or navigates to patient dashboard
+        setTimeout(() => {
+          navigation.navigate("LandingPage");
+        }, 100);
+      }
     } catch (error) {
       const message = getErrorMessage(error);
       setErrorMessage(message);
@@ -600,15 +678,37 @@ const PatientAuthModal = ({
 
       // If result has access_token, this is a direct login (experimental flow - no OTP needed)
       if (result?.access_token) {
-        setRole("patient");
-        await AsyncStorage.setItem("userRole", "patient");
+        // Get role from result (set by syncSession in AuthContext)
+        const userRole = result?.role || "user";
+        setRole(userRole);
+        await AsyncStorage.setItem("userRole", userRole);
 
         setInfoMessage("Login successful! Redirecting...");
         setIsProcessing(false);
 
-        setTimeout(() => {
-          onRequestClose();
-        }, 1500);
+        // Close modal first
+        onRequestClose();
+
+        // Navigate based on role immediately after login
+        if (userRole === "doctor") {
+          // Navigate to doctor dashboard
+          setTimeout(() => {
+            navigation.reset({
+              index: 0,
+              routes: [
+                {
+                  name: "DoctorAppNavigation",
+                  params: { screen: "Dashboard" },
+                },
+              ],
+            });
+          }, 100);
+        } else if (userRole === "user") {
+          // User stays on LandingPage or navigates to patient dashboard
+          setTimeout(() => {
+            navigation.navigate("LandingPage");
+          }, 100);
+        }
       } else {
         // OTP is required - trigger OTP flow
         setIsProcessing(false);
@@ -1085,7 +1185,9 @@ const PatientAuthModal = ({
             <Text
               style={{ fontSize: 11.7, color: "#16a34a", fontWeight: "500" }}
             >
-              {email}
+              {otpFlow === "login" 
+                ? (otpTargetPhone || loginIdentifier || "your registered email")
+                : (email || otpTargetPhone || "your registered email")}
             </Text>
             <Text style={styles.inputLabel}>Enter OTP</Text>
             <TextInput
