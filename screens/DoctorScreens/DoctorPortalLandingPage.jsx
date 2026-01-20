@@ -77,7 +77,10 @@ const DoctorPortalLandingPage = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   <View style={styles.header}>
-                    <HeaderLoginSignUp navigation={navigation} isDoctorPortal={true} />
+                    <HeaderLoginSignUp
+                      navigation={navigation}
+                      isDoctorPortal={true}
+                    />
                   </View>
                   <View style={styles.title}>
                     <Title />

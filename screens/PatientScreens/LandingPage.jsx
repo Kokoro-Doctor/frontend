@@ -20,8 +20,6 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import Title from "../../components/PatientScreenComponents/Title";
 import SearchBar from "../../components/PatientScreenComponents/SearchBar";
 import { TrackEvent } from "../../utils/TrackEvent";
-// import PatientAuthModal from "../../components/Auth/PatientAuthModal";
-// import DoctorSignupModal from "../../components/Auth/DoctorSignupModal";
 import { useAuth } from "../../contexts/AuthContext";
 
 const { width, height } = Dimensions.get("window");
@@ -35,8 +33,8 @@ const LandingPage = ({ navigation, route }) => {
     TrackEvent(eventName, params);
     navigation.navigate("PatientAppNavigation", { screen: navigateTo });
   };
-  const [showPatientAuth, setShowPatientAuth] = useState(false);
-  const [showDoctorAuth, setShowDoctorAuth] = useState(false);
+  // const [showPatientAuth, setShowPatientAuth] = useState(false);
+  // const [showDoctorAuth, setShowDoctorAuth] = useState(false);
   const { user, role, isLoading } = useAuth();
   const isAuthenticated = !!user;
   //const hasRedirectedRef = useRef(false);
@@ -173,7 +171,7 @@ const LandingPage = ({ navigation, route }) => {
                 <View style={styles.Right}>
                   <View style={styles.header}>
                     <HeaderLoginSignUp navigation={navigation} />
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                       style={styles.doctorPortalBox}
                       onPress={() => {
                         navigation.navigate("DoctorAppNavigation", {
@@ -182,7 +180,7 @@ const LandingPage = ({ navigation, route }) => {
                       }}
                     >
                       <Text style={styles.doctorText}>Doctor Portal</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                   </View>
                   <View style={styles.title}>
                     <Title />
