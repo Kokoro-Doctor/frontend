@@ -60,6 +60,30 @@ const ChatBot = () => {
     };
   }, []);
 
+  // Convert preview messages to full messages when user logs in
+  useEffect(() => {
+    if (user) {
+      // User just logged in - convert all preview messages to full messages
+      setMessages((prevMessages) => {
+        return prevMessages.map((msg) => {
+          if (msg.sender === "bot" && msg.is_preview && msg.full_text) {
+            // Convert preview to full message
+            return {
+              ...msg,
+              text: msg.full_text,
+              is_preview: false,
+              preview_text: undefined,
+              full_text: undefined,
+              cta_text: undefined,
+              signup_action: undefined,
+            };
+          }
+          return msg;
+        });
+      });
+    }
+  }, [user]); // Trigger when user changes (logs in)
+
   // Loading Typing animation
   useEffect(() => {
     if (isLoading) {
