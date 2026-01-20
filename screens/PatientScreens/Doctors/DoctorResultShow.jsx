@@ -253,8 +253,7 @@ const DoctorResultShow = ({ navigation, route }) => {
                         navigation={navigation}
                         selectedCategory={selectedCategory}
                         priorityDoctors={[
-                          "Dr. Kisley Shrivastav",
-                          "Dr. Arpita",
+                          "Dr. Kislay Shrivastava", "Dr. Arpita"
                         ]}
                       />
                     </View>
