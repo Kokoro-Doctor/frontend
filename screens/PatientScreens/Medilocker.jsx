@@ -73,28 +73,57 @@ const Medilocker = ({ navigation }) => {
     };
 
     loadFilesFromServer();
-  }, []);
+  }, [user]);
+
+  // const convertFileToBase64 = async (asset) => {
+  //   if (Platform.OS === "web") {
+  //     try {
+  //       const dataUrl = asset.uri;
+  //       const base64String = dataUrl.split(",")[1];
+  //       return base64String;
+  //     } catch (error) {
+  //       console.error("Error converting file to Base64 on web:", error);
+  //       return null;
+  //     }
+  //   } else {
+  //     try {
+  //       const base64String = await FileSystem.readAsStringAsync(asset.uri, {
+  //         encoding: FileSystem.EncodingType.Base64,
+  //       });
+  //       return base64String;
+  //     } catch (error) {
+  //       console.error("Error converting file to Base64:", error);
+  //       return null;
+  //     }
+  //   }
+  // };
 
   const convertFileToBase64 = async (asset) => {
-    if (Platform.OS === "web") {
-      try {
-        const dataUrl = asset.uri;
-        const base64String = dataUrl.split(",")[1];
-        return base64String;
-      } catch (error) {
-        console.error("Error converting file to Base64 on web:", error);
-        return null;
-      }
-    } else {
-      try {
-        const base64String = await FileSystem.readAsStringAsync(asset.uri, {
-          encoding: FileSystem.EncodingType.Base64,
+    try {
+      if (Platform.OS === "web") {
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64data = reader.result.split(",")[1];
+            resolve(base64data);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
         });
-        return base64String;
-      } catch (error) {
-        console.error("Error converting file to Base64:", error);
-        return null;
+      } else {
+        // return await FileSystem.readAsStringAsync(asset.uri, {
+        //   encoding: FileSystem.EncodingType.Base64,
+        // });
+        return await FileSystem.readAsStringAsync(asset.uri, {
+          encoding: "base64",
+        });
       }
+    } catch (error) {
+      console.error("Base64 conversion failed:", error);
+      return null;
     }
   };
 
@@ -242,7 +271,8 @@ const Medilocker = ({ navigation }) => {
           window.open(downloadUrl, "_blank");
         }
       } else {
-        const localUri = FileSystem.cacheDirectory + fileName;
+        // const localUri = FileSystem.cacheDirectory + fileName;
+        const localUri = `${FileSystem.cacheDirectory ?? ""}${fileName}`;
 
         const downloadResult = await FileSystem.downloadAsync(
           downloadUrl,
