@@ -17,6 +17,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+const { width: screenWidth } = Dimensions.get("window");
+const isLaptopScreen = screenWidth > 768;
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatbot } from "../../../contexts/ChatbotContext";
 import { askBot } from "../../../utils/ChatBotService";
@@ -29,6 +32,7 @@ import {
 import { getSessionId } from "../../../utils/sessionManager";
 import SignInPopup from "./SignInPopup";
 import FormattedMessageText from "./FormattedMessageText";
+import PreviewMessage from "./PreviewMessage";
 
 const { width } = Dimensions.get("window");
 
@@ -106,13 +110,32 @@ const ChatBot = () => {
           );
           if (botReply) {
             setMessages((prevMessages) => {
-              const updatedMessages = [
-                ...prevMessages,
-                { sender: "bot", text: botReply.text },
-              ];
+              const messageData = botReply.is_preview
+                ? {
+                    sender: "bot",
+                    text: botReply.preview_text || botReply.full_text,
+                    is_preview: true,
+                    preview_text: botReply.preview_text,
+                    full_text: botReply.full_text,
+                    cta_text: botReply.cta_text,
+                    signup_action: botReply.signup_action,
+                  }
+                : {
+                    sender: "bot",
+                    text: botReply.text,
+                    is_preview: false,
+                  };
+              
+              const updatedMessages = [...prevMessages, messageData];
               const newMessageIndex = updatedMessages.length - 1;
               setPlayingMessage(newMessageIndex);
-              Speech.speak(botReply.text, {
+              
+              // Only speak if not preview (or speak preview text)
+              const textToSpeak = botReply.is_preview
+                ? botReply.preview_text || botReply.full_text
+                : botReply.text;
+              
+              Speech.speak(textToSpeak, {
                 language: selectedLanguage,
                 onDone: () => setPlayingMessage(null),
                 onStopped: () => setPlayingMessage(null),
@@ -156,13 +179,32 @@ const ChatBot = () => {
 
       if (botReply) {
         setMessages((prevMessages) => {
-          const updatedMessages = [
-            ...prevMessages,
-            { sender: "bot", text: botReply.text },
-          ];
+          const messageData = botReply.is_preview
+            ? {
+                sender: "bot",
+                text: botReply.preview_text || botReply.full_text,
+                is_preview: true,
+                preview_text: botReply.preview_text,
+                full_text: botReply.full_text,
+                cta_text: botReply.cta_text,
+                signup_action: botReply.signup_action,
+              }
+            : {
+                sender: "bot",
+                text: botReply.text,
+                is_preview: false,
+              };
+          
+          const updatedMessages = [...prevMessages, messageData];
           const newMessageIndex = updatedMessages.length - 1; // Get the index of the latest bot message
           setPlayingMessage(newMessageIndex); // Set playingMessage to the new message index
-          Speech.speak(botReply.text, {
+          
+          // Only speak if not preview (or speak preview text)
+          const textToSpeak = botReply.is_preview
+            ? botReply.preview_text || botReply.full_text
+            : botReply.text;
+          
+          Speech.speak(textToSpeak, {
             language: selectedLanguage,
             onDone: () => setPlayingMessage(null),
             onStopped: () => setPlayingMessage(null),
@@ -235,8 +277,17 @@ const ChatBot = () => {
               : styles.botMessageBox
           }
         >
-          <FormattedMessageText sender={item.sender} text={item.text} />
-          {item.sender === "bot" && !isLoading && (
+          {item.sender === "bot" && item.is_preview ? (
+            <PreviewMessage
+              previewText={item.preview_text}
+              fullText={item.full_text}
+              ctaText={item.cta_text}
+              signupAction={item.signup_action}
+            />
+          ) : (
+            <FormattedMessageText sender={item.sender} text={item.text} />
+          )}
+          {item.sender === "bot" && !isLoading && !item.is_preview && (
             <View style={styles.botIcons}>
               <TouchableOpacity onPress={() => toggleTTS(index, item.text)}>
                 <MaterialIcons
@@ -473,8 +524,9 @@ const styles = StyleSheet.create({
     backgroundColor: "pink",
   },
   botMessageBox: {
-    maxWidth: "80%",
-    padding: 10,
+    maxWidth: isLaptopScreen ? "75%" : "80%",
+    minWidth: isLaptopScreen ? 400 : "auto",
+    padding: isLaptopScreen ? 14 : 10,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#ddd",

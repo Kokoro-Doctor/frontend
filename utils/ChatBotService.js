@@ -81,7 +81,30 @@ export const askBot = async (user, role, messageToSend, selectedLanguage) => {
     }
 
     const botReply = await response.json();
-    return botReply;
+    
+    // Normalize response format - support both legacy and new formats
+    if (botReply.text) {
+      // Legacy format: logged-in user or old API version
+      return {
+        text: botReply.text,
+        is_preview: false
+      };
+    } else if (botReply.is_preview) {
+      // New preview format
+      return {
+        preview_text: botReply.preview_text,
+        full_text: botReply.full_text,
+        is_preview: true,
+        cta_text: botReply.cta_text || "See full answer",
+        signup_action: botReply.signup_action || "signup"
+      };
+    } else {
+      // Fallback: try to extract text from any field
+      return {
+        text: botReply.preview_text || botReply.full_text || "Sorry, I couldn't process that.",
+        is_preview: false
+      };
+    }
   } catch (error) {
     console.error("Error communicating with Bot:", error);
     throw error;
