@@ -1,30 +1,572 @@
+// import React, { useState, useEffect } from "react";
+// import {
+//   Alert,
+//   Image,
+//   Text,
+//   ImageBackground,
+//   StyleSheet,
+//   TouchableOpacity,
+//   View,
+//   Platform,
+//   useWindowDimensions,
+//   Dimensions,
+//   StatusBar,
+//   ScrollView,
+//   Pressable,
+//   SafeAreaView,
+//   Linking,
+// } from "react-native";
+// import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+// import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
+// import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
+// import { API_URL } from "../../../env-vars";
+// import { useAuth } from "../../../contexts/AuthContext";
+
+// const { width, height } = Dimensions.get("window");
+
+// // Helper function to calculate end time (30 minutes after start)
+// const getEndTime = (startTime) => {
+//   const [hours, minutes] = startTime.split(":").map(Number);
+//   const startDate = new Date();
+//   startDate.setHours(hours, minutes, 0, 0);
+//   startDate.setMinutes(startDate.getMinutes() + 30);
+//   const endHours = String(startDate.getHours()).padStart(2, "0");
+//   const endMinutes = String(startDate.getMinutes()).padStart(2, "0");
+//   return `${endHours}:${endMinutes}`;
+// };
+
+// const DoctorsInfoWithBooking = ({ navigation, route }) => {
+//   const { width } = useWindowDimensions();
+//   const [selectedDate, setSelectedDate] = useState("Today");
+//   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
+//   const [availableDates, setAvailableDates] = useState([]);
+//   const [availableSlots, setAvailableSlots] = useState([]);
+//   const [doctors, setDoctors] = useState(route.params?.doctors || null);
+//   const [isReady, setIsReady] = useState(false); // Delay rendering
+
+//   const { user } = useAuth();
+//   const doctorIdentifier =
+//     doctors?.doctor_id || doctors?.id || doctors?.email || null;
+//   const userIdentifier = user?.user_id || user?.email || null;
+
+//   useEffect(() => {
+//     const tryParseDoctorFromUrl = () => {
+//       try {
+//         const search = window.location.search; // "?doctors=%7B...%7D"
+//         const urlParams = new URLSearchParams(search);
+//         const encodedDoctor = urlParams.get("doctors");
+
+//         if (encodedDoctor) {
+//           const decoded = decodeURIComponent(encodedDoctor);
+//           const parsed = JSON.parse(decoded);
+//           setDoctors(parsed);
+//         }
+//       } catch (err) {
+//         console.error("Error parsing doctor from URL:", err);
+//       } finally {
+//         setIsReady(true);
+//       }
+//     };
+
+//     if (!doctors) {
+//       if (Platform.OS === "web") {
+//         tryParseDoctorFromUrl();
+//       } else {
+//         Linking.getInitialURL().then((url) => {
+//           if (url && url.includes("DoctorsInfoWithBooking")) {
+//             const urlObj = new URL(url);
+//             const encodedDoctor = urlObj.searchParams.get("doctors");
+
+//             if (encodedDoctor) {
+//               const decoded = decodeURIComponent(encodedDoctor);
+//               const parsed = JSON.parse(decoded);
+//               setDoctors(parsed);
+//             }
+//           }
+//           setIsReady(true);
+//         });
+//       }
+//     } else {
+//       setIsReady(true);
+//     }
+//   }, []);
+
+//   useEffect(() => {
+//     const getDatesAndSlots = async () => {
+//       const today = new Date();
+//       const next3Days = Array.from({ length: 3 }, (_, i) => {
+//         const date = new Date(today);
+//         date.setDate(today.getDate() + i);
+//         return date;
+//       });
+
+//       const promises = next3Days.map(async (date) => {
+//         const dateString = date.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+//         const weekday = date.toLocaleDateString("en-US", { weekday: "long" }); // "Monday"
+
+//         try {
+//           const res = await fetch(
+//             `${API_URL}/booking/doctors/${doctorIdentifier}/availability?date=${dateString}`,
+//             {
+//               method: "GET",
+//               headers: { "Content-Type": "application/json" },
+//             }
+//           );
+
+//           console.log(`Response ${res.status} for ${weekday} (${dateString})`);
+//           const data = await res.json();
+//           console.log(
+//             `Slots for ${weekday} (${dateString}):`,
+//             JSON.stringify(data, null, 2)
+//           );
+
+//           // New API returns array directly, map slot_time to start for compatibility
+//           const slots = Array.isArray(data)
+//             ? data.map((slot) => ({
+//                 ...slot,
+//                 start: slot.slot_time || slot.start,
+//                 end: slot.slot_time ? getEndTime(slot.slot_time) : slot.end,
+//               }))
+//             : [];
+
+//           return {
+//             id: dateString,
+//             label: `${weekday}, ${date.toLocaleDateString("en-US", {
+//               day: "numeric",
+//               month: "short",
+//             })}`,
+//             date: dateString,
+//             slots: slots,
+//           };
+//         } catch (e) {
+//           console.error(`Error fetching slots for ${dateString}:`, e);
+//           return {
+//             id: dateString,
+//             label: `${weekday}, ${date.toDateString()}`,
+//             date: dateString,
+//             slots: [],
+//           };
+//         }
+//       });
+
+//       const results = await Promise.all(promises);
+//       setAvailableDates(results);
+
+//       if (results.length > 0) {
+//         console.log("Selected date's slots:", results[0].slots);
+//         setSelectedDate(results[0].date);
+//         setAvailableSlots(results[0].slots);
+//       }
+//     };
+
+//     if (doctorIdentifier) {
+//       console.log("Doctor ID:", doctorIdentifier);
+//       getDatesAndSlots();
+//     }
+//   }, [doctorIdentifier]);
+
+//   const handleDateSelect = (dateStr) => {
+//     const selected = availableDates.find((d) => d.date === dateStr);
+//     setSelectedDate(dateStr);
+//     setAvailableSlots(selected?.slots || []);
+//     setSelectedTimeSlot(null);
+//   };
+//   const handleSlotSelect = (slot) => {
+//     setSelectedTimeSlot(slot);
+//   };
+//   const bookSlot = async () => {
+//     if (!selectedDate || !selectedTimeSlot) {
+//       Alert.alert("Error", "Please select a date and time slot.");
+//       return;
+//     }
+
+//     if (!doctorIdentifier) {
+//       Alert.alert("Error", "Doctor information is missing.");
+//       return;
+//     }
+//     if (!userIdentifier) {
+//       Alert.alert("Please sign in", "Log in to book a slot.");
+//       return;
+//     }
+//     try {
+//       console.log("Booking request payload:", {
+//         doctor_id: doctorIdentifier,
+//         date: selectedDate,
+//         start_time: selectedTimeSlot,
+//         user_id: userIdentifier,
+//       });
+
+//       const res = await fetch(`${API_URL}/booking/bookings`, {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//           ...(user.token && { Authorization: `Bearer ${user.token}` }),
+//         },
+//         body: JSON.stringify({
+//           doctor_id: doctorIdentifier,
+//           date: selectedDate,
+//           start_time: selectedTimeSlot,
+//           user_id: userIdentifier,
+//         }),
+//       });
+
+//       console.log("Booking response status:", res.status);
+//       const data = await res.json();
+//       console.log("Booking response data:", data);
+
+//       if (!res.ok) throw new Error(data.detail || "Booking failed");
+
+//       // Update local state - mark slot as unavailable
+//       setAvailableDates((prevDates) =>
+//         prevDates.map((date) => {
+//           if (date.date === selectedDate) {
+//             return {
+//               ...date,
+//               slots: date.slots.map((slot) =>
+//                 slot.start === selectedTimeSlot ||
+//                 slot.slot_time === selectedTimeSlot
+//                   ? { ...slot, available: false, booking_id: data.booking_id }
+//                   : slot
+//               ),
+//             };
+//           }
+//           return date;
+//         })
+//       );
+
+//       setAvailableSlots((prevSlots) =>
+//         prevSlots.map((slot) =>
+//           slot.start === selectedTimeSlot
+//             ? { ...slot, available: slot.available - 1 }
+//             : slot
+//         )
+//       );
+
+//       Alert.alert("Success", "Slot booked successfully!");
+//       navigation.navigate("DoctorsBookingPaymentScreen", {
+//         doctor: doctors,
+//         selectedDate: selectedDate,
+//         selectedTimeSlot: selectedTimeSlot,
+//       });
+//     } catch (error) {
+//       console.error("Booking error:", error);
+//       Alert.alert("Error", error.message || "Failed to book slot");
+//     }
+//   };
+
+//   // const handleBookAppointment = () => {
+//   //   if (!selectedDate || !selectedTimeSlot) {
+//   //     alert("Please select a date and time slot first.");
+//   //     return;
+//   //   }
+
+//   //   navigation.navigate("DoctorsBookingPaymentScreen", {
+//   //     doctor: doctors,
+//   //     selectedDate: selectedDate,
+//   //     selectedTimeSlot: selectedTimeSlot,
+//   //   });
+//   // };
+//   // const handleBookAppointment = async () => {
+//   //   if (!selectedDate || !selectedTimeSlot) {
+//   //     alert("Please select a date and time slot first.");
+//   //     return;
+//   //   }
+
+//   //   try {
+//   //     const user_email = await AsyncStorage.getItem("@user_email");
+
+//   //     if (!user_email) {
+//   //       console.error("❌ User ID not found in AsyncStorage");
+//   //       alert("User not logged in properly. Please try logging in again.");
+//   //       return;
+//   //     }
+
+//   //     // 🔍 Debug the data
+//   //     console.log("🚀 Booking Info:", {
+//   //       doctor_id: doctors.email,
+//   //       date: selectedDate,
+//   //       start: selectedTimeSlot,
+//   //       user_id: user_email,
+//   //     });
+
+//   //     navigation.navigate("DoctorsBookingPaymentScreen", {
+//   //       doctor: doctors,
+//   //       selectedDate: selectedDate,
+//   //       selectedTimeSlot: selectedTimeSlot,
+//   //     });
+//   //   } catch (error) {
+//   //     console.error("❌ Booking Error:", error);
+//   //     alert("Something went wrong. Please try again.");
+//   //   }
+//   // };
+
+//   if (!isReady || !doctors) return null;
+
+// import React, { useState, useEffect } from "react";
+// import {
+//   Alert,
+//   Image,
+//   Text,
+//   ImageBackground,
+//   StyleSheet,
+//   TouchableOpacity,
+//   View,
+//   Platform,
+//   useWindowDimensions,
+//   ActivityIndicator,
+//   ScrollView,
+//   SafeAreaView,
+//   StatusBar,
+//   Dimensions,
+//   Pressable,
+// } from "react-native";
+// import { API_URL } from "../../../env-vars";
+// import { useAuth } from "../../../contexts/AuthContext";
+// import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
+// import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
+// import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+
+// const getEndTime = (startTime) => {
+//   const [hours, minutes] = startTime.split(":").map(Number);
+//   const startDate = new Date();
+//   startDate.setHours(hours, minutes, 0, 0);
+//   startDate.setMinutes(startDate.getMinutes() + 30);
+//   const endHours = String(startDate.getHours()).padStart(2, "0");
+//   const endMinutes = String(startDate.getMinutes()).padStart(2, "0");
+//   return `${endHours}:${endMinutes}`;
+// };
+
+// const DoctorsInfoWithBooking = ({ navigation, route }) => {
+//   const { width } = useWindowDimensions();
+//   const [selectedDate, setSelectedDate] = useState("Today");
+//   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
+//   const [availableDates, setAvailableDates] = useState([]);
+//   const [availableSlots, setAvailableSlots] = useState([]);
+//   const [doctors, setDoctors] = useState(null);
+//   const [isReady, setIsReady] = useState(false);
+//   const [loading, setLoading] = useState(true);
+
+//   const { user } = useAuth();
+
+//   // ✅ FIX: Handle both doctorId and doctors object
+//   useEffect(() => {
+//     const loadDoctorData = async () => {
+//       try {
+//         // Check if we received the full doctor object
+//         if (route.params?.doctors) {
+//           console.log("✅ Doctor object received directly");
+//           setDoctors(route.params.doctors);
+//           setIsReady(true);
+//           setLoading(false);
+//           return;
+//         }
+
+//         // Check if we received just the doctorId
+//         if (route.params?.doctorId) {
+//           console.log("🔍 Fetching doctor by ID:", route.params.doctorId);
+
+//           const response = await fetch(
+//             `${API_URL}/doctorsService/doctors/${route.params.doctorId}`,
+//             {
+//               method: "GET",
+//               headers: { "Content-Type": "application/json" },
+//             }
+//           );
+
+//           if (!response.ok) {
+//             throw new Error("Failed to fetch doctor details");
+//           }
+
+//           const doctorData = await response.json();
+//           console.log("✅ Doctor data fetched:", doctorData);
+
+//           setDoctors(doctorData);
+//           setIsReady(true);
+//           setLoading(false);
+//           return;
+//         }
+
+//         // No doctor data provided
+//         console.error("❌ No doctor data or ID provided");
+//         Alert.alert("Error", "Doctor information is missing");
+//         navigation.goBack();
+//       } catch (error) {
+//         console.error("❌ Error loading doctor:", error);
+//         Alert.alert("Error", "Failed to load doctor information");
+//         setLoading(false);
+//       }
+//     };
+
+//     loadDoctorData();
+//   }, [route.params]);
+
+//   // Get doctor identifier for API calls
+//   const doctorIdentifier =
+//     doctors?.doctor_id || doctors?.id || doctors?.email || null;
+//   const userIdentifier = user?.user_id || user?.email || null;
+
+//   // Fetch available dates and slots
+//   useEffect(() => {
+//     const getDatesAndSlots = async () => {
+//       if (!doctorIdentifier) return;
+
+//       const today = new Date();
+//       const next3Days = Array.from({ length: 3 }, (_, i) => {
+//         const date = new Date(today);
+//         date.setDate(today.getDate() + i);
+//         return date;
+//       });
+
+//       const promises = next3Days.map(async (date) => {
+//         const dateString = date.toISOString().slice(0, 10);
+//         const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+
+//         try {
+//           const res = await fetch(
+//             `${API_URL}/booking/doctors/${doctorIdentifier}/availability?date=${dateString}`,
+//             {
+//               method: "GET",
+//               headers: { "Content-Type": "application/json" },
+//             }
+//           );
+
+//           const data = await res.json();
+
+//           const slots = Array.isArray(data)
+//             ? data.map((slot) => ({
+//                 ...slot,
+//                 start: slot.slot_time || slot.start,
+//                 end: slot.slot_time ? getEndTime(slot.slot_time) : slot.end,
+//               }))
+//             : [];
+
+//           return {
+//             id: dateString,
+//             label: `${weekday}, ${date.toLocaleDateString("en-US", {
+//               day: "numeric",
+//               month: "short",
+//             })}`,
+//             date: dateString,
+//             slots: slots,
+//           };
+//         } catch (e) {
+//           console.error(`Error fetching slots for ${dateString}:`, e);
+//           return {
+//             id: dateString,
+//             label: `${weekday}, ${date.toDateString()}`,
+//             date: dateString,
+//             slots: [],
+//           };
+//         }
+//       });
+
+//       const results = await Promise.all(promises);
+//       setAvailableDates(results);
+
+//       if (results.length > 0) {
+//         setSelectedDate(results[0].date);
+//         setAvailableSlots(results[0].slots);
+//       }
+//     };
+
+//     getDatesAndSlots();
+//   }, [doctorIdentifier]);
+
+//   const handleDateSelect = (dateStr) => {
+//     const selected = availableDates.find((d) => d.date === dateStr);
+//     setSelectedDate(dateStr);
+//     setAvailableSlots(selected?.slots || []);
+//     setSelectedTimeSlot(null);
+//   };
+
+//   const handleSlotSelect = (slot) => {
+//     setSelectedTimeSlot(slot);
+//   };
+
+//   const bookSlot = async () => {
+//     if (!selectedDate || !selectedTimeSlot) {
+//       Alert.alert("Error", "Please select a date and time slot.");
+//       return;
+//     }
+
+//     if (!doctorIdentifier) {
+//       Alert.alert("Error", "Doctor information is missing.");
+//       return;
+//     }
+
+//     if (!userIdentifier) {
+//       Alert.alert("Please sign in", "Log in to book a slot.");
+//       return;
+//     }
+
+//     try {
+//       const res = await fetch(`${API_URL}/booking/bookings`, {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//           ...(user.token && { Authorization: `Bearer ${user.token}` }),
+//         },
+//         body: JSON.stringify({
+//           doctor_id: doctorIdentifier,
+//           date: selectedDate,
+//           start_time: selectedTimeSlot,
+//           user_id: userIdentifier,
+//         }),
+//       });
+
+//       const data = await res.json();
+
+//       if (!res.ok) throw new Error(data.detail || "Booking failed");
+
+//       Alert.alert("Success", "Slot booked successfully!");
+
+//       navigation.navigate("DoctorsBookingPaymentScreen", {
+//         doctor: doctors,
+//         selectedDate: selectedDate,
+//         selectedTimeSlot: selectedTimeSlot,
+//       });
+//     } catch (error) {
+//       console.error("Booking error:", error);
+//       Alert.alert("Error", error.message || "Failed to book slot");
+//     }
+//   };
+
+//   // Show loading state
+//   if (loading || !isReady || !doctors) {
+//     return (
+//       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+//         <ActivityIndicator size="large" color="#FF7072" />
+//         <Text style={{ marginTop: 10, color: "#666" }}>
+//           Loading doctor information...
+//         </Text>
+//       </View>
+//     );
+//   }
+
 import React, { useState, useEffect } from "react";
 import {
   Alert,
   Image,
   Text,
   ImageBackground,
-  StyleSheet,
+  ActivityIndicator,
   TouchableOpacity,
   View,
   Platform,
   useWindowDimensions,
-  Dimensions,
-  StatusBar,
   ScrollView,
-  Pressable,
   SafeAreaView,
-  Linking,
+  StatusBar,
+  Pressable,
+  Dimensions,
+  StyleSheet
 } from "react-native";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
-import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 import { API_URL } from "../../../env-vars";
 import { useAuth } from "../../../contexts/AuthContext";
+import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
+import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
 
-//import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const { width, height } = Dimensions.get("window");
 
 // Helper function to calculate end time (30 minutes after start)
 const getEndTime = (startTime) => {
@@ -43,58 +585,83 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [availableDates, setAvailableDates] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
-  const [doctors, setDoctors] = useState(route.params?.doctors || null);
-  const [isReady, setIsReady] = useState(false); // Delay rendering
+  const [doctors, setDoctors] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showFull, setShowFull] = useState(false);
 
   const { user } = useAuth();
+
+  // ✅ NEW: Load doctor data by ID
+  useEffect(() => {
+    const loadDoctorData = async () => {
+      try {
+        // Check if we received the full doctor object (fallback)
+        if (route.params?.doctors) {
+          console.log("✅ Doctor object received directly");
+          setDoctors(route.params.doctors);
+          setLoading(false);
+          return;
+        }
+
+        // Check if we received doctorId
+        if (route.params?.doctorId) {
+          console.log("🔍 Fetching doctor by ID:", route.params.doctorId);
+
+          // Fetch all doctors and find the matching one
+          const response = await fetch(`${API_URL}/doctorsService/doctors`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch doctors");
+          }
+
+          const data = await response.json();
+          const allDoctors = data.doctors || [];
+
+          // Find the doctor by ID
+          const foundDoctor = allDoctors.find(
+            (doc) =>
+              String(doc.doctor_id) === String(route.params.doctorId) ||
+              String(doc.id) === String(route.params.doctorId) ||
+              String(doc.email) === String(route.params.doctorId)
+          );
+
+          if (!foundDoctor) {
+            throw new Error("Doctor not found");
+          }
+
+          console.log("✅ Doctor found:", foundDoctor.doctorname);
+          setDoctors(foundDoctor);
+          setLoading(false);
+          return;
+        }
+
+        // No doctor data provided
+        console.error("❌ No doctor data or ID provided");
+        Alert.alert("Error", "Doctor information is missing");
+        navigation.goBack();
+      } catch (error) {
+        console.error("❌ Error loading doctor:", error);
+        Alert.alert("Error", "Failed to load doctor information");
+        setLoading(false);
+      }
+    };
+
+    loadDoctorData();
+  }, [route.params]);
+
+  // Get doctor identifier for API calls
   const doctorIdentifier =
     doctors?.doctor_id || doctors?.id || doctors?.email || null;
   const userIdentifier = user?.user_id || user?.email || null;
 
-  useEffect(() => {
-    const tryParseDoctorFromUrl = () => {
-      try {
-        const search = window.location.search; // "?doctors=%7B...%7D"
-        const urlParams = new URLSearchParams(search);
-        const encodedDoctor = urlParams.get("doctors");
-
-        if (encodedDoctor) {
-          const decoded = decodeURIComponent(encodedDoctor);
-          const parsed = JSON.parse(decoded);
-          setDoctors(parsed);
-        }
-      } catch (err) {
-        console.error("Error parsing doctor from URL:", err);
-      } finally {
-        setIsReady(true);
-      }
-    };
-
-    if (!doctors) {
-      if (Platform.OS === "web") {
-        tryParseDoctorFromUrl();
-      } else {
-        Linking.getInitialURL().then((url) => {
-          if (url && url.includes("DoctorsInfoWithBooking")) {
-            const urlObj = new URL(url);
-            const encodedDoctor = urlObj.searchParams.get("doctors");
-
-            if (encodedDoctor) {
-              const decoded = decodeURIComponent(encodedDoctor);
-              const parsed = JSON.parse(decoded);
-              setDoctors(parsed);
-            }
-          }
-          setIsReady(true);
-        });
-      }
-    } else {
-      setIsReady(true);
-    }
-  }, []);
-
+  // ✅ Fetch available dates and slots
   useEffect(() => {
     const getDatesAndSlots = async () => {
+      if (!doctorIdentifier) return;
+
       const today = new Date();
       const next3Days = Array.from({ length: 3 }, (_, i) => {
         const date = new Date(today);
@@ -103,8 +670,8 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
       });
 
       const promises = next3Days.map(async (date) => {
-        const dateString = date.toISOString().slice(0, 10); // 'YYYY-MM-DD'
-        const weekday = date.toLocaleDateString("en-US", { weekday: "long" }); // "Monday"
+        const dateString = date.toISOString().slice(0, 10);
+        const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
 
         try {
           const res = await fetch(
@@ -117,12 +684,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
 
           console.log(`Response ${res.status} for ${weekday} (${dateString})`);
           const data = await res.json();
-          console.log(
-            `Slots for ${weekday} (${dateString}):`,
-            JSON.stringify(data, null, 2)
-          );
 
-          // New API returns array directly, map slot_time to start for compatibility
           const slots = Array.isArray(data)
             ? data.map((slot) => ({
                 ...slot,
@@ -155,16 +717,12 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
       setAvailableDates(results);
 
       if (results.length > 0) {
-        console.log("Selected date's slots:", results[0].slots);
         setSelectedDate(results[0].date);
         setAvailableSlots(results[0].slots);
       }
     };
 
-    if (doctorIdentifier) {
-      console.log("Doctor ID:", doctorIdentifier);
-      getDatesAndSlots();
-    }
+    getDatesAndSlots();
   }, [doctorIdentifier]);
 
   const handleDateSelect = (dateStr) => {
@@ -173,9 +731,11 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
     setAvailableSlots(selected?.slots || []);
     setSelectedTimeSlot(null);
   };
+
   const handleSlotSelect = (slot) => {
     setSelectedTimeSlot(slot);
   };
+
   const bookSlot = async () => {
     if (!selectedDate || !selectedTimeSlot) {
       Alert.alert("Error", "Please select a date and time slot.");
@@ -186,10 +746,12 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
       Alert.alert("Error", "Doctor information is missing.");
       return;
     }
+
     if (!userIdentifier) {
       Alert.alert("Please sign in", "Log in to book a slot.");
       return;
     }
+
     try {
       console.log("Booking request payload:", {
         doctor_id: doctorIdentifier,
@@ -212,21 +774,18 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
         }),
       });
 
-      console.log("Booking response status:", res.status);
       const data = await res.json();
-      console.log("Booking response data:", data);
 
       if (!res.ok) throw new Error(data.detail || "Booking failed");
 
-      // Update local state - mark slot as unavailable
+      // Update local state
       setAvailableDates((prevDates) =>
         prevDates.map((date) => {
           if (date.date === selectedDate) {
             return {
               ...date,
               slots: date.slots.map((slot) =>
-                slot.start === selectedTimeSlot ||
-                slot.slot_time === selectedTimeSlot
+                slot.start === selectedTimeSlot
                   ? { ...slot, available: false, booking_id: data.booking_id }
                   : slot
               ),
@@ -245,6 +804,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
       );
 
       Alert.alert("Success", "Slot booked successfully!");
+
       navigation.navigate("DoctorsBookingPaymentScreen", {
         doctor: doctors,
         selectedDate: selectedDate,
@@ -256,53 +816,24 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
     }
   };
 
-  const handleBookAppointment = () => {
-    if (!selectedDate || !selectedTimeSlot) {
-      alert("Please select a date and time slot first.");
-      return;
-    }
-
-    navigation.navigate("DoctorsBookingPaymentScreen", {
-      doctor: doctors,
-      selectedDate: selectedDate,
-      selectedTimeSlot: selectedTimeSlot,
-    });
-  };
-  // const handleBookAppointment = async () => {
-  //   if (!selectedDate || !selectedTimeSlot) {
-  //     alert("Please select a date and time slot first.");
-  //     return;
-  //   }
-
-  //   try {
-  //     const user_email = await AsyncStorage.getItem("@user_email");
-
-  //     if (!user_email) {
-  //       console.error("❌ User ID not found in AsyncStorage");
-  //       alert("User not logged in properly. Please try logging in again.");
-  //       return;
-  //     }
-
-  //     // 🔍 Debug the data
-  //     console.log("🚀 Booking Info:", {
-  //       doctor_id: doctors.email,
-  //       date: selectedDate,
-  //       start: selectedTimeSlot,
-  //       user_id: user_email,
-  //     });
-
-  //     navigation.navigate("DoctorsBookingPaymentScreen", {
-  //       doctor: doctors,
-  //       selectedDate: selectedDate,
-  //       selectedTimeSlot: selectedTimeSlot,
-  //     });
-  //   } catch (error) {
-  //     console.error("❌ Booking Error:", error);
-  //     alert("Something went wrong. Please try again.");
-  //   }
-  // };
-
-  if (!isReady || !doctors) return null;
+  // ✅ Show loading state
+  if (loading || !doctors) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#fff",
+        }}
+      >
+        <ActivityIndicator size="large" color="#FF7072" />
+        <Text style={{ marginTop: 10, color: "#666" }}>
+          Loading doctor information...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>

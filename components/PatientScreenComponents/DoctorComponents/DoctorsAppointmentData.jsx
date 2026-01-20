@@ -2379,7 +2379,7 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         borderWidth: 2,
         borderColor: "#000000",
-        height: "97%",
+        height: "95%",
         boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px",
         backgroundColor: "#FFFFFF",
         width: "98%",

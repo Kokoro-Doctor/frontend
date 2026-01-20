@@ -1046,92 +1046,16 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   const descriptionPlaceholder =
     "Dr. Kislay Shrivastava is a highly accomplished cardiologist with over 15 years of specialized experience in the comprehensive diagnosis and management of cardiovascular diseases. His clinical expertise is complemented by significant contributions to cardiovascular research and medical literature. Dr. Shrivastav maintains an active presence in cardiovascular research, with numerous publications in prestigious peer-reviewed medical journals. His research focuses on advancing clinical outcomes in cardiac care and contributing to evidence-based practices in cardiology. With a decade and a half of clinical experience, Dr. Shrivastav combines evidence-based medicine with personalized treatment protocols, ensuring that each patient receives care tailored to their unique cardiovascular profile.";
 
-  // const fetchDoctorById = async (id) => {
-  //   console.log("\n" + "🔄".repeat(30));
-  //   console.log("FETCH FUNCTION CALLED");
-  //   console.log("🔄".repeat(30));
-
-  //   if (!id) {
-  //     console.error("❌ No doctor ID provided to fetch function");
-  //     Alert.alert("Error", "No doctor ID provided");
-  //     setLoading(false);
-  //     return;
-  //   }
-
-  //   try {
-  //     setLoading(true);
-
-  //     // Clean the ID - remove any whitespace or special characters at the ends
-  //     const cleanId = String(id).trim();
-  //     const url = `${API_URL}/doctorsService/doctors/${cleanId}`;
-
-  //     console.log("\n📡 API REQUEST INFO:");
-  //     console.log("API_URL:", API_URL);
-  //     console.log("Original ID:", id);
-  //     console.log("Cleaned ID:", cleanId);
-  //     console.log("Full URL:", url);
-  //     console.log("ID Type:", typeof cleanId);
-  //     console.log("ID Length:", cleanId.length);
-
-  //     const res = await fetch(url, {
-  //       method: "GET",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //     });
-
-  //     console.log("\n📬 API RESPONSE INFO:");
-  //     console.log("Status:", res.status);
-  //     console.log("Status Text:", res.statusText);
-  //     console.log("OK?:", res.ok);
-
-  //     if (!res.ok) {
-  //       const errorText = await res.text();
-  //       console.error("❌ Server Error Response:", errorText);
-
-  //       Alert.alert(
-  //         "Doctor Not Found",
-  //         `Could not find doctor with ID: ${cleanId}\n\nStatus: ${res.status}\nPlease try again or contact support.`,
-  //         [
-  //           {
-  //             text: "Go Back",
-  //             onPress: () => navigation.goBack(),
-  //           },
-  //         ]
-  //       );
-
-  //       setLoading(false);
-  //       return;
-  //     }
-
-  //     const data = await res.json();
-  //     console.log("✅ SUCCESS! Doctor data received:", data);
-
-  //     setDoctors(data.doctor || data);
-  //   } catch (error) {
-  //     console.error("\n❌❌❌ FETCH FAILED ❌❌❌");
-  //     console.error("Error:", error);
-  //     console.error("Error Message:", error.message);
-  //     console.error("Stack:", error.stack);
-
-  //     Alert.alert(
-  //       "Error Loading Doctor",
-  //       `Failed to load doctor information.\n\nError: ${error.message}\n\nPlease check your connection and try again.`,
-  //       [
-  //         {
-  //           text: "Go Back",
-  //           onPress: () => navigation.goBack(),
-  //         },
-  //         {
-  //           text: "Retry",
-  //           onPress: () => fetchDoctorById(id),
-  //         },
-  //       ]
-  //     );
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const getInitials = (name = "") => {
+    return name
+      .replace("Dr.", "")
+      .trim()
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0].toUpperCase())
+      .join("");
+  };
 
   const fetchDoctorById = async (id) => {
     console.log("\n" + "🔄".repeat(30));
@@ -1433,14 +1357,29 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                     <View style={styles.doctorProfileCard}>
                       <View style={styles.doctorProfileDetail}>
                         <View style={styles.doctorLeftSection}>
-                          <Image
+                          {/* <Image
                             source={
                               doctors?.profilePhoto
                                 ? { uri: doctors?.profilePhoto }
                                 : require("../../../assets/Images/dr_kislay.jpg")
                             }
                             style={styles.doctorImage}
-                          />
+                          /> */}
+                          {doctors?.profilePhoto ? (
+                            <Image
+                              source={{ uri: doctors.profilePhoto }}
+                              style={styles.doctorImage}
+                            />
+                          ) : (
+                            <View style={styles.initialsAvatar}>
+                              <Text style={styles.initialsText}>
+                                {getInitials(
+                                  doctors?.name || doctors?.fullName || "D"
+                                )}
+                              </Text>
+                            </View>
+                          )}
+
                           <View style={styles.ratingContainer}>
                             <MaterialIcons
                               name="star"
@@ -1589,14 +1528,27 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
             <StatusBar barStyle="light-content" backgroundColor="#fff" />
 
             <View style={styles.appImageContainer}>
-              <Image
+              {/* <Image
                 source={
                   doctors?.profilePhoto
                     ? { uri: doctors?.profilePhoto }
                     : require("../../../assets/Images/dr_kislay.jpg")
                 }
                 style={styles.doctorImage}
-              />
+              /> */}
+              {doctors?.profilePhoto ? (
+                <Image
+                  source={{ uri: doctors.profilePhoto }}
+                  style={styles.doctorImage}
+                />
+              ) : (
+                <View style={styles.initialsAvatar}>
+                  <Text style={styles.initialsText}>
+                    {getInitials(doctors?.name || doctors?.fullName || "D")}
+                  </Text>
+                </View>
+              )}
+
               <View style={styles.doctornamebox}>
                 <Text style={styles.doctorName}>
                   {doctors?.doctorname || "Dr. Kislay Shrivastava"}
@@ -2271,6 +2223,20 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     fontStyle: "Medium",
     padding: "1%",
+  },
+  initialsAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#E5E7EB",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
+  initialsText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#374151",
   },
 });
 
