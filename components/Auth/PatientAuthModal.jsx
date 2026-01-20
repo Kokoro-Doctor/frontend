@@ -40,6 +40,7 @@ const PatientAuthModal = ({
     requestSignupOtp: requestSignupOtpHandler,
     requestLoginOtp: requestLoginOtpHandler,
     loginWithOtp: loginWithOtpHandler,
+    initiateLogin: initiateLoginHandler,
   } = useContext(AuthContext);
   const { setRole } = useRole();
 
@@ -592,22 +593,27 @@ const PatientAuthModal = ({
     setIsProcessing(true);
 
     try {
-      // Use signup endpoint for login (it handles both existing and new users)
-      // This works because signup endpoint checks if user exists and returns them
-      await signupHandler({
-        phoneNumber: phoneNumber,
-        // No email, no OTP, no name for login
+      // Use proper login endpoint - it handles both experimental flow (direct login) and normal flow (OTP required)
+      const result = await initiateLoginHandler({
+        identifier: phoneNumber,
       });
 
-      setRole("patient");
-      await AsyncStorage.setItem("userRole", "patient");
+      // If result has access_token, this is a direct login (experimental flow - no OTP needed)
+      if (result?.access_token) {
+        setRole("patient");
+        await AsyncStorage.setItem("userRole", "patient");
 
-      setInfoMessage("Login successful! Redirecting...");
-      setIsProcessing(false);
+        setInfoMessage("Login successful! Redirecting...");
+        setIsProcessing(false);
 
-      setTimeout(() => {
-        onRequestClose();
-      }, 1500);
+        setTimeout(() => {
+          onRequestClose();
+        }, 1500);
+      } else {
+        // OTP is required - trigger OTP flow
+        setIsProcessing(false);
+        await sendOtpForFlow({ phoneNumber, flow: "login" });
+      }
     } catch (error) {
       const message = getErrorMessage(error);
       setErrorMessage(message);

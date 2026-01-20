@@ -26,6 +26,7 @@ import {
 import { getSessionId } from "../../../utils/sessionManager";
 import SignInPopup from "./SignInPopup";
 import FormattedMessageText from "./FormattedMessageText";
+import PreviewMessage from "./PreviewMessage";
 
 const languages = [
   { label: "English (In)", value: "en" },
@@ -119,20 +120,43 @@ const MobileChatbot = () => {
             selectedLanguage.value
           );
           if (botReply) {
-            const botMessage = {
-              id: Date.now().toString(),
-              sender: "bot",
-              text: botReply.text || "Sorry, I couldn't process that.",
-              timestamp: new Date().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            };
+            const botMessage = botReply.is_preview
+              ? {
+                  id: Date.now().toString(),
+                  sender: "bot",
+                  text: botReply.preview_text || botReply.full_text || "Sorry, I couldn't process that.",
+                  timestamp: new Date().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                  is_preview: true,
+                  preview_text: botReply.preview_text,
+                  full_text: botReply.full_text,
+                  cta_text: botReply.cta_text,
+                  signup_action: botReply.signup_action,
+                }
+              : {
+                  id: Date.now().toString(),
+                  sender: "bot",
+                  text: botReply.text || "Sorry, I couldn't process that.",
+                  timestamp: new Date().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                  is_preview: false,
+                };
+            
             setMessages((prevMessages) => {
               const updatedMessages = [...prevMessages, botMessage];
               const newMessageIndex = updatedMessages.length - 1;
               setPlayingMessage(newMessageIndex);
-              Speech.speak(botReply.text, {
+              
+              // Only speak if not preview (or speak preview text)
+              const textToSpeak = botReply.is_preview
+                ? botReply.preview_text || botReply.full_text
+                : botReply.text;
+              
+              Speech.speak(textToSpeak, {
                 language: selectedLanguage.value,
                 onDone: () => setPlayingMessage(null),
                 onStopped: () => setPlayingMessage(null),
@@ -187,20 +211,43 @@ const MobileChatbot = () => {
         selectedLanguage.value
       );
       if (botReply) {
-        const botMessage = {
-          id: Date.now().toString(),
-          sender: "bot",
-          text: botReply.text || "Sorry, I couldn't process that.",
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        };
+        const botMessage = botReply.is_preview
+          ? {
+              id: Date.now().toString(),
+              sender: "bot",
+              text: botReply.preview_text || botReply.full_text || "Sorry, I couldn't process that.",
+              timestamp: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              is_preview: true,
+              preview_text: botReply.preview_text,
+              full_text: botReply.full_text,
+              cta_text: botReply.cta_text,
+              signup_action: botReply.signup_action,
+            }
+          : {
+              id: Date.now().toString(),
+              sender: "bot",
+              text: botReply.text || "Sorry, I couldn't process that.",
+              timestamp: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              is_preview: false,
+            };
+        
         setMessages((prevMessages) => {
           const updatedMessages = [...prevMessages, botMessage];
           const newMessageIndex = updatedMessages.length - 1; // Get the index of the latest bot message
           setPlayingMessage(newMessageIndex); // Set playingMessage to the new message index
-          Speech.speak(botReply.text, {
+          
+          // Only speak if not preview (or speak preview text)
+          const textToSpeak = botReply.is_preview
+            ? botReply.preview_text || botReply.full_text
+            : botReply.text;
+          
+          Speech.speak(textToSpeak, {
             language: selectedLanguage.value,
             onDone: () => setPlayingMessage(null),
             onStopped: () => setPlayingMessage(null),
@@ -334,9 +381,20 @@ const MobileChatbot = () => {
               : styles.botMessageBox
           }
         >
-          <FormattedMessageText sender={item.sender} text={item.text} />
-          <Text style={styles.timestamp}>{item.timestamp}</Text>
-          {item.sender === "bot" && !isLoading && (
+          {item.sender === "bot" && item.is_preview ? (
+            <PreviewMessage
+              previewText={item.preview_text}
+              fullText={item.full_text}
+              ctaText={item.cta_text}
+              signupAction={item.signup_action}
+            />
+          ) : (
+            <>
+              <FormattedMessageText sender={item.sender} text={item.text} />
+              <Text style={styles.timestamp}>{item.timestamp}</Text>
+            </>
+          )}
+          {item.sender === "bot" && !isLoading && !item.is_preview && (
             <View style={styles.botIcons}>
               <Pressable onPress={() => toggleTTS(index, item.text)}>
                 <MaterialIcons
