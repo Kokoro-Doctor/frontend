@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import PrivacyPolicy from "../../../screens/PatientScreens/Auth/PrivacyPolicy";
+//import PrivacyPolicy from "../../../screens/PatientScreens/Auth/PrivacyPolicy";
 
 const ChatBotOverlay = ({ navigationRef }) => {
   const { chatbotConfig, openChatbot, closeChatbot } = useChatbot();
@@ -69,7 +69,8 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "GeneratePrescription",
     "Prescription",
     "UserDashboard",
-    "DoctorDashboard"
+    "DoctorDashboard",
+    "WelcomePage"
   ];
   const shownScreensMobile = ["LandingPage"];
 
