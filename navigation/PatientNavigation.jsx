@@ -8,8 +8,8 @@ import { useRole } from "../contexts/RoleContext";
 import { useFocusEffect } from "@react-navigation/native";
 import PrivacyPolicy from "../screens/PatientScreens/Auth/PrivacyPolicy";
 import LandingPage from "../screens/PatientScreens/LandingPage";
-//import DoctorPatientLandingPage from "../screens/DoctorScreens/DoctorRegistration/DoctorPatientLandingPage";
 import UserDashboard from "../screens/PatientScreens/UserDashboard";
+import WelcomePage from "../screens/PatientScreens/WelcomePage";
 
 //Doctors
 import ConsultWithDoctors from "../screens/PatientScreens/Doctors/ConsultWithDoctors";
@@ -305,7 +305,7 @@ const AppNavigation = ({ navigation }) => {
   return (
     <HeaderButtonsProvider stackType={"native"}>
       <Stack.Navigator
-        initialRouteName="LandingPage"
+        initialRouteName="WelcomePage"
         screenOptions={{
           headerStyle: {
             backgroundColor: theme.container.backgroundColor,
@@ -321,6 +321,11 @@ const AppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="LandingPage"
           component={LandingPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="WelcomePage"
+          component={WelcomePage}
           options={{ headerShown: false }}
         />
         <Stack.Screen
