@@ -1,5 +1,5 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Speech from "expo-speech";
 import { useContext, useEffect, useState } from "react";
 import {
@@ -37,17 +37,38 @@ const languages = [
 
 const MobileChatbot = () => {
   const navigation = useNavigation();
-  const [messages, setMessages] = useState([
-    {
-      id: "1",
-      sender: "bot",
-      text: "Hey there! How are you feeling today? I’m your personal health companion — here to support you every step of the way. Would you like help with your heart health or reproductive health today? And remember, this is a safe and private space, so feel free to ask me anything.",
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    },
-  ]);
+  // const [messages, setMessages] = useState([
+  //   {
+  //     id: "1",
+  //     sender: "bot",
+  //     text: "Hey there! How are you feeling today? I’m your personal health companion — here to support you every step of the way. Would you like help with your heart health or reproductive health today? And remember, this is a safe and private space, so feel free to ask me anything.",
+  //     timestamp: new Date().toLocaleTimeString([], {
+  //       hour: "2-digit",
+  //       minute: "2-digit",
+  //     }),
+  //   },
+  // ]);
+  const route = useRoute();
+  const presetPrompt = route?.params?.presetPrompt;
+
+  const [messages, setMessages] = useState(() => {
+    if (presetPrompt) {
+      return []; // chatbot opens silently, prompt auto-send hoga
+    }
+
+    return [
+      {
+        id: "1",
+        sender: "bot",
+        text: "Hey there! How are you feeling today? I’m your personal health companion — here to support you every step of the way. Would you like help with your heart health or reproductive health today? And remember, this is a safe and private space, so feel free to ask me anything.",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      },
+    ];
+  });
+
   const [userMessage, setUserMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [playingMessage, setPlayingMessage] = useState(null);
@@ -57,6 +78,89 @@ const MobileChatbot = () => {
   const [showSignInPopup, setShowSignInPopup] = useState(false);
   const { user, role } = useContext(AuthContext);
   const [feedback, setFeedback] = useState({});
+
+  useEffect(() => {
+    if (!presetPrompt) return;
+
+    const autoSendPresetPrompt = async () => {
+      const userMsg = {
+        id: Date.now().toString(),
+        sender: "user",
+        text: presetPrompt,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+
+      setMessages([userMsg]); // overwrite start
+      setIsLoading(true);
+
+      try {
+        const botReply = await askBot(
+          user,
+          role,
+          presetPrompt,
+          selectedLanguage.value
+        );
+
+        if (botReply) {
+          const botMessage = botReply.is_preview
+            ? {
+                id: (Date.now() + 1).toString(),
+                sender: "bot",
+                text:
+                  botReply.preview_text ||
+                  botReply.full_text ||
+                  "Sorry, I couldn't process that.",
+                timestamp: new Date().toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                is_preview: true,
+                preview_text: botReply.preview_text,
+                full_text: botReply.full_text,
+                cta_text: botReply.cta_text,
+                signup_action: botReply.signup_action,
+              }
+            : {
+                id: (Date.now() + 1).toString(),
+                sender: "bot",
+                text: botReply.text,
+                timestamp: new Date().toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                is_preview: false,
+              };
+
+          setMessages((prev) => {
+            const updated = [...prev, botMessage];
+            setPlayingMessage(updated.length - 1);
+
+            Speech.speak(
+              botReply.is_preview
+                ? botReply.preview_text || botReply.full_text
+                : botReply.text,
+              {
+                language: selectedLanguage.value,
+                onDone: () => setPlayingMessage(null),
+                onStopped: () => setPlayingMessage(null),
+              }
+            );
+
+            return updated;
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    autoSendPresetPrompt();
+  }, [presetPrompt, role, selectedLanguage.value, user]);
 
   // Stop speaking when user refreshes the page
   useEffect(() => {
@@ -148,7 +252,10 @@ const MobileChatbot = () => {
               ? {
                   id: Date.now().toString(),
                   sender: "bot",
-                  text: botReply.preview_text || botReply.full_text || "Sorry, I couldn't process that.",
+                  text:
+                    botReply.preview_text ||
+                    botReply.full_text ||
+                    "Sorry, I couldn't process that.",
                   timestamp: new Date().toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -169,17 +276,17 @@ const MobileChatbot = () => {
                   }),
                   is_preview: false,
                 };
-            
+
             setMessages((prevMessages) => {
               const updatedMessages = [...prevMessages, botMessage];
               const newMessageIndex = updatedMessages.length - 1;
               setPlayingMessage(newMessageIndex);
-              
+
               // Only speak if not preview (or speak preview text)
               const textToSpeak = botReply.is_preview
                 ? botReply.preview_text || botReply.full_text
                 : botReply.text;
-              
+
               Speech.speak(textToSpeak, {
                 language: selectedLanguage.value,
                 onDone: () => setPlayingMessage(null),
@@ -239,7 +346,10 @@ const MobileChatbot = () => {
           ? {
               id: Date.now().toString(),
               sender: "bot",
-              text: botReply.preview_text || botReply.full_text || "Sorry, I couldn't process that.",
+              text:
+                botReply.preview_text ||
+                botReply.full_text ||
+                "Sorry, I couldn't process that.",
               timestamp: new Date().toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -260,17 +370,17 @@ const MobileChatbot = () => {
               }),
               is_preview: false,
             };
-        
+
         setMessages((prevMessages) => {
           const updatedMessages = [...prevMessages, botMessage];
           const newMessageIndex = updatedMessages.length - 1; // Get the index of the latest bot message
           setPlayingMessage(newMessageIndex); // Set playingMessage to the new message index
-          
+
           // Only speak if not preview (or speak preview text)
           const textToSpeak = botReply.is_preview
             ? botReply.preview_text || botReply.full_text
             : botReply.text;
-          
+
           Speech.speak(textToSpeak, {
             language: selectedLanguage.value,
             onDone: () => setPlayingMessage(null),

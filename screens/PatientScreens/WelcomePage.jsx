@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect } from "react";
-
 import {
   View,
   Text,
@@ -34,6 +33,20 @@ export default function WelcomePage() {
     "Missed Periods": "calendar-blank-outline",
     "PCOS Symptoms": "gender-female",
     "Pregnancy Concerns": "baby-face-outline",
+  };
+  const symptomPrompts = {
+    "Chest Pain":
+      "I am experiencing chest pain. Please ask me relevant medical questions to understand my condition.",
+    "Irregular Heartbeat":
+      "I have an irregular heartbeat. Please ask follow-up questions to assess my heart health.",
+    "High BP":
+      "I have high blood pressure readings. Please guide me with questions.",
+    "Missed Periods":
+      "I have missed my periods. Please ask questions to understand possible causes.",
+    "PCOS Symptoms":
+      "I am experiencing PCOS-related symptoms. Please ask relevant questions.",
+    "Pregnancy Concerns":
+      "I have concerns related to pregnancy. Please ask the necessary questions.",
   };
 
   const [activePill, setActivePill] = useState(0);
@@ -97,9 +110,16 @@ export default function WelcomePage() {
         </View>
 
         <View style={styles.navLinks}>
-          <NavHoverItem label="Women's Health" />
-          <NavHoverItem label="Our Doctors" />
-          <NavHoverItem label="Heart Health" />
+          {/* <NavHoverItem label="Women's Health" /> */}
+          <NavHoverItem
+            onPress={() =>
+              navigation.navigate("Doctors", {
+                screen: "DoctorResultShow",
+              })
+            }
+            label="Our Doctors"
+          />
+          {/* <NavHoverItem label="Heart Health" /> */}
         </View>
 
         <View style={styles.navActions}>
@@ -187,7 +207,21 @@ export default function WelcomePage() {
                 const isActive = index === activePill;
 
                 return (
-                  <Pressable key={item} onPress={() => setActivePill(index)}>
+                  // <Pressable key={item} onPress={() => setActivePill(index)}>
+                  <Pressable
+                    key={item}
+                    onPress={() => {
+                      setActivePill(index);
+
+                      navigation.navigate("PatientAppNavigation", {
+                        screen: "MobileChatbot",
+                        params: {
+                          presetPrompt: symptomPrompts[item],
+                          source: "symptom-pill",
+                        },
+                      });
+                    }}
+                  >
                     <Animated.View
                       style={[
                         styles.pillWrapper,
@@ -560,11 +594,13 @@ const styles = StyleSheet.create({
   navLinks: {
     flexDirection: "row",
     gap: 28,
+    //borderWidth:1,
+    marginLeft: "50%",
   },
   navText: {
     color: "#6B7280",
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 15,
+    fontWeight: "600",
   },
   navTextHover: {
     color: "#000",
