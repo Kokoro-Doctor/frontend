@@ -127,6 +127,7 @@ export const linking = {
   ],
   config: {
     screens: {
+      WelcomePage:"WelcomePage",
       LandingPage: "Home",
       DoctorPatientLandingPage: "Role",
 
@@ -141,6 +142,7 @@ export const linking = {
       PatientAppNavigation: {
         path: "patient",
         screens: {
+          WelcomePage:"WelcomePage",
           Home: "Home",
 
           // ✅ ADDED
