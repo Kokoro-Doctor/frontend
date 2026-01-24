@@ -335,7 +335,7 @@ const RootNavigation = () => {
     }
 
     // Not authenticated, go to landing page
-    return "LandingPage";
+    return "WelcomePage";
   };
 
   const initialRouteName = getInitialRouteName();
