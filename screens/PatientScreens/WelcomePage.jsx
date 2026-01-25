@@ -16,6 +16,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import mixpanel from "../../utils/Mixpanel";
 
 export default function WelcomePage() {
   const concerns = [
@@ -112,13 +113,19 @@ export default function WelcomePage() {
         <View style={styles.navLinks}>
           {/* <NavHoverItem label="Women's Health" /> */}
           <NavHoverItem
-            onPress={() =>
+            onPress={() => {
+              mixpanel.track("Welcome - Our Doctors Clicked", {
+                source: "navbar",
+                destination: "DoctorResultShow",
+              });
+
               navigation.navigate("Doctors", {
                 screen: "DoctorResultShow",
-              })
-            }
+              });
+            }}
             label="Our Doctors"
           />
+
           {/* <NavHoverItem label="Heart Health" /> */}
         </View>
 
@@ -131,7 +138,7 @@ export default function WelcomePage() {
               })
             }
           />
-          <HoverScaleTouchable
+          {/* <HoverScaleTouchable
             text="Start Health Check"
             baseStyle={styles.startBtn}
             hoverStyle={styles.startBtnHover}
@@ -141,6 +148,22 @@ export default function WelcomePage() {
                 screen: "MobileChatbot",
               })
             }
+          /> */}
+          <HoverScaleTouchable
+            text="Start Health Check"
+            baseStyle={styles.startBtn}
+            hoverStyle={styles.startBtnHover}
+            textStyle={styles.startBtnText}
+            onPress={() => {
+              mixpanel.track("Welcome - Start Health Check Clicked", {
+                source: "navbar",
+                destination: "MobileChatbot",
+              });
+
+              navigation.navigate("PatientAppNavigation", {
+                screen: "MobileChatbot",
+              });
+            }}
           />
         </View>
       </View>
@@ -207,10 +230,26 @@ export default function WelcomePage() {
                 const isActive = index === activePill;
 
                 return (
-                  // <Pressable key={item} onPress={() => setActivePill(index)}>
                   <Pressable
                     key={item}
+                    // onPress={() => {
+                    //   setActivePill(index);
+
+                    //   navigation.navigate("PatientAppNavigation", {
+                    //     screen: "MobileChatbot",
+                    //     params: {
+                    //       presetPrompt: symptomPrompts[item],
+                    //       source: "symptom-pill",
+                    //     },
+                    //   });
+                    // }}
                     onPress={() => {
+                      mixpanel.track("Welcome - Symptom Pill Clicked", {
+                        symptom: item,
+                        source: "pill",
+                        destination: "MobileChatbot",
+                      });
+
                       setActivePill(index);
 
                       navigation.navigate("PatientAppNavigation", {
@@ -367,11 +406,35 @@ export default function WelcomePage() {
               baseStyle={styles.ctaBtn}
               hoverStyle={styles.ctaBtnHover}
               textStyle={styles.ctaBtnText}
-              onPress={() =>
+              // onPress={() => {
+              //   const textToSend = inputValue.trim();
+
+              //   navigation.navigate("PatientAppNavigation", {
+              //     screen: "MobileChatbot",
+              //     params: {
+              //       presetPrompt: textToSend || null, // 👈 typed text goes here
+              //       source: "free-text-input",
+              //     },
+              //   });
+              // }}
+              onPress={() => {
+                const textToSend = inputValue.trim();
+
+                mixpanel.track("Welcome - Free Health Check Started", {
+                  source: "cta-card",
+                  has_typed_text: !!textToSend,
+                  text_length: textToSend.length,
+                  destination: "MobileChatbot",
+                });
+
                 navigation.navigate("PatientAppNavigation", {
                   screen: "MobileChatbot",
-                })
-              }
+                  params: {
+                    presetPrompt: textToSend || null,
+                    source: "free-text-input",
+                  },
+                });
+              }}
             />
           </View>
 
@@ -399,16 +462,16 @@ export default function WelcomePage() {
             <Text>Or</Text>
             <TouchableOpacity
               activeOpacity={0.85}
-              // onPress={() =>
-              //   navigation.navigate("PatientAppNavigation", {
-              //     screen: "DoctorResultShow",
-              //   })
-              // }
-              onPress={() =>
+              onPress={() => {
+                mixpanel.track("Welcome - Talk to Doctor Clicked", {
+                  source: "footer-cta",
+                  destination: "DoctorResultShow",
+                });
+
                 navigation.navigate("Doctors", {
                   screen: "DoctorResultShow",
-                })
-              }
+                });
+              }}
               onMouseEnter={
                 Platform.OS === "web" ? () => setDoctorHover(true) : undefined
               }
@@ -529,12 +592,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#EC4899",
-    minWidth: 120,
+    minWidth: 280,
     padding: 0,
     marginLeft: 4,
 
     // Web only
     outlineStyle: "none",
+    borderWidth: 1,
+    borderColor: "#c5c4c4ff",
+    borderRadius: 10,
   },
   pillsContainer: {
     alignItems: "center",
