@@ -1,7 +1,11 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import * as Speech from "expo-speech";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useCallback } from "react";
 import {
   Animated,
   FlatList,
@@ -80,7 +84,7 @@ const MobileChatbot = () => {
   const [feedback, setFeedback] = useState({});
 
   useEffect(() => {
-    if (!presetPrompt) return;
+    if (!presetPrompt || presetPrompt.trim() === "") return;
 
     const autoSendPresetPrompt = async () => {
       const userMsg = {
@@ -168,6 +172,18 @@ const MobileChatbot = () => {
       Speech.stop();
     };
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Screen is focused → do nothing
+
+      return () => {
+        // Screen lost focus → STOP ALL SPEECH
+        Speech.stop();
+        setPlayingMessage(null);
+      };
+    }, [])
+  );
 
   // Convert preview messages to full messages when user logs in
   useEffect(() => {
@@ -408,43 +424,6 @@ const MobileChatbot = () => {
       Keyboard.dismiss();
     }
   };
-
-  // const toggleTTS = (index, text) => {
-  //   if (playingMessage === index) {
-  //     Speech.stop();
-  //     setPlayingMessage(null);
-  //   } else {
-  //     Speech.speak(text, {
-  //       language: selectedLanguage.value,
-  //       onDone: () => setPlayingMessage(null),
-  //       onStopped: () => setPlayingMessage(null),
-  //     });
-  //     setPlayingMessage(index);
-  //   }
-  // };
-  // const toggleTTS = async (index, text) => {
-  //   try {
-  //     const { available } = await Speech.getAvailableVoicesAsync();
-  //     if (!available) {
-  //       console.warn("Speech not available on this device");
-  //       return;
-  //     }
-
-  //     if (playingMessage === index) {
-  //       await Speech.stop();
-  //       setPlayingMessage(null);
-  //     } else {
-  //       await Speech.speak(text, {
-  //         language: selectedLanguage.value,
-  //         onDone: () => setPlayingMessage(null),
-  //         onStopped: () => setPlayingMessage(null),
-  //       });
-  //       setPlayingMessage(index);
-  //     }
-  //   } catch (error) {
-  //     console.error("Speech error:", error);
-  //   }
-  // };
 
   const toggleTTS = (index, text) => {
     if (playingMessage === index) {
