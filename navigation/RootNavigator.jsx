@@ -74,6 +74,8 @@ import AuthGate from "../navigation/AuthGate";
 import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
 import LandingPage from "../screens/PatientScreens/LandingPage";
+import WelcomePage from "../screens/PatientScreens/WelcomePage";
+import DoctorResultShow from "../screens/PatientScreens/Doctors/DoctorResultShow";
 
 // ✅ Conditionally import heavy screens (works on web + native)
 let DoctorPatientLandingPage;
@@ -125,6 +127,7 @@ export const linking = {
   ],
   config: {
     screens: {
+      WelcomePage:"WelcomePage",
       LandingPage: "Home",
       DoctorPatientLandingPage: "Role",
 
@@ -139,6 +142,7 @@ export const linking = {
       PatientAppNavigation: {
         path: "patient",
         screens: {
+          WelcomePage:"WelcomePage",
           Home: "Home",
 
           // ✅ ADDED
@@ -331,7 +335,7 @@ const RootNavigation = () => {
     }
 
     // Not authenticated, go to landing page
-    return "LandingPage";
+    return "WelcomePage";
   };
 
   const initialRouteName = getInitialRouteName();
@@ -350,6 +354,8 @@ const RootNavigation = () => {
           initialRouteName={urlRoute || initialRouteName}
         >
           {/* Always loaded instantly */}
+          <Stack.Screen name="WelcomePage" component={WelcomePage}></Stack.Screen>
+          <Stack.Screen name="DoctorResultShow" component={DoctorResultShow}></Stack.Screen>
           <Stack.Screen name="LandingPage" component={LandingPageWithAuth} />
           <Stack.Screen name="AuthGate" component={AuthGate} />
 

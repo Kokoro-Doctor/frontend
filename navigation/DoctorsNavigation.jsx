@@ -30,6 +30,7 @@ import DoctorsSubscribers from "../screens/DoctorScreens/DoctorsSubscribers";
 import GeneratePrescription from "../screens/DoctorScreens/GeneratePrescription";
 import DrCalendarView from "../screens/DoctorScreens/DrCalendarView";
 import DoctorDashboard from "../screens/DoctorScreens/DoctorDashboard";
+import WelcomePage from "../screens/PatientScreens/WelcomePage";
 
 const Stack = createNativeStackNavigator();
 
@@ -89,6 +90,11 @@ const DoctorAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="LandingPage"
           component={LandingPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="WelcomePage"
+          component={WelcomePage}
           options={{ headerShown: false }}
         />
         <Stack.Screen

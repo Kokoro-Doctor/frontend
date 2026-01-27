@@ -1378,6 +1378,7 @@ import {
 import { API_URL } from "../../../env-vars";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
+import mixpanel from "../../../utils/Mixpanel";
 
 const DoctorAppointmentScreen = ({
   navigation,
@@ -1650,6 +1651,15 @@ const DoctorAppointmentScreen = ({
     }, [user?.user_id])
   );
 
+  const getDoctorEventProps = (doctor) => ({
+    doctor_id: normalizeDoctorId(doctor),
+    doctor_name: doctor.doctorname,
+    specialization: doctor.specialization,
+    category: doctor.category,
+    user_id: userIdentifier,
+    platform: Platform.OS,
+  });
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -1686,9 +1696,6 @@ const DoctorAppointmentScreen = ({
                 bookedCount: bookedCountByDoctor[doctorId],
               });
 
-              /**
-               * 1️⃣ Check if subscription is valid
-               */
               const hasActiveSubscription =
                 subscription &&
                 subscription.doctorId &&
@@ -1698,9 +1705,6 @@ const DoctorAppointmentScreen = ({
               const isSubscribedToThisDoctor =
                 hasActiveSubscription && subscription.doctorId === doctorId;
 
-              /**
-               * 2️⃣ Get consultation limits
-               */
               // ⚠️ CRITICAL FIX: If total is 0, use default plan value (usually 3)
               const DEFAULT_CONSULTATIONS = 3; // Change this to match your plan
               const totalAllowed =
@@ -1723,9 +1727,6 @@ const DoctorAppointmentScreen = ({
                 remaining: remainingSlots,
               });
 
-              /**
-               * 3️⃣ Determine if limit reached
-               */
               const hasReachedLimit =
                 isSubscribedToThisDoctor &&
                 totalAllowed > 0 &&
@@ -1734,9 +1735,6 @@ const DoctorAppointmentScreen = ({
               const canBookMore =
                 isSubscribedToThisDoctor && remainingSlots > 0;
 
-              /**
-               * 4️⃣ Button text with remaining slots
-               */
               const buttonText = (() => {
                 if (isSubscribedToThisDoctor) {
                   if (hasReachedLimit) {
@@ -1753,9 +1751,6 @@ const DoctorAppointmentScreen = ({
                 return "Subscribe";
               })();
 
-              /**
-               * 5️⃣ Disable logic
-               */
               const isDisabled =
                 (hasActiveSubscription && !isSubscribedToThisDoctor) ||
                 hasReachedLimit;
@@ -1772,19 +1767,24 @@ const DoctorAppointmentScreen = ({
                   <View style={styles.cardRow}>
                     {/* Left Section - Doctor Details */}
                     <View style={styles.row}>
-                      {/* <Image
-                      source={{ uri: item.profilePhoto }}
-                      style={styles.image}
-                    /> */}
-                      <TouchableOpacity
+                      {/* <TouchableOpacity
                         onPress={() =>
-                          // navigation.navigate("DoctorsInfoWithSubscription", {
-                          //   doctors: item,
-                          // })
                           navigation.navigate("DoctorsInfoWithSubscription", {
                             doctorId: normalizeDoctorId(item),
                           })
                         }
+                      > */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          mixpanel.track("Doctor_Image_Clicked", {
+                            ...getDoctorEventProps(item),
+                            destination: "DoctorsInfoWithSubscription",
+                          });
+
+                          navigation.navigate("DoctorsInfoWithSubscription", {
+                            doctorId: normalizeDoctorId(item),
+                          });
+                        }}
                       >
                         <Image
                           source={{ uri: item.profilePhoto }}
@@ -1867,49 +1867,46 @@ const DoctorAppointmentScreen = ({
                         disabled={isDisabled}
                         // onPress={() => {
                         //   if (canBookMore) {
+                        //     // navigation.navigate("DoctorsInfoWithBooking", {
+                        //     //   doctors: item,
+                        //     // });
                         //     navigation.navigate("DoctorsInfoWithBooking", {
-                        //       doctors: item,
-                        //     });
-                        //   }
-                        // }}
-
-                        // onPress={() => {
-                        //   // 1️⃣ User has active subscription for this doctor and can book
-                        //   if (canBookMore) {
-                        //     navigation.navigate("DoctorsInfoWithBooking", {
-                        //       doctors: item,
+                        //       doctorId: normalizeDoctorId(item),
                         //     });
                         //     return;
                         //   }
 
-                        //   // 2️⃣ User does NOT have subscription → go to subscribe screen
-                        //   // if (
-                        //   //   !hasActiveSubscription ||
-                        //   //   !isSubscribedToThisDoctor
-                        //   // ) {
-                        //   //   navigation.navigate("DoctorsInfoWithSubscription", {
-                        //   //     doctors: item,
-                        //   //   });
-                        //   // }
                         //   if (!hasActiveSubscription) {
                         //     navigation.navigate("DoctorsInfoWithSubscription", {
-                        //       doctors: item,
+                        //       doctorId: normalizeDoctorId(item),
                         //     });
                         //   }
                         // }}
-
                         onPress={() => {
+                          // 🟢 BOOK SLOT
                           if (canBookMore) {
-                            // navigation.navigate("DoctorsInfoWithBooking", {
-                            //   doctors: item,
-                            // });
+                            mixpanel.track("Doctor_Book_Slot_Clicked", {
+                              ...getDoctorEventProps(item),
+                              remaining_slots: remainingSlots,
+                              total_allowed: totalAllowed,
+                              used_slots: actualUsed,
+                              button_text: buttonText,
+                            });
+
                             navigation.navigate("DoctorsInfoWithBooking", {
                               doctorId: normalizeDoctorId(item),
                             });
                             return;
                           }
 
+                          // 🔵 SUBSCRIBE
                           if (!hasActiveSubscription) {
+                            mixpanel.track("Doctor_Subscribe_Clicked", {
+                              ...getDoctorEventProps(item),
+                              button_text: buttonText,
+                              has_active_subscription: hasActiveSubscription,
+                            });
+
                             navigation.navigate("DoctorsInfoWithSubscription", {
                               doctorId: normalizeDoctorId(item),
                             });
@@ -2033,13 +2030,26 @@ const DoctorAppointmentScreen = ({
                   <View style={styles.cardContainer}>
                     <View style={styles.cardBox}>
                       <View style={styles.cardHeaderInfo}>
-                        <TouchableOpacity
+                        {/* <TouchableOpacity
                           style={styles.imageContainer}
                           onPress={() =>
                             navigation.navigate("DoctorsInfoWithSubscription", {
                               doctorId: normalizeDoctorId(item),
                             })
                           }
+                        > */}
+                        <TouchableOpacity
+                          style={styles.imageContainer}
+                          onPress={() => {
+                            mixpanel.track("Doctor_Image_Clicked", {
+                              ...getDoctorEventProps(item),
+                              destination: "DoctorsInfoWithSubscription",
+                            });
+
+                            navigation.navigate("DoctorsInfoWithSubscription", {
+                              doctorId: normalizeDoctorId(item),
+                            });
+                          }}
                         >
                           <Image
                             source={{ uri: item.profilePhoto }}
