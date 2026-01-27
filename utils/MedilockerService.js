@@ -1,18 +1,18 @@
 import { Alert } from "react-native";
-import {API_URL} from "../env-vars";
+import { API_URL } from "../env-vars";
 
 const medilocker_API = `${API_URL}/medilocker`;
 
-export const FetchFromServer = async(email) => {
+export const FetchFromServer = async (email) => {
     try {
         const encodedUserId = encodeURIComponent(email);
         const response = await fetch(`${medilocker_API}/users/${encodedUserId}/files`, {
             method: "GET",
             headers: {
-              "Content-Type": "application/json",
+                "Content-Type": "application/json",
             },
         });
-    
+
         if (!response.ok) {
             throw new Error("Failed to load files from server");
         }
@@ -31,11 +31,11 @@ export const upload = async (payload) => {
         const response = await fetch(`${medilocker_API}/upload`, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+                "Content-Type": "application/json",
             },
             body: JSON.stringify(payload),
         });
-    
+
         if (!response.ok) {
             let errorMessage = "File upload failed";
             try {
@@ -47,7 +47,7 @@ export const upload = async (payload) => {
             }
             throw new Error(errorMessage);
         }
-    
+
         const data = await response.json();
         return data;
 
@@ -92,7 +92,7 @@ export const remove = async (email, fileName) => {
                 "Content-Type": "application/json",
             },
         });
-    
+
         if (!response.ok) {
             throw new Error("Delete request failed");
         }
@@ -110,21 +110,21 @@ export const shortenUrl = async (longUrl) => {
     const apiUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`;
     const response = await fetch(apiUrl);
     if (!response.ok) {
-      throw new Error('Failed to shorten URL');
+        throw new Error('Failed to shorten URL');
     }
     const shortenedUrl = await response.text();
     return shortenedUrl;
 };
 
 export const extractStructuredData = async (files) => {
-    const apiUrl = `${medilocker_API}/extract-structured-data`;
-    
+    const apiUrl = `${medilocker_API}/prescription`;
+
     const requestBody = {
         files: files,
     };
-    
+
     const requestBodyString = JSON.stringify(requestBody);
-    
+
     try {
         const response = await fetch(apiUrl, {
             method: "POST",
@@ -139,7 +139,7 @@ export const extractStructuredData = async (files) => {
         }
 
         const responseText = await response.text();
-        
+
         let data;
         try {
             data = JSON.parse(responseText);
@@ -148,7 +148,7 @@ export const extractStructuredData = async (files) => {
         catch (parseError) {
             throw new Error(`Failed to parse response: ${parseError.message}`);
         }
-        
+
     } catch (err) {
         throw new Error(`Error: ${err.message}`);
     }
