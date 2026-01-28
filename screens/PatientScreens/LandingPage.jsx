@@ -505,29 +505,7 @@ const LandingPage = ({ navigation, route }) => {
         </View>
       )}
       {/* <ChatBot/> */}
-      {/* AUTH MODALS */}
-      {/* {showPatientAuth && (
-        <PatientAuthModal
-          visible={showPatientAuth}
-          initialMode="signup"
-          onRequestClose={() => setShowPatientAuth(false)}
-          onDoctorRegister={() => {
-            setShowPatientAuth(false);
-            setShowDoctorAuth(true);
-          }}
-        />
-      )}
-
-      {showDoctorAuth && (
-        <DoctorSignupModal
-          visible={showDoctorAuth}
-          onRequestClose={() => setShowDoctorAuth(false)}
-          onDoctorRegister={() => {
-            setShowDoctorAuth(false);
-            setShowPatientAuth(true);
-          }}
-        />
-      )} */}
+      
     </>
   );
 };

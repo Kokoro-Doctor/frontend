@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
-//import { Platform } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import PatientAuthModal from "../components/Auth/PatientAuthModal";
-import DoctorSignupModal from "../components/Auth/DoctorSignupModal";
+import DoctorAuthModal from "../components/Auth/DoctorAuthModal";
 
 const AuthPopupContext = createContext(null);
 
@@ -16,12 +15,35 @@ export const AuthPopupProvider = ({ children }) => {
   const timerRef = useRef(null);
   const shownOnceRef = useRef(false);
 
+  // Function to clear the auto-popup timer
+  const clearAutoPopupTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    // Mark as shown so it doesn't auto-popup again
+    shownOnceRef.current = true;
+  };
+
+  // Function to manually open patient auth modal (called from Login/Signup button)
+  const openPatientAuth = () => {
+    clearAutoPopupTimer(); // Cancel auto-popup
+    setShowPatientAuth(true);
+  };
+
+  // Function to manually open doctor auth modal (called from Login/Signup button)
+  const openDoctorAuth = () => {
+    clearAutoPopupTimer(); // Cancel auto-popup
+    setShowDoctorAuth(true);
+  };
+
   useEffect(() => {
     if (isLoading) return;
 
     // Already logged in OR popup already shown → do nothing
     if (isAuthenticated || shownOnceRef.current) return;
 
+    // Set auto-popup timer
     timerRef.current = setTimeout(() => {
       setShowPatientAuth(true);
       shownOnceRef.current = true;
@@ -32,6 +54,13 @@ export const AuthPopupProvider = ({ children }) => {
     };
   }, [isAuthenticated, isLoading]);
 
+  // Watch for when modals are opened - if opened, cancel auto-popup
+  useEffect(() => {
+    if (showPatientAuth || showDoctorAuth) {
+      clearAutoPopupTimer();
+    }
+  }, [showPatientAuth, showDoctorAuth]);
+
   return (
     <AuthPopupContext.Provider
       value={{
@@ -39,6 +68,9 @@ export const AuthPopupProvider = ({ children }) => {
         setShowPatientAuth,
         showDoctorAuth,
         setShowDoctorAuth,
+        openPatientAuth, // New: manual open function
+        openDoctorAuth,  // New: manual open function
+        clearAutoPopupTimer, // Expose in case needed elsewhere
       }}
     >
       {children}
@@ -57,13 +89,10 @@ export const AuthPopupProvider = ({ children }) => {
       )}
 
       {showDoctorAuth && (
-        <DoctorSignupModal
+        <DoctorAuthModal
           visible={showDoctorAuth}
           onRequestClose={() => setShowDoctorAuth(false)}
-          onDoctorRegister={() => {
-            setShowDoctorAuth(false);
-            setShowPatientAuth(true);
-          }}
+          initialMode="signup"
         />
       )}
     </AuthPopupContext.Provider>

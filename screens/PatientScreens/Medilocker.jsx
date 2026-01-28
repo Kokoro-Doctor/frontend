@@ -13,7 +13,6 @@ import {
   useWindowDimensions,
   Dimensions,
   Platform,
-  ScrollView,
   Pressable,
   StatusBar,
 } from "react-native";
@@ -23,7 +22,7 @@ import * as WebBrowser from "expo-web-browser";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { AntDesign, FontAwesome, Entypo } from "@expo/vector-icons";
+import { AntDesign, FontAwesome} from "@expo/vector-icons";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useLoginModal } from "../../contexts/LoginModalContext";
 import {
@@ -75,29 +74,7 @@ const Medilocker = ({ navigation }) => {
     loadFilesFromServer();
   }, [user]);
 
-  // const convertFileToBase64 = async (asset) => {
-  //   if (Platform.OS === "web") {
-  //     try {
-  //       const dataUrl = asset.uri;
-  //       const base64String = dataUrl.split(",")[1];
-  //       return base64String;
-  //     } catch (error) {
-  //       console.error("Error converting file to Base64 on web:", error);
-  //       return null;
-  //     }
-  //   } else {
-  //     try {
-  //       const base64String = await FileSystem.readAsStringAsync(asset.uri, {
-  //         encoding: FileSystem.EncodingType.Base64,
-  //       });
-  //       return base64String;
-  //     } catch (error) {
-  //       console.error("Error converting file to Base64:", error);
-  //       return null;
-  //     }
-  //   }
-  // };
-
+  
   const convertFileToBase64 = async (asset) => {
     try {
       if (Platform.OS === "web") {
@@ -271,6 +248,7 @@ const Medilocker = ({ navigation }) => {
           window.open(downloadUrl, "_blank");
         }
       } else {
+        
         // const localUri = FileSystem.cacheDirectory + fileName;
         const localUri = `${FileSystem.cacheDirectory ?? ""}${fileName}`;
 
@@ -303,14 +281,14 @@ const Medilocker = ({ navigation }) => {
   );
 
   const [visible, setvisible] = useState(true);
-  const [password, setPassword] = useState("");
+  //const [password, setPassword] = useState("");
 
-  const handlePasswordChange = (text) => {
-    setPassword(text);
-    if (text === user?.password) {
-      setTimeout(() => setvisible(false), 500); // Close modal after 0.5s if password is correct
-    }
-  };
+  // const handlePasswordChange = (text) => {
+  //   setPassword(text);
+  //   if (text === user?.password) {
+  //     setTimeout(() => setvisible(false), 500); // Close modal after 0.5s if password is correct
+  //   }
+  // };
 
   return (
     <>

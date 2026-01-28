@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useContext } from "react";
 import {
   Image,
   ImageBackground,
@@ -16,7 +16,6 @@ import {
 
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-import { useContext } from "react";
 import { AuthContext } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -1127,7 +1126,7 @@ const Prescription = ({ navigation, route }) => {
                     resizeMode="contain"
                   />
 
-                  <Text style={stylesMobile.logoText}>"Kokoro.Doctor"</Text>
+                  <Text style={stylesMobile.logoText}>&quot;Kokoro.Doctor&quot;</Text>
                 </View>
                 <View style={stylesMobile.summaryBadge}>
                   <View style={stylesMobile.summaryBadgeContent}>
@@ -1772,13 +1771,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 6,
   },
-  specialtyText: {
-    fontSize: 14,
-    fontWeight: "400",
-    color: "#888888",
-    fontFamily: "Poppins",
-    fontStyle: "italic",
-  },
+  // specialtyText: {
+  //   fontSize: 14,
+  //   fontWeight: "400",
+  //   color: "#888888",
+  //   fontFamily: "Poppins",
+  //   fontStyle: "italic",
+  // },
   divider: {
     height: 1,
     backgroundColor: "#E0E0E0",
@@ -2318,23 +2317,23 @@ const stylesMobile = StyleSheet.create({
     marginTop: 12,
   },
 
-  metaText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#000000",
-  },
+  // metaText: {
+  //   fontSize: 12,
+  //   fontWeight: "500",
+  //   color: "#000000",
+  // },
   secondText: {
     color: "#555555",
     fontSize: 12,
     fontWeight: "400",
   },
 
-  divider: {
-    marginRight: 16,
-    height: 1,
-    backgroundColor: "#eee",
-    marginVertical: 12,
-  },
+  // divider: {
+  //   marginRight: 16,
+  //   height: 1,
+  //   backgroundColor: "#eee",
+  //   marginVertical: 12,
+  // },
 
   infoGrid: {
     flexDirection: "row",
@@ -2368,11 +2367,11 @@ const stylesMobile = StyleSheet.create({
     maxHeight: 300,
   },
 
-  rxText: {
-    fontSize: 13,
-    color: "#333",
-    lineHeight: 20,
-  },
+  // rxText: {
+  //   fontSize: 13,
+  //   color: "#333",
+  //   lineHeight: 20,
+  // },
 
   approveBtn: {
     alignSelf: "center",
