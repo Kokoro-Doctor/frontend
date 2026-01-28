@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useRef, useState, useEffect } from "react";
 import {
   View,
@@ -66,13 +67,13 @@ export default function WelcomePage() {
       toValue: doctorHover ? 8 : 0, // ≈ 2% shift
       useNativeDriver: true,
     }).start();
-  }, [doctorHover]);
+  }, [arrowTranslate, doctorHover]);
 
   useEffect(() => {
     if (!hasUserTyped) {
       setTryInput(concerns[activePill]);
     }
-  }, [activePill]);
+  }, [activePill, concerns, hasUserTyped]);
 
   // ✅ AUTO ROTATE PILLS
   useEffect(() => {
@@ -119,8 +120,11 @@ export default function WelcomePage() {
                 destination: "DoctorResultShow",
               });
 
-              navigation.navigate("Doctors", {
-                screen: "DoctorResultShow",
+              navigation.navigate("PatientAppNavigation", {
+                screen: "Doctors",
+                params: {
+                  screen: "DoctorResultShow",
+                },
               });
             }}
             label="Our Doctors"
@@ -138,17 +142,7 @@ export default function WelcomePage() {
               })
             }
           />
-          {/* <HoverScaleTouchable
-            text="Start Health Check"
-            baseStyle={styles.startBtn}
-            hoverStyle={styles.startBtnHover}
-            textStyle={styles.startBtnText}
-            onPress={() =>
-              navigation.navigate("PatientAppNavigation", {
-                screen: "MobileChatbot",
-              })
-            }
-          /> */}
+
           <HoverScaleTouchable
             text="Start Health Check"
             baseStyle={styles.startBtn}
@@ -178,15 +172,6 @@ export default function WelcomePage() {
           style={styles.hero}
           resizeMode="cover"
         >
-          {/* Soft white overlay */}
-          {/* <LinearGradient
-            colors={[
-              "rgba(255,255,255,0.92)",
-              "rgba(96, 33, 33, 0.85)",
-              "rgba(255,255,255,0.75)",
-            ]}
-            style={StyleSheet.absoluteFill}
-          /> */}
           <LinearGradient
             pointerEvents="none" // 🔥 THIS IS THE KEY
             colors={[
@@ -232,17 +217,6 @@ export default function WelcomePage() {
                 return (
                   <Pressable
                     key={item}
-                    // onPress={() => {
-                    //   setActivePill(index);
-
-                    //   navigation.navigate("PatientAppNavigation", {
-                    //     screen: "MobileChatbot",
-                    //     params: {
-                    //       presetPrompt: symptomPrompts[item],
-                    //       source: "symptom-pill",
-                    //     },
-                    //   });
-                    // }}
                     onPress={() => {
                       mixpanel.track("Welcome - Symptom Pill Clicked", {
                         symptom: item,
@@ -406,17 +380,6 @@ export default function WelcomePage() {
               baseStyle={styles.ctaBtn}
               hoverStyle={styles.ctaBtnHover}
               textStyle={styles.ctaBtnText}
-              // onPress={() => {
-              //   const textToSend = inputValue.trim();
-
-              //   navigation.navigate("PatientAppNavigation", {
-              //     screen: "MobileChatbot",
-              //     params: {
-              //       presetPrompt: textToSend || null, // 👈 typed text goes here
-              //       source: "free-text-input",
-              //     },
-              //   });
-              // }}
               onPress={() => {
                 const textToSend = inputValue.trim();
 
@@ -468,8 +431,11 @@ export default function WelcomePage() {
                   destination: "DoctorResultShow",
                 });
 
-                navigation.navigate("Doctors", {
-                  screen: "DoctorResultShow",
+                navigation.navigate("PatientAppNavigation", {
+                  screen: "Doctors",
+                  params: {
+                    screen: "DoctorResultShow",
+                  },
                 });
               }}
               onMouseEnter={
@@ -592,10 +558,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#EC4899",
-    minWidth: 280,
+    minWidth: 350,
     padding: 0,
     marginLeft: 4,
-
     // Web only
     outlineStyle: "none",
     borderWidth: 1,

@@ -1228,9 +1228,9 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
 
   // Plan details
   const weeklyPlan = {
-    plan_id: "PLAN_1_7D_ALL",
+    plan_id: "PLAN_ID_1",
     features: [
-      "1 Specialist consultation within 24hrs",
+      "One time consultation with specialist doctor",
       "Unlimited Medilocker access",
       "Unlimited AI chatbot access",
       "Ideal for quick clarity and one-time specialist need",
@@ -1238,9 +1238,9 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
   };
 
   const monthlyPlan = {
-    plan_id: "PLAN_2_30D_ALL",
+    plan_id: "PLAN_ID_2",
     features: [
-      "2 Specialist consultations per month",
+      "Unlimited specialist doctor consultations per month",
       "Unlimited Medilocker storage",
       "Unlimited AI chatbot access",
       "Doctor-Patient continuity + follow-up included",

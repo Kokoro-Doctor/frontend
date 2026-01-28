@@ -1,6 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { Platform } from "react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChatBotOverlay from "./components/PatientScreenComponents/ChatbotComponents/ChatbotOverlay";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ChatbotProvider } from "./contexts/ChatbotContext";
@@ -17,21 +17,27 @@ const App = () => {
   const navigationRef = useRef(null);
 
   const routeNameRef = useRef(null); // 👈 IMPORTANT
+  const [appType, setAppType] = useState("patient");
+  const [currentRoute, setCurrentRoute] = useState(null);
+
 
   const onStateChange = () => {
-    const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
+  const routeName = navigationRef.current?.getCurrentRoute()?.name;
 
-    // Track only if screen actually changed
-    if (currentRouteName && routeNameRef.current !== currentRouteName) {
-      routeNameRef.current = currentRouteName;
+  if (routeName && routeNameRef.current !== routeName) {
+    routeNameRef.current = routeName;
+    setCurrentRoute(routeName);
 
-      mixpanel.track("Screen Viewed", {
-        screen: currentRouteName,
-      });
+    const isDoctorRoute = routeName.startsWith("Doctor");
+    setAppType(isDoctorRoute ? "doctor" : "patient");
 
-      console.log("📊 Screen tracked:", currentRouteName);
-    }
-  };
+    mixpanel.track("Screen Viewed", { screen: routeName });
+
+    console.log("📊 Screen tracked:", routeName);
+    console.log("🧠 appType:", isDoctorRoute ? "doctor" : "patient");
+  }
+};
+
 
   useEffect(() => {
     initGoogleSignin();
@@ -40,7 +46,7 @@ const App = () => {
     console.log("🔥 Firing test Mixpanel event...");
 
     mixpanel.track("Web App Loaded", {
-      url: Platform.OS === 'web' ? window.location.pathname : 'mobile',
+      url: Platform.OS === "web" ? window.location.pathname : "mobile",
       timestamp: new Date().toISOString(),
     });
 
@@ -66,7 +72,7 @@ const App = () => {
                 ref={navigationRef}
                 onStateChange={onStateChange}
               >
-                <AuthPopupProvider>
+                <AuthPopupProvider appType={appType} currentRoute={currentRoute}>
                   <RootNavigation />
                   <ChatBotOverlay navigationRef={navigationRef} />
                 </AuthPopupProvider>

@@ -42,7 +42,7 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
     // { name: "Pricing", icon: require("../../assets/Icons/pricing.png") },
   ];
   const lowerMenuItems = [
-    { name: "Settings", icon: require("../../assets/Icons/GearSix.png") },
+    // { name: "Settings", icon: require("../../assets/Icons/GearSix.png") },
     { name: "Contact Us", icon: require("../../assets/Icons/cloudcheck.png") },
     { name: "Help", icon: require("../../assets/Icons/help.png") },
   ];

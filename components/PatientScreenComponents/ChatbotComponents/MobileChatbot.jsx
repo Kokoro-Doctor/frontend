@@ -207,7 +207,7 @@ const MobileChatbot = () => {
         });
       });
     }
-  }, [user]); // Trigger when user changes (logs in)
+  }, [user]); // Trigger when user changes (logged In)
 
   //Loading animation
   useEffect(() => {

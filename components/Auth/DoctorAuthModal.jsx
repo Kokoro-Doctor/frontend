@@ -1,3 +1,791 @@
+// import React, { useState, useEffect } from "react";
+// import {
+//   View,
+//   Text,
+//   TextInput,
+//   TouchableOpacity,
+//   Modal,
+//   StyleSheet,
+//   Platform,
+//   Dimensions,
+//   ScrollView,
+// } from "react-native";
+// import { Ionicons } from "@expo/vector-icons";
+// import { useNavigation } from "@react-navigation/native";
+// import { useAuth } from "../../contexts/AuthContext";
+// import { getErrorMessage } from "../../utils/errorUtils";
+// import {
+//   COUNTRY_CODES,
+//   DEFAULT_COUNTRY_CODE,
+//   validatePhoneNumber,
+//   buildFullPhoneNumber,
+//   detectCountryCode,
+//   getCountryByCode,
+// } from "../../utils/countryCodes";
+
+// const DoctorSignupModal = ({ visible, onRequestClose }) => {
+//   const navigation = useNavigation();
+//   const { doctorsSignup, requestSignupOtp } = useAuth();
+//   const [doctorFullName, setDoctorFullName] = useState("");
+//   const [doctorPhone, setDoctorPhone] = useState("");
+//   const [doctorSpecialization, setDoctorSpecialization] = useState("");
+//   const [doctorExperience, setDoctorExperience] = useState("");
+//   const [doctorEmail, setDoctorEmail] = useState("");
+//   const [doctorOtp, setDoctorOtp] = useState("");
+//   const [doctorOtpStatus, setDoctorOtpStatus] = useState("idle");
+//   const [otpCountdown, setOtpCountdown] = useState(0);
+//   const [isProcessing, setIsProcessing] = useState(false);
+//   const [errorMessage, setErrorMessage] = useState("");
+//   const [infoMessage, setInfoMessage] = useState("");
+//   const [showOtpModal, setShowOtpModal] = useState(false);
+//   const [doctorCountryCode, setDoctorCountryCode] =
+//     useState(DEFAULT_COUNTRY_CODE);
+//   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+
+//   useEffect(() => {
+//     if (!visible) {
+//       resetForm();
+//     }
+//   }, [visible]);
+
+//   useEffect(() => {
+//     if (doctorOtpStatus !== "sent" || otpCountdown <= 0) return;
+
+//     const timer = setInterval(() => {
+//       setOtpCountdown((prev) => {
+//         if (prev <= 1) {
+//           clearInterval(timer);
+//           return 0;
+//         }
+//         return prev - 1;
+//       });
+//     }, 1000);
+
+//     return () => clearInterval(timer);
+//   }, [doctorOtpStatus, otpCountdown]);
+
+//   const resetForm = () => {
+//     setDoctorFullName("");
+//     setDoctorPhone("");
+//     setDoctorSpecialization("");
+//     setDoctorExperience("");
+//     setDoctorEmail("");
+//     setDoctorOtp("");
+//     setDoctorOtpStatus("idle");
+//     setOtpCountdown(0);
+//     setIsProcessing(false);
+//     setErrorMessage("");
+//     setInfoMessage("");
+//     setShowOtpModal(false);
+//     setDoctorCountryCode(DEFAULT_COUNTRY_CODE);
+//     setIsCountryDropdownOpen(false);
+//   };
+
+//   const validateDoctorDetails = () => {
+//     // Only phone number is required
+//     if (!doctorPhone.trim()) {
+//       setErrorMessage("Please enter your mobile number.");
+//       return false;
+//     }
+
+//     // Validate phone number format
+//     const digitsOnly = sanitizeDigits(doctorPhone);
+//     if (!validatePhoneNumber(digitsOnly, doctorCountryCode)) {
+//       const country = getCountryByCode(doctorCountryCode);
+//       setErrorMessage(
+//         `Please enter a valid mobile number for ${country.name}.`
+//       );
+//       return false;
+//     }
+
+//     // If experience is provided, validate it's a valid number
+//     if (doctorExperience.trim()) {
+//       const parsedExperience = parseInt(doctorExperience, 10);
+//       if (Number.isNaN(parsedExperience) || parsedExperience < 0) {
+//         setErrorMessage("Experience must be a valid number.");
+//         return false;
+//       }
+//     }
+
+//     return true;
+//   };
+
+//   const sanitizeDigits = (value = "") => value.replace(/\D/g, "");
+
+//   const handleDoctorPhoneChange = (value = "") => {
+//     if (!value || !value.trim()) {
+//       setDoctorPhone("");
+//       return;
+//     }
+//     const trimmed = value.trim();
+
+//     // Auto-detect country code if number starts with +
+//     if (trimmed.startsWith("+")) {
+//       const detected = detectCountryCode(trimmed);
+//       setDoctorCountryCode(detected);
+//       const digitsOnly = sanitizeDigits(trimmed);
+//       setDoctorPhone(`+${digitsOnly}`);
+//       return;
+//     }
+
+//     const digitsOnly = sanitizeDigits(trimmed);
+//     if (!digitsOnly) {
+//       setDoctorPhone("");
+//       return;
+//     }
+//     setDoctorPhone(digitsOnly);
+//   };
+
+//   const buildDoctorPhoneNumber = () => {
+//     if (!doctorPhone || !doctorPhone.trim()) {
+//       return "";
+//     }
+//     const trimmed = doctorPhone.trim();
+
+//     // If already has + prefix, return as-is
+//     if (trimmed.startsWith("+")) {
+//       return trimmed;
+//     }
+
+//     return buildFullPhoneNumber(trimmed, doctorCountryCode);
+//   };
+
+//   const handleSendVerification = async () => {
+//     // Since email field is removed, always use experimental flow
+//     await handleExperimentalDoctorSignup();
+//   };
+
+//   const handleExperimentalDoctorSignup = async () => {
+//     if (!validateDoctorDetails()) {
+//       return;
+//     }
+
+//     const phoneNumber = buildDoctorPhoneNumber();
+//     if (!phoneNumber) {
+//       setErrorMessage("Please enter a valid mobile number.");
+//       return;
+//     }
+
+//     // Parse experience only if provided
+//     const parsedExperience = doctorExperience.trim()
+//       ? parseInt(doctorExperience, 10)
+//       : undefined;
+
+//     // Validate experience if provided
+//     if (parsedExperience !== undefined && (Number.isNaN(parsedExperience) || parsedExperience < 0)) {
+//       setErrorMessage("Experience must be a valid number.");
+//       return;
+//     }
+
+//     setErrorMessage("");
+//     setInfoMessage("");
+//     setIsProcessing(true);
+
+//     try {
+//       // Experimental flow: signup with mobile only (name, specialization, experience are optional)
+//       await doctorsSignup({
+//         phoneNumber,
+//         ...(doctorFullName.trim() && { name: doctorFullName.trim() }),
+//         ...(doctorSpecialization.trim() && { specialization: doctorSpecialization.trim() }),
+//         ...(parsedExperience !== undefined && { experience: parsedExperience }),
+//         // email and otp are omitted for experimental flow
+//       });
+
+//       setInfoMessage("Doctor registration successful! Redirecting...");
+//       setIsProcessing(false);
+//       onRequestClose();
+
+//       // Navigate to doctor dashboard immediately after signup
+//       setTimeout(() => {
+//         navigation.reset({
+//           index: 0,
+//           routes: [
+//             {
+//               name: "DoctorAppNavigation",
+//               params: { screen: "Dashboard" },
+//             },
+//           ],
+//         });
+//       }, 100);
+//     } catch (error) {
+//       setErrorMessage(getErrorMessage(error));
+//       setIsProcessing(false);
+//     }
+//   };
+
+//   const handleVerifyOtp = async () => {
+//     const phoneNumber = buildDoctorPhoneNumber();
+//     if (!phoneNumber || !doctorOtp.trim()) {
+//       setErrorMessage("Please enter the OTP sent to your mobile.");
+//       return false;
+//     }
+
+//     setIsProcessing(true);
+//     setErrorMessage("");
+//     try {
+//       // Directly call signup with phone + OTP (no separate verify step)
+//       await handleDoctorSignup(phoneNumber, doctorOtp.trim());
+//       setDoctorOtpStatus("verified");
+//       setShowOtpModal(false);
+//       return true;
+//     } catch (error) {
+//       setErrorMessage(getErrorMessage(error));
+//       setDoctorOtpStatus("sent");
+//       setIsProcessing(false);
+//       return false;
+//     }
+//   };
+
+//   const handleDoctorSignup = async (phoneNumberOverride, otpOverride) => {
+//     if (!validateDoctorDetails()) {
+//       throw new Error("Validation failed");
+//     }
+
+//     const parsedExperience = parseInt(doctorExperience, 10);
+//     const phoneNumber = phoneNumberOverride || buildDoctorPhoneNumber();
+//     const otpToUse = otpOverride || doctorOtp.trim();
+
+//     if (!phoneNumber || !otpToUse) {
+//       setErrorMessage("Phone number and OTP are required.");
+//       throw new Error("Phone/OTP required");
+//     }
+
+//     setIsProcessing(true);
+//     setErrorMessage("");
+//     setInfoMessage("");
+
+//     try {
+//       await doctorsSignup({
+//         phoneNumber,
+//         email: doctorEmail.trim(),  // Email is now mandatory
+//         otp: otpToUse,
+//         name: doctorFullName.trim(),
+//         specialization: doctorSpecialization.trim(),
+//         experience: parsedExperience,
+//       });
+
+//       setInfoMessage("Doctor registration successful! Redirecting...");
+//       setShowOtpModal(false);
+//       onRequestClose();
+
+//       // Navigate to doctor dashboard immediately after signup
+//       setTimeout(() => {
+//         navigation.reset({
+//           index: 0,
+//           routes: [
+//             {
+//               name: "DoctorAppNavigation",
+//               params: { screen: "Dashboard" },
+//             },
+//           ],
+//         });
+//       }, 100);
+//     } catch (error) {
+//       setErrorMessage(getErrorMessage(error));
+//       throw error; // Re-throw so caller knows signup failed
+//     } finally {
+//       setIsProcessing(false);
+//     }
+//   };
+
+//   const handleResendOtp = async () => {
+//     // OTP flow is no longer used since email field is removed
+//     // This function is kept for compatibility but shouldn't be called
+//     setErrorMessage("OTP flow is not available. Please use signup without email.");
+//   };
+
+//   const doctorPhoneDigits = sanitizeDigits(doctorPhone);
+//   const isDoctorPhoneValid = validatePhoneNumber(
+//     doctorPhoneDigits,
+//     doctorCountryCode
+//   );
+//   const showDoctorPhoneError =
+//     doctorPhone.trim().length > 0 && !isDoctorPhoneValid;
+
+//   return (
+//     <>
+//       <Modal transparent visible={visible} animationType="fade">
+//         <View style={styles.overlay}>
+//           <ScrollView
+//             contentContainerStyle={{
+//               flexGrow: 1,
+//               justifyContent: "center",
+//               alignItems: "center",
+//             }}
+//           >
+//             <View
+//               style={[
+//                 styles.card,
+//                 Platform.OS === "web"
+//                   ? { width: 320 }
+//                   : [
+//                       styles.mobileCard,
+//                       {
+//                         width: Dimensions.get("window").width * 0.9,
+//                         minWidth: 200,
+//                         maxWidth: 420,
+//                       },
+//                     ],
+//               ]}
+//             >
+//               <Text style={styles.titleHead}>Join Kokoro Doctor</Text>
+//               <Text style={[styles.title, { marginBottom: 20 }]}>
+//                 Doctor Registration
+//               </Text>
+
+//               <Text style={styles.inputLabel}>
+//                 Full Name <Text style={styles.optionalIndicator}>(Optional)</Text>
+//               </Text>
+//               <TextInput
+//                 placeholder="Enter your full name (optional)"
+//                 placeholderTextColor="#d3d3d3"
+//                 style={styles.input}
+//                 value={doctorFullName}
+//                 onChangeText={setDoctorFullName}
+//                 autoCapitalize="words"
+//               />
+
+//               <Text style={styles.inputLabel}>
+//                 Mobile Number <Text style={styles.requiredIndicator}>*</Text>
+//               </Text>
+//               <View style={styles.phoneContainer}>
+//                 <View style={styles.countryCodeContainer}>
+//                   <TouchableOpacity
+//                     onPress={() =>
+//                       setIsCountryDropdownOpen(!isCountryDropdownOpen)
+//                     }
+//                     style={styles.countryCodeButton}
+//                   >
+//                     <Text style={styles.countryCodeText}>
+//                       {getCountryByCode(doctorCountryCode).flag}{" "}
+//                       {doctorCountryCode}
+//                     </Text>
+//                     <Ionicons
+//                       name={
+//                         isCountryDropdownOpen ? "chevron-up" : "chevron-down"
+//                       }
+//                       size={16}
+//                       color="#666"
+//                       style={{ marginLeft: 4 }}
+//                     />
+//                   </TouchableOpacity>
+//                   {isCountryDropdownOpen && (
+//                     <View style={styles.countryDropdown}>
+//                       <ScrollView
+//                         style={styles.countryDropdownScroll}
+//                         nestedScrollEnabled
+//                       >
+//                         {COUNTRY_CODES.map((country) => (
+//                           <TouchableOpacity
+//                             key={country.code}
+//                             style={styles.countryDropdownItem}
+//                             onPress={() => {
+//                               setDoctorCountryCode(country.code);
+//                               setIsCountryDropdownOpen(false);
+//                             }}
+//                           >
+//                             <Text style={styles.countryDropdownText}>
+//                               {country.flag} {country.code} {country.name}
+//                             </Text>
+//                           </TouchableOpacity>
+//                         ))}
+//                       </ScrollView>
+//                     </View>
+//                   )}
+//                 </View>
+//                 <TextInput
+//                   placeholder="Enter your mobile number"
+//                   placeholderTextColor="#d3d3d3"
+//                   keyboardType="phone-pad"
+//                   autoCapitalize="none"
+//                   style={styles.phoneInput}
+//                   value={doctorPhone}
+//                   onChangeText={handleDoctorPhoneChange}
+//                   maxLength={getCountryByCode(doctorCountryCode).maxLength}
+//                 />
+//               </View>
+//               {showDoctorPhoneError ? (
+//                 <Text style={styles.inlineErrorText}>
+//                   Please enter a valid mobile number for{" "}
+//                   {getCountryByCode(doctorCountryCode).name}.
+//                 </Text>
+//               ) : null}
+
+//               <Text style={styles.inputLabel}>
+//                 Specialization <Text style={styles.optionalIndicator}>(Optional)</Text>
+//               </Text>
+//               <TextInput
+//                 placeholder="e.g. Cardiologist (optional)"
+//                 placeholderTextColor="#d3d3d3"
+//                 style={styles.input}
+//                 value={doctorSpecialization}
+//                 onChangeText={setDoctorSpecialization}
+//                 autoCapitalize="words"
+//               />
+
+//               <Text style={styles.inputLabel}>
+//                 Years of Experience{" "}
+//                 <Text style={styles.optionalIndicator}>(Optional)</Text>
+//               </Text>
+//               <TextInput
+//                 placeholder="e.g. 5 (optional)"
+//                 placeholderTextColor="#d3d3d3"
+//                 style={styles.input}
+//                 keyboardType="numeric"
+//                 value={doctorExperience}
+//                 onChangeText={setDoctorExperience}
+//               />
+
+//               <TouchableOpacity
+//                 style={[
+//                   styles.btn,
+//                   (isProcessing || !isDoctorPhoneValid) &&
+//                     styles.disabledBtn,
+//                 ]}
+//                 onPress={handleSendVerification}
+//                 disabled={
+//                   isProcessing || !isDoctorPhoneValid
+//                 }
+//               >
+//                 <Text style={styles.btnText}>
+//                   {isProcessing ? "Signing up..." : "Sign Up"}
+//                 </Text>
+//               </TouchableOpacity>
+
+//               {errorMessage ? (
+//                 <Text style={styles.errorText}>{errorMessage}</Text>
+//               ) : null}
+//               {infoMessage ? (
+//                 <Text style={styles.infoText}>{infoMessage}</Text>
+//               ) : null}
+
+//               <TouchableOpacity
+//                 onPress={onRequestClose}
+//                 style={styles.closeBtn}
+//               >
+//                 <Ionicons name="close" size={20} color="#6B7280" />
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Separate OTP Verification Modal */}
+//       <Modal transparent visible={showOtpModal} animationType="fade">
+//         <View style={styles.overlay}>
+//           <View
+//             style={[
+//               styles.card,
+//               Platform.OS === "web"
+//                 ? { width: 320, maxWidth: "90vw", minWidth: 300 }
+//                 : [
+//                     styles.mobileCard,
+//                     {
+//                       width: Dimensions.get("window").width * 0.9,
+//                       minWidth: 200,
+//                       maxWidth: 420,
+//                     },
+//                   ],
+//             ]}
+//           >
+//             <TouchableOpacity
+//               style={styles.closeBtn}
+//               onPress={() => {
+//                 setShowOtpModal(false);
+//                 setDoctorOtp("");
+//                 setDoctorOtpStatus("idle");
+//                 setOtpCountdown(0);
+//               }}
+//             >
+//               <Ionicons name="close" size={20} color="#6B7280" />
+//             </TouchableOpacity>
+
+//             <Text style={styles.titleHead}>Verify OTP</Text>
+//             <Text style={styles.title}>Enter OTP sent to {doctorPhone}</Text>
+
+//             <Text style={styles.inputLabel}>Enter OTP</Text>
+//             <TextInput
+//               placeholder="Enter OTP"
+//               placeholderTextColor="#d3d3d3"
+//               keyboardType="numeric"
+//               style={styles.input}
+//               value={doctorOtp}
+//               onChangeText={setDoctorOtp}
+//               maxLength={4}
+//               autoFocus
+//             />
+
+//             {errorMessage && (
+//               <Text style={styles.errorText}>{errorMessage}</Text>
+//             )}
+//             {infoMessage && <Text style={styles.infoText}>{infoMessage}</Text>}
+
+//             <TouchableOpacity
+//               style={[
+//                 styles.btn,
+//                 (doctorOtp.trim().length !== 4 || isProcessing) &&
+//                   styles.disabledBtn,
+//               ]}
+//               onPress={handleVerifyOtp}
+//               disabled={doctorOtp.trim().length !== 4 || isProcessing}
+//             >
+//               <Text style={styles.btnText}>
+//                 {isProcessing
+//                   ? "Verifying & Signing Up..."
+//                   : "Verify & Sign Up"}
+//               </Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={[
+//                 styles.resendBtn,
+//                 (otpCountdown > 0 || isProcessing) && styles.disabledBtn,
+//               ]}
+//               onPress={handleResendOtp}
+//               disabled={otpCountdown > 0 || isProcessing}
+//             >
+//               <Text style={styles.resendBtnText}>
+//                 {otpCountdown > 0
+//                   ? `Resend OTP in ${otpCountdown}s`
+//                   : "Resend OTP"}
+//               </Text>
+//             </TouchableOpacity>
+//           </View>
+//         </View>
+//       </Modal>
+//     </>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   overlay: {
+//     flex: 1,
+//     backgroundColor: "rgba(0, 0, 0, 0.6)",
+//     justifyContent: "center",
+//     alignItems: "center",
+//     zIndex: 99999,
+//   },
+//   card: {
+//     backgroundColor: "#fff",
+//     borderRadius: 12,
+//     padding: 22,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     borderWidth: 1,
+//     borderColor: "#EEEEEE",
+//     shadowColor: "#000",
+//     shadowOffset: { width: 0, height: 4 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 12,
+//     elevation: 8,
+//   },
+//   mobileCard: {
+//     borderRadius: 16,
+//     paddingBottom: 20,
+//     maxHeight: "85%",
+//   },
+//   titleHead: {
+//     fontSize: 26,
+//     fontWeight: "700",
+//     color: "#333",
+//     marginBottom: 10,
+//     textAlign: "center",
+//     letterSpacing: -0.5,
+//   },
+//   title: {
+//     fontSize: 15,
+//     fontWeight: "500",
+//     color: "#666",
+//     textAlign: "center",
+//   },
+//   inputLabel: {
+//     fontSize: 14,
+//     fontWeight: "500",
+//     color: "#333",
+//     marginTop: 10,
+//     marginBottom: 2,
+//     textAlign: "left",
+//     width: "100%",
+//   },
+//   input: {
+//     width: "100%",
+//     borderWidth: 1,
+//     borderColor: "#DDD",
+//     borderRadius: 8,
+//     paddingVertical: 12,
+//     paddingHorizontal: 16,
+//     marginTop: 2,
+//     backgroundColor: "#FFFFFF",
+//     color: "#333",
+//   },
+//   phoneContainer: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     width: "100%",
+//     borderWidth: 1,
+//     borderColor: "#DDD",
+//     borderRadius: 8,
+//     marginTop: 2,
+//     marginBottom: 12,
+//     minHeight: 50,
+//     backgroundColor: "#FFFFFF",
+//     overflow: "visible",
+//   },
+//   countryCodeContainer: {
+//     position: "relative",
+//     borderRightWidth: 1,
+//     borderRightColor: "#DDD",
+//     paddingRight: 8,
+//     marginRight: 8,
+//   },
+//   countryCodeButton: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     paddingVertical: 12,
+//     paddingHorizontal: 8,
+//     minWidth: 80,
+//   },
+//   countryCodeText: {
+//     fontSize: 14,
+//     fontWeight: "600",
+//     color: "#333",
+//   },
+//   countryDropdown: {
+//     position: "absolute",
+//     top: "100%",
+//     left: 0,
+//     right: 0,
+//     backgroundColor: "#FFFFFF",
+//     borderWidth: 1,
+//     borderColor: "#DDD",
+//     borderRadius: 8,
+//     marginTop: 4,
+//     maxHeight: 200,
+//     zIndex: 1000,
+//     shadowColor: "#000",
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 4,
+//     elevation: 5,
+//   },
+//   countryDropdownScroll: {
+//     maxHeight: 200,
+//   },
+//   countryDropdownItem: {
+//     paddingVertical: 12,
+//     paddingHorizontal: 16,
+//     borderBottomWidth: 1,
+//     borderBottomColor: "#F0F0F0",
+//   },
+//   countryDropdownText: {
+//     fontSize: 14,
+//     color: "#333",
+//   },
+//   phoneInput: {
+//     flex: 1,
+//     fontSize: 15,
+//     color: "#333",
+//     paddingVertical: 12,
+//     paddingHorizontal: 4,
+//   },
+//   btn: {
+//     backgroundColor: "#1FBF86",
+//     paddingVertical: 12,
+//     borderRadius: 8,
+//     width: "100%",
+//     alignItems: "center",
+//     marginTop: 16,
+//   },
+//   disabledBtn: {
+//     opacity: 0.5,
+//   },
+//   btnText: {
+//     color: "#fff",
+//     fontWeight: "600",
+//     fontSize: 15,
+//     letterSpacing: 0.3,
+//   },
+//   resendInfo: {
+//     marginTop: 8,
+//     fontSize: 12,
+//     color: "#6B7280",
+//   },
+//   resendBtn: {
+//     marginTop: 12,
+//     paddingVertical: 10,
+//     paddingHorizontal: 20,
+//     borderRadius: 8,
+//     borderWidth: 1,
+//     borderColor: "#1FBF86",
+//     backgroundColor: "transparent",
+//     width: "100%",
+//     alignItems: "center",
+//   },
+//   resendBtnText: {
+//     color: "#1FBF86",
+//     fontWeight: "600",
+//     fontSize: 14,
+//   },
+//   errorText: {
+//     color: "#DC2626",
+//     marginTop: 12,
+//     textAlign: "center",
+//     fontSize: 14,
+//     fontWeight: "500",
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     // backgroundColor: "#FEE2E2",
+//     borderRadius: 8,
+//     width: "100%",
+//   },
+//   infoText: {
+//     color: "#16a34a",
+//     marginTop: 6,
+//     textAlign: "center",
+//     fontSize: 13,
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     // backgroundColor: "#dcfce7",
+//     borderRadius: 8,
+//     width: "100%",
+//   },
+//   closeBtn: {
+//     position: "absolute",
+//     top: 16,
+//     right: 16,
+//     backgroundColor: "#F4F6F8",
+//     borderRadius: 20,
+//     width: 32,
+//     height: 32,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     borderWidth: 1,
+//     borderColor: "#EEEEEE",
+//   },
+//   requiredIndicator: {
+//     color: "#EF4444",
+//     fontSize: 12,
+//     fontWeight: "bold",
+//     marginLeft: 2,
+//   },
+//   optionalIndicator: {
+//     color: "#6B7280",
+//     fontSize: 13,
+//     fontWeight: "normal",
+//     marginLeft: 4,
+//   },
+//   inlineErrorText: {
+//     width: "100%",
+//     color: "#DC2626",
+//     fontSize: 12,
+//     marginTop: -2,
+//     marginBottom: 6,
+//     textAlign: "left",
+//   },
+// });
+
+// export default DoctorSignupModal;
+
 import React, { useState, useRef, useEffect, useContext } from "react";
 import {
   View,
@@ -28,16 +816,14 @@ import {
 
 const WEB_CARD_WIDTH = 300;
 
-const PatientAuthModal = ({
+const DoctorAuthModal = ({
   visible,
   onRequestClose,
   initialMode = "signup",
-  onDoctorRegister,
 }) => {
   const navigation = useNavigation();
   const {
-    signup: signupHandler,
-    requestSignupOtp: requestSignupOtpHandler,
+    doctorsSignup,
     requestLoginOtp: requestLoginOtpHandler,
     loginWithOtp: loginWithOtpHandler,
     initiateLogin: initiateLoginHandler,
@@ -45,7 +831,6 @@ const PatientAuthModal = ({
   const { setRole } = useRole();
 
   const bottomAnim = useRef(new Animated.Value(0)).current;
-  //const glowAnim = useRef(new Animated.Value(0)).current;
   const otpTimerRef = useRef(null);
   const [mode, setMode] = useState(initialMode);
   const [cardWidth, setCardWidth] = useState(null);
@@ -61,7 +846,8 @@ const PatientAuthModal = ({
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [signupIdentifier, setSignupIdentifier] = useState("");
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [specialization, setSpecialization] = useState("");
+  const [experience, setExperience] = useState("");
   const [otpFlow, setOtpFlow] = useState(null);
   const [otpTargetPhone, setOtpTargetPhone] = useState("");
   const [loginCountryCode, setLoginCountryCode] =
@@ -81,27 +867,6 @@ const PatientAuthModal = ({
     setCardWidth(width);
   }, []);
 
-  // useEffect(() => {
-  //   if (!visible) return;
-
-  //   glowAnim.setValue(0);
-
-  //   Animated.loop(
-  //     Animated.sequence([
-  //       Animated.timing(glowAnim, {
-  //         toValue: 1,
-  //         duration: 1600,
-  //         useNativeDriver: false, // borderColor can't use native driver
-  //       }),
-  //       Animated.timing(glowAnim, {
-  //         toValue: 0,
-  //         duration: 1600,
-  //         useNativeDriver: false,
-  //       }),
-  //     ])
-  //   ).start();
-  // }, [glowAnim, visible]);
-
   useEffect(() => {
     setMode(initialMode);
   }, [initialMode]);
@@ -112,12 +877,9 @@ const PatientAuthModal = ({
       return;
     }
 
-    // Reset OTP-related state when modal opens to ensure experimental flow works
-    // This ensures email is cleared so experimental flow is used by default
     setOtpStatus("idle");
     setOtpCountdown(0);
     setOtp("");
-    setEmail("");
     setOtpFlow(null);
     setOtpTargetPhone("");
     setShowOtpModal(false);
@@ -164,9 +926,7 @@ const PatientAuthModal = ({
   }, []);
 
   const sanitizeDigits = (value = "") => value.replace(/\D/g, "");
-  const normalizedDigits = sanitizeDigits(mobile);
 
-  // Get current country code based on mode
   const currentCountryCode =
     mode === "login" ? loginCountryCode : signupCountryCode;
   const currentPhoneValue =
@@ -174,25 +934,6 @@ const PatientAuthModal = ({
   const phoneDigits = sanitizeDigits(currentPhoneValue);
   const isPhoneValid = validatePhoneNumber(phoneDigits, currentCountryCode);
   const isOtpComplete = otp.trim().length === 4;
-
-  const detectInputType = (value) => {
-    if (!value || !value.trim()) return null;
-    const trimmed = value.trim();
-    if (trimmed.includes("@")) {
-      return "email";
-    }
-    const digitsOnly = sanitizeDigits(trimmed);
-    if (digitsOnly.length >= 8) {
-      return "phone";
-    }
-    if (/^[\d+\s-]+$/.test(trimmed)) {
-      return "phone";
-    }
-    if (trimmed.includes(".")) {
-      return "email";
-    }
-    return null;
-  };
 
   const handleLoginIdentifierChange = (value = "") => {
     const trimmed = value.trim();
@@ -202,7 +943,6 @@ const PatientAuthModal = ({
       return;
     }
 
-    // Auto-detect country code if number starts with +
     if (trimmed.startsWith("+")) {
       const detected = detectCountryCode(trimmed);
       setLoginCountryCode(detected);
@@ -224,7 +964,6 @@ const PatientAuthModal = ({
       return;
     }
 
-    // Auto-detect country code if number starts with +
     if (trimmed.startsWith("+")) {
       const detected = detectCountryCode(trimmed);
       setSignupCountryCode(detected);
@@ -246,18 +985,15 @@ const PatientAuthModal = ({
   };
 
   const buildPhoneNumber = (phoneValue = null, countryCodeOverride = null) => {
-    // Use provided value, or fall back to mobile state, or signupIdentifier/loginIdentifier
     const valueToUse =
       phoneValue || mobile || signupIdentifier || loginIdentifier;
     const trimmed = valueToUse.trim();
     if (!trimmed) return "";
 
-    // If already has + prefix, return as-is
     if (trimmed.startsWith("+")) {
       return trimmed;
     }
 
-    // Use provided country code or current mode's country code
     const countryCode =
       countryCodeOverride ||
       (otpFlow === "signup" ? signupCountryCode : loginCountryCode) ||
@@ -277,10 +1013,11 @@ const PatientAuthModal = ({
     setIsSigningUp(false);
     setMobile("");
     setOtp("");
-    setEmail("");
     setLoginIdentifier("");
     setSignupIdentifier("");
     setFullName("");
+    setSpecialization("");
+    setExperience("");
     setOtpFlow(null);
     setOtpTargetPhone("");
     setShowOtpModal(false);
@@ -302,30 +1039,11 @@ const PatientAuthModal = ({
     setOtp("");
     setOtpStatus("sending");
     try {
-      if (flow === "signup") {
-        // Email is required for OTP flow - if not provided, this function shouldn't be called
-        const signupEmail = email.trim();
-        if (!signupEmail) {
-          setErrorMessage("Email is required to send OTP.");
-          setOtpStatus("idle");
-          setIsProcessing(false);
-          return false;
-        }
-        // Normal flow: email provided, send OTP
-        await requestSignupOtpHandler({
-          phoneNumber,
-          email: signupEmail,
-          role: "user",
-        });
-        setInfoMessage("OTP sent to your email address.");
-      } else {
-        // For login, use identifier with preferred channel (default email)
-        await requestLoginOtpHandler({
-          identifier: phoneNumber,
-          preferredChannel: "email",
-        });
-        setInfoMessage("OTP sent to your email address.");
-      }
+      await requestLoginOtpHandler({
+        identifier: phoneNumber,
+        preferredChannel: "email",
+      });
+      setInfoMessage("OTP sent to your email address.");
       setOtpFlow(flow);
       setOtpTargetPhone(phoneNumber);
       setOtpStatus("sent");
@@ -341,32 +1059,6 @@ const PatientAuthModal = ({
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const handleSendSignupOtp = async () => {
-    const valueToUse = signupIdentifier || mobile;
-    if (!valueToUse || !valueToUse.trim()) {
-      setErrorMessage("Please enter your mobile number.");
-      return false;
-    }
-
-    const digitsOnly = sanitizeDigits(valueToUse);
-    if (!validatePhoneNumber(digitsOnly, signupCountryCode)) {
-      const country = getCountryByCode(signupCountryCode);
-      setErrorMessage(
-        `Please enter a valid mobile number for ${country.name}.`
-      );
-      return false;
-    }
-
-    const phoneNumber = buildPhoneNumber(valueToUse, signupCountryCode);
-    if (!phoneNumber) {
-      setErrorMessage("Please enter a valid mobile number.");
-      return false;
-    }
-
-    setMobile(valueToUse);
-    return sendOtpForFlow({ phoneNumber, flow: "signup" });
   };
 
   const handleVerifyOtp = async () => {
@@ -385,68 +1077,36 @@ const PatientAuthModal = ({
     setIsProcessing(true);
     setOtpStatus("verifying");
     try {
-      if (otpFlow === "signup") {
-        // Directly call signup with phone + OTP (no separate verify step)
-        try {
-          await handleCompleteProfile(otpTargetPhone, otp.trim());
-          setOtpStatus("verified");
-          setOtpFlow(null);
-          setOtpTargetPhone("");
-          setShowOtpModal(false);
-          return true;
-        } catch (profileError) {
-          // handleCompleteProfile already handles its own errors
-          // Keep modal open so user can see the error
-          setOtpStatus("sent");
-          setIsProcessing(false);
-          return null;
-        }
-      }
-
-      if (otpFlow === "login") {
-        // Use identifier (can be email or phone) - use the original login identifier
-        const identifier = loginIdentifier.trim() || otpTargetPhone;
-        const result = await loginWithOtpHandler({
-          identifier: identifier,
-          otp: otp.trim(),
-        });
-        setOtpStatus("verified");
-        setOtpFlow(null);
-        setOtpTargetPhone("");
-        setInfoMessage("Login successful! Redirecting...");
-        setShowOtpModal(false);
-        setIsProcessing(false);
-
-        // Close modal first
-        onRequestClose();
-
-        // Navigate based on role immediately after login
-        const userRole = result?.role;
-        if (userRole === "doctor") {
-          // Navigate to doctor dashboard
-          setTimeout(() => {
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: "DoctorAppNavigation",
-                  params: { screen: "Dashboard" },
-                },
-              ],
-            });
-          }, 100);
-        } else if (userRole === "user") {
-          // User stays on LandingPage or navigates to patient dashboard
-          // Navigation will be handled by LandingPageWithAuth component
-          setTimeout(() => {
-            navigation.navigate("LandingPage");
-          }, 100);
-        }
-
-        return result;
-      }
+      const identifier = loginIdentifier.trim() || otpTargetPhone;
+      const result = await loginWithOtpHandler({
+        identifier: identifier,
+        otp: otp.trim(),
+      });
+      setOtpStatus("verified");
+      setOtpFlow(null);
+      setOtpTargetPhone("");
+      setInfoMessage("Login successful! Redirecting...");
+      setShowOtpModal(false);
       setIsProcessing(false);
-      return null;
+
+      onRequestClose();
+
+      const userRole = result?.role;
+      if (userRole === "doctor") {
+        setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: "DoctorAppNavigation",
+                params: { screen: "Dashboard" },
+              },
+            ],
+          });
+        }, 100);
+      }
+
+      return result;
     } catch (error) {
       setOtpStatus("sent");
       setErrorMessage(getErrorMessage(error));
@@ -458,6 +1118,8 @@ const PatientAuthModal = ({
   const handleExperimentalSignup = async () => {
     const phoneNumberToUse = signupIdentifier || buildPhoneNumber();
     const nameToUse = fullName.trim();
+    const specializationToUse = specialization.trim();
+    const experienceToUse = experience.trim();
 
     if (!phoneNumberToUse) {
       setErrorMessage("Please enter your mobile number.");
@@ -482,21 +1144,33 @@ const PatientAuthModal = ({
       return;
     }
 
+    if (experienceToUse) {
+      const parsedExperience = parseInt(experienceToUse, 10);
+      if (Number.isNaN(parsedExperience) || parsedExperience < 0) {
+        setErrorMessage("Experience must be a valid number.");
+        return;
+      }
+    }
+
     setErrorMessage("");
     setInfoMessage("");
     setIsSigningUp(true);
     setIsProcessing(true);
 
     try {
-      // Simplified flow: signup with mobile and name only (no email, no OTP)
-      const result = await signupHandler({
+      const signupData = {
         phoneNumber: normalizedPhone,
-        ...(nameToUse && { name: nameToUse }),
-        // email and otp are omitted
-      });
+      };
 
-      // Get role from result (set by syncSession in AuthContext)
-      const userRole = result?.role || "user";
+      if (nameToUse) signupData.name = nameToUse;
+      if (specializationToUse) signupData.specialization = specializationToUse;
+      if (experienceToUse) {
+        signupData.experience = parseInt(experienceToUse, 10);
+      }
+
+      const result = await doctorsSignup(signupData);
+
+      const userRole = result?.role || "doctor";
       setRole(userRole);
       await AsyncStorage.setItem("userRole", userRole);
 
@@ -504,162 +1178,24 @@ const PatientAuthModal = ({
       setIsSigningUp(false);
       setIsProcessing(false);
 
-      // Close modal first
       onRequestClose();
 
-      // Navigate based on role immediately after signup
-      if (userRole === "doctor") {
-        // Navigate to doctor dashboard
-        setTimeout(() => {
-          navigation.reset({
-            index: 0,
-            routes: [
-              {
-                name: "DoctorAppNavigation",
-                params: { screen: "Dashboard" },
-              },
-            ],
-          });
-        }, 100);
-      } else if (userRole === "user") {
-        // User stays on LandingPage or navigates to patient dashboard
-        setTimeout(() => {
-          navigation.navigate("LandingPage");
-        }, 100);
-      }
-    } catch (error) {
-      const message = getErrorMessage(error);
-      setErrorMessage(message);
-      setIsSigningUp(false);
-      setIsProcessing(false);
-    }
-  };
-
-  const handleCompleteProfile = async (
-    phoneNumberOverride = null,
-    otpOverride = null
-  ) => {
-    const nameToUse = fullName.trim() || undefined;
-    const phoneNumberToUse =
-      phoneNumberOverride || otpTargetPhone || buildPhoneNumber();
-    const otpToUse = otpOverride || otp.trim() || undefined;
-    const emailToUse = email.trim() || undefined;
-
-    if (!phoneNumberToUse) {
-      setErrorMessage("Phone number is required.");
-      return;
-    }
-
-    // If no email or OTP provided, use experimental flow
-    if (!emailToUse || !otpToUse) {
-      setErrorMessage("");
-      setInfoMessage("");
-      setIsSigningUp(true);
-      setIsProcessing(true);
-
-      try {
-        const result = await signupHandler({
-          phoneNumber: phoneNumberToUse,
-          // email, otp, and name are optional
-          ...(nameToUse && { name: nameToUse }),
-          ...(emailToUse && { email: emailToUse }),
-          ...(otpToUse && { otp: otpToUse }),
+      setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: "DoctorAppNavigation",
+              params: { screen: "Dashboard" },
+            },
+          ],
         });
-
-        // Get role from result (set by syncSession in AuthContext)
-        const userRole = result?.role || "user";
-        setRole(userRole);
-        await AsyncStorage.setItem("userRole", userRole);
-
-        setInfoMessage("Signup successful! Redirecting...");
-        setIsSigningUp(false);
-        setIsProcessing(false);
-
-        // Close modal first
-        onRequestClose();
-
-        // Navigate based on role immediately after signup
-        if (userRole === "doctor") {
-          // Navigate to doctor dashboard
-          setTimeout(() => {
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: "DoctorAppNavigation",
-                  params: { screen: "Dashboard" },
-                },
-              ],
-            });
-          }, 100);
-        } else if (userRole === "user") {
-          // User stays on LandingPage or navigates to patient dashboard
-          setTimeout(() => {
-            navigation.navigate("LandingPage");
-          }, 100);
-        }
-      } catch (error) {
-        const message = getErrorMessage(error);
-        setErrorMessage(message);
-        setIsSigningUp(false);
-        setIsProcessing(false);
-        throw error;
-      }
-      return;
-    }
-
-    // Normal flow: email and OTP provided
-    setErrorMessage("");
-    setInfoMessage("");
-    setIsSigningUp(true);
-    setIsProcessing(true);
-
-    try {
-      const result = await signupHandler({
-        phoneNumber: phoneNumberToUse,
-        email: emailToUse,
-        otp: otpToUse,
-        ...(nameToUse && { name: nameToUse }),
-      });
-
-      // Get role from result (set by syncSession in AuthContext)
-      const userRole = result?.role || "user";
-      setRole(userRole);
-      await AsyncStorage.setItem("userRole", userRole);
-
-      setInfoMessage("Signup successful! Redirecting...");
-      setIsSigningUp(false);
-      setIsProcessing(false);
-
-      // Close modal first
-      onRequestClose();
-
-      // Navigate based on role immediately after signup
-      if (userRole === "doctor") {
-        // Navigate to doctor dashboard
-        setTimeout(() => {
-          navigation.reset({
-            index: 0,
-            routes: [
-              {
-                name: "DoctorAppNavigation",
-                params: { screen: "Dashboard" },
-              },
-            ],
-          });
-        }, 100);
-      } else if (userRole === "user") {
-        // User stays on LandingPage or navigates to patient dashboard
-        setTimeout(() => {
-          navigation.navigate("LandingPage");
-        }, 100);
-      }
+      }, 100);
     } catch (error) {
       const message = getErrorMessage(error);
       setErrorMessage(message);
       setIsSigningUp(false);
       setIsProcessing(false);
-      throw error; // Re-throw so caller knows signup failed
     }
   };
 
@@ -672,7 +1208,6 @@ const PatientAuthModal = ({
       return;
     }
 
-    // Simplified login: mobile-only, no OTP
     const digitsOnly = sanitizeDigits(identifier);
     if (!validatePhoneNumber(digitsOnly, loginCountryCode)) {
       const country = getCountryByCode(loginCountryCode);
@@ -693,27 +1228,21 @@ const PatientAuthModal = ({
     setIsProcessing(true);
 
     try {
-      // Use proper login endpoint - it handles both experimental flow (direct login) and normal flow (OTP required)
       const result = await initiateLoginHandler({
         identifier: phoneNumber,
       });
 
-      // If result has access_token, this is a direct login (experimental flow - no OTP needed)
       if (result?.access_token) {
-        // Get role from result (set by syncSession in AuthContext)
-        const userRole = result?.role || "user";
+        const userRole = result?.role || "doctor";
         setRole(userRole);
         await AsyncStorage.setItem("userRole", userRole);
 
         setInfoMessage("Login successful! Redirecting...");
         setIsProcessing(false);
 
-        // Close modal first
         onRequestClose();
 
-        // Navigate based on role immediately after login
         if (userRole === "doctor") {
-          // Navigate to doctor dashboard
           setTimeout(() => {
             navigation.reset({
               index: 0,
@@ -725,14 +1254,8 @@ const PatientAuthModal = ({
               ],
             });
           }, 100);
-        } else if (userRole === "user") {
-          // User stays on LandingPage or navigates to patient dashboard
-          setTimeout(() => {
-            navigation.navigate("LandingPage");
-          }, 100);
         }
       } else {
-        // OTP is required - trigger OTP flow
         setIsProcessing(false);
         await sendOtpForFlow({ phoneNumber, flow: "login" });
       }
@@ -747,7 +1270,6 @@ const PatientAuthModal = ({
     if (isProcessing) return;
 
     if (mode === "login") {
-      // Simplified login: mobile-only, no OTP
       await handleDirectLogin();
       return;
     }
@@ -756,48 +1278,21 @@ const PatientAuthModal = ({
       return;
     }
 
-    // Check if email is provided - only then go to OTP flow
-    const signupEmail = email.trim();
-    if (signupEmail) {
-      // Email provided: use OTP flow
-      await handleSendSignupOtp();
-    } else {
-      // No email: use experimental flow (mobile + name, no OTP)
-      await handleExperimentalSignup();
-    }
+    await handleExperimentalSignup();
   };
 
   const handleResendOtp = async () => {
     if (isProcessing || otpCountdown > 0 || !otpTargetPhone || !otpFlow) {
       return;
     }
-    // Check if otpTargetPhone is email or phone
-    const detectedType = detectInputType(otpTargetPhone);
     setIsProcessing(true);
     setErrorMessage("");
     try {
-      if (otpFlow === "signup") {
-        // Signup: resend OTP to email (if email provided)
-        const signupEmail = email.trim();
-        if (!signupEmail) {
-          setErrorMessage("Email is required to resend OTP.");
-          setIsProcessing(false);
-          return;
-        }
-        await requestSignupOtpHandler({
-          phoneNumber: otpTargetPhone,
-          email: signupEmail,
-          role: "user",
-        });
-        setInfoMessage("OTP resent to your email address.");
-      } else {
-        // Login: resend OTP to email (default)
-        await requestLoginOtpHandler({
-          identifier: otpTargetPhone,
-          preferredChannel: "email",
-        });
-        setInfoMessage("OTP resent to your email address.");
-      }
+      await requestLoginOtpHandler({
+        identifier: otpTargetPhone,
+        preferredChannel: "email",
+      });
+      setInfoMessage("OTP resent to your email address.");
       setOtpCountdown(60);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -807,7 +1302,6 @@ const PatientAuthModal = ({
   };
 
   const validateSignupFields = () => {
-    // Only phone number is required for signup (name is optional)
     if (!signupIdentifier.trim()) {
       setErrorMessage("Please enter your mobile number.");
       return false;
@@ -820,10 +1314,16 @@ const PatientAuthModal = ({
       );
       return false;
     }
+    if (experience.trim()) {
+      const parsedExperience = parseInt(experience, 10);
+      if (Number.isNaN(parsedExperience) || parsedExperience < 0) {
+        setErrorMessage("Experience must be a valid number.");
+        return false;
+      }
+    }
     return true;
   };
 
-  // Login validation: mobile number only
   const loginDigitsValid = validatePhoneNumber(
     sanitizeDigits(loginIdentifier),
     loginCountryCode
@@ -837,7 +1337,6 @@ const PatientAuthModal = ({
   );
   const showSignupPhoneError =
     signupIdentifier.trim().length > 0 && !signupDigitsValid;
-  // Only phone number is required for signup (name and email are optional)
   const baseSignupValid = signupDigitsValid;
 
   const isLoginActionDisabled =
@@ -850,30 +1349,10 @@ const PatientAuthModal = ({
     return null;
   }
 
-  // const animatedBorderStyle = {
-  //   borderColor: glowAnim.interpolate({
-  //     inputRange: [0, 1],
-  //     outputRange: ["rgba(249,97,102,0.3)", "rgba(249,97,102,1)"],
-  //   }),
-  //   shadowOpacity: glowAnim.interpolate({
-  //     inputRange: [0, 1],
-  //     outputRange: [0.25, 0.55],
-  //   }),
-  // };
-
   return (
     <>
       <Modal transparent visible={visible} animationType="fade">
         <View style={styles.overlay}>
-          {/* <Animated.View
-            style={[
-              styles.glowWrapper,
-              animatedBorderStyle,
-              Platform.OS === "web"
-                ? { width: WEB_CARD_WIDTH }
-                : { width: Dimensions.get("window").width * 0.9 },
-            ]}
-          > */}
           <Animated.View
             style={[
               styles.card,
@@ -951,7 +1430,7 @@ const PatientAuthModal = ({
                     { width: cardWidth, flexShrink: 0 },
                   ]}
                 >
-                  <Text style={styles.titleHead}>Welcome Back!</Text>
+                  <Text style={styles.titleHead}>Welcome Back, Doctor!</Text>
                   <Text style={styles.subtitle}>Enter your mobile number</Text>
 
                   <Text style={styles.inputLabel}>
@@ -1034,7 +1513,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing ? "Logging in..." : "Get Help Now"}
+                      {isProcessing ? "Logging in..." : "Login to Portal"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1045,9 +1524,7 @@ const PatientAuthModal = ({
                     { width: cardWidth, flexShrink: 0 },
                   ]}
                 >
-                  <Text style={styles.titleHead}>
-                    Get free AI consultation now!{" "}
-                  </Text>
+                  <Text style={styles.titleHead}>Join Kokoro as a Doctor</Text>
                   <Text
                     style={{
                       fontSize: 16,
@@ -1055,28 +1532,14 @@ const PatientAuthModal = ({
                       alignSelf: "center",
                       fontFamily: "Farsan",
                       fontWeight: 400,
+                      marginBottom: 20,
                     }}
                   >
-                    Let’s Talk!
+                    Let&apos;s get you registered!
                   </Text>
 
-                  {/* <TouchableOpacity
-                    style={styles.doctorRegisterLinkTop}
-                    onPress={() => {
-                      onRequestClose();
-                      onDoctorRegister?.();
-                    }}
-                  >
-                    <Text style={styles.doctorRegisterText}>
-                      Are you a doctor?{" "}
-                      <Text style={styles.doctorRegisterLinkText}>
-                        Register Here
-                      </Text>
-                    </Text>
-                  </TouchableOpacity> */}
-
                   <Text style={styles.inputLabel}>
-                    Name{" "}
+                    Full Name{" "}
                     <Text style={styles.optionalIndicator}>(Optional)</Text>
                   </Text>
                   <TextInput
@@ -1159,6 +1622,32 @@ const PatientAuthModal = ({
                     </Text>
                   ) : null}
 
+                  <Text style={styles.inputLabel}>
+                    Specialization{" "}
+                    <Text style={styles.optionalIndicator}>(Optional)</Text>
+                  </Text>
+                  <TextInput
+                    placeholder="e.g. Cardiologist"
+                    placeholderTextColor="#d3d3d3"
+                    style={styles.input}
+                    value={specialization}
+                    onChangeText={setSpecialization}
+                    autoCapitalize="words"
+                  />
+
+                  <Text style={styles.inputLabel}>
+                    Years of Experience{" "}
+                    <Text style={styles.optionalIndicator}>(Optional)</Text>
+                  </Text>
+                  <TextInput
+                    placeholder="e.g. 5"
+                    placeholderTextColor="#d3d3d3"
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={experience}
+                    onChangeText={setExperience}
+                  />
+
                   <TouchableOpacity
                     style={[
                       styles.btn,
@@ -1168,7 +1657,7 @@ const PatientAuthModal = ({
                     disabled={isPrimaryDisabled || isProcessing}
                   >
                     <Text style={styles.btnText}>
-                      {isProcessing ? "Signing up..." : "Get Help Now"}
+                      {isProcessing ? "Signing up..." : "Register as Doctor"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1186,7 +1675,6 @@ const PatientAuthModal = ({
               <Ionicons name="close" size={14} color="#9CA3AF" />
             </TouchableOpacity>
           </Animated.View>
-          {/* </Animated.View> */}
         </View>
       </Modal>
 
@@ -1228,9 +1716,7 @@ const PatientAuthModal = ({
             <Text
               style={{ fontSize: 11.7, color: "#16a34a", fontWeight: "500" }}
             >
-              {otpFlow === "login"
-                ? otpTargetPhone || loginIdentifier || "your registered email"
-                : email || otpTargetPhone || "your registered email"}
+              {otpTargetPhone || loginIdentifier || "your registered email"}
             </Text>
             <Text style={styles.inputLabel}>Enter OTP</Text>
             <TextInput
@@ -1256,13 +1742,7 @@ const PatientAuthModal = ({
               disabled={!isOtpComplete || isProcessing}
             >
               <Text style={styles.btnText}>
-                {isProcessing
-                  ? otpFlow === "login"
-                    ? "Verifying & Logging In..."
-                    : "Verifying & Signing Up..."
-                  : otpFlow === "login"
-                  ? "Verify & Login"
-                  : "Verify & Sign Up"}
+                {isProcessing ? "Verifying & Logging In..." : "Verify & Login"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1294,19 +1774,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 99999,
   },
-  glowWrapper: {
-    borderRadius: 12,
-    borderWidth: 4,
-    padding: 2, // space between glow & card
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 12,
-    backgroundColor: "transparent",
-    minWidth: 280,
-    maxWidth: 440,
-  },
-
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -1372,10 +1839,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: "center",
     letterSpacing: -0.5,
-  },
-  title: {
-    //borderWidth: 1,
-    width: "100%",
   },
   subtitle: {
     fontSize: 14,
@@ -1491,28 +1954,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 0.3,
   },
-  doctorRegisterLink: {
-    marginTop: 8,
-    paddingVertical: 8,
-    alignItems: "center",
-    width: "100%",
-  },
-  doctorRegisterLinkTop: {
-    marginBottom: 20,
-    paddingVertical: 8,
-    alignItems: "center",
-    width: "100%",
-  },
-  doctorRegisterText: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-  },
-  doctorRegisterLinkText: {
-    color: "#f96166",
-    fontWeight: "600",
-    textDecorationLine: "underline",
-  },
   inputLabel: {
     fontSize: 14,
     fontWeight: "500",
@@ -1530,7 +1971,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    // backgroundColor: "#FEE2E2",
     borderRadius: 8,
     width: "100%",
   },
@@ -1541,7 +1981,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    // backgroundColor: "#dcfce7",
     borderRadius: 8,
     width: "100%",
   },
@@ -1590,22 +2029,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textAlign: "left",
   },
-  experimentalBtn: {
-    backgroundColor: "transparent",
-    paddingVertical: 10,
-    borderRadius: 8,
-    width: "100%",
-    alignItems: "center",
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: "#f96166",
-  },
-  experimentalBtnText: {
-    color: "#f96166",
-    fontWeight: "600",
-    fontSize: 14,
-    letterSpacing: 0.2,
-  },
 });
 
-export default PatientAuthModal;
+export default DoctorAuthModal;
