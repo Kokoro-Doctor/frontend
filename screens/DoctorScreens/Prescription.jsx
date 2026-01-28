@@ -143,94 +143,7 @@ const Prescription = ({ navigation, route }) => {
           );
           reject(
             new Error(`Failed to parse base64 result: ${parseError.message}`)
-            // try {
-            //   // Check if this is a mobile file (from DocumentPicker) or web file
-            //   if (file.uri) {
-            //     // Mobile file - use fetch to read from URI
-            //     console.log(
-            //       "[fileToBase64] Mobile file detected, reading from URI:",
-            //       file.uri
           );
-          //   fetch(file.uri)
-          //     .then((response) => response.blob())
-          //     .then((blob) => {
-          //       const reader = new FileReader();
-          //       reader.onload = () => {
-          //         try {
-          //           const result = reader.result;
-          //           const base64String = result.split(",")[1];
-          //           console.log(
-          //             "[fileToBase64] Mobile file converted successfully"
-          //           );
-          //           resolve(base64String);
-          //         } catch (parseError) {
-          //           console.error(
-          //             "[fileToBase64] Error parsing base64 result:",
-          //             parseError
-          //           );
-          //           reject(
-          //             new Error(
-          //               `Failed to parse base64 result: ${parseError.message}`
-          //             )
-          //           );
-          //         }
-          //       };
-          //       reader.onerror = (err) => {
-          //         console.error("[fileToBase64] FileReader error:", err);
-          //         reject(
-          //           new Error(
-          //             `Failed to read file "${file.name}": ${
-          //               err.message || "Unknown error"
-          //             }`
-          //           )
-          //         );
-          //       };
-          //       reader.readAsDataURL(blob);
-          //     })
-          //     .catch((fetchError) => {
-          //       console.error("[fileToBase64] Fetch error:", fetchError);
-          //       reject(
-          //         new Error(
-          //           `Failed to fetch file "${file.name}": ${fetchError.message}`
-          //         )
-          //       );
-          //     });
-          // } else {
-          //   // Web file - use FileReader directly
-          //   console.log("[fileToBase64] Web file detected");
-          //   const reader = new FileReader();
-          //   reader.onload = () => {
-          //     try {
-          //       const result = reader.result;
-          //       const base64String = result.split(",")[1];
-          //       console.log("[fileToBase64] Web file converted successfully");
-          //       resolve(base64String);
-          //     } catch (parseError) {
-          //       console.error(
-          //         "[fileToBase64] Error parsing base64 result:",
-          //         parseError
-          //       );
-          //       reject(
-          //         new Error(
-          //           `Failed to parse base64 result: ${parseError.message}`
-          //         )
-          //       );
-          //     }
-          //   };
-          //   reader.onerror = (err) => {
-          //     console.error("[fileToBase64] FileReader error:", {
-          //       error: err,
-          //       filename: file.name,
-          //     });
-          //     reject(
-          //       new Error(
-          //         `Failed to read file "${file.name}": ${
-          //           err.message || "Unknown error"
-          //         }`
-          //       )
-          //     );
-          //   };
-          //   reader.readAsDataURL(file);
         }
       };
       reader.onerror = (err) => {
@@ -1126,7 +1039,9 @@ const Prescription = ({ navigation, route }) => {
                     resizeMode="contain"
                   />
 
-                  <Text style={stylesMobile.logoText}>&quot;Kokoro.Doctor&quot;</Text>
+                  <Text style={stylesMobile.logoText}>
+                    &quot;Kokoro.Doctor&quot;
+                  </Text>
                 </View>
                 <View style={stylesMobile.summaryBadge}>
                   <View style={stylesMobile.summaryBadgeContent}>
