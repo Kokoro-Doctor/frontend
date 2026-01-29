@@ -45,7 +45,7 @@ const PatientAuthModal = ({
   const { setRole } = useRole();
 
   const bottomAnim = useRef(new Animated.Value(0)).current;
-  //const glowAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
   const otpTimerRef = useRef(null);
   const [mode, setMode] = useState(initialMode);
   const [cardWidth, setCardWidth] = useState(null);
@@ -81,26 +81,26 @@ const PatientAuthModal = ({
     setCardWidth(width);
   }, []);
 
-  // useEffect(() => {
-  //   if (!visible) return;
+  useEffect(() => {
+    if (!visible) return;
 
-  //   glowAnim.setValue(0);
+    glowAnim.setValue(0);
 
-  //   Animated.loop(
-  //     Animated.sequence([
-  //       Animated.timing(glowAnim, {
-  //         toValue: 1,
-  //         duration: 1600,
-  //         useNativeDriver: false, // borderColor can't use native driver
-  //       }),
-  //       Animated.timing(glowAnim, {
-  //         toValue: 0,
-  //         duration: 1600,
-  //         useNativeDriver: false,
-  //       }),
-  //     ])
-  //   ).start();
-  // }, [glowAnim, visible]);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 1600,
+          useNativeDriver: false,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 1600,
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+  }, [glowAnim, visible]);
 
   useEffect(() => {
     setMode(initialMode);
@@ -850,343 +850,367 @@ const PatientAuthModal = ({
     return null;
   }
 
-  // const animatedBorderStyle = {
-  //   borderColor: glowAnim.interpolate({
-  //     inputRange: [0, 1],
-  //     outputRange: ["rgba(249,97,102,0.3)", "rgba(249,97,102,1)"],
-  //   }),
-  //   shadowOpacity: glowAnim.interpolate({
-  //     inputRange: [0, 1],
-  //     outputRange: [0.25, 0.55],
-  //   }),
-  // };
+  const animatedBorderStyle = {
+    borderColor: glowAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["rgba(249,97,102,0.4)", "rgba(241, 31, 38, 1)"],
+    }),
+    shadowColor: '#f96166',
+    shadowOpacity: glowAnim.interpolate({
+      inputRange: [0, 2],
+      outputRange: [0.3, 0.8],
+    }),
+    shadowRadius: glowAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [8, 20],
+    }),
+  };
 
   return (
     <>
       <Modal transparent visible={visible} animationType="fade">
         <View style={styles.overlay}>
-          {/* <Animated.View
+          <Animated.View
             style={[
               styles.glowWrapper,
               animatedBorderStyle,
               Platform.OS === "web"
-                ? { width: WEB_CARD_WIDTH }
-                : { width: Dimensions.get("window").width * 0.9 },
-            ]}
-          > */}
-          <Animated.View
-            style={[
-              styles.card,
-              Platform.OS === "web"
-                ? { width: WEB_CARD_WIDTH, maxWidth: "150vw", minWidth: 350 }
-                : [
-                    styles.mobileCard,
-                    {
-                      width: Dimensions.get("window").width * 0.9,
-                      minWidth: 200,
-                      maxWidth: 420,
-                      transform: [{ translateY: bottomAnim }],
-                    },
-                  ],
+                ? { 
+                    width: WEB_CARD_WIDTH + 6,
+                    minWidth: 360,
+                    maxWidth: '90vw',
+                  }
+                : { 
+                    width: Dimensions.get("window").width * 0.9 + 6,
+                    minWidth: 206,
+                    maxWidth: 426,
+                  },
             ]}
           >
-            <View style={styles.modeToggle}>
-              <TouchableOpacity
-                style={[
-                  styles.modeToggleButton,
-                  mode === "signup" && styles.modeToggleButtonActive,
-                ]}
-                onPress={() => {
-                  setMode("signup");
-                  resetFlow();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modeToggleText,
-                    mode === "signup" && styles.modeToggleTextActive,
-                  ]}
-                >
-                  Try Free
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modeToggleButton,
-                  mode === "login" && styles.modeToggleButtonActive,
-                ]}
-                onPress={() => {
-                  setMode("login");
-                  resetFlow();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modeToggleText,
-                    mode === "login" && styles.modeToggleTextActive,
-                  ]}
-                >
-                  Already a member!
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              style={{
-                width: cardWidth,
-                maxHeight:
-                  Platform.OS === "web"
-                    ? 600
-                    : Dimensions.get("window").height * 0.78,
-              }}
-              contentContainerStyle={{
-                paddingBottom: 12,
-              }}
-              showsVerticalScrollIndicator={false}
+            <Animated.View
+              style={[
+                styles.card,
+                Platform.OS === "web"
+                  ? { width: WEB_CARD_WIDTH, maxWidth: "150vw", minWidth: 350 }
+                  : [
+                      styles.mobileCard,
+                      {
+                        width: Dimensions.get("window").width * 0.9,
+                        minWidth: 200,
+                        maxWidth: 420,
+                        transform: [{ translateY: bottomAnim }],
+                      },
+                    ],
+              ]}
             >
-              {mode === "login" ? (
-                <View
+              <View style={styles.modeToggle}>
+                <TouchableOpacity
                   style={[
-                    styles.slideBase,
-                    { width: cardWidth, flexShrink: 0 },
+                    styles.modeToggleButton,
+                    mode === "signup" && styles.modeToggleButtonActive,
                   ]}
+                  onPress={() => {
+                    setMode("signup");
+                    resetFlow();
+                  }}
                 >
-                  <Text style={styles.titleHead}>Welcome Back!</Text>
-                  <Text style={styles.subtitle}>Enter your mobile number</Text>
-
-                  <Text style={styles.inputLabel}>
-                    Mobile Number{" "}
-                    <Text style={styles.requiredIndicator}>*</Text>
-                  </Text>
-                  <View style={styles.phoneContainer}>
-                    <View style={styles.countryCodeContainer}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          setIsLoginCountryDropdownOpen(
-                            !isLoginCountryDropdownOpen
-                          )
-                        }
-                        style={styles.countryCodeButton}
-                      >
-                        <Text style={styles.countryCodeText}>
-                          {getCountryByCode(loginCountryCode).flag}{" "}
-                          {loginCountryCode}
-                        </Text>
-                        <Ionicons
-                          name={
-                            isLoginCountryDropdownOpen
-                              ? "chevron-up"
-                              : "chevron-down"
-                          }
-                          size={16}
-                          color="#666"
-                          style={{ marginLeft: 4 }}
-                        />
-                      </TouchableOpacity>
-                      {isLoginCountryDropdownOpen && (
-                        <View style={styles.countryDropdown}>
-                          <ScrollView
-                            style={styles.countryDropdownScroll}
-                            nestedScrollEnabled
-                          >
-                            {COUNTRY_CODES.map((country) => (
-                              <TouchableOpacity
-                                key={country.code}
-                                style={styles.countryDropdownItem}
-                                onPress={() => {
-                                  setLoginCountryCode(country.code);
-                                  setIsLoginCountryDropdownOpen(false);
-                                }}
-                              >
-                                <Text style={styles.countryDropdownText}>
-                                  {country.flag} {country.code} {country.name}
-                                </Text>
-                              </TouchableOpacity>
-                            ))}
-                          </ScrollView>
-                        </View>
-                      )}
-                    </View>
-                    <TextInput
-                      placeholder="Enter your mobile number"
-                      placeholderTextColor="#d3d3d3"
-                      keyboardType="phone-pad"
-                      autoCapitalize="none"
-                      style={styles.phoneInput}
-                      value={loginIdentifier}
-                      onChangeText={handleLoginIdentifierChange}
-                      maxLength={getCountryByCode(loginCountryCode).maxLength}
-                    />
-                  </View>
-                  {showLoginPhoneError ? (
-                    <Text style={styles.inlineErrorText}>
-                      Please enter a valid mobile number for{" "}
-                      {getCountryByCode(loginCountryCode).name}.
-                    </Text>
-                  ) : null}
-
-                  <TouchableOpacity
-                    style={[
-                      styles.btn,
-                      isPrimaryDisabled && styles.disabledBtn,
-                    ]}
-                    onPress={handleNext}
-                    disabled={isPrimaryDisabled}
-                  >
-                    <Text style={styles.btnText}>
-                      {isProcessing ? "Logging in..." : "Get Help Now"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View
-                  style={[
-                    styles.slideBase,
-                    { width: cardWidth, flexShrink: 0 },
-                  ]}
-                >
-                  <Text style={styles.titleHead}>
-                    Get free AI consultation now!{" "}
-                  </Text>
                   <Text
-                    style={{
-                      fontSize: 16,
-                      color: "#999999",
-                      alignSelf: "center",
-                      fontFamily: "Farsan",
-                      fontWeight: 400,
-                    }}
-                  >
-                    Let’s Talk!
-                  </Text>
-
-                  {/* <TouchableOpacity
-                    style={styles.doctorRegisterLinkTop}
-                    onPress={() => {
-                      onRequestClose();
-                      onDoctorRegister?.();
-                    }}
-                  >
-                    <Text style={styles.doctorRegisterText}>
-                      Are you a doctor?{" "}
-                      <Text style={styles.doctorRegisterLinkText}>
-                        Register Here
-                      </Text>
-                    </Text>
-                  </TouchableOpacity> */}
-
-                  <Text style={styles.inputLabel}>
-                    Name{" "}
-                    <Text style={styles.optionalIndicator}>(Optional)</Text>
-                  </Text>
-                  <TextInput
-                    placeholder="Enter your full name"
-                    placeholderTextColor="#d3d3d3"
-                    style={styles.input}
-                    value={fullName}
-                    onChangeText={setFullName}
-                    autoCapitalize="words"
-                  />
-
-                  <Text style={styles.inputLabel}>
-                    Mobile Number{" "}
-                    <Text style={styles.requiredIndicator}>*</Text>
-                  </Text>
-                  <View style={styles.phoneContainer}>
-                    <View style={styles.countryCodeContainer}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          setIsSignupCountryDropdownOpen(
-                            !isSignupCountryDropdownOpen
-                          )
-                        }
-                        style={styles.countryCodeButton}
-                      >
-                        <Text style={styles.countryCodeText}>
-                          {getCountryByCode(signupCountryCode).flag}{" "}
-                          {signupCountryCode}
-                        </Text>
-                        <Ionicons
-                          name={
-                            isSignupCountryDropdownOpen
-                              ? "chevron-up"
-                              : "chevron-down"
-                          }
-                          size={16}
-                          color="#666"
-                          style={{ marginLeft: 4 }}
-                        />
-                      </TouchableOpacity>
-                      {isSignupCountryDropdownOpen && (
-                        <View style={styles.countryDropdown}>
-                          <ScrollView
-                            style={styles.countryDropdownScroll}
-                            nestedScrollEnabled
-                          >
-                            {COUNTRY_CODES.map((country) => (
-                              <TouchableOpacity
-                                key={country.code}
-                                style={styles.countryDropdownItem}
-                                onPress={() => {
-                                  setSignupCountryCode(country.code);
-                                  setIsSignupCountryDropdownOpen(false);
-                                }}
-                              >
-                                <Text style={styles.countryDropdownText}>
-                                  {country.flag} {country.code} {country.name}
-                                </Text>
-                              </TouchableOpacity>
-                            ))}
-                          </ScrollView>
-                        </View>
-                      )}
-                    </View>
-                    <TextInput
-                      placeholder="Enter your mobile number"
-                      placeholderTextColor="#d3d3d3"
-                      keyboardType="phone-pad"
-                      autoCapitalize="none"
-                      style={styles.phoneInput}
-                      value={signupIdentifier}
-                      onChangeText={handleSignupIdentifierChange}
-                      maxLength={getCountryByCode(signupCountryCode).maxLength}
-                    />
-                  </View>
-                  {showSignupPhoneError ? (
-                    <Text style={styles.inlineErrorText}>
-                      Please enter a valid mobile number for{" "}
-                      {getCountryByCode(signupCountryCode).name}.
-                    </Text>
-                  ) : null}
-
-                  <TouchableOpacity
                     style={[
-                      styles.btn,
-                      isPrimaryDisabled && styles.disabledBtn,
+                      styles.modeToggleText,
+                      mode === "signup" && styles.modeToggleTextActive,
                     ]}
-                    onPress={handleNext}
-                    disabled={isPrimaryDisabled || isProcessing}
                   >
-                    <Text style={styles.btnText}>
-                      {isProcessing ? "Signing up..." : "Get Help Now"}
+                    Try Free
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modeToggleButton,
+                    mode === "login" && styles.modeToggleButtonActive,
+                  ]}
+                  onPress={() => {
+                    setMode("login");
+                    resetFlow();
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modeToggleText,
+                      mode === "login" && styles.modeToggleTextActive,
+                    ]}
+                  >
+                    Already a member!
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={{
+                  width: cardWidth,
+                  maxHeight:
+                    Platform.OS === "web"
+                      ? 600
+                      : Dimensions.get("window").height * 0.78,
+                }}
+                contentContainerStyle={{
+                  paddingBottom: 12,
+                }}
+                showsVerticalScrollIndicator={false}
+              >
+                {mode === "login" ? (
+                  <View
+                    style={[
+                      styles.slideBase,
+                      { width: cardWidth, flexShrink: 0 },
+                    ]}
+                  >
+                    <Text style={styles.titleHead}>Welcome Back!</Text>
+                    <Text style={styles.subtitle}>
+                      Enter your mobile number
                     </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </ScrollView>
 
-            {errorMessage ? (
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            ) : null}
-            {infoMessage ? (
-              <Text style={styles.infoText}>{infoMessage}</Text>
-            ) : null}
+                    <Text style={styles.inputLabel}>
+                      Mobile Number{" "}
+                      <Text style={styles.requiredIndicator}>*</Text>
+                    </Text>
+                    <View style={styles.phoneContainer}>
+                      <View style={styles.countryCodeContainer}>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setIsLoginCountryDropdownOpen(
+                              !isLoginCountryDropdownOpen
+                            )
+                          }
+                          style={styles.countryCodeButton}
+                        >
+                          <Text style={styles.countryCodeText}>
+                            {getCountryByCode(loginCountryCode).flag}{" "}
+                            {loginCountryCode}
+                          </Text>
+                          <Ionicons
+                            name={
+                              isLoginCountryDropdownOpen
+                                ? "chevron-up"
+                                : "chevron-down"
+                            }
+                            size={16}
+                            color="#666"
+                            style={{ marginLeft: 4 }}
+                          />
+                        </TouchableOpacity>
+                        {isLoginCountryDropdownOpen && (
+                          <View style={styles.countryDropdown}>
+                            <ScrollView
+                              style={styles.countryDropdownScroll}
+                              nestedScrollEnabled
+                            >
+                              {COUNTRY_CODES.map((country) => (
+                                <TouchableOpacity
+                                  key={country.code}
+                                  style={styles.countryDropdownItem}
+                                  onPress={() => {
+                                    setLoginCountryCode(country.code);
+                                    setIsLoginCountryDropdownOpen(false);
+                                  }}
+                                >
+                                  <Text style={styles.countryDropdownText}>
+                                    {country.flag} {country.code}{" "}
+                                    {country.name}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          </View>
+                        )}
+                      </View>
+                      <TextInput
+                        placeholder="Enter your mobile number"
+                        placeholderTextColor="#d3d3d3"
+                        keyboardType="phone-pad"
+                        autoCapitalize="none"
+                        style={styles.phoneInput}
+                        value={loginIdentifier}
+                        onChangeText={handleLoginIdentifierChange}
+                        maxLength={
+                          getCountryByCode(loginCountryCode).maxLength
+                        }
+                      />
+                    </View>
+                    {showLoginPhoneError ? (
+                      <Text style={styles.inlineErrorText}>
+                        Please enter a valid mobile number for{" "}
+                        {getCountryByCode(loginCountryCode).name}.
+                      </Text>
+                    ) : null}
 
-            <TouchableOpacity onPress={onRequestClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={14} color="#9CA3AF" />
-            </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.btn,
+                        isPrimaryDisabled && styles.disabledBtn,
+                      ]}
+                      onPress={handleNext}
+                      disabled={isPrimaryDisabled}
+                    >
+                      <Text style={styles.btnText}>
+                        {isProcessing ? "Logging in..." : "Get Help Now"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View
+                    style={[
+                      styles.slideBase,
+                      { width: cardWidth, flexShrink: 0 },
+                    ]}
+                  >
+                    <Text style={styles.titleHead}>
+                      Get free AI consultation now!{" "}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        color: "#999999",
+                        alignSelf: "center",
+                        fontFamily: "Farsan",
+                        fontWeight: 400,
+                      }}
+                    >
+                      Let&apos;s Talk!
+                    </Text>
+
+                    {/* <TouchableOpacity
+                      style={styles.doctorRegisterLinkTop}
+                      onPress={() => {
+                        onRequestClose();
+                        onDoctorRegister?.();
+                      }}
+                    >
+                      <Text style={styles.doctorRegisterText}>
+                        Are you a doctor?{" "}
+                        <Text style={styles.doctorRegisterLinkText}>
+                          Register Here
+                        </Text>
+                      </Text>
+                    </TouchableOpacity> */}
+
+                    <Text style={styles.inputLabel}>
+                      Name{" "}
+                      <Text style={styles.optionalIndicator}>(Optional)</Text>
+                    </Text>
+                    <TextInput
+                      placeholder="Enter your full name"
+                      placeholderTextColor="#d3d3d3"
+                      style={styles.input}
+                      value={fullName}
+                      onChangeText={setFullName}
+                      autoCapitalize="words"
+                    />
+
+                    <Text style={styles.inputLabel}>
+                      Mobile Number{" "}
+                      <Text style={styles.requiredIndicator}>*</Text>
+                    </Text>
+                    <View style={styles.phoneContainer}>
+                      <View style={styles.countryCodeContainer}>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setIsSignupCountryDropdownOpen(
+                              !isSignupCountryDropdownOpen
+                            )
+                          }
+                          style={styles.countryCodeButton}
+                        >
+                          <Text style={styles.countryCodeText}>
+                            {getCountryByCode(signupCountryCode).flag}{" "}
+                            {signupCountryCode}
+                          </Text>
+                          <Ionicons
+                            name={
+                              isSignupCountryDropdownOpen
+                                ? "chevron-up"
+                                : "chevron-down"
+                            }
+                            size={16}
+                            color="#666"
+                            style={{ marginLeft: 4 }}
+                          />
+                        </TouchableOpacity>
+                        {isSignupCountryDropdownOpen && (
+                          <View style={styles.countryDropdown}>
+                            <ScrollView
+                              style={styles.countryDropdownScroll}
+                              nestedScrollEnabled
+                            >
+                              {COUNTRY_CODES.map((country) => (
+                                <TouchableOpacity
+                                  key={country.code}
+                                  style={styles.countryDropdownItem}
+                                  onPress={() => {
+                                    setSignupCountryCode(country.code);
+                                    setIsSignupCountryDropdownOpen(false);
+                                  }}
+                                >
+                                  <Text style={styles.countryDropdownText}>
+                                    {country.flag} {country.code}{" "}
+                                    {country.name}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          </View>
+                        )}
+                      </View>
+                      <TextInput
+                        placeholder="Enter your mobile number"
+                        placeholderTextColor="#d3d3d3"
+                        keyboardType="phone-pad"
+                        autoCapitalize="none"
+                        style={styles.phoneInput}
+                        value={signupIdentifier}
+                        onChangeText={handleSignupIdentifierChange}
+                        maxLength={
+                          getCountryByCode(signupCountryCode).maxLength
+                        }
+                      />
+                    </View>
+                    {showSignupPhoneError ? (
+                      <Text style={styles.inlineErrorText}>
+                        Please enter a valid mobile number for{" "}
+                        {getCountryByCode(signupCountryCode).name}.
+                      </Text>
+                    ) : null}
+
+                    <TouchableOpacity
+                      style={[
+                        styles.btn,
+                        isPrimaryDisabled && styles.disabledBtn,
+                      ]}
+                      onPress={handleNext}
+                      disabled={isPrimaryDisabled || isProcessing}
+                    >
+                      <Text style={styles.btnText}>
+                        {isProcessing ? "Signing up..." : "Get Help Now"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </ScrollView>
+
+              {errorMessage ? (
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              ) : null}
+              {infoMessage ? (
+                <Text style={styles.infoText}>{infoMessage}</Text>
+              ) : null}
+
+              <TouchableOpacity
+                onPress={onRequestClose}
+                style={styles.closeBtn}
+              >
+                <Ionicons name="close" size={14} color="#9CA3AF" />
+              </TouchableOpacity>
+            </Animated.View>
           </Animated.View>
-          {/* </Animated.View> */}
         </View>
       </Modal>
 
@@ -1295,16 +1319,11 @@ const styles = StyleSheet.create({
     zIndex: 99999,
   },
   glowWrapper: {
-    borderRadius: 12,
-    borderWidth: 4,
-    padding: 2, // space between glow & card
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 12,
+    borderRadius: 16,
+    borderWidth: 5,
     backgroundColor: "transparent",
-    minWidth: 280,
-    maxWidth: 440,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 12,
   },
 
   card: {
@@ -1313,8 +1332,6 @@ const styles = StyleSheet.create({
     padding: 22,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
