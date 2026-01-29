@@ -1064,7 +1064,7 @@ const PatientAuthModal = ({
                     ]}
                   >
                     <Text style={styles.titleHead}>
-                      Get free AI consultation now!{" "}
+                      Not sure whats happening? Get free AI consultation now{" "}
                     </Text>
                     <Text
                       style={{
