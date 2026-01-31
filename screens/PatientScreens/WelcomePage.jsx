@@ -169,6 +169,7 @@ export default function WelcomePage() {
   };
 
   return (
+    <>
     <View style={styles.container}>
       {/* ================= NAVBAR ================= */}
       <View style={styles.navbar}>
