@@ -339,13 +339,13 @@ const LandingPage = ({ navigation, route }) => {
       {(Platform.OS !== "web" || width < 1000) && (
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
-          <View style={[styles.header, { height: "12%" }]}>
+          <View style={[styles.header, { height: "15%" }]}>
             <HeaderLoginSignUp navigation={navigation} />
           </View>
 
-          <View style={styles.searchBar}>
+          {/* <View style={styles.searchBar}>
             <SearchBar />
-          </View>
+          </View> */}
 
           <View style={styles.cards}>
             <View style={styles.cardsRow}>
@@ -557,9 +557,9 @@ const styles = StyleSheet.create({
     width: "85%",
   },
   header: {
-    //borderWidth: 5,
+    //borderWidth: 3,
     // borderColor: "black",
-    paddingHorizontal: "2%",
+    paddingHorizontal:"1%",
     zIndex: 2,
     ...Platform.select({
       web: {

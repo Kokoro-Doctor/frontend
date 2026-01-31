@@ -509,9 +509,10 @@ const styles = StyleSheet.create({
   appHeaderContainer: {
     backgroundColor: "#fff",
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    //paddingHorizontal: 6,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
+    borderColor:"#fff"
   },
   modalContainer: {
     flex: 1,
@@ -524,13 +525,16 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(195, 91, 91, 0.5)",
   },
   appHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+    //borderWidth:1,
+    width:"100%",
+    borderColor:"#fff"
   },
   logo: {
     flexDirection: "row",
@@ -564,6 +568,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 45,
     right: 0,
+    //left:0,
     backgroundColor: "#fff",
     borderRadius: 8,
     borderWidth: 1,
@@ -572,8 +577,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 5,
-    minWidth: 180,
+    elevation: 6,
+    minWidth: 130,
     zIndex: 1000,
   },
   dropdownItem: {

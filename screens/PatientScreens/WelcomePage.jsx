@@ -169,23 +169,25 @@ export default function WelcomePage() {
   };
 
   return (
-    <>
-      {Platform.OS === "web" && width > 1000 && (
-        <View style={styles.container}>
-          {/* ================= NAVBAR ================= */}
-          <View style={styles.navbar}>
-            <View style={styles.logoRow}>
-              <Image
-                source={require("../../assets/Icons/newkokorologo.png")}
-                style={styles.logo}
-              />
-              <View>
-                <Text style={styles.logoText}>Kokoro.Doctor</Text>
-                <Text style={styles.logoSub}>
-                  Trusted by doctors as their cloud clinic
-                </Text>
-              </View>
-            </View>
+    <View style={styles.container}>
+      {/* ================= NAVBAR ================= */}
+      <View style={styles.navbar}>
+        <View style={styles.logoRow}>
+          {/* <Image
+            source={require("../../assets/Icons/newkokorologo.png")}
+            style={styles.logo}
+          /> */}
+          <Image
+            source={require("../../assets/Images/KokoroLogo.png")}
+            style={styles.logo}
+          />
+          <View>
+            <Text style={styles.logoText}>Kokoro.Doctor</Text>
+            <Text style={styles.logoSub}>
+              Trusted by doctors as their cloud clinic
+            </Text>
+          </View>
+        </View>
 
             <View style={styles.navLinks}>
               {/* <NavHoverItem label="Women's Health" /> */}
