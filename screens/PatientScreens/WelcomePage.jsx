@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#EC4899",
-    minWidth: 350,
+    minWidth: 390,
     padding: 0,
     marginLeft: 4,
     // Web only
@@ -566,6 +566,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#c5c4c4ff",
     borderRadius: 10,
+    minHeight:43
   },
   pillsContainer: {
     alignItems: "center",
