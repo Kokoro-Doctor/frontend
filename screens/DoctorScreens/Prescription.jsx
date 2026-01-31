@@ -33,9 +33,6 @@ const Prescription = ({ navigation, route }) => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [generatedPrescription, setGeneratedPrescription] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editedPrescription, setEditedPrescription] = useState(null);
-  const [showPrescriptionView, setShowPrescriptionView] = useState(false);
 
   console.log("user", user);
   useFocusEffect(
@@ -88,27 +85,6 @@ const Prescription = ({ navigation, route }) => {
     }
   }, []);
 
-  // Format prescription text: replace "-" with bullet points (•)
-  const formatPrescriptionText = (text) => {
-    if (!text) return "";
-    // Replace "- " at the start of lines with "• " (bullet point)
-    // Also handle cases where there might be spaces before the dash
-    return text
-      .split("\n")
-      .map((line) => {
-        const trimmed = line.trim();
-        // Replace "- " at the start with "• "
-        if (trimmed.startsWith("- ")) {
-          return "• " + trimmed.substring(2);
-        }
-        // Replace "-" at the start (without space) with "• "
-        if (trimmed.startsWith("-")) {
-          return "• " + trimmed.substring(1).trim();
-        }
-        return line;
-      })
-      .join("\n");
-  };
   const pickDocument = async () => {
     const result = await DocumentPicker.getDocumentAsync({
       multiple: true,
@@ -410,10 +386,14 @@ const Prescription = ({ navigation, route }) => {
       });
 
       setGeneratedPrescription(prescription);
-      setIsEditMode(false);
       console.log(
         "[extractFromFiles] Extraction process completed successfully"
       );
+      
+      // Navigate to preview screen after generation
+      navigation.navigate("PrescriptionPreview", {
+        generatedPrescription: prescription,
+      });
     } catch (error) {
       console.error("[extractFromFiles] Error in extraction process:", {
         name: error.name,
@@ -447,45 +427,8 @@ const Prescription = ({ navigation, route }) => {
       alert("Please upload at least one file");
       return;
     }
-    setShowPrescriptionView(true);
 
     await extractFromFiles(uploadedFiles);
-  };
-
-  const handleEditPrescription = () => {
-    // Initialize with current prescription and doctor info from auth
-    const doctorName = user?.name || user?.doctorname || "";
-    const doctorSpecialty = user?.specialization || "";
-
-    setEditedPrescription({
-      ...generatedPrescription,
-      doctorName: doctorName,
-      doctorSpecialty: doctorSpecialty,
-    });
-    setIsEditMode(true);
-  };
-
-  const handleSavePrescription = () => {
-    if (editedPrescription) {
-      // Remove doctor info from saved prescription as it comes from auth context
-      const { doctorName, doctorSpecialty, ...prescriptionToSave } =
-        editedPrescription;
-      setGeneratedPrescription(prescriptionToSave);
-      setIsEditMode(false);
-      // TODO: Add API call to save prescription
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditMode(false);
-    setEditedPrescription(null);
-  };
-
-  const updatePrescriptionField = (field, value) => {
-    setEditedPrescription((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
   };
 
   return (
@@ -528,13 +471,7 @@ const Prescription = ({ navigation, route }) => {
                     {/* Main Content */}
                     <View style={styles.mainContent}>
                       {/* Left Section - File Upload */}
-                      <View
-                        style={[
-                          styles.leftSection,
-                          generatedPrescription &&
-                            styles.leftSectionWithPrescription,
-                        ]}
-                      >
+                      <View style={styles.leftSection}>
                         {/* Icon and Title */}
                         <View style={styles.iconTitleContainer}>
                           <Image
@@ -656,296 +593,6 @@ const Prescription = ({ navigation, route }) => {
                         </TouchableOpacity>
                       </View>
 
-                      {/* Right Section - Prescription Preview */}
-                      {generatedPrescription && (
-                        <View
-                          style={[
-                            styles.rightSection,
-                            styles.rightSectionWithPrescription,
-                          ]}
-                        >
-                          <ScrollView
-                            style={styles.prescriptionScrollView}
-                            contentContainerStyle={
-                              styles.prescriptionScrollContent
-                            }
-                            showsVerticalScrollIndicator={true}
-                          >
-                            <View style={styles.prescriptionCard}>
-                              {/* Top Header Row - Logo  */}
-                              <View style={styles.topHeaderRow}>
-                                {/* Left: Logo + Kokoro.Doctor Text */}
-                                <View style={styles.logoContainer}>
-                                  <Image
-                                    source={require("../../assets/DoctorsPortal/Images/KokoroLogo.png")}
-                                    style={styles.logoImage}
-                                    resizeMode="contain"
-                                  />
-                                  <Text style={styles.clinicName}>
-                                    Kokoro.Doctor
-                                  </Text>
-                                </View>
-                              </View>
-
-                              {/* Date and Doctor Row */}
-                              <View style={styles.dateDoctorRow}>
-                                {/* Left: Date */}
-                                <View style={styles.dateContainer}>
-                                  {isEditMode ? (
-                                    <View style={styles.editRowInline}>
-                                      <Text style={styles.editLabelInline}>
-                                        Date :
-                                      </Text>
-                                      <TextInput
-                                        style={styles.editInputInline}
-                                        value={editedPrescription?.date || ""}
-                                        onChangeText={(value) =>
-                                          updatePrescriptionField("date", value)
-                                        }
-                                        placeholder="DD MMM YYYY"
-                                        placeholderTextColor="#999999"
-                                      />
-                                    </View>
-                                  ) : (
-                                    <Text style={styles.dateText}>
-                                      Date : {generatedPrescription.date}
-                                    </Text>
-                                  )}
-                                </View>
-
-                                {/* Right: Doctor Info */}
-                                <View style={styles.doctorInfoContainer}>
-                                  {isEditMode ? (
-                                    <>
-                                      <View style={styles.editRowInline}>
-                                        <Text style={styles.editLabelInline}>
-                                          DR :
-                                        </Text>
-                                        <TextInput
-                                          style={styles.editInputInline}
-                                          value={
-                                            editedPrescription?.doctorName || ""
-                                          }
-                                          onChangeText={(value) =>
-                                            updatePrescriptionField(
-                                              "doctorName",
-                                              value
-                                            )
-                                          }
-                                          placeholder="Doctor Name"
-                                          placeholderTextColor="#999999"
-                                        />
-                                      </View>
-                                      <TextInput
-                                        style={styles.editInputSpecialty}
-                                        value={
-                                          editedPrescription?.doctorSpecialty ||
-                                          ""
-                                        }
-                                        onChangeText={(value) =>
-                                          updatePrescriptionField(
-                                            "doctorSpecialty",
-                                            value
-                                          )
-                                        }
-                                        placeholder="Specialty"
-                                        placeholderTextColor="#999999"
-                                      />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Text style={styles.doctorNameText}>
-                                        DR :{" "}
-                                        {user?.name || user?.doctorname || ""}
-                                      </Text>
-                                      <Text style={styles.specialtyText}>
-                                        {user?.specialization || ""}
-                                      </Text>
-                                    </>
-                                  )}
-                                </View>
-                              </View>
-
-                              {/* Divider */}
-                              <View style={styles.divider} />
-
-                              {/* Patient Details - 2 Fields Per Row */}
-                              <View style={styles.patientDetailsContainer}>
-                                {/* Row 1: Patient Name + Age */}
-                                <View style={styles.detailRow}>
-                                  {/* Patient Name */}
-                                  <View style={styles.detailItemHalf}>
-                                    <Text style={styles.detailLabel}>
-                                      Patient Name
-                                    </Text>
-                                    {isEditMode ? (
-                                      <TextInput
-                                        style={styles.detailInput}
-                                        value={
-                                          editedPrescription?.patientName || ""
-                                        }
-                                        onChangeText={(value) =>
-                                          updatePrescriptionField(
-                                            "patientName",
-                                            value
-                                          )
-                                        }
-                                        placeholder="Enter patient name"
-                                        placeholderTextColor="#999999"
-                                      />
-                                    ) : (
-                                      <Text style={styles.detailValue}>
-                                        {generatedPrescription.patientName ||
-                                          ""}
-                                      </Text>
-                                    )}
-                                  </View>
-
-                                  {/* Age */}
-                                  <View style={styles.detailItemHalf}>
-                                    <Text style={styles.detailLabel}>Age</Text>
-                                    {isEditMode ? (
-                                      <TextInput
-                                        style={styles.detailInput}
-                                        value={editedPrescription?.age || ""}
-                                        onChangeText={(value) =>
-                                          updatePrescriptionField("age", value)
-                                        }
-                                        placeholder="Enter age"
-                                        placeholderTextColor="#999999"
-                                      />
-                                    ) : (
-                                      <Text style={styles.detailValue}>
-                                        {generatedPrescription.age || ""}
-                                      </Text>
-                                    )}
-                                  </View>
-                                </View>
-
-                                {/* Row 2: Gender + Diagnosis */}
-                                <View style={styles.detailRow}>
-                                  {/* Gender */}
-                                  <View style={styles.detailItemHalf}>
-                                    <Text style={styles.detailLabel}>
-                                      Gender
-                                    </Text>
-                                    {isEditMode ? (
-                                      <TextInput
-                                        style={styles.detailInput}
-                                        value={editedPrescription?.gender || ""}
-                                        onChangeText={(value) =>
-                                          updatePrescriptionField(
-                                            "gender",
-                                            value
-                                          )
-                                        }
-                                        placeholder="Enter gender"
-                                        placeholderTextColor="#999999"
-                                      />
-                                    ) : (
-                                      <Text style={styles.detailValue}>
-                                        {generatedPrescription.gender || ""}
-                                      </Text>
-                                    )}
-                                  </View>
-
-                                  {/* Diagnosis */}
-                                  <View style={styles.detailItemHalf}>
-                                    <Text style={styles.detailLabel}>
-                                      Diagnosis
-                                    </Text>
-                                    {isEditMode ? (
-                                      <TextInput
-                                        style={styles.detailInput}
-                                        value={
-                                          editedPrescription?.diagnosis || ""
-                                        }
-                                        onChangeText={(value) =>
-                                          updatePrescriptionField(
-                                            "diagnosis",
-                                            value
-                                          )
-                                        }
-                                        placeholder="Enter diagnosis"
-                                        placeholderTextColor="#999999"
-                                        multiline
-                                      />
-                                    ) : (
-                                      <Text style={styles.detailValue}>
-                                        {generatedPrescription.diagnosis || ""}
-                                      </Text>
-                                    )}
-                                  </View>
-                                </View>
-                              </View>
-
-                              {/* RX Section - Full Width Box */}
-                              <View style={styles.rxContainer}>
-                                <Text style={styles.rxTitle}>RX</Text>
-                                <View style={styles.rxSection}>
-                                  {isEditMode ? (
-                                    <TextInput
-                                      style={styles.rxInput}
-                                      value={
-                                        editedPrescription?.prescriptionReport ||
-                                        ""
-                                      }
-                                      onChangeText={(value) =>
-                                        updatePrescriptionField(
-                                          "prescriptionReport",
-                                          value
-                                        )
-                                      }
-                                      placeholder="Prescription Report"
-                                      placeholderTextColor="#999999"
-                                      multiline
-                                    />
-                                  ) : (
-                                    <Text style={styles.rxText} multiline>
-                                      {formatPrescriptionText(
-                                        generatedPrescription.prescriptionReport
-                                      ) || "No prescription report generated"}
-                                    </Text>
-                                  )}
-                                </View>
-                              </View>
-
-                              {/* Save/Cancel Buttons */}
-                              {isEditMode && (
-                                <View style={styles.editActions}>
-                                  <TouchableOpacity
-                                    style={styles.cancelButton}
-                                    onPress={handleCancelEdit}
-                                  >
-                                    <Text style={styles.cancelButtonText}>
-                                      Cancel
-                                    </Text>
-                                  </TouchableOpacity>
-                                  <TouchableOpacity
-                                    style={styles.saveButton}
-                                    onPress={handleSavePrescription}
-                                  >
-                                    <Text style={styles.saveButtonText}>
-                                      Save
-                                    </Text>
-                                  </TouchableOpacity>
-                                </View>
-                              )}
-                            </View>
-                          </ScrollView>
-                          {/* Edit Button - Outside Card, Bottom Left */}
-                          {!isEditMode && (
-                            <TouchableOpacity
-                              style={styles.editButtonOutside}
-                              onPress={handleEditPrescription}
-                            >
-                              <Text style={styles.editButtonText}>
-                                Edit Prescription
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      )}
                     </View>
                   </ScrollView>
                 </View>
@@ -1000,8 +647,7 @@ const Prescription = ({ navigation, route }) => {
           </View>
 
           {/* MAIN CARD */}
-          {!showPrescriptionView ? (
-            <View style={stylesMobile.card}>
+          <View style={stylesMobile.card}>
               <View style={{ marginTop: "6%", marginBottom: "6%" }}>
                 <Image
                   source={require("../../assets/DoctorsPortal/Icons/Prescription-icon.png")}
@@ -1108,232 +754,6 @@ const Prescription = ({ navigation, route }) => {
                 </Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            // PRESCRIPTION VIEW
-            <View style={stylesMobile.prescriptionWrapper}>
-              {/* Header */}
-              <View style={stylesMobile.topHeader}>
-                <View
-                  style={{
-                    flexDirection: "row",
-
-                    gap: 6,
-                    alignItems: "center",
-                  }}
-                >
-                  <Image
-                    source={require("../../assets/DoctorsPortal/Icons/kokorologoo.png")}
-                    style={styles.statIcon}
-                    resizeMode="contain"
-                  />
-
-                  <Text style={stylesMobile.logoText}>"Kokoro.Doctor"</Text>
-                </View>
-                <View style={stylesMobile.summaryBadge}>
-                  <View style={stylesMobile.summaryBadgeContent}>
-                    <Text style={stylesMobile.summaryText}>
-                      Patient Summary
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Date + Doctor */}
-              <View style={stylesMobile.rowBetween}>
-                <View style={{ flexDirection: "row", gap: 1 }}>
-                  <Text style={stylesMobile.metaText}>Date : </Text>
-                  {isEditMode ? (
-                    <TextInput
-                      style={stylesMobile.mobileEditInputInline}
-                      value={editedPrescription?.date || ""}
-                      onChangeText={(value) =>
-                        updatePrescriptionField("date", value)
-                      }
-                      placeholder="DD MMM YYYY"
-                      placeholderTextColor="#999999"
-                    />
-                  ) : (
-                    <Text style={stylesMobile.secondText}>
-                      {generatedPrescription?.date ||
-                        new Date().toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                    </Text>
-                  )}
-                </View>
-                <View style={{ paddingRight: 16 }}>
-                  <Text style={stylesMobile.metaText}>
-                    <Text style={{ fontWeight: "600" }}>DR :</Text>{" "}
-                    {user?.name || user?.doctorname || "Doctor"}{" "}
-                  </Text>
-                  <Text
-                    style={{
-                      color: "#999",
-                      alignSelf: "flex-end",
-                      marginRight: "1%",
-                    }}
-                  >
-                    {" "}
-                    {user?.specialization || ""}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={stylesMobile.divider} />
-
-              {/* Patient Info */}
-              <View style={stylesMobile.infoGrid}>
-                <View style={{ flex: 1 }}>
-                  <Text style={stylesMobile.infoText}>
-                    <Text style={stylesMobile.metaText}>Patient Name:</Text>{" "}
-                    {isEditMode ? (
-                      <TextInput
-                        style={stylesMobile.mobileEditInputSmall}
-                        value={editedPrescription?.patientName || ""}
-                        onChangeText={(value) =>
-                          updatePrescriptionField("patientName", value)
-                        }
-                        placeholder="Enter patient name"
-                        placeholderTextColor="#999999"
-                      />
-                    ) : (
-                      <Text style={stylesMobile.secondText}>
-                        {generatedPrescription?.patientName || " "}
-                      </Text>
-                    )}
-                  </Text>
-                  <Text style={stylesMobile.infoText}>
-                    <Text style={stylesMobile.metaText}>Age:</Text>{" "}
-                    {isEditMode ? (
-                      <TextInput
-                        style={stylesMobile.mobileEditInputSmall}
-                        value={editedPrescription?.age || ""}
-                        onChangeText={(value) =>
-                          updatePrescriptionField("age", value)
-                        }
-                        placeholder="Enter age"
-                        placeholderTextColor="#999999"
-                      />
-                    ) : (
-                      <Text style={stylesMobile.secondText}>
-                        {generatedPrescription?.age || " "}
-                      </Text>
-                    )}
-                  </Text>
-                </View>
-
-                <View style={{ paddingRight: 16, flex: 1 }}>
-                  <Text style={stylesMobile.infoText}>
-                    <Text style={stylesMobile.infoLabel}>Gender:</Text>{" "}
-                    {isEditMode ? (
-                      <TextInput
-                        style={stylesMobile.mobileEditInputSmall}
-                        value={editedPrescription?.gender || ""}
-                        onChangeText={(value) =>
-                          updatePrescriptionField("gender", value)
-                        }
-                        placeholder="Enter gender"
-                        placeholderTextColor="#999999"
-                      />
-                    ) : (
-                      <Text style={stylesMobile.secondText}>
-                        {generatedPrescription?.gender || " "}
-                      </Text>
-                    )}
-                  </Text>
-                  <Text style={stylesMobile.infoText}>
-                    <Text style={stylesMobile.infoLabel}>Diagnosis:</Text>{" "}
-                    {isEditMode ? (
-                      <TextInput
-                        style={[
-                          stylesMobile.mobileEditInputSmall,
-                          { minHeight: 60 },
-                        ]}
-                        value={editedPrescription?.diagnosis || ""}
-                        onChangeText={(value) =>
-                          updatePrescriptionField("diagnosis", value)
-                        }
-                        placeholder="Enter diagnosis"
-                        placeholderTextColor="#999999"
-                        multiline
-                      />
-                    ) : (
-                      <Text style={stylesMobile.secondText}>
-                        {generatedPrescription?.diagnosis || " "}
-                      </Text>
-                    )}
-                  </Text>
-                </View>
-              </View>
-
-              {/* RX */}
-              <Text style={stylesMobile.rxLabel}>RX</Text>
-
-              <ScrollView style={stylesMobile.rxBox}>
-                {isEditMode ? (
-                  <TextInput
-                    style={stylesMobile.mobileRxInput}
-                    value={editedPrescription?.prescriptionReport || ""}
-                    onChangeText={(value) =>
-                      updatePrescriptionField("prescriptionReport", value)
-                    }
-                    placeholder="Prescription Report"
-                    placeholderTextColor="#999999"
-                    multiline
-                  />
-                ) : (
-                  <Text style={stylesMobile.rxText}>
-                    {generatedPrescription?.prescriptionReport
-                      ? formatPrescriptionText(
-                          generatedPrescription.prescriptionReport
-                        )
-                      : "No prescription report generated"}
-                  </Text>
-                )}
-              </ScrollView>
-
-              {/* Save/Cancel Buttons */}
-              {isEditMode && (
-                <View style={stylesMobile.editActions}>
-                  <TouchableOpacity
-                    style={stylesMobile.cancelButton}
-                    onPress={handleCancelEdit}
-                  >
-                    <Text style={stylesMobile.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={stylesMobile.saveButton}
-                    onPress={handleSavePrescription}
-                  >
-                    <Text style={stylesMobile.saveButtonText}>Save</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Edit Button */}
-              {!isEditMode && (
-                <TouchableOpacity
-                  style={stylesMobile.approveBtn}
-                  onPress={handleEditPrescription}
-                >
-                  <Text style={stylesMobile.approveBtnText}>
-                    Edit Prescription
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {/* Approved Button */}
-              {!isEditMode && (
-                <TouchableOpacity style={stylesMobile.approveBtn}>
-                  <Text style={stylesMobile.approveBtnText}>
-                    Approved Prescription
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
         </ScrollView>
       )}
     </>
