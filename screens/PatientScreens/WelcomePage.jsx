@@ -99,8 +99,12 @@ export default function WelcomePage() {
       {/* ================= NAVBAR ================= */}
       <View style={styles.navbar}>
         <View style={styles.logoRow}>
-          <Image
+          {/* <Image
             source={require("../../assets/Icons/newkokorologo.png")}
+            style={styles.logo}
+          /> */}
+          <Image
+            source={require("../../assets/Images/KokoroLogo.png")}
             style={styles.logo}
           />
           <View>
@@ -566,7 +570,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#c5c4c4ff",
     borderRadius: 10,
-    minHeight:43
+    minHeight: 43,
   },
   pillsContainer: {
     alignItems: "center",

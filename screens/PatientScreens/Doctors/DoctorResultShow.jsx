@@ -18,7 +18,7 @@ import { useChatbot } from "../../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
 import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
-import SearchBar from "../../../components/PatientScreenComponents/SearchBar";
+//import SearchBar from "../../../components/PatientScreenComponents/SearchBar";
 import DoctorAppointmentData from "../../../components/PatientScreenComponents/DoctorComponents/DoctorsAppointmentData";
 import PromoModal from "../../../components/PatientScreenComponents/PromoModal";
 import BackButton from "../../../components/PatientScreenComponents/BackButton";
@@ -253,7 +253,8 @@ const DoctorResultShow = ({ navigation, route }) => {
                         navigation={navigation}
                         selectedCategory={selectedCategory}
                         priorityDoctors={[
-                          "Dr. Kislay Shrivastava", "Dr. Arpita"
+                          "Dr. Kislay Shrivastava",
+                          "Dr. Arpita",
                         ]}
                       />
                     </View>
@@ -297,21 +298,7 @@ const DoctorResultShow = ({ navigation, route }) => {
           </View>
         </View>
       )}
-      {/* {(Platform.OS !== "web" || width < 1000) && (
-        <View style={styles.appContainer}>
-          <StatusBar barStyle="light-content" backgroundColor="#fff" />
-          <View style={[styles.header, { height: "15%" }]}>
-            <Header navigation={navigation} />
-          </View>
 
-          <View style={styles.searchBar}>
-            <SearchBar />
-          </View>
-          <View style={styles.middlepart}>
-            <DoctorAppointmentData navigation={navigation} />
-          </View>
-        </View>
-      )} */}
       {(Platform.OS !== "web" || width < 1000) && (
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
@@ -321,9 +308,9 @@ const DoctorResultShow = ({ navigation, route }) => {
 
           {/* Search and Category Section */}
           <View style={styles.searchSectionApp}>
-            <View style={styles.searchBar}>
+            {/* <View style={styles.searchBar}>
               <SearchBar />
-            </View>
+            </View> */}
 
             {/* Category Dropdown for App */}
             <View style={styles.categoryBox}>
@@ -469,6 +456,8 @@ const styles = StyleSheet.create({
   },
   searchSectionApp: {
     flexDirection: "column",
+    //borderWidth: 1,
+    marginVertical: "5%",
   },
   mainHeading: {
     fontSize: 24,
@@ -520,32 +509,47 @@ const styles = StyleSheet.create({
     color: "#4CAF50",
     marginBottom: 10,
   },
+
   categoryBox: {
     width: "40%",
-    marginVertical: "3%",
+    marginVertical: 6,
     flexDirection: "column",
-    //borderWidth:1,
-    //height:"20%",
-    marginHorizontal: "4%",
+    borderWidth: 1,
+    marginHorizontal: "6%",
     ...Platform.select({
       web: {
-        width: "20%",
+        width: 180, // Match dropdown width
+        minWidth: 180,
         marginVertical: "1%",
         flexDirection: "column",
-        marginHorizontal: "0%",
+        marginHorizontal: "1%",
       },
     }),
   },
   filterButton: {
-    flexDirection: "row",
+    //flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ccc",
+    //borderWidth: 1,
+    borderColor: "#000",
     paddingVertical: "1.5%",
-    paddingHorizontal: "2%",
-    borderRadius: 6,
+    paddingHorizontal: "5%",
+    borderRadius: 10,
     backgroundColor: "#fff",
+    width: 20,
+    ...Platform.select({
+      web: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        //borderWidth: 1,
+        borderColor: "#ccc",
+        paddingVertical: "1.5%",
+        paddingHorizontal: "2%",
+        borderRadius: 10,
+        backgroundColor: "#fff",
+      },
+    }),
   },
   filterButtonText: {
     fontSize: 16,
@@ -555,14 +559,14 @@ const styles = StyleSheet.create({
   // Modal dropdown styles
   modalBackdrop: {
     flex: 1,
-    //backgroundColor: "rgba(0, 0, 0, 0.3)",
     justifyContent: "flex-start",
-    alignItems: "flex-start",
+    //alignItems: "flex-start",
     paddingTop: "15%", // Adjust based on your layout
     paddingLeft: "5%", // Align with category button
     marginHorizontal: "0%",
     marginVertical: "40%",
-    width: "70%",
+    minWidth: 200,
+    minHeight: 200,
     ...Platform.select({
       web: {
         flex: 1,
@@ -576,43 +580,43 @@ const styles = StyleSheet.create({
       },
     }),
   },
+
   dropdownOverlayWrapper: {
-    width: "80%", // Match category box width
+    width: "80%", // For mobile
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 6,
     maxHeight: 200,
-    marginTop: "1%",
+    marginTop: "3%",
     ...Platform.select({
       web: {
-        width: "20%", // Match category box width
+        width: 180, // Fixed width instead of percentage
+        minWidth: 180, // Ensure minimum width
         backgroundColor: "#fff",
         borderWidth: 1,
         borderColor: "#ccc",
         borderRadius: 6,
-        maxHeight: 200,
-        marginTop: "1%",
-        // shadowColor: "#000",
-        // shadowOffset: { width: 0, height: 2 },
-        // shadowOpacity: 0.25,
-        // shadowRadius: 3.84,
-        // elevation: 5,
+        maxHeight: 140, // Adjusted height
+        marginTop: "6%",
       },
     }),
   },
   dropdownScrollView: {
     flexGrow: 0,
   },
+
   dropdownItems: {
-    paddingVertical: 10,
+    paddingVertical: 12, // Increased from 10
     paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#8e8b8bff",
+    minHeight: 45, // Add minimum height
   },
   dropdownItemsText: {
     fontSize: 15,
     color: "#0a0a0aff",
+    whiteSpace: "nowrap", // Prevent text wrapping (web only)
   },
 
   // Updated middlepart styles for scrolling

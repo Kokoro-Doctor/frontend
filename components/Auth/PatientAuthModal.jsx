@@ -853,16 +853,16 @@ const PatientAuthModal = ({
   const animatedBorderStyle = {
     borderColor: glowAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: ["rgba(249,97,102,0.4)", "rgba(241, 31, 38, 1)"],
+      outputRange: ["rgba(220, 25, 25, 0.96)", "rgba(24, 50, 221, 1)"],
     }),
-    shadowColor: '#f96166',
+    shadowColor: '#ca2b2bff',
     shadowOpacity: glowAnim.interpolate({
       inputRange: [0, 2],
       outputRange: [0.3, 0.8],
     }),
     shadowRadius: glowAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [8, 20],
+      outputRange: [10, 22],
     }),
   };
 
@@ -877,7 +877,7 @@ const PatientAuthModal = ({
               Platform.OS === "web"
                 ? { 
                     width: WEB_CARD_WIDTH + 6,
-                    minWidth: 360,
+                    minWidth: 366,
                     maxWidth: '90vw',
                   }
                 : { 
@@ -1324,6 +1324,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     shadowOffset: { width: 0, height: 0 },
     elevation: 12,
+    padding:"0.2%"
   },
 
   card: {

@@ -17,7 +17,6 @@ import {
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
-//import MedilockerUsers from "../../components/DoctorsPortalComponents/MedilockerUsers";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
 import { API_URL } from "../../env-vars";
@@ -178,10 +177,10 @@ const GeneratePrescription = ({ navigation, route }) => {
     }
   };
 
-  const openFileMenu = (file) => {
-    setSelectedFileForMenu(file);
-    setFileMenuVisible(true);
-  };
+  // const openFileMenu = (file) => {
+  //   setSelectedFileForMenu(file);
+  //   setFileMenuVisible(true);
+  // };
 
   // const downloadFile = async (fileName) => {
   //   console.log("📥 Downloading file:", fileName);

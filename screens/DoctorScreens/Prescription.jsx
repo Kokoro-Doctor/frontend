@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useContext } from "react";
 import {
   Image,
   ImageBackground,
@@ -16,7 +16,7 @@ import {
 
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
-import { useContext } from "react";
+//import { useContext } from "react";
 import { AuthContext } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -1127,7 +1127,7 @@ const Prescription = ({ navigation, route }) => {
                     resizeMode="contain"
                   />
 
-                  <Text style={stylesMobile.logoText}>"Kokoro.Doctor"</Text>
+                  <Text style={stylesMobile.logoText}>"Kokoro.Doctor&quot;</Text>
                 </View>
                 <View style={stylesMobile.summaryBadge}>
                   <View style={stylesMobile.summaryBadgeContent}>
