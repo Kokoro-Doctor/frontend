@@ -68,6 +68,7 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "DoctorsSubscribers",
     "GeneratePrescription",
     "Prescription",
+    "PrescriptionPreview",
     "UserDashboard",
     "DoctorDashboard",
     "WelcomePage"
