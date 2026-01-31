@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   Image,
   ImageBackground,
@@ -37,6 +37,19 @@ const PrescriptionPreview = ({ navigation, route }) => {
   const [currentPrescription, setCurrentPrescription] = useState(
     initialPrescription || null
   );
+  
+  // Debug logging and update state when route params change
+  useEffect(() => {
+    console.log("🔍 PrescriptionPreview - Route params:", route.params);
+    console.log("🔍 PrescriptionPreview - Initial prescription:", initialPrescription);
+    
+    if (initialPrescription) {
+      console.log("✅ Setting currentPrescription from route params");
+      setCurrentPrescription(initialPrescription);
+    } else {
+      console.warn("⚠️ No prescription data in route params");
+    }
+  }, [route.params, initialPrescription]);
 
 
   const handleEditPrescription = () => {
