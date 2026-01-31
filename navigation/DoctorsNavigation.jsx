@@ -26,6 +26,7 @@ import LandingPage from "../screens/PatientScreens/LandingPage";
 import DoctorsSignUp from "../screens/DoctorScreens/DoctorRegistration/DoctorsSignUp";
 import DoctorPortalLandingPage from "../screens/DoctorScreens/DoctorPortalLandingPage";
 import Prescription from "../screens/DoctorScreens/Prescription";
+import PrescriptionPreview from "../screens/DoctorScreens/PrescriptionPreview";
 import DoctorsSubscribers from "../screens/DoctorScreens/DoctorsSubscribers";
 import GeneratePrescription from "../screens/DoctorScreens/GeneratePrescription";
 import DrCalendarView from "../screens/DoctorScreens/DrCalendarView";
@@ -151,6 +152,11 @@ const DoctorAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="Prescription"
           component={Prescription}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PrescriptionPreview"
+          component={PrescriptionPreview}
           options={{ headerShown: false }}
         />
         <Stack.Screen

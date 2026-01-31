@@ -46,6 +46,7 @@ const GeneratePrescription = ({ navigation, route }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [previewUrl, setPreviewUrl] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [isGeneratingPrescription, setIsGeneratingPrescription] = useState(false);
 
   const { userId, doctorId, userName, appointmentDate } = route.params || {};
 
@@ -259,6 +260,117 @@ const GeneratePrescription = ({ navigation, route }) => {
     setMenuVisible(false);
   };
 
+  const generatePrescriptionFromMedilocker = async () => {
+    if (!userId && !user?.user_id) {
+      Alert.alert("Error", "User ID is required to generate prescription");
+      return;
+    }
+
+    const userIdentifier = userId || user?.user_id;
+    
+    try {
+      setIsGeneratingPrescription(true);
+      console.log("🔄 Generating prescription for user:", userIdentifier);
+      console.log("📡 API URL:", `${API_URL}/medilocker/users/${userIdentifier}/prescription`);
+
+      const response = await fetch(
+        `${API_URL}/medilocker/users/${userIdentifier}/prescription`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("📥 Response status:", response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ API Error:", errorData);
+        throw new Error(
+          errorData.detail || `Failed to generate prescription: ${response.status}`
+        );
+      }
+
+      const prescriptionData = await response.json();
+      console.log("✅ Prescription generated:", prescriptionData);
+      console.log("📄 Prescription text:", prescriptionData.prescription);
+      console.log("👤 Patient details from API (ignored in subscriber flow):", prescriptionData.patient_details);
+      console.log("👤 Patient details from user object:", {
+        name: user?.name,
+        age: user?.age,
+        gender: user?.gender,
+        email: user?.email,
+      });
+
+      // Format the prescription data to match PrescriptionPreview expectations
+      // In subscriber flow: Use patient details from fetched user object (auth/API), not from extracted prescription
+      // Only use extracted patient_details when manually uploading documents (Prescription.jsx)
+      const formattedPrescription = {
+        prescriptionReport: prescriptionData.prescription || "No prescription data available. Please add prescription details manually.",
+        // Use patient details from user object (subscriber data), fallback to null if not available
+        patientName: user?.name || userName || null,
+        age: user?.age ? user.age.toString() : null,
+        gender: user?.gender || null,
+        date: new Date().toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        // Diagnosis can come from extracted data or be null
+        diagnosis: prescriptionData.patient_details?.diagnosis || null,
+      };
+
+      console.log("📋 Formatted prescription:", formattedPrescription);
+      console.log("📋 Prescription report length:", formattedPrescription.prescriptionReport?.length || 0);
+
+      console.log("🧭 Navigating to PrescriptionPreview...");
+      console.log("🧭 Navigation object:", navigation);
+      console.log("🧭 Prescription data being passed:", formattedPrescription);
+
+      // Show warning if no prescription data, but still navigate
+      if (!prescriptionData.prescription || prescriptionData.prescription.trim() === "") {
+        console.warn("⚠️ No prescription data generated, navigating with empty prescription");
+      }
+
+      // Ensure loading state is reset before navigation
+      setIsGeneratingPrescription(false);
+
+      // Navigate directly to PrescriptionPreview screen (already in DoctorAppNavigation stack)
+      // Use push instead of navigate to ensure it always creates a new screen
+      try {
+        console.log("🚀 Attempting navigation to PrescriptionPreview");
+        if (navigation && typeof navigation.push === 'function') {
+          navigation.push("PrescriptionPreview", {
+            generatedPrescription: formattedPrescription,
+          });
+        } else if (navigation && typeof navigation.navigate === 'function') {
+          navigation.navigate("PrescriptionPreview", {
+            generatedPrescription: formattedPrescription,
+          });
+        } else {
+          throw new Error("Navigation object is not available");
+        }
+        console.log("✅ Navigation completed successfully");
+      } catch (navError) {
+        console.error("❌ Navigation error:", navError);
+        Alert.alert("Navigation Error", `Failed to navigate: ${navError.message}`);
+      }
+    } catch (error) {
+      console.error("❌ Failed to generate prescription:", error);
+      console.error("❌ Error details:", {
+        message: error.message,
+        stack: error.stack,
+      });
+      Alert.alert(
+        "Error",
+        error.message || "Failed to generate prescription. Please try again."
+      );
+      setIsGeneratingPrescription(false);
+    }
+  };
+
   const MobileGeneratePrescription = ({
     user,
     appointment,
@@ -285,10 +397,15 @@ const GeneratePrescription = ({ navigation, route }) => {
                 style={m.dropdownItem}
                 onPress={() => {
                   setMenuVisible(false);
-                  // NAVIGATE OR GENERATE
+                  generatePrescriptionFromMedilocker();
                 }}
+                disabled={isGeneratingPrescription}
               >
-                <Text style={m.dropdownText}>Generate Prescription</Text>
+                <Text style={m.dropdownText}>
+                  {isGeneratingPrescription
+                    ? "Generating..."
+                    : "Generate Prescription"}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -666,15 +783,17 @@ const GeneratePrescription = ({ navigation, route }) => {
                             </Text>
                           </TouchableOpacity> */}
                           <TouchableOpacity
-                            style={styles.generateButton}
-                            onPress={() =>
-                              navigation.navigate("DoctorAppNavigation", {
-                                screen: "Prescription",
-                              })
-                            }
+                            style={[
+                              styles.generateButton,
+                              isGeneratingPrescription && styles.generateButtonDisabled,
+                            ]}
+                            onPress={generatePrescriptionFromMedilocker}
+                            disabled={isGeneratingPrescription}
                           >
                             <Text style={styles.generateText}>
-                              Generate Prescription
+                              {isGeneratingPrescription
+                                ? "Generating..."
+                                : "Generate Prescription"}
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -1407,6 +1526,10 @@ const styles = StyleSheet.create({
     width: "17%",
     height: "25%",
     marginLeft: "2%",
+  },
+  generateButtonDisabled: {
+    backgroundColor: "#FF7072",
+    opacity: 0.6,
   },
   generateText: {
     color: "#FFFFFF",
