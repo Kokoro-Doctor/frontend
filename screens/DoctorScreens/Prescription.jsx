@@ -1192,13 +1192,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 6,
   },
-  specialtyText: {
-    fontSize: 14,
-    fontWeight: "400",
-    color: "#888888",
-    fontFamily: "Poppins",
-    fontStyle: "italic",
-  },
+  // specialtyText: {
+  //   fontSize: 14,
+  //   fontWeight: "400",
+  //   color: "#888888",
+  //   fontFamily: "Poppins",
+  //   fontStyle: "italic",
+  // },
   divider: {
     height: 1,
     backgroundColor: "#E0E0E0",
