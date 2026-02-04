@@ -13,7 +13,8 @@ import {
   TextInput,
   useWindowDimensions,
 } from "react-native";
-
+//yes
+import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 //import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -23,6 +24,7 @@ export default function NewMedicineLandingPagey() {
   const [medicine, setMedicine] = useState("");
   const [uploadHovered, setUploadHovered] = useState(false);
   const { width } = useWindowDimensions();
+  const navigation = useNavigation();
 
   return (
     <>
@@ -177,7 +179,15 @@ export default function NewMedicineLandingPagey() {
                       <TouchableOpacity
                         activeOpacity={0.85}
                         onPress={() => {
-                          console.log("Check medicine:", medicine);
+                          const textToSend = medicine.trim();
+
+                          navigation.navigate("PatientAppNavigation", {
+                            screen: "MobileChatbot",
+                            params: {
+                              presetPrompt: textToSend || null,
+                              source: "medicine-input",
+                            },
+                          });
                         }}
                         style={styles.checkBtn}
                       >
@@ -214,6 +224,11 @@ export default function NewMedicineLandingPagey() {
                   {/* Upload Card */}
                   <TouchableOpacity
                     activeOpacity={0.9}
+                    onPress={() => {
+                      navigation.navigate("DoctorAppNavigation", {
+                        screen: "Prescription",
+                      });
+                    }}
                     onMouseEnter={
                       Platform.OS === "web"
                         ? () => setUploadHovered(true)
@@ -256,7 +271,11 @@ export default function NewMedicineLandingPagey() {
                   {/* CTA */}
                   <TouchableOpacity
                     activeOpacity={0.9}
-                    onPress={() => {}}
+                    onPress={() => {
+                      navigation.navigate("DoctorAppNavigation", {
+                        screen: "Prescription",
+                      });
+                    }}
                     onMouseEnter={
                       Platform.OS === "web" ? () => setHovered(true) : undefined
                     }
@@ -438,6 +457,17 @@ export default function NewMedicineLandingPagey() {
 
               {/* Search button */}
               <TouchableOpacity
+                onPress={() => {
+                  const textToSend = medicine.trim();
+
+                  navigation.navigate("PatientAppNavigation", {
+                    screen: "MobileChatbot",
+                    params: {
+                      presetPrompt: textToSend || null,
+                      source: "medicine-input",
+                    },
+                  });
+                }}
                 style={{
                   width: 40,
                   height: 40,
@@ -474,7 +504,15 @@ export default function NewMedicineLandingPagey() {
             <View
               style={{ marginTop: "4%", marginLeft: "4%", marginRight: "4%" }}
             >
-              <TouchableOpacity activeOpacity={0.9} style={styles.uploadCard}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.uploadCard}
+                onPress={() => {
+                  navigation.navigate("DoctorAppNavigation", {
+                    screen: "Prescription",
+                  });
+                }}
+              >
                 <Text style={styles.uploadTitles}>
                   Upload a prescription {"\n"}or medicine strip
                 </Text>
@@ -503,6 +541,11 @@ export default function NewMedicineLandingPagey() {
                 styles.analyzeBtn,
                 { marginTop: "4%", marginLeft: "4%", marginRight: "4%" },
               ]}
+              onPress={() => {
+                navigation.navigate("DoctorAppNavigation", {
+                  screen: "Prescription",
+                });
+              }}
             >
               <LinearGradient
                 colors={["#F472B6", "#FB7185"]}
