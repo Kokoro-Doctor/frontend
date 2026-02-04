@@ -20,24 +20,22 @@ const App = () => {
   const [appType, setAppType] = useState("patient");
   const [currentRoute, setCurrentRoute] = useState(null);
 
-
   const onStateChange = () => {
-  const routeName = navigationRef.current?.getCurrentRoute()?.name;
+    const routeName = navigationRef.current?.getCurrentRoute()?.name;
 
-  if (routeName && routeNameRef.current !== routeName) {
-    routeNameRef.current = routeName;
-    setCurrentRoute(routeName);
+    if (routeName && routeNameRef.current !== routeName) {
+      routeNameRef.current = routeName;
+      setCurrentRoute(routeName);
 
-    const isDoctorRoute = routeName.startsWith("Doctor");
-    setAppType(isDoctorRoute ? "doctor" : "patient");
+      const isDoctorRoute = routeName.startsWith("Doctor");
+      setAppType(isDoctorRoute ? "doctor" : "patient");
 
-    mixpanel.track("Screen Viewed", { screen: routeName });
+      mixpanel.track("Screen Viewed", { screen: routeName });
 
-    console.log("📊 Screen tracked:", routeName);
-    console.log("🧠 appType:", isDoctorRoute ? "doctor" : "patient");
-  }
-};
-
+      console.log("📊 Screen tracked:", routeName);
+      console.log("🧠 appType:", isDoctorRoute ? "doctor" : "patient");
+    }
+  };
 
   useEffect(() => {
     initGoogleSignin();
@@ -72,7 +70,10 @@ const App = () => {
                 ref={navigationRef}
                 onStateChange={onStateChange}
               >
-                <AuthPopupProvider appType={appType} currentRoute={currentRoute}>
+                <AuthPopupProvider
+                  appType={appType}
+                  currentRoute={currentRoute}
+                >
                   <RootNavigation />
                   <ChatBotOverlay navigationRef={navigationRef} />
                 </AuthPopupProvider>

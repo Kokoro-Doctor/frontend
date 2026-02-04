@@ -697,7 +697,7 @@ const PatientAuthModal = ({
       const result = await initiateLoginHandler({
         identifier: phoneNumber,
       });
-
+      console.log("result:", result);
       // If result has access_token, this is a direct login (experimental flow - no OTP needed)
       if (result?.access_token) {
         // Get role from result (set by syncSession in AuthContext)
@@ -720,7 +720,7 @@ const PatientAuthModal = ({
               routes: [
                 {
                   name: "DoctorAppNavigation",
-                  params: { screen: "Dashboard" },
+                  params: { screen: "DoctorPortalLandingPage" },
                 },
               ],
             });
