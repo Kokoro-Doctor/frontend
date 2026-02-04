@@ -1262,7 +1262,6 @@
 //   },
 // });
 
-
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useRef, useState, useEffect } from "react";
 import {
@@ -1440,10 +1439,6 @@ export default function WelcomePage() {
           {/* ================= NAVBAR ================= */}
           <View style={styles.navbar}>
             <View style={styles.logoRow}>
-              {/* <Image
-            source={require("../../assets/Icons/newkokorologo.png")}
-            style={styles.logo}
-          /> */}
               <Image
                 source={require("../../assets/Images/KokoroLogo.png")}
                 style={styles.logo}
@@ -1454,6 +1449,21 @@ export default function WelcomePage() {
                   Trusted by doctors as their cloud clinic
                 </Text>
               </View>
+            </View>
+
+            <View style={styles.navLink}>
+              {/* <NavHoverItem label="Women's Health" /> */}
+              <NavHoverItem
+                onPress={() => {
+                  mixpanel.track("Welcome - Know your medicine Clicked", {
+                    source: "navbar",
+                    destination: "NewMedicineLandingPage",
+                  });
+
+                  navigation.navigate("NewMedicineLandingPage");
+                }}
+                label="Know Your Medicine"
+              />
             </View>
 
             <View style={styles.navLinks}>
@@ -2098,6 +2108,21 @@ export default function WelcomePage() {
               onPress={() => {
                 setMenuVisible(false);
 
+                mixpanel.track("Mobile Menu - Know your medicine Clicked", {
+                  source: "mobile-menu",
+                });
+
+                navigation.navigate("NewMedicineLandingPage");
+              }}
+            >
+              <Text style={styles.menuText}>Know Your Medicine</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+
                 mixpanel.track("Mobile Menu - Our Doctors Clicked", {
                   source: "mobile-menu",
                 });
@@ -2323,11 +2348,16 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontWeight: "500",
   },
+  navLink:{
+    left:"38%",
+    color:"#000",
+    fontWeight:600
+  },
   navLinks: {
     flexDirection: "row",
     gap: 28,
     //borderWidth:1,
-    marginLeft: "50%",
+    marginLeft: "40%",
   },
   navText: {
     color: "#6B7280",

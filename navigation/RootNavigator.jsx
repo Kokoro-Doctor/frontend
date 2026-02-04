@@ -317,6 +317,7 @@ import LandingPage from "../screens/PatientScreens/LandingPage";
 import WelcomePage from "../screens/PatientScreens/WelcomePage";
 import DoctorResultShow from "../screens/PatientScreens/Doctors/DoctorResultShow";
 import DoctorPortalLandingPage from "../screens/DoctorScreens/DoctorPortalLandingPage";
+import NewMedicineLandingPage from "../screens/NewMedicineLandingPage";
 
 // Lazy-loaded navigators
 let DoctorAppNavigation;
@@ -342,6 +343,7 @@ export const linking = {
   prefixes: ["https://kokoro.doctor", "http://localhost:8081"],
   config: {
     screens: {
+      NewMedicineLandingPage:"NewMedicinelLandingPage",
       WelcomePage: "WelcomePage",
       LandingPage: "Home",
       DoctorAppNavigation: {
@@ -473,6 +475,7 @@ const RootNavigation = () => {
           <Stack.Screen name="MobileChatbot" component={MobileChatbot} />
           <Stack.Screen name="DoctorsSignUp" component={DoctorsSignUp} />
           <Stack.Screen name="DoctorPortalLandingPage" component={DoctorPortalLandingPage}></Stack.Screen>
+          <Stack.Screen name="NewMedicineLandingPage" component={NewMedicineLandingPage}></Stack.Screen>
         </Stack.Navigator>
       </Suspense>
     </RegistrationProvider>

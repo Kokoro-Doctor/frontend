@@ -71,7 +71,8 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "PrescriptionPreview",
     "UserDashboard",
     "DoctorDashboard",
-    "WelcomePage"
+    "WelcomePage",
+    "NewMedicineLandingPage"
   ];
   const shownScreensMobile = ["LandingPage"];
 

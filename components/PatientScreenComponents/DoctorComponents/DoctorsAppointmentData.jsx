@@ -1663,7 +1663,16 @@ const DoctorAppointmentScreen = ({
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text>Loading doctors...</Text>
+        <Text
+          style={{
+            fontSize: 20,
+            fontWeight: 500,
+            color: "#000",
+            alignSelf: "center",
+          }}
+        >
+          Loading registered doctors list...
+        </Text>
       </View>
     );
   }
