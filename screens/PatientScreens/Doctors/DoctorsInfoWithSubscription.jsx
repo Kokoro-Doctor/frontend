@@ -1100,7 +1100,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
         Alert.alert(
           "Error",
           `Could not fetch doctors list.\n\nStatus: ${res.status}`,
-          [{ text: "Go Back", onPress: () => navigation.goBack() }]
+          [{ text: "Go Back", onPress: () => navigation.goBack() }],
         );
 
         setLoading(false);
@@ -1129,7 +1129,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
         Alert.alert(
           "Doctor Not Found",
           `Could not find doctor with ID: ${cleanId}`,
-          [{ text: "Go Back", onPress: () => navigation.goBack() }]
+          [{ text: "Go Back", onPress: () => navigation.goBack() }],
         );
       }
     } catch (error) {
@@ -1143,7 +1143,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
         [
           { text: "Go Back", onPress: () => navigation.goBack() },
           { text: "Retry", onPress: () => fetchDoctorById(id) },
-        ]
+        ],
       );
     } finally {
       setLoading(false);
@@ -1173,7 +1173,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
       // Method 1: Try to extract from pathname using regex
       // Expected format: /patient/Doctors/dr_666cd63f-f91c-4881-a0ed-7bfba7897612
       const pathMatch = window.location.pathname.match(
-        /\/Doctors\/([^\/\?#]+)/i
+        /\/Doctors\/([^\/\?#]+)/i,
       );
 
       if (pathMatch && pathMatch[1]) {
@@ -1192,7 +1192,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
           console.log("Path parts:", pathParts);
 
           const doctorsIndex = pathParts.findIndex(
-            (part) => part.toLowerCase() === "doctors"
+            (part) => part.toLowerCase() === "doctors",
           );
 
           if (doctorsIndex !== -1 && pathParts[doctorsIndex + 1]) {
@@ -1220,7 +1220,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
             text: "Go Back",
             onPress: () => navigation.goBack(),
           },
-        ]
+        ],
       );
       setLoading(false);
     }
@@ -1374,7 +1374,7 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                             <View style={styles.initialsAvatar}>
                               <Text style={styles.initialsText}>
                                 {getInitials(
-                                  doctors?.name || doctors?.fullName || "D"
+                                  doctors?.name || doctors?.fullName || "D",
                                 )}
                               </Text>
                             </View>
@@ -1438,8 +1438,8 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                                         i + 1 <= review.rating
                                           ? "star"
                                           : i + 0.5 <= review.rating
-                                          ? "star-half"
-                                          : "star-border"
+                                            ? "star-half"
+                                            : "star-border"
                                       }
                                       size={16}
                                       color="#FFD700"
@@ -1600,9 +1600,9 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
 
             <View style={styles.firsttext}>
               <Text style={styles.firstTextstyle}>
-                To Book Slot Of the Doctor you have to
+                To Book slot of the Doctor you have to
               </Text>
-              <Text style={styles.firstTextstyle}>first subscribe them.</Text>
+              <Text style={styles.firstTextstyle}>first Subscribe them.</Text>
             </View>
 
             <View style={styles.appSubscriptionSection}>
@@ -1747,7 +1747,6 @@ const styles = StyleSheet.create({
     marginVertical: "4%",
     alignSelf: "center",
     marginBottom: "3%",
-    borderWidth: 1,
   },
   doctorImage: {
     height: 90,
@@ -1794,6 +1793,7 @@ const styles = StyleSheet.create({
     }),
   },
   doctorDescription: {
+    padding: 14,
     height: "18%",
     width: "88%",
     alignSelf: "center",
@@ -1918,6 +1918,7 @@ const styles = StyleSheet.create({
   },
   firstTextstyle: {
     fontSize: 18,
+    textAlign: "center",
   },
   webContainer: {
     flex: 1,
@@ -2090,23 +2091,37 @@ const styles = StyleSheet.create({
   },
   appSubscriptionSection: {
     borderWidth: 1,
-    height: "52%",
+    height: "30%",
     width: "90%",
     alignSelf: "center",
     borderRadius: 10,
+    paddingTop: "1%",
+    paddingLeft: "1%",
+    paddingRight: "1%",
+    ...Platform.select({
+      android: {
+        height: "32%",
+      },
+    }),
   },
   appSubscriptionTextHead: {
     flexDirection: "row",
-    height: "12%",
+    height: "20%",
     width: "99%",
     marginTop: "1%",
-    marginLeft: "1%",
+
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
     overflow: "hidden",
     borderWidth: 1,
     alignSelf: "center",
+    ...Platform.select({
+      android: {
+        height: "18%",
+      },
+    }),
   },
+
   subscriptionTextHead: {
     flexDirection: "row",
     height: "10%",
@@ -2151,13 +2166,19 @@ const styles = StyleSheet.create({
     paddingTop: "3%",
   },
   appSubscriptionMetricsBox: {
-    height: "45%",
+    height: "52%",
     width: "98%",
     backgroundColor: "#F6F6F6",
     borderRadius: 10,
     alignSelf: "center",
     marginTop: "1%",
     paddingTop: "1%",
+    paddingLeft: "2%",
+    ...Platform.select({
+      android: {
+        height: "58%",
+      },
+    }),
   },
   metricsTitle: {
     fontSize: 13,
@@ -2187,7 +2208,12 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     alignItems: "center",
     marginTop: "3%",
-    flexDirection: "column",
+    ...Platform.select({
+      web: {
+        marginTop: "4%",
+      },
+    }),
+    // flexDirection: "column",
   },
   subscriptionTextBox: {
     height: "20%",
@@ -2215,6 +2241,7 @@ const styles = StyleSheet.create({
     marginTop: "2%",
     backgroundColor: "#FF7072",
     borderRadius: 5,
+    justifyContent: "center",
   },
   subscribeButtonText: {
     fontSize: 16,

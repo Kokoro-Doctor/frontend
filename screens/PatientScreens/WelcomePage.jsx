@@ -1340,7 +1340,7 @@ export default function WelcomePage() {
   const [activePill, setActivePill] = useState(0);
 
   const scaleAnim = useRef(
-    animatedConcerns.map(() => new Animated.Value(1))
+    animatedConcerns.map(() => new Animated.Value(1)),
   ).current;
 
   const isTyping = hasUserTyped;
@@ -1881,10 +1881,16 @@ export default function WelcomePage() {
               >
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Image
-                    source={require("../../assets/Icons/newkokorologo.png")}
-                    style={{ width: 32, height: 32, marginRight: 8 }}
+                    source={require("../../assets/Images/KokoroLogo.png")}
+                    style={{ width: 22, height: 22 }}
                   />
-                  <Text style={{ fontWeight: "700", fontSize: 16 }}>
+                  <Text
+                    style={{
+                      fontWeight: "700",
+                      fontSize: 16,
+                      marginLeft: "3%",
+                    }}
+                  >
                     Kokoro.Doctor
                   </Text>
                 </View>
@@ -2348,10 +2354,10 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontWeight: "500",
   },
-  navLink:{
-    left:"38%",
-    color:"#000",
-    fontWeight:600
+  navLink: {
+    left: "38%",
+    color: "#000",
+    fontWeight: 600,
   },
   navLinks: {
     flexDirection: "row",

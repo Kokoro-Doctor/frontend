@@ -112,7 +112,7 @@ const DoctorResultShow = ({ navigation, route }) => {
     useCallback(() => {
       // Reset chatbot height when this screen is focused
       setChatbotConfig({ height: "50%" });
-    }, [])
+    }, []),
   );
 
   // const requestLocation = () => {
@@ -302,7 +302,7 @@ const DoctorResultShow = ({ navigation, route }) => {
       {(Platform.OS !== "web" || width < 1000) && (
         <View style={styles.appContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#fff" />
-          <View style={[styles.header, { height: "12%" }]}>
+          <View style={[styles.header, { height: "12%", paddingLeft: "2%" }]}>
             <HeaderLoginSignUp navigation={navigation} />
           </View>
 
@@ -429,6 +429,7 @@ const styles = StyleSheet.create({
   },
   header: {
     zIndex: 2,
+
     ...Platform.select({
       web: {
         width: "100%",
@@ -512,31 +513,37 @@ const styles = StyleSheet.create({
 
   categoryBox: {
     width: "40%",
-    marginVertical: 6,
+
     flexDirection: "column",
     borderWidth: 1,
-    marginHorizontal: "6%",
+    borderRadius: 10,
+    marginLeft: "2%",
     ...Platform.select({
       web: {
         width: 180, // Match dropdown width
         minWidth: 180,
-        marginVertical: "1%",
+        // marginVertical: "1%",
         flexDirection: "column",
-        marginHorizontal: "1%",
+        // marginHorizontal: "1%",
+      },
+    }),
+    ...Platform.select({
+      android: {
+        marginTop: "2%",
       },
     }),
   },
   filterButton: {
-    //flexDirection: "row",
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    //borderWidth: 1,
-    borderColor: "#000",
-    paddingVertical: "1.5%",
-    paddingHorizontal: "5%",
-    borderRadius: 10,
+    borderColor: "#ccc",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 16,
     backgroundColor: "#fff",
-    width: 20,
+    width: "100%",
+
     ...Platform.select({
       web: {
         flexDirection: "row",
@@ -544,8 +551,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         //borderWidth: 1,
         borderColor: "#ccc",
-        paddingVertical: "1.5%",
-        paddingHorizontal: "2%",
+        // paddingVertical: "1.5%",
+        // paddingHorizontal: "2%",
         borderRadius: 10,
         backgroundColor: "#fff",
       },
@@ -561,7 +568,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-start",
     //alignItems: "flex-start",
-    paddingTop: "15%", // Adjust based on your layout
+    // paddingTop: "15%", // Adjust based on your layout
     paddingLeft: "5%", // Align with category button
     marginHorizontal: "0%",
     marginVertical: "40%",
@@ -573,10 +580,13 @@ const styles = StyleSheet.create({
         //backgroundColor: "rgba(0, 0, 0, 0.3)",
         justifyContent: "flex-start",
         alignItems: "flex-start",
-        paddingTop: "15%", // Adjust based on your layout
+        marginTop: windowWidth > 1000 ? "9.4%" : "12%",
+        // paddingTop: "15%", // Adjust based on your layout
         paddingLeft: "5%", // Align with category button
-        marginHorizontal: "14%",
-        marginVertical: "0%",
+        // marginHorizontal: "14%",
+        // marginVertical: "0%",
+        // marginLeft:"44%",
+        marginLeft: windowWidth > 1000 ? "28%" : "44%",
       },
     }),
   },
