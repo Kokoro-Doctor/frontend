@@ -3563,7 +3563,7 @@ const styles = StyleSheet.create({
   },
   userDetailSection: {
     borderWidth: 1,
-    height: "auto",
+    height:"auto",
     width: "98%",
     borderColor: "#fff",
     backgroundColor: "#fff",
@@ -3574,7 +3574,7 @@ const styles = StyleSheet.create({
   },
   appUserDetailSection: {
     borderWidth: 1,
-    height: "15%",
+    height: "10%",
     width: "98%",
     borderColor: "#fff",
     backgroundColor: "#fff",
@@ -4360,13 +4360,14 @@ const styles = StyleSheet.create({
   },
   appFacingIssueSection: {
     borderWidth: 1,
-    height: "18%",
+    height: "12%",
     width: "98%",
     alignSelf: "center",
     backgroundColor: "#fff",
     borderRadius: 8,
     boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
     marginBottom: "8%",
+    borderColor:"#bbbbbbff"
   },
   facingIssueInnerBox: {
     width: "97%",
