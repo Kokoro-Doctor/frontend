@@ -13,6 +13,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
+import { Pressable } from "react-native";
 
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -20,6 +21,8 @@ import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSideba
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
 import { API_URL } from "../../env-vars";
+import * as WebBrowser from "expo-web-browser";
+
 import { Ionicons } from "@expo/vector-icons";
 import {
   FetchFromServer,
@@ -37,7 +40,6 @@ const GeneratePrescription = ({ navigation, route }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState(null);
-  const [menuVisible, setMenuVisible] = useState(false);
   const [selectedFilePreview, setSelectedFilePreview] = useState(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [fileMenuVisible, setFileMenuVisible] = useState(false);
@@ -46,14 +48,15 @@ const GeneratePrescription = ({ navigation, route }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [previewUrl, setPreviewUrl] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [isGeneratingPrescription, setIsGeneratingPrescription] = useState(false);
+  const [isGeneratingPrescription, setIsGeneratingPrescription] =
+    useState(false);
 
   const { userId, doctorId, userName, appointmentDate } = route.params || {};
 
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
-    }, [setChatbotConfig])
+    }, [setChatbotConfig]),
   );
 
   // useEffect(() => {
@@ -93,7 +96,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
         // APPOINTMENT (SOURCE OF TRUTH)
         const apptRes = await fetch(
-          `${API_URL}/booking/doctors/${doctorId}/users/${userId}/latest`
+          `${API_URL}/booking/doctors/${doctorId}/users/${userId}/latest`,
         );
         const apptData = await apptRes.json();
 
@@ -129,7 +132,7 @@ const GeneratePrescription = ({ navigation, route }) => {
             console.log(
               "✨ Files state updated with",
               mappedFiles.length,
-              "files"
+              "files",
             );
           } else {
             console.warn("⚠️ No files in response");
@@ -195,6 +198,12 @@ const GeneratePrescription = ({ navigation, route }) => {
 
       if (Platform.OS === "web") {
         window.open(downloadUrl, "_blank");
+        // const link = document.createElement("a");
+        // link.href = downloadUrl;
+        // link.setAttribute("download", fileName);
+        // document.body.appendChild(link);
+        // link.click();
+        // document.body.removeChild(link);
       } else {
         await WebBrowser.openBrowserAsync(downloadUrl);
       }
@@ -243,7 +252,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
         const downloadResult = await FileSystem.downloadAsync(
           downloadUrl,
-          localUri
+          localUri,
         );
 
         if (!(await Sharing.isAvailableAsync())) {
@@ -257,7 +266,6 @@ const GeneratePrescription = ({ navigation, route }) => {
     } catch (error) {
       console.error("Sharing error:", error);
     }
-    setMenuVisible(false);
   };
 
   const generatePrescriptionFromMedilocker = async () => {
@@ -267,11 +275,14 @@ const GeneratePrescription = ({ navigation, route }) => {
     }
 
     const userIdentifier = userId || user?.user_id;
-    
+
     try {
       setIsGeneratingPrescription(true);
       console.log("🔄 Generating prescription for user:", userIdentifier);
-      console.log("📡 API URL:", `${API_URL}/medilocker/users/${userIdentifier}/prescription`);
+      console.log(
+        "📡 API URL:",
+        `${API_URL}/medilocker/users/${userIdentifier}/prescription`,
+      );
 
       const response = await fetch(
         `${API_URL}/medilocker/users/${userIdentifier}/prescription`,
@@ -280,7 +291,7 @@ const GeneratePrescription = ({ navigation, route }) => {
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       console.log("📥 Response status:", response.status, response.statusText);
@@ -289,14 +300,18 @@ const GeneratePrescription = ({ navigation, route }) => {
         const errorData = await response.json().catch(() => ({}));
         console.error("❌ API Error:", errorData);
         throw new Error(
-          errorData.detail || `Failed to generate prescription: ${response.status}`
+          errorData.detail ||
+            `Failed to generate prescription: ${response.status}`,
         );
       }
 
       const prescriptionData = await response.json();
       console.log("✅ Prescription generated:", prescriptionData);
       console.log("📄 Prescription text:", prescriptionData.prescription);
-      console.log("👤 Patient details from API (ignored in subscriber flow):", prescriptionData.patient_details);
+      console.log(
+        "👤 Patient details from API (ignored in subscriber flow):",
+        prescriptionData.patient_details,
+      );
       console.log("👤 Patient details from user object:", {
         name: user?.name,
         age: user?.age,
@@ -308,7 +323,9 @@ const GeneratePrescription = ({ navigation, route }) => {
       // In subscriber flow: Use patient details from fetched user object (auth/API), not from extracted prescription
       // Only use extracted patient_details when manually uploading documents (Prescription.jsx)
       const formattedPrescription = {
-        prescriptionReport: prescriptionData.prescription || "No prescription data available. Please add prescription details manually.",
+        prescriptionReport:
+          prescriptionData.prescription ||
+          "No prescription data available. Please add prescription details manually.",
         // Use patient details from user object (subscriber data), fallback to null if not available
         patientName: user?.name || userName || null,
         age: user?.age ? user.age.toString() : null,
@@ -323,15 +340,23 @@ const GeneratePrescription = ({ navigation, route }) => {
       };
 
       console.log("📋 Formatted prescription:", formattedPrescription);
-      console.log("📋 Prescription report length:", formattedPrescription.prescriptionReport?.length || 0);
+      console.log(
+        "📋 Prescription report length:",
+        formattedPrescription.prescriptionReport?.length || 0,
+      );
 
       console.log("🧭 Navigating to PrescriptionPreview...");
       console.log("🧭 Navigation object:", navigation);
       console.log("🧭 Prescription data being passed:", formattedPrescription);
 
       // Show warning if no prescription data, but still navigate
-      if (!prescriptionData.prescription || prescriptionData.prescription.trim() === "") {
-        console.warn("⚠️ No prescription data generated, navigating with empty prescription");
+      if (
+        !prescriptionData.prescription ||
+        prescriptionData.prescription.trim() === ""
+      ) {
+        console.warn(
+          "⚠️ No prescription data generated, navigating with empty prescription",
+        );
       }
 
       // Ensure loading state is reset before navigation
@@ -341,11 +366,11 @@ const GeneratePrescription = ({ navigation, route }) => {
       // Use push instead of navigate to ensure it always creates a new screen
       try {
         console.log("🚀 Attempting navigation to PrescriptionPreview");
-        if (navigation && typeof navigation.push === 'function') {
+        if (navigation && typeof navigation.push === "function") {
           navigation.push("PrescriptionPreview", {
             generatedPrescription: formattedPrescription,
           });
-        } else if (navigation && typeof navigation.navigate === 'function') {
+        } else if (navigation && typeof navigation.navigate === "function") {
           navigation.navigate("PrescriptionPreview", {
             generatedPrescription: formattedPrescription,
           });
@@ -355,7 +380,10 @@ const GeneratePrescription = ({ navigation, route }) => {
         console.log("✅ Navigation completed successfully");
       } catch (navError) {
         console.error("❌ Navigation error:", navError);
-        Alert.alert("Navigation Error", `Failed to navigate: ${navError.message}`);
+        Alert.alert(
+          "Navigation Error",
+          `Failed to navigate: ${navError.message}`,
+        );
       }
     } catch (error) {
       console.error("❌ Failed to generate prescription:", error);
@@ -365,7 +393,7 @@ const GeneratePrescription = ({ navigation, route }) => {
       });
       Alert.alert(
         "Error",
-        error.message || "Failed to generate prescription. Please try again."
+        error.message || "Failed to generate prescription. Please try again.",
       );
       setIsGeneratingPrescription(false);
     }
@@ -378,48 +406,13 @@ const GeneratePrescription = ({ navigation, route }) => {
     setSearchText,
   }) => {
     return (
-      <ScrollView style={m.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={m.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* PROFILE */}
         <View style={m.profileCard}>
-          {menuVisible && (
-            <View style={m.dropdown}>
-              <TouchableOpacity
-                style={m.dropdownItem}
-                onPress={() => {
-                  setMenuVisible(false);
-                  // CALL ACTION
-                }}
-              >
-                <Text style={m.dropdownText}>Call</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={m.dropdownItem}
-                onPress={() => {
-                  setMenuVisible(false);
-                  generatePrescriptionFromMedilocker();
-                }}
-                disabled={isGeneratingPrescription}
-              >
-                <Text style={m.dropdownText}>
-                  {isGeneratingPrescription
-                    ? "Generating..."
-                    : "Generate Prescription"}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={m.dropdownItem}
-                onPress={() => {
-                  setMenuVisible(false);
-                  // OPEN MEDILOCKER
-                }}
-              >
-                <Text style={m.dropdownText}>Medilocker</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
           <View style={m.profileTop}>
             <View style={m.avatar}>
               {user?.image ? (
@@ -430,32 +423,27 @@ const GeneratePrescription = ({ navigation, route }) => {
                 </Text>
               )}
             </View>
-
-            <TouchableOpacity
-              style={{ position: "absolute", marginLeft: "85%" }}
-              onPress={() => setMenuVisible(!menuVisible)}
-            >
-              <Text style={m.menu}>⋮</Text>
-            </TouchableOpacity>
           </View>
 
           <Text style={m.name}>{user?.name}</Text>
-          <Text style={m.subtitle}>(Heart Patient)</Text>
+          <Text style={m.subtitle}>(Cardiac Patient)</Text>
         </View>
 
         {/* DETAILS */}
-        <View style={m.infoCard}>
-          {/* <InfoRow label="Age" value={user?.age} /> */}
-          <View style={{ marginTop: "2%", marginLeft: "3%" }}>
-            <Text style={m.infoText}>Age</Text>
-            <Text style={m.infoTxt}>{user?.age}</Text>
-          </View>
-          <View style={{ marginTop: "5%", marginLeft: "3%" }}>
-            <Text style={m.infoText}>Gender</Text>
-            <Text style={m.infoTxt}>{user?.gender}</Text>
-          </View>
-          {/* <InfoRow label="Gender" value={user?.gender} /> */}
-        </View>
+        <TouchableOpacity
+          style={[
+            m.generateButton,
+            isGeneratingPrescription && m.generateButtonDisabled,
+          ]}
+          onPress={generatePrescriptionFromMedilocker}
+          disabled={isGeneratingPrescription}
+        >
+          <Text style={m.generateButtonText}>
+            {isGeneratingPrescription
+              ? "Generating..."
+              : "Generate Prescription"}
+          </Text>
+        </TouchableOpacity>
 
         <View style={m.infoCard}>
           {/* <InfoRow
@@ -482,6 +470,38 @@ const GeneratePrescription = ({ navigation, route }) => {
             <Text style={m.infoTxt}>Cancelled</Text>
           </View>
         </View>
+
+        {/* FILE MENU MODAL */}
+        {fileMenuVisible && selectedFileForMenu && (
+          <>
+            {/* Backdrop */}
+            <Pressable
+              style={m.backdrop}
+              onPress={() => setFileMenuVisible(false)}
+            />
+            {/* Dropdown Menu */}
+            <View style={m.floatingMenu}>
+              <Pressable
+                style={m.dropdownItem}
+                onPress={() => {
+                  setFileMenuVisible(false);
+                  downloadFile(selectedFileForMenu.name);
+                }}
+              >
+                <Text style={m.dropdownText}>Download</Text>
+              </Pressable>
+              <Pressable
+                style={m.dropdownItem}
+                onPress={() => {
+                  setFileMenuVisible(false);
+                  removeFile(selectedFileForMenu.name);
+                }}
+              >
+                <Text style={[m.dropdownText, { color: "red" }]}>Delete</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
 
         {/* DOCUMENTS */}
         <View style={m.docsCard}>
@@ -543,10 +563,14 @@ const GeneratePrescription = ({ navigation, route }) => {
           {files.length > 0 ? (
             files
               .filter((file) =>
-                file.name.toLowerCase().includes(searchQuery.toLowerCase())
+                file.name.toLowerCase().includes(searchQuery.toLowerCase()),
               )
               .map((file, i) => (
-                <TouchableOpacity key={i} style={m.fileRow}>
+                <Pressable
+                  key={i}
+                  style={m.fileRow}
+                  onPress={() => openQuickPreview(file)}
+                >
                   <Text style={m.fileIcon}>📄</Text>
 
                   <View style={{ flex: 1 }}>
@@ -556,10 +580,16 @@ const GeneratePrescription = ({ navigation, route }) => {
                     </Text>
                   </View>
 
-                  <TouchableOpacity>
+                  {/* MEATBALL MENU BUTTON */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedFileForMenu(file);
+                      setFileMenuVisible(true);
+                    }}
+                  >
                     <Text style={m.more}>⋯</Text>
                   </TouchableOpacity>
-                </TouchableOpacity>
+                </Pressable>
               ))
           ) : (
             <Text
@@ -785,7 +815,8 @@ const GeneratePrescription = ({ navigation, route }) => {
                           <TouchableOpacity
                             style={[
                               styles.generateButton,
-                              isGeneratingPrescription && styles.generateButtonDisabled,
+                              isGeneratingPrescription &&
+                                styles.generateButtonDisabled,
                             ]}
                             onPress={generatePrescriptionFromMedilocker}
                             disabled={isGeneratingPrescription}
@@ -906,7 +937,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                               .filter((file) =>
                                 file.name
                                   .toLowerCase()
-                                  .includes(searchText.toLowerCase())
+                                  .includes(searchText.toLowerCase()),
                               )
                               .map((file, index) => (
                                 <View
@@ -1219,7 +1250,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                                   selectedFilePreview.name
                                     .split(".")
                                     .pop()
-                                    .toLowerCase()
+                                    .toLowerCase(),
                                 ) &&
                                   (Platform.OS === "web" ? (
                                     <div
@@ -1293,7 +1324,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                                   selectedFilePreview.name
                                     .split(".")
                                     .pop()
-                                    .toLowerCase()
+                                    .toLowerCase(),
                                 ) && (
                                   <View
                                     style={{
@@ -1329,21 +1360,84 @@ const GeneratePrescription = ({ navigation, route }) => {
         />
       )}
 
-      {/* Overlay to close menu when clicking outside */}
-      {fileMenuVisible && (
-        <TouchableOpacity
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999,
-          }}
-          activeOpacity={1}
-          onPress={() => setFileMenuVisible(false)}
-        />
-      )}
+      {/* QUICK PREVIEW MODAL — MOBILE + WEB */}
+      {/* QUICK PREVIEW MODAL — MOBILE ONLY */}
+      {(Platform.OS !== "web" || width < 1000) &&
+        previewModalVisible &&
+        selectedFilePreview && (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0,0,0,0.9)",
+              zIndex: 9999,
+            }}
+          >
+            {/* HEADER */}
+            <View
+              style={{
+                backgroundColor: "#FF7072",
+                padding: 14,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: "600", color: "#000" }}>
+                {selectedFilePreview.name}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setPreviewModalVisible(false);
+                  setPreviewUrl(null);
+                }}
+              >
+                <Text style={{ fontSize: 16, color: "#111" }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* CONTENT */}
+            <View style={{ flex: 1, backgroundColor: "#000" }}>
+              {/* IMAGE PREVIEW */}
+              {["png", "jpg", "jpeg"].includes(
+                selectedFilePreview.name.split(".").pop().toLowerCase(),
+              ) && (
+                <ScrollView
+                  contentContainerStyle={{
+                    flexGrow: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                  maximumZoomScale={4}
+                  minimumZoomScale={1}
+                >
+                  <Image
+                    source={{ uri: previewUrl }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
+                  />
+                </ScrollView>
+              )}
+
+              {/* PDF PREVIEW */}
+              {selectedFilePreview.name.toLowerCase().endsWith(".pdf") && (
+                <Text
+                  style={{
+                    color: "#fff",
+                    textAlign: "center",
+                    marginTop: 40,
+                  }}
+                >
+                  PDF preview opens in browser
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
     </>
   );
 };
@@ -1628,7 +1722,6 @@ const m = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F6F6F6",
     padding: 16,
-    zIndex: 1,
   },
 
   profileCard: {
@@ -1637,13 +1730,11 @@ const m = StyleSheet.create({
     padding: 16,
     alignItems: "center",
     marginBottom: 12,
-    zIndex: 10,
   },
 
   profileTop: {
     width: "100%",
     flexDirection: "row",
-
     justifyContent: "center",
   },
 
@@ -1669,11 +1760,6 @@ const m = StyleSheet.create({
     color: "#FF7072",
   },
 
-  menu: {
-    fontSize: 22,
-    color: "#999",
-  },
-
   name: {
     marginTop: "3%",
     fontSize: 24,
@@ -1695,14 +1781,14 @@ const m = StyleSheet.create({
     marginBottom: 12,
     flexDirection: "column",
     borderColor: "#D6D7D8",
-    zIndex: 1,
-    // borderWidth: 1,
   },
+
   infoText: {
     fontSize: 14,
     fontWeight: "400",
     color: "#444444",
   },
+
   infoTxt: {
     fontSize: 16,
     fontWeight: "600",
@@ -1791,26 +1877,55 @@ const m = StyleSheet.create({
     color: "#444444",
     fontWeight: "800",
   },
-  dropdown: {
+
+  generateButton: {
+    backgroundColor: "#FF7072",
+    padding: 14,
+    borderRadius: 8,
+    marginVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  generateButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  generateButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+  },
+
+  backdrop: {
     position: "absolute",
-    top: 90,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+  },
+
+  floatingMenu: {
+    position: "absolute",
+    bottom: 60,
     right: 20,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 6,
-    width: 180,
-    elevation: 6, // Android shadow
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    width: 140,
+    zIndex: 101,
+    elevation: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    zIndex: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
 
   dropdownItem: {
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderBottomWidth: 0.5,
-    borderColor: "#EEE",
+    borderColor: "#eee",
   },
 
   dropdownText: {
