@@ -156,8 +156,9 @@ export const getUserIdentifier = (user, role) => {
  * @param {string} messageToSend - Message text
  * @param {string} selectedLanguage - Language code (e.g., 'en', 'hi')
  * @param {string} userId - User ID to pass to backend for history tracking (optional, extracted from user if not provided)
+ * @param {number} chatCount - Current chat count for logged-out users (optional)
  */
-export const askBot = async (user, role, messageToSend, selectedLanguage, userId = null) => {
+export const askBot = async (user, role, messageToSend, selectedLanguage, userId = null, chatCount = null) => {
   try {
     let bodyPayload;
 
@@ -204,6 +205,7 @@ export const askBot = async (user, role, messageToSend, selectedLanguage, userId
         language: selectedLanguage,
         role: normalizedRole, // Default to "patient" for anonymous users
         user_id: userIdToSend, // Will be null for anonymous users
+        chat_count: chatCount, // Pass chat count for logged-out users
       };
     }
 

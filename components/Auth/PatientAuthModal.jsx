@@ -98,7 +98,7 @@ const PatientAuthModal = ({
           duration: 1600,
           useNativeDriver: false,
         }),
-      ])
+      ]),
     ).start();
   }, [glowAnim, visible]);
 
@@ -354,7 +354,7 @@ const PatientAuthModal = ({
     if (!validatePhoneNumber(digitsOnly, signupCountryCode)) {
       const country = getCountryByCode(signupCountryCode);
       setErrorMessage(
-        `Please enter a valid mobile number for ${country.name}.`
+        `Please enter a valid mobile number for ${country.name}.`,
       );
       return false;
     }
@@ -468,14 +468,14 @@ const PatientAuthModal = ({
     if (!validatePhoneNumber(digitsOnly, signupCountryCode)) {
       const country = getCountryByCode(signupCountryCode);
       setErrorMessage(
-        `Please enter a valid mobile number for ${country.name}.`
+        `Please enter a valid mobile number for ${country.name}.`,
       );
       return;
     }
 
     const normalizedPhone = buildPhoneNumber(
       phoneNumberToUse,
-      signupCountryCode
+      signupCountryCode,
     );
     if (!normalizedPhone) {
       setErrorMessage("Please enter a valid mobile number.");
@@ -537,7 +537,7 @@ const PatientAuthModal = ({
 
   const handleCompleteProfile = async (
     phoneNumberOverride = null,
-    otpOverride = null
+    otpOverride = null,
   ) => {
     const nameToUse = fullName.trim() || undefined;
     const phoneNumberToUse =
@@ -677,7 +677,7 @@ const PatientAuthModal = ({
     if (!validatePhoneNumber(digitsOnly, loginCountryCode)) {
       const country = getCountryByCode(loginCountryCode);
       setErrorMessage(
-        `Please enter a valid mobile number for ${country.name}.`
+        `Please enter a valid mobile number for ${country.name}.`,
       );
       return;
     }
@@ -697,6 +697,7 @@ const PatientAuthModal = ({
       const result = await initiateLoginHandler({
         identifier: phoneNumber,
       });
+      console.log("result", result);
 
       // If result has access_token, this is a direct login (experimental flow - no OTP needed)
       if (result?.access_token) {
@@ -816,7 +817,7 @@ const PatientAuthModal = ({
     if (!validatePhoneNumber(digitsOnly, signupCountryCode)) {
       const country = getCountryByCode(signupCountryCode);
       setErrorMessage(
-        `Please enter a valid mobile number for ${country.name}.`
+        `Please enter a valid mobile number for ${country.name}.`,
       );
       return false;
     }
@@ -826,14 +827,14 @@ const PatientAuthModal = ({
   // Login validation: mobile number only
   const loginDigitsValid = validatePhoneNumber(
     sanitizeDigits(loginIdentifier),
-    loginCountryCode
+    loginCountryCode,
   );
   const showLoginPhoneError =
     loginIdentifier.trim().length > 0 && !loginDigitsValid;
 
   const signupDigitsValid = validatePhoneNumber(
     sanitizeDigits(signupIdentifier),
-    signupCountryCode
+    signupCountryCode,
   );
   const showSignupPhoneError =
     signupIdentifier.trim().length > 0 && !signupDigitsValid;
@@ -855,7 +856,7 @@ const PatientAuthModal = ({
       inputRange: [0, 1],
       outputRange: ["rgba(220, 25, 25, 0.96)", "rgba(24, 50, 221, 1)"],
     }),
-    shadowColor: '#ca2b2bff',
+    shadowColor: "#ca2b2bff",
     shadowOpacity: glowAnim.interpolate({
       inputRange: [0, 2],
       outputRange: [0.3, 0.8],
@@ -875,12 +876,12 @@ const PatientAuthModal = ({
               styles.glowWrapper,
               animatedBorderStyle,
               Platform.OS === "web"
-                ? { 
+                ? {
                     width: WEB_CARD_WIDTH + 6,
                     minWidth: 366,
-                    maxWidth: '90vw',
+                    maxWidth: "90vw",
                   }
-                : { 
+                : {
                     width: Dimensions.get("window").width * 0.9 + 6,
                     minWidth: 206,
                     maxWidth: 426,
@@ -978,7 +979,7 @@ const PatientAuthModal = ({
                         <TouchableOpacity
                           onPress={() =>
                             setIsLoginCountryDropdownOpen(
-                              !isLoginCountryDropdownOpen
+                              !isLoginCountryDropdownOpen,
                             )
                           }
                           style={styles.countryCodeButton}
@@ -1014,8 +1015,7 @@ const PatientAuthModal = ({
                                   }}
                                 >
                                   <Text style={styles.countryDropdownText}>
-                                    {country.flag} {country.code}{" "}
-                                    {country.name}
+                                    {country.flag} {country.code} {country.name}
                                   </Text>
                                 </TouchableOpacity>
                               ))}
@@ -1031,9 +1031,7 @@ const PatientAuthModal = ({
                         style={styles.phoneInput}
                         value={loginIdentifier}
                         onChangeText={handleLoginIdentifierChange}
-                        maxLength={
-                          getCountryByCode(loginCountryCode).maxLength
-                        }
+                        maxLength={getCountryByCode(loginCountryCode).maxLength}
                       />
                     </View>
                     {showLoginPhoneError ? (
@@ -1115,7 +1113,7 @@ const PatientAuthModal = ({
                         <TouchableOpacity
                           onPress={() =>
                             setIsSignupCountryDropdownOpen(
-                              !isSignupCountryDropdownOpen
+                              !isSignupCountryDropdownOpen,
                             )
                           }
                           style={styles.countryCodeButton}
@@ -1151,8 +1149,7 @@ const PatientAuthModal = ({
                                   }}
                                 >
                                   <Text style={styles.countryDropdownText}>
-                                    {country.flag} {country.code}{" "}
-                                    {country.name}
+                                    {country.flag} {country.code} {country.name}
                                   </Text>
                                 </TouchableOpacity>
                               ))}
@@ -1324,7 +1321,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     shadowOffset: { width: 0, height: 0 },
     elevation: 12,
-    padding:"0.2%"
+    padding: "0.2%",
   },
 
   card: {

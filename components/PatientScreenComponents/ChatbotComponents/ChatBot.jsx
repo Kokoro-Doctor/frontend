@@ -100,6 +100,8 @@ const ChatBot = () => {
   const sendMessageToBot = async () => {
     if (!userMessage.trim()) return;
 
+    let chatCount = null; // Track chat count for logged-out users
+
     // Check if user is not signed in and handle chat limit
     if (!user) {
       const CHAT_LIMIT = getChatLimit();
@@ -113,6 +115,7 @@ const ChatBot = () => {
 
       // Increment chat count for non-signed-in users (session-based)
       const newCount = await incrementChatCount();
+      chatCount = newCount; // Store the count to pass to backend
 
       // Check if we just reached the limit
       if (newCount >= CHAT_LIMIT) {
@@ -130,7 +133,9 @@ const ChatBot = () => {
             user,
             role,
             messageToSend,
-            selectedLanguage
+            selectedLanguage,
+            null,
+            chatCount
           );
           if (botReply) {
             setMessages((prevMessages) => {
@@ -198,7 +203,9 @@ const ChatBot = () => {
         user,
         role,
         messageToSend,
-        selectedLanguage
+        selectedLanguage,
+        null,
+        chatCount
       );
 
       if (botReply) {

@@ -327,7 +327,7 @@ export const initiateLogin = async ({ identifier }) => {
   // If access_token is present, this is a direct login (experimental flow)
   // Handle it the same way as loginWithOtp
   if (data?.access_token) {
-    return handleLoginResponse(data);
+    return await handleLoginResponse(data);
   }
 
   // Otherwise, return discovery response (normal flow - OTP required)
@@ -437,7 +437,7 @@ export const loginWithOtp = async ({ identifier, otp }) => {
     { identifier, otp },
     "OTP login failed"
   );
-  return handleLoginResponse(data);
+  return await handleLoginResponse(data);
 };
 
 // ================= Profile Creation =================

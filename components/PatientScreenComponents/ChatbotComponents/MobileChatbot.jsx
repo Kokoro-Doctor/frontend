@@ -1023,6 +1023,8 @@ const MobileChatbot = () => {
     // Extract user_id - will be null for non-signed-in users
     const userId = user?.id || user?.user_id || null;
 
+    let chatCount = null; // Track chat count for logged-out users
+
     // Check if user is not signed in and handle chat limit
     if (!user) {
       const CHAT_LIMIT = getChatLimit();
@@ -1036,6 +1038,7 @@ const MobileChatbot = () => {
 
       // Increment chat count for non-signed-in users (session-based)
       const newCount = await incrementChatCount();
+      chatCount = newCount; // Store the count to pass to backend
 
       // Check if we just reached the limit
       if (newCount >= CHAT_LIMIT) {
@@ -1060,7 +1063,8 @@ const MobileChatbot = () => {
             role,
             messageToSend,
             selectedLanguage.value,
-            userId
+            userId,
+            chatCount
           );
           if (botReply) {
             const botMessage = botReply.is_preview
@@ -1155,7 +1159,8 @@ const MobileChatbot = () => {
         role,
         messageToSend,
         selectedLanguage.value,
-        userId
+        userId,
+        chatCount
       );
       if (botReply) {
         const botMessage = botReply.is_preview
