@@ -573,7 +573,7 @@ const getEndTime = (startTime) => {
   const [hours, minutes] = startTime.split(":").map(Number);
   const startDate = new Date();
   startDate.setHours(hours, minutes, 0, 0);
-  startDate.setMinutes(startDate.getMinutes() + 30);
+  startDate.setMinutes(startDate.getMinutes() + 15);
   const endHours = String(startDate.getHours()).padStart(2, "0");
   const endMinutes = String(startDate.getMinutes()).padStart(2, "0");
   return `${endHours}:${endMinutes}`;
@@ -650,7 +650,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
     };
 
     loadDoctorData();
-  }, [route.params]);
+  }, [navigation, route.params]);
 
   // Get doctor identifier for API calls
   const doctorIdentifier =

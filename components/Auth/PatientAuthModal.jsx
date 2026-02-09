@@ -697,8 +697,7 @@ const PatientAuthModal = ({
       const result = await initiateLoginHandler({
         identifier: phoneNumber,
       });
-      console.log("result", result);
-
+      console.log("result:", result);
       // If result has access_token, this is a direct login (experimental flow - no OTP needed)
       if (result?.access_token) {
         // Get role from result (set by syncSession in AuthContext)
@@ -721,7 +720,7 @@ const PatientAuthModal = ({
               routes: [
                 {
                   name: "DoctorAppNavigation",
-                  params: { screen: "Dashboard" },
+                  params: { screen: "DoctorPortalLandingPage" },
                 },
               ],
             });
@@ -1062,7 +1061,8 @@ const PatientAuthModal = ({
                     ]}
                   >
                     <Text style={styles.titleHead}>
-                      Not sure whats happening? Get free AI consultation now{" "}
+                      Not sure whats happening? Get free AI consultation
+                      now{" "}
                     </Text>
                     <Text
                       style={{
@@ -1282,8 +1282,8 @@ const PatientAuthModal = ({
                     ? "Verifying & Logging In..."
                     : "Verifying & Signing Up..."
                   : otpFlow === "login"
-                  ? "Verify & Login"
-                  : "Verify & Sign Up"}
+                    ? "Verify & Login"
+                    : "Verify & Sign Up"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity

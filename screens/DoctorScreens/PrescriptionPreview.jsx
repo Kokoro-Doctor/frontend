@@ -491,7 +491,7 @@ const PrescriptionPreview = ({ navigation, route }) => {
 
             {/* Date + Doctor */}
             <View style={stylesMobile.rowBetween}>
-              <View style={{ flexDirection: "row", gap: 1 }}>
+              <View style={{ flexDirection: "row", gap: 1 ,justifyContent:"center",alignItems:"center"}}>
                 <Text style={stylesMobile.metaText}>Date : </Text>
                 {isEditMode ? (
                   <TextInput
@@ -666,10 +666,10 @@ const PrescriptionPreview = ({ navigation, route }) => {
             {/* Edit Button */}
             {!isEditMode && (
               <TouchableOpacity
-                style={stylesMobile.approveBtn}
+                style={stylesMobile.approveBtns}
                 onPress={handleEditPrescription}
               >
-                <Text style={stylesMobile.approveBtnText}>
+                <Text style={stylesMobile.approveBtnTexts}>
                   Edit Prescription
                 </Text>
               </TouchableOpacity>
@@ -1196,7 +1196,7 @@ const stylesMobile = StyleSheet.create({
   metaText: {
     fontSize: 12,
     color: "#666",
-    marginTop: 4,
+    // marginTop: 4,
   },
   secondText: {
     color: "#555555",
@@ -1254,17 +1254,34 @@ const stylesMobile = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
+  approveBtns: {
+    alignSelf: "center",
+    width: "70%",
+    backgroundColor: "#fff",
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginTop: 20,
+    alignItems: "center",
+    borderColor: "#FF7072",
+    borderWidth:2,
+  },
+  approveBtnTexts: {
+    color: "#FF7072",
+    fontWeight: "600",
+    fontSize: 14,
+  },
   mobileEditInputInline: {
+    
     fontSize: 12,
     fontWeight: "400",
     color: "#000000",
     borderWidth: 1,
     borderColor: "#E0E0E0",
     borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    // paddingHorizontal: 8,
+    // paddingVertical: 4,
     backgroundColor: "#FAFAFA",
-    minWidth: 80,
+    // minWidth: 80,
   },
   mobileEditInputSmall: {
     fontSize: 12,
