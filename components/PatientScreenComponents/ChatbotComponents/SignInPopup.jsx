@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useLoginModal } from "../../../contexts/LoginModalContext";
 
-const SignInPopup = ({ isVisible, onClose, onMaybeLater }) => {
+const SignInPopup = ({ isVisible, onClose, onMaybeLater, showStayLoggedOut = true }) => {
   const { triggerLoginModal } = useLoginModal();
 
   const handleLogin = () => {
@@ -60,12 +60,14 @@ const SignInPopup = ({ isVisible, onClose, onMaybeLater }) => {
             >
               <Text style={styles.signUpText}>Sign up for free</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.stayLoggedOutButton}
-              onPress={handleStayLoggedOut}
-            >
-              <Text style={styles.stayLoggedOutText}>Stay logged out</Text>
-            </TouchableOpacity>
+            {showStayLoggedOut && (
+              <TouchableOpacity
+                style={styles.stayLoggedOutButton}
+                onPress={handleStayLoggedOut}
+              >
+                <Text style={styles.stayLoggedOutText}>Stay logged out</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>

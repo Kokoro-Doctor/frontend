@@ -28,11 +28,14 @@ import {
   getChatLimit,
   incrementChatCount,
   resetChatCount,
+  getStayLoggedOutCount,
+  incrementStayLoggedOutCount,
+  hasExceededStayLoggedOutLimit,
+  resetStayLoggedOutCount,
 } from "../../../utils/chatLimitManager";
 import { getSessionId } from "../../../utils/sessionManager";
 import SignInPopup from "./SignInPopup";
 import FormattedMessageText from "./FormattedMessageText";
-import PreviewMessage from "./PreviewMessage";
 
 const { width } = Dimensions.get("window");
 
@@ -51,6 +54,7 @@ const ChatBot = () => {
   const typingDots = new Animated.Value(0);
   const [typingText, setTypingText] = useState(".");
   const [showSignInPopup, setShowSignInPopup] = useState(false);
+  const [showStayLoggedOutOption, setShowStayLoggedOutOption] = useState(true);
   const { user, role } = useContext(AuthContext);
 
   //Stop speaking when user refreshes the page
@@ -60,29 +64,13 @@ const ChatBot = () => {
     };
   }, []);
 
-  // Convert preview messages to full messages when user logs in
+  // Reset stay logged out count when user logs in
   useEffect(() => {
     if (user) {
-      // User just logged in - convert all preview messages to full messages
-      setMessages((prevMessages) => {
-        return prevMessages.map((msg) => {
-          if (msg.sender === "bot" && msg.is_preview && msg.full_text) {
-            // Convert preview to full message
-            return {
-              ...msg,
-              text: msg.full_text,
-              is_preview: false,
-              preview_text: undefined,
-              full_text: undefined,
-              cta_text: undefined,
-              signup_action: undefined,
-            };
-          }
-          return msg;
-        });
-      });
+      resetStayLoggedOutCount();
     }
-  }, [user]); // Trigger when user changes (logs in)
+  }, [user]);
+
 
   // Loading Typing animation
   useEffect(() => {
@@ -100,19 +88,40 @@ const ChatBot = () => {
   const sendMessageToBot = async () => {
     if (!userMessage.trim()) return;
 
+    // Track chat count for anonymous users
+    let chatCountToSend = null;
+    let newCount = null;
+
     // Check if user is not signed in and handle chat limit
     if (!user) {
       const CHAT_LIMIT = getChatLimit();
+      const sessionId = await getSessionId();
+
+      // Check if stay logged out limit exceeded - block completely
+      const hasExceededLimit = await hasExceededStayLoggedOutLimit(sessionId);
+      const currentCount = await getChatCount();
+      
+      if (hasExceededLimit && currentCount >= CHAT_LIMIT) {
+        // User has exceeded stay logged out limit and reached chat limit
+        // Show popup without "Stay logged out" option and block sending
+        setShowStayLoggedOutOption(false);
+        setShowSignInPopup(true);
+        return;
+      }
 
       // Check if limit already reached before incrementing
-      const currentCount = await getChatCount();
       if (currentCount >= CHAT_LIMIT) {
+        // Check if we should show "Stay logged out" option
+        const stayLoggedOutCount = await getStayLoggedOutCount(sessionId);
+        setShowStayLoggedOutOption(stayLoggedOutCount < 2);
         setShowSignInPopup(true);
         return;
       }
 
       // Increment chat count for non-signed-in users (session-based)
-      const newCount = await incrementChatCount();
+      newCount = await incrementChatCount();
+      chatCountToSend = newCount;
+      console.log('ChatBot - Incremented chat count to:', newCount);
 
       // Check if we just reached the limit
       if (newCount >= CHAT_LIMIT) {
@@ -130,36 +139,23 @@ const ChatBot = () => {
             user,
             role,
             messageToSend,
-            selectedLanguage
+            selectedLanguage,
+            null, // userId
+            chatCountToSend // chat_count
           );
           if (botReply) {
             setMessages((prevMessages) => {
-              const messageData = botReply.is_preview
-                ? {
-                    sender: "bot",
-                    text: botReply.preview_text || botReply.full_text,
-                    is_preview: true,
-                    preview_text: botReply.preview_text,
-                    full_text: botReply.full_text,
-                    cta_text: botReply.cta_text,
-                    signup_action: botReply.signup_action,
-                  }
-                : {
-                    sender: "bot",
-                    text: botReply.text,
-                    is_preview: false,
-                  };
+              const messageData = {
+                sender: "bot",
+                text: botReply.text,
+                is_preview: false,
+              };
               
               const updatedMessages = [...prevMessages, messageData];
               const newMessageIndex = updatedMessages.length - 1;
               setPlayingMessage(newMessageIndex);
               
-              // Only speak if not preview (or speak preview text)
-              const textToSpeak = botReply.is_preview
-                ? botReply.preview_text || botReply.full_text
-                : botReply.text;
-              
-              Speech.speak(textToSpeak, {
+              Speech.speak(botReply.text, {
                 language: selectedLanguage,
                 onDone: () => setPlayingMessage(null),
                 onStopped: () => setPlayingMessage(null),
@@ -167,7 +163,10 @@ const ChatBot = () => {
               return updatedMessages;
             });
           }
-          // Show popup after sending the 5th message
+          // Show popup after sending the 3rd message
+          // Check if we should show "Stay logged out" option
+          const stayLoggedOutCount = await getStayLoggedOutCount(sessionId);
+          setShowStayLoggedOutOption(stayLoggedOutCount < 2);
           setShowSignInPopup(true);
         } catch (error) {
           console.error("Error communicating with Bot:", error);
@@ -194,41 +193,38 @@ const ChatBot = () => {
     setIsLoading(true);
 
     try {
+      // Use already-incremented count if available, otherwise get current count
+      if (!user) {
+        if (chatCountToSend === null || chatCountToSend === undefined) {
+          chatCountToSend = await getChatCount();
+          console.log('ChatBot - Got chat count from storage:', chatCountToSend);
+        }
+        // Ensure chatCountToSend is a number
+        chatCountToSend = typeof chatCountToSend === 'number' ? chatCountToSend : parseInt(chatCountToSend, 10) || 0;
+      }
+      
       const botReply = await askBot(
         user,
         role,
         messageToSend,
-        selectedLanguage
+        selectedLanguage,
+        null, // userId
+        chatCountToSend // chat_count (for tracking, but backend ignores it for preview logic)
       );
 
       if (botReply) {
         setMessages((prevMessages) => {
-          const messageData = botReply.is_preview
-            ? {
-                sender: "bot",
-                text: botReply.preview_text || botReply.full_text,
-                is_preview: true,
-                preview_text: botReply.preview_text,
-                full_text: botReply.full_text,
-                cta_text: botReply.cta_text,
-                signup_action: botReply.signup_action,
-              }
-            : {
-                sender: "bot",
-                text: botReply.text,
-                is_preview: false,
-              };
+          const messageData = {
+            sender: "bot",
+            text: botReply.text,
+            is_preview: false,
+          };
           
           const updatedMessages = [...prevMessages, messageData];
-          const newMessageIndex = updatedMessages.length - 1; // Get the index of the latest bot message
-          setPlayingMessage(newMessageIndex); // Set playingMessage to the new message index
+          const newMessageIndex = updatedMessages.length - 1;
+          setPlayingMessage(newMessageIndex);
           
-          // Only speak if not preview (or speak preview text)
-          const textToSpeak = botReply.is_preview
-            ? botReply.preview_text || botReply.full_text
-            : botReply.text;
-          
-          Speech.speak(textToSpeak, {
+          Speech.speak(botReply.text, {
             language: selectedLanguage,
             onDone: () => setPlayingMessage(null),
             onStopped: () => setPlayingMessage(null),
@@ -301,17 +297,8 @@ const ChatBot = () => {
               : styles.botMessageBox
           }
         >
-          {item.sender === "bot" && item.is_preview ? (
-            <PreviewMessage
-              previewText={item.preview_text}
-              fullText={item.full_text}
-              ctaText={item.cta_text}
-              signupAction={item.signup_action}
-            />
-          ) : (
-            <FormattedMessageText sender={item.sender} text={item.text} />
-          )}
-          {item.sender === "bot" && !isLoading && !item.is_preview && (
+          <FormattedMessageText sender={item.sender} text={item.text} />
+          {item.sender === "bot" && !isLoading && (
             <View style={styles.botIcons}>
               <TouchableOpacity onPress={() => toggleTTS(index, item.text)}>
                 <MaterialIcons
@@ -458,11 +445,16 @@ const ChatBot = () => {
       <SignInPopup
         isVisible={showSignInPopup}
         onClose={() => setShowSignInPopup(false)}
+        showStayLoggedOut={showStayLoggedOutOption}
         onMaybeLater={async () => {
-          // Reset chat count for current session to allow 4 more chats
+          // Increment stay logged out count and reset chat count for current session
           const sessionId = await getSessionId();
           if (sessionId) {
+            await incrementStayLoggedOutCount(sessionId);
             await resetChatCount(sessionId);
+            // Update the option visibility for next time
+            const newStayLoggedOutCount = await getStayLoggedOutCount(sessionId);
+            setShowStayLoggedOutOption(newStayLoggedOutCount < 2);
           }
         }}
       />
