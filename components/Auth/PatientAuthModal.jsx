@@ -1,30 +1,29 @@
-import React, { useState, useRef, useEffect, useContext } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
-  View,
+  Animated,
+  Dimensions,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Modal,
-  Animated,
-  StyleSheet,
-  Platform,
-  Dimensions,
-  ScrollView,
+  View,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useRole } from "../../contexts/RoleContext";
-import { getErrorMessage } from "../../utils/errorUtils";
 import {
-  COUNTRY_CODES,
-  DEFAULT_COUNTRY_CODE,
-  validatePhoneNumber,
   buildFullPhoneNumber,
+  DEFAULT_COUNTRY_CODE,
   detectCountryCode,
   getCountryByCode,
+  validatePhoneNumber,
 } from "../../utils/countryCodes";
+import { getErrorMessage } from "../../utils/errorUtils";
 
 const WEB_CARD_WIDTH = 300;
 
@@ -976,7 +975,8 @@ const PatientAuthModal = ({
                     <View
                       style={[
                         styles.phoneContainer,
-                        isLoginCountryDropdownOpen && styles.phoneContainerWithDropdown,
+                        isLoginCountryDropdownOpen &&
+                          styles.phoneContainerWithDropdown,
                       ]}
                     >
                       <View style={styles.countryCodeContainer}>
@@ -1009,7 +1009,10 @@ const PatientAuthModal = ({
                               style={styles.countryDropdownScroll}
                               nestedScrollEnabled
                             >
-                              {COUNTRY_CODES.map((country) => (
+                              {[
+                                { code: "+91", name: "India", flag: "🇮🇳" },
+                                { code: "+1", name: "USA", flag: "🇺🇸" },
+                              ].map((country) => (
                                 <TouchableOpacity
                                   key={country.code}
                                   style={styles.countryDropdownItem}
@@ -1116,7 +1119,8 @@ const PatientAuthModal = ({
                     <View
                       style={[
                         styles.phoneContainer,
-                        isSignupCountryDropdownOpen && styles.phoneContainerWithDropdown,
+                        isSignupCountryDropdownOpen &&
+                          styles.phoneContainerWithDropdown,
                       ]}
                     >
                       <View style={styles.countryCodeContainer}>
@@ -1149,7 +1153,10 @@ const PatientAuthModal = ({
                               style={styles.countryDropdownScroll}
                               nestedScrollEnabled
                             >
-                              {COUNTRY_CODES.map((country) => (
+                              {[
+                                { code: "+91", name: "India", flag: "🇮🇳" },
+                                { code: "+1", name: "USA", flag: "🇺🇸" },
+                              ].map((country) => (
                                 <TouchableOpacity
                                   key={country.code}
                                   style={styles.countryDropdownItem}
