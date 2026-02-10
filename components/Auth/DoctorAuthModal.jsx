@@ -1437,7 +1437,12 @@ const DoctorAuthModal = ({
                     Mobile Number{" "}
                     <Text style={styles.requiredIndicator}>*</Text>
                   </Text>
-                  <View style={styles.phoneContainer}>
+                  <View
+                    style={[
+                      styles.phoneContainer,
+                      isLoginCountryDropdownOpen && styles.phoneContainerWithDropdown,
+                    ]}
+                  >
                     <View style={styles.countryCodeContainer}>
                       <TouchableOpacity
                         onPress={() =>
@@ -1555,7 +1560,12 @@ const DoctorAuthModal = ({
                     Mobile Number{" "}
                     <Text style={styles.requiredIndicator}>*</Text>
                   </Text>
-                  <View style={styles.phoneContainer}>
+                  <View
+                    style={[
+                      styles.phoneContainer,
+                      isSignupCountryDropdownOpen && styles.phoneContainerWithDropdown,
+                    ]}
+                  >
                     <View style={styles.countryCodeContainer}>
                       <TouchableOpacity
                         onPress={() =>
@@ -1872,6 +1882,10 @@ const styles = StyleSheet.create({
     minHeight: 50,
     backgroundColor: "#FFFFFF",
     overflow: "visible",
+    zIndex: 1,
+  },
+  phoneContainerWithDropdown: {
+    marginBottom: 220,
   },
   countryCodeContainer: {
     position: "relative",
@@ -1879,6 +1893,7 @@ const styles = StyleSheet.create({
     borderRightColor: "#DDD",
     paddingRight: 8,
     marginRight: 8,
+    zIndex: 10001,
   },
   countryCodeButton: {
     flexDirection: "row",
@@ -1903,12 +1918,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 4,
     maxHeight: 200,
-    zIndex: 1000,
+    zIndex: 10000,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 10,
   },
   countryDropdownScroll: {
     maxHeight: 200,
@@ -1942,6 +1957,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 3,
+    zIndex: 1,
   },
   disabledBtn: {
     opacity: 0.5,
