@@ -507,12 +507,12 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
 
 const styles = StyleSheet.create({
   appHeaderContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: "#transparent",
     paddingVertical: 12,
     //paddingHorizontal: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    borderColor:"#fff"
+    // borderBottomWidth: 1,
+    borderBottomColor: "#transparent",
+    borderColor: "#transparent",
   },
   modalContainer: {
     flex: 1,
@@ -533,8 +533,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
     //borderWidth:1,
-    width:"100%",
-    borderColor:"#fff"
+    width: "100%",
+    borderColor: "#fff",
   },
   logo: {
     flexDirection: "row",
@@ -739,4 +739,3 @@ const styles = StyleSheet.create({
 });
 
 export default HeaderLoginSignUp;
-
