@@ -303,12 +303,12 @@
 //       console.error("❌ fetchUpcomingAppointment EXCEPTION:", err);
 //     }
 //   };
-  
+
 //    const downloadFile = async (fileName) => {
 //       try {
 //         const data = await download(user?.user_id || user?.email, fileName);
 //         const downloadUrl = data.download_url;
-  
+
 //         if (Platform.OS === "web") {
 //           window.open(downloadUrl, "_blank");
 //         } else {
@@ -317,19 +317,18 @@
 //       } catch (error) {
 //         Alert.alert("Download Error", error.message);
 //       }
-//     }; 
+//     };
 
 //     const removeFile = async (fileName) => {
 //         try {
 //           const data = await remove(user?.user_id || user?.email, fileName);
-    
+
 //           setFiles(files.filter((file) => file.name !== fileName));
 //           Alert.alert("Deleted", `${fileName} has been removed`);
 //         } catch (error) {
 //           Alert.alert("Error", error.message);
 //         }
 //       };
-
 
 //   const shareFile = async (fileName) => {
 //     try {
@@ -2109,7 +2108,6 @@
 
 // export default UserDashboard;
 
-
 import React, { useRef, useState, useEffect } from "react";
 import {
   StyleSheet,
@@ -2132,7 +2130,11 @@ import * as DocumentPicker from "expo-document-picker";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../env-vars";
-import { FetchFromServer, download, remove } from "../../utils/MedilockerService";
+import {
+  FetchFromServer,
+  download,
+  remove,
+} from "../../utils/MedilockerService";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import * as WebBrowser from "expo-web-browser";
 import * as FileSystem from "expo-file-system";
@@ -2171,7 +2173,7 @@ const UserDashboard = ({ navigation }) => {
       }
 
       const formData = new FormData();
-      
+
       if (Platform.OS === "web") {
         formData.append("file", file);
       } else {
@@ -2190,7 +2192,7 @@ const UserDashboard = ({ navigation }) => {
           headers: {
             Accept: "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -2254,7 +2256,7 @@ const UserDashboard = ({ navigation }) => {
   // Alert polyfill for web
   const showAlert = (title, message) => {
     if (Platform.OS === "web") {
-      alert(`${title}\n${message || ''}`);
+      alert(`${title}\n${message || ""}`);
     } else {
       Alert.alert(title, message);
     }
@@ -2263,25 +2265,25 @@ const UserDashboard = ({ navigation }) => {
   // For the main document upload
   const onWebUploadChange = async (e) => {
     const files = Array.from(e.target.files);
-    
+
     if (files.length === 0) return;
-    
+
     let successCount = 0;
-    
+
     // Upload each file to server
     for (const file of files) {
       const uploaded = await uploadToServer(file);
       if (uploaded) successCount++;
     }
-    
+
     // Refresh the document list from server
     await loadFilesFromServer();
-    
+
     // Clear the input
     if (uploadInputRef.current) {
-      uploadInputRef.current.value = '';
+      uploadInputRef.current.value = "";
     }
-    
+
     if (successCount > 0) {
       showAlert("Success", `${successCount} file(s) uploaded successfully`);
     }
@@ -2315,7 +2317,7 @@ const UserDashboard = ({ navigation }) => {
     };
     if (Platform.OS !== "web") {
       return <Animated.View style={[style]}>{children}</Animated.View>;
-    };
+    }
     return (
       <Animated.View
         style={[style, { transform: [{ scale }] }]}
@@ -2329,6 +2331,7 @@ const UserDashboard = ({ navigation }) => {
   };
 
   // ------------------ Utility ------------------
+
   const getDoctorName = () =>
     doctorData?.doctor?.doctorname || doctorData?.doctorname || "—";
   const getDoctorSpecialization = () =>
@@ -2398,7 +2401,7 @@ const UserDashboard = ({ navigation }) => {
       const active = subscriptions.find(
         (sub) =>
           ["ACTIVE", "EXHAUSTED"].includes(sub.status) &&
-          isSubscriptionActiveByDate(sub.start_date, sub.end_date)
+          isSubscriptionActiveByDate(sub.start_date, sub.end_date),
       );
 
       console.log("✅ Active subscription:", active || "NONE");
@@ -2507,35 +2510,34 @@ const UserDashboard = ({ navigation }) => {
       console.error("❌ fetchUpcomingAppointment EXCEPTION:", err);
     }
   };
-  
-   const downloadFile = async (fileName) => {
-      try {
-        const data = await download(user?.user_id || user?.email, fileName);
-        const downloadUrl = data.download_url;
-  
-        if (Platform.OS === "web") {
-          window.open(downloadUrl, "_blank");
-        } else {
-          await WebBrowser.openBrowserAsync(downloadUrl);
-        }
-      } catch (error) {
-        showAlert("Download Error", error.message);
+
+  const downloadFile = async (fileName) => {
+    try {
+      const data = await download(user?.user_id || user?.email, fileName);
+      const downloadUrl = data.download_url;
+
+      if (Platform.OS === "web") {
+        window.open(downloadUrl, "_blank");
+      } else {
+        await WebBrowser.openBrowserAsync(downloadUrl);
       }
-    }; 
+    } catch (error) {
+      showAlert("Download Error", error.message);
+    }
+  };
 
-    const removeFile = async (fileName) => {
-        try {
-          const data = await remove(user?.user_id || user?.email, fileName);
-    
-          // Refresh the document list from server
-          await loadFilesFromServer();
-          
-          showAlert("Deleted", `${fileName} has been removed`);
-        } catch (error) {
-          showAlert("Error", error.message);
-        }
-      };
+  const removeFile = async (fileName) => {
+    try {
+      const data = await remove(user?.user_id || user?.email, fileName);
 
+      // Refresh the document list from server
+      await loadFilesFromServer();
+
+      showAlert("Deleted", `${fileName} has been removed`);
+    } catch (error) {
+      showAlert("Error", error.message);
+    }
+  };
 
   const shareFile = async (fileName) => {
     try {
@@ -2558,7 +2560,7 @@ const UserDashboard = ({ navigation }) => {
 
         const downloadResult = await FileSystem.downloadAsync(
           downloadUrl,
-          localUri
+          localUri,
         );
 
         if (!(await Sharing.isAvailableAsync())) {
@@ -2582,8 +2584,6 @@ const UserDashboard = ({ navigation }) => {
 
     return `${time} ${ampm}`;
   };
-
-
 
   // ------------------ User Load ------------------
   useEffect(() => {
@@ -2639,10 +2639,10 @@ const UserDashboard = ({ navigation }) => {
       });
       if (result.canceled) return;
       const file = result.assets[0];
-      
+
       // Upload to server
       const uploaded = await uploadToServer(file);
-      
+
       if (uploaded) {
         // Refresh the document list from server
         await loadFilesFromServer();
@@ -2676,7 +2676,7 @@ const UserDashboard = ({ navigation }) => {
       if (savedIssue) setIssueDocs(JSON.parse(savedIssue));
     }
   }, []);
-  
+
   useEffect(() => {
     if (Platform.OS === "web")
       localStorage.setItem("issueDocs", JSON.stringify(issueDocs));
@@ -2753,7 +2753,7 @@ const UserDashboard = ({ navigation }) => {
                             }}
                           >
                             {new Date(
-                              activeSubscription.start_date
+                              activeSubscription.start_date,
                             ).toLocaleDateString("en-IN", {
                               day: "2-digit",
                               month: "short",
@@ -2761,7 +2761,7 @@ const UserDashboard = ({ navigation }) => {
                             })}
                             {" - "}
                             {new Date(
-                              activeSubscription.end_date
+                              activeSubscription.end_date,
                             ).toLocaleDateString("en-IN", {
                               day: "2-digit",
                               month: "short",
@@ -2826,7 +2826,7 @@ const UserDashboard = ({ navigation }) => {
                       <Text style={styles.specificText}>
                         {appointmentData
                           ? `${appointmentData.date} at ${addAmPm(
-                              appointmentData.start_time
+                              appointmentData.start_time,
                             )}`
                           : "No Appointment"}
                       </Text>
@@ -2895,7 +2895,7 @@ const UserDashboard = ({ navigation }) => {
                       >
                         {appointmentData
                           ? `${appointmentData.date} at ${addAmPm(
-                              appointmentData.start_time
+                              appointmentData.start_time,
                             )}`
                           : "No Appointment"}
                       </Text>
@@ -3002,9 +3002,7 @@ const UserDashboard = ({ navigation }) => {
                           </TouchableOpacity>
 
                           {/* Share Button */}
-                          <TouchableOpacity
-                            onPress={() => shareFile(row.name)}
-                          >
+                          <TouchableOpacity onPress={() => shareFile(row.name)}>
                             <MaterialIcons
                               name="share"
                               size={24}
@@ -3087,7 +3085,7 @@ const UserDashboard = ({ navigation }) => {
                               style={styles.issueRemoveBtn}
                               onPress={() => {
                                 const updated = issueDocs.filter(
-                                  (_, i) => i !== idx
+                                  (_, i) => i !== idx,
                                 );
                                 setIssueDocs(updated);
                               }}
@@ -3166,7 +3164,7 @@ const UserDashboard = ({ navigation }) => {
                       }}
                     >
                       {new Date(
-                        activeSubscription.start_date
+                        activeSubscription.start_date,
                       ).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",
@@ -3179,7 +3177,7 @@ const UserDashboard = ({ navigation }) => {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
-                        }
+                        },
                       )}
                     </Text>
                   )}
@@ -3202,6 +3200,142 @@ const UserDashboard = ({ navigation }) => {
               </View>
             </View>
           </HoverScale>
+
+          {/* UPCOMING APPOINTMENT - Only show if user has booked */}
+          {appointmentData && (
+            <>
+              <Text style={styles.appHeadingText}>Upcoming appointment</Text>
+
+              <View style={styles.upcomingCard}>
+                {/* Doctor Row */}
+                <View style={styles.upcomingDoctorRow}>
+                  <View style={styles.upcomingDoctorLeft}>
+                    <View style={styles.upcomingDoctorImageBox}>
+                      {doctorData?.doctor?.profilePhoto ? (
+                        <Image
+                          source={{ uri: doctorData.doctor.profilePhoto }}
+                          style={styles.upcomingDoctorImage}
+                        />
+                      ) : (
+                        <Text style={styles.upcomingDoctorInitial}>
+                          {getDoctorName()?.charAt(0) || "D"}
+                        </Text>
+                      )}
+                    </View>
+
+                    <View>
+                      <Text style={styles.upcomingDoctorName}>
+                        {getDoctorName()}
+                      </Text>
+                      <Text style={styles.upcomingDoctorSpeciality}>
+                        {getDoctorSpecialization()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Confirmed Badge */}
+                  <View style={styles.confirmedBadge}>
+                    <Text style={styles.confirmedText}>Confirmed</Text>
+                  </View>
+                </View>
+
+                {/* Video Appointment Label */}
+                <Text style={styles.videoLabel}>Video appointment</Text>
+
+                {/* Date Time Pill */}
+                <View style={styles.dateTimePill}>
+                  <MaterialIcons name="calendar-today" size={14} color="#fff" />
+                  <Text style={styles.dateTimeText}>
+                    {appointmentData.date},{" "}
+                    {addAmPm(appointmentData.start_time)}
+                  </Text>
+                </View>
+
+                {/* Join Button */}
+                <TouchableOpacity
+                  style={styles.joinBtn}
+                  onPress={handleJoinCall}
+                >
+                  <MaterialIcons name="videocam" size={18} color="#fff" />
+                  <Text style={styles.joinBtnText}>Join Meeting</Text>
+                </TouchableOpacity>
+
+                {/* Reschedule */}
+                <TouchableOpacity style={styles.rescheduleBtn}>
+                  <MaterialIcons
+                    name="calendar-month"
+                    size={18}
+                    color="#408CFF"
+                  />
+                  <Text style={styles.rescheduleText}>Reschedule</Text>
+                </TouchableOpacity>
+
+                {/* Cancel */}
+                <TouchableOpacity>
+                  <Text style={styles.cancelText}>Cancel Appointment</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          {/* SUBSCRIBED DOCTORS */}
+          {activeSubscription && doctorData && (
+            <>
+              <Text style={styles.appHeadingText}>Subscribed Doctors</Text>
+
+              <View style={styles.subscribedDoctorCard}>
+                {/* Doctor Left */}
+                <View style={styles.subscribedDoctorLeft}>
+                  <View style={styles.subscribedDoctorImageBox}>
+                    {doctorData?.doctor?.profilePhoto ? (
+                      <Image
+                        source={{ uri: doctorData.doctor.profilePhoto }}
+                        style={styles.subscribedDoctorImage}
+                      />
+                    ) : (
+                      <Text style={styles.subscribedDoctorInitial}>
+                        {getDoctorName()?.charAt(0) || "D"}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.subscribedDoctorName}>
+                      {getDoctorName()}
+                    </Text>
+
+                    <Text style={styles.subscribedDoctorSpecialization}>
+                      {getDoctorSpecialization()}
+                    </Text>
+
+                    <Text style={styles.subscribedDoctorExp}>
+                      {getDoctorExperience()}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Book Slot Button */}
+                <TouchableOpacity
+                  style={styles.bookSlotBtn}
+                  onPress={() => {
+                    navigation.navigate("Doctors", {
+                      screen: "DoctorsInfoWithBooking",
+                      params: {
+                        doctorId:
+                          doctorData?.doctor?.doctor_id ||
+                          doctorData?.doctor_id ||
+                          doctorData?.id ||
+                          doctorData?.email,
+                      },
+                    });
+                  }}
+                >
+                  <Text style={styles.bookSlotText}>Book Slot</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
           <Text style={styles.appHeadingText}>Subscription Usage Stats</Text>
           <View style={styles.appCardSection}>
             <HoverScale style={styles.appCardView}>
@@ -3240,7 +3374,7 @@ const UserDashboard = ({ navigation }) => {
                 <Text style={styles.appSpecificText}>
                   {appointmentData
                     ? `${appointmentData.date} at ${addAmPm(
-                        appointmentData.start_time
+                        appointmentData.start_time,
                       )}`
                     : "No Appointment"}
                 </Text>
@@ -3257,61 +3391,6 @@ const UserDashboard = ({ navigation }) => {
               </View>
             </HoverScale>
           </View>
-          <Text style={styles.appHeadingText}>Upcoming Appointment</Text>
-          <HoverScale style={styles.appDoctorVideoAppointmentSection}>
-            <View style={styles.appDoctorDetail}>
-              <View style={styles.appDoctorImageBox}></View>
-              <View style={styles.appDoctorNameSpecializationSection}>
-                <Text style={{ margin: "1%", fontSize: 16, fontWeight: 600 }}>
-                  {getDoctorName()}
-                </Text>
-                <Text style={{ margin: "1%", fontSize: 12, color: "#777" }}>
-                  {getDoctorSpecialization()}, {getDoctorExperience()}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.appvideoCallSection}>
-              <Text style={styles.appVideoAppointmentText}>
-                Video Appointment
-              </Text>
-              <View style={styles.appvideoAppointmentDate}>
-                <Text
-                  style={{
-                    marginLeft: "5%",
-                    marginTop: "1%",
-                    fontSize: 14,
-                    color: "#f8f6f6ff",
-                  }}
-                >
-                  {appointmentData
-                    ? `${appointmentData.date} at ${addAmPm(
-                        appointmentData.start_time
-                      )}`
-                    : "No Appointment"}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.appVideoCallButton,
-                { opacity: appointmentData?.meet_link ? 1 : 0.3 },
-              ]}
-              disabled={!appointmentData?.meet_link}
-              onPress={handleJoinCall}
-            >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontWeight: "600",
-                  alignSelf: "center",
-                  fontSize: 20,
-                  marginTop: "3%",
-                }}
-              >
-                Join Call
-              </Text>
-            </TouchableOpacity>
-          </HoverScale>
 
           {/* MOBILE MEDILOCKER SECTION */}
           <Text style={styles.appHeadingText}>Your Medilocker</Text>
@@ -3555,7 +3634,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-   actionButtons: {
+  actionButtons: {
     flexDirection: "row",
     flex: 1,
     justifyContent: "center",
@@ -3563,7 +3642,7 @@ const styles = StyleSheet.create({
   },
   userDetailSection: {
     borderWidth: 1,
-    height:"auto",
+    height: "auto",
     width: "98%",
     borderColor: "#fff",
     backgroundColor: "#fff",
@@ -4138,7 +4217,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   the: {
-    marginLeft:"2.5%",
+    marginLeft: "2.5%",
     width: "12%",
     fontWeight: 600,
     fontSize: 12,
@@ -4367,7 +4446,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
     marginBottom: "8%",
-    borderColor:"#bbbbbbff"
+    borderColor: "#bbbbbbff",
   },
   facingIssueInnerBox: {
     width: "97%",
@@ -4520,6 +4599,228 @@ const styles = StyleSheet.create({
     color: "#888",
     marginTop: "0.5%",
     marginHorizontal: "1%",
+  },
+  /* SUBSCRIBED DOCTOR CARD */
+
+  subscribedDoctorCard: {
+    width: "98%",
+    alignSelf: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "3%",
+    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+  },
+
+  subscribedDoctorLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+
+  subscribedDoctorImageBox: {
+    height: 54,
+    width: 54,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    marginRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+
+  subscribedDoctorImage: {
+    height: "100%",
+    width: "100%",
+    borderRadius: 50,
+  },
+
+  subscribedDoctorInitial: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#FF7072",
+  },
+
+  subscribedDoctorName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#000",
+  },
+
+  subscribedDoctorSpecialization: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  subscribedDoctorExp: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
+  },
+
+  bookSlotBtn: {
+    backgroundColor: "#FF7072",
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+  },
+
+  bookSlotText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  /* UPCOMING APPOINTMENT CARD */
+
+  upcomingCard: {
+    width: "98%",
+    alignSelf: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: "3%",
+    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+  },
+
+  upcomingDoctorRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  upcomingDoctorLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  upcomingDoctorImageBox: {
+    height: 46,
+    width: 46,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+
+  upcomingDoctorImage: {
+    height: "100%",
+    width: "100%",
+    borderRadius: 50,
+  },
+
+  upcomingDoctorInitial: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FF7072",
+  },
+
+  upcomingDoctorName: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  upcomingDoctorSpeciality: {
+    fontSize: 12,
+    color: "#777",
+  },
+
+  /* Confirmed Badge */
+
+  confirmedBadge: {
+    backgroundColor: "#DFF5E8",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+
+  confirmedText: {
+    color: "#1BAA61",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  /* Video Label */
+
+  videoLabel: {
+    fontSize: 12,
+    color: "#555",
+    marginBottom: 6,
+  },
+
+  /* Date Time Pill */
+
+  dateTimePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#408CFF",
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    marginBottom: 14,
+    gap: 6,
+  },
+
+  dateTimeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  /* Join Button */
+
+  joinBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FF6B6B",
+    paddingVertical: 14,
+    borderRadius: 28,
+    marginBottom: 12,
+    gap: 8,
+  },
+
+  joinBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+
+  /* Reschedule */
+
+  rescheduleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#408CFF",
+    paddingVertical: 12,
+    borderRadius: 28,
+    marginBottom: 10,
+    gap: 8,
+  },
+
+  rescheduleText: {
+    color: "#408CFF",
+    fontWeight: "600",
+  },
+
+  /* Cancel */
+
+  cancelText: {
+    textAlign: "center",
+    color: "#FF4D4F",
+    fontSize: 12,
+    marginTop: 4,
   },
 });
 
