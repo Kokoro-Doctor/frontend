@@ -3257,7 +3257,7 @@ const UserDashboard = ({ navigation }) => {
                   onPress={handleJoinCall}
                 >
                   <MaterialIcons name="videocam" size={18} color="#fff" />
-                  <Text style={styles.joinBtnText}>Join Meeting</Text>
+                  <Text style={styles.joinBtnText}>Join Call</Text>
                 </TouchableOpacity>
 
                 {/* Reschedule */}

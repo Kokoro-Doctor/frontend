@@ -2018,7 +2018,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 0,
-    opacity: 0.1,
+    opacity: 0.6,
   },
   resendBtn: {
     marginTop: 12,
