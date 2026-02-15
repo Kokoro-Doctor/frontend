@@ -303,12 +303,12 @@
 //       console.error("❌ fetchUpcomingAppointment EXCEPTION:", err);
 //     }
 //   };
-  
+
 //    const downloadFile = async (fileName) => {
 //       try {
 //         const data = await download(user?.user_id || user?.email, fileName);
 //         const downloadUrl = data.download_url;
-  
+
 //         if (Platform.OS === "web") {
 //           window.open(downloadUrl, "_blank");
 //         } else {
@@ -317,19 +317,18 @@
 //       } catch (error) {
 //         Alert.alert("Download Error", error.message);
 //       }
-//     }; 
+//     };
 
 //     const removeFile = async (fileName) => {
 //         try {
 //           const data = await remove(user?.user_id || user?.email, fileName);
-    
+
 //           setFiles(files.filter((file) => file.name !== fileName));
 //           Alert.alert("Deleted", `${fileName} has been removed`);
 //         } catch (error) {
 //           Alert.alert("Error", error.message);
 //         }
 //       };
-
 
 //   const shareFile = async (fileName) => {
 //     try {
@@ -2109,7 +2108,6 @@
 
 // export default UserDashboard;
 
-
 import React, { useRef, useState, useEffect } from "react";
 import {
   StyleSheet,
@@ -2132,7 +2130,11 @@ import * as DocumentPicker from "expo-document-picker";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../env-vars";
-import { FetchFromServer, download, remove } from "../../utils/MedilockerService";
+import {
+  FetchFromServer,
+  download,
+  remove,
+} from "../../utils/MedilockerService";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import * as WebBrowser from "expo-web-browser";
 import * as FileSystem from "expo-file-system";
@@ -2171,7 +2173,7 @@ const UserDashboard = ({ navigation }) => {
       }
 
       const formData = new FormData();
-      
+
       if (Platform.OS === "web") {
         formData.append("file", file);
       } else {
@@ -2254,7 +2256,7 @@ const UserDashboard = ({ navigation }) => {
   // Alert polyfill for web
   const showAlert = (title, message) => {
     if (Platform.OS === "web") {
-      alert(`${title}\n${message || ''}`);
+      alert(`${title}\n${message || ""}`);
     } else {
       Alert.alert(title, message);
     }
@@ -2263,25 +2265,25 @@ const UserDashboard = ({ navigation }) => {
   // For the main document upload
   const onWebUploadChange = async (e) => {
     const files = Array.from(e.target.files);
-    
+
     if (files.length === 0) return;
-    
+
     let successCount = 0;
-    
+
     // Upload each file to server
     for (const file of files) {
       const uploaded = await uploadToServer(file);
       if (uploaded) successCount++;
     }
-    
+
     // Refresh the document list from server
     await loadFilesFromServer();
-    
+
     // Clear the input
     if (uploadInputRef.current) {
-      uploadInputRef.current.value = '';
+      uploadInputRef.current.value = "";
     }
-    
+
     if (successCount > 0) {
       showAlert("Success", `${successCount} file(s) uploaded successfully`);
     }
@@ -2315,7 +2317,7 @@ const UserDashboard = ({ navigation }) => {
     };
     if (Platform.OS !== "web") {
       return <Animated.View style={[style]}>{children}</Animated.View>;
-    };
+    }
     return (
       <Animated.View
         style={[style, { transform: [{ scale }] }]}
@@ -2507,35 +2509,34 @@ const UserDashboard = ({ navigation }) => {
       console.error("❌ fetchUpcomingAppointment EXCEPTION:", err);
     }
   };
-  
-   const downloadFile = async (fileName) => {
-      try {
-        const data = await download(user?.user_id || user?.email, fileName);
-        const downloadUrl = data.download_url;
-  
-        if (Platform.OS === "web") {
-          window.open(downloadUrl, "_blank");
-        } else {
-          await WebBrowser.openBrowserAsync(downloadUrl);
-        }
-      } catch (error) {
-        showAlert("Download Error", error.message);
+
+  const downloadFile = async (fileName) => {
+    try {
+      const data = await download(user?.user_id || user?.email, fileName);
+      const downloadUrl = data.download_url;
+
+      if (Platform.OS === "web") {
+        window.open(downloadUrl, "_blank");
+      } else {
+        await WebBrowser.openBrowserAsync(downloadUrl);
       }
-    }; 
+    } catch (error) {
+      showAlert("Download Error", error.message);
+    }
+  };
 
-    const removeFile = async (fileName) => {
-        try {
-          const data = await remove(user?.user_id || user?.email, fileName);
-    
-          // Refresh the document list from server
-          await loadFilesFromServer();
-          
-          showAlert("Deleted", `${fileName} has been removed`);
-        } catch (error) {
-          showAlert("Error", error.message);
-        }
-      };
+  const removeFile = async (fileName) => {
+    try {
+      const data = await remove(user?.user_id || user?.email, fileName);
 
+      // Refresh the document list from server
+      await loadFilesFromServer();
+
+      showAlert("Deleted", `${fileName} has been removed`);
+    } catch (error) {
+      showAlert("Error", error.message);
+    }
+  };
 
   const shareFile = async (fileName) => {
     try {
@@ -2582,8 +2583,6 @@ const UserDashboard = ({ navigation }) => {
 
     return `${time} ${ampm}`;
   };
-
-
 
   // ------------------ User Load ------------------
   useEffect(() => {
@@ -2639,10 +2638,10 @@ const UserDashboard = ({ navigation }) => {
       });
       if (result.canceled) return;
       const file = result.assets[0];
-      
+
       // Upload to server
       const uploaded = await uploadToServer(file);
-      
+
       if (uploaded) {
         // Refresh the document list from server
         await loadFilesFromServer();
@@ -2676,7 +2675,7 @@ const UserDashboard = ({ navigation }) => {
       if (savedIssue) setIssueDocs(JSON.parse(savedIssue));
     }
   }, []);
-  
+
   useEffect(() => {
     if (Platform.OS === "web")
       localStorage.setItem("issueDocs", JSON.stringify(issueDocs));
@@ -3002,9 +3001,7 @@ const UserDashboard = ({ navigation }) => {
                           </TouchableOpacity>
 
                           {/* Share Button */}
-                          <TouchableOpacity
-                            onPress={() => shareFile(row.name)}
-                          >
+                          <TouchableOpacity onPress={() => shareFile(row.name)}>
                             <MaterialIcons
                               name="share"
                               size={24}
@@ -3202,6 +3199,87 @@ const UserDashboard = ({ navigation }) => {
               </View>
             </View>
           </HoverScale>
+          <Text style={styles.appHeadingText}>Upcoming Appointment</Text>
+          <HoverScale style={styles.appDoctorVideoAppointmentSection}>
+            <View style={styles.appDoctorDetail}>
+              <View style={styles.appDoctorImageBox}></View>
+              <View style={styles.appDoctorNameSpecializationSection}>
+                <Text style={{ margin: "1%", fontSize: 16, fontWeight: 600 }}>
+                  {getDoctorName()}
+                </Text>
+                <Text style={{ margin: "1%", fontSize: 12, color: "#777" }}>
+                  {getDoctorSpecialization()}, {getDoctorExperience()}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.appvideoCallSection}>
+              <Text style={styles.appVideoAppointmentText}>
+                Video Appointment
+              </Text>
+              <View style={styles.appvideoAppointmentDate}>
+                <Text
+                  style={{
+                    marginLeft: "5%",
+                    marginTop: "1%",
+                    fontSize: 14,
+                    color: "#f8f6f6ff",
+                  }}
+                >
+                  {appointmentData
+                    ? `${appointmentData.date} at ${addAmPm(
+                        appointmentData.start_time
+                      )}`
+                    : "No Appointment"}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.appVideoCallButton,
+                { opacity: appointmentData?.meet_link ? 1 : 0.3 },
+              ]}
+              disabled={!appointmentData?.meet_link}
+              onPress={handleJoinCall}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontWeight: "600",
+                  alignSelf: "center",
+                  fontSize: 20,
+                  marginTop: "3%",
+                }}
+              >
+                Join Call
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.appRescheduleButton}>
+              <Text
+                style={{
+                  color: "#548de4ff",
+                  fontWeight: "500",
+                  alignSelf: "center",
+                  fontSize: 17,
+                  marginTop: "3%",
+                }}
+              >
+                Reschedule
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.appCancelButton}>
+              <Text
+                style={{
+                  color: "#d82525ff",
+                  fontWeight: "500",
+                  alignSelf: "center",
+                  fontSize: 17,
+                  marginTop: "3%",
+                }}
+              >
+                Cancel Appointment
+              </Text>
+            </TouchableOpacity>
+          </HoverScale>
           <Text style={styles.appHeadingText}>Subscription Usage Stats</Text>
           <View style={styles.appCardSection}>
             <HoverScale style={styles.appCardView}>
@@ -3257,61 +3335,6 @@ const UserDashboard = ({ navigation }) => {
               </View>
             </HoverScale>
           </View>
-          <Text style={styles.appHeadingText}>Upcoming Appointment</Text>
-          <HoverScale style={styles.appDoctorVideoAppointmentSection}>
-            <View style={styles.appDoctorDetail}>
-              <View style={styles.appDoctorImageBox}></View>
-              <View style={styles.appDoctorNameSpecializationSection}>
-                <Text style={{ margin: "1%", fontSize: 16, fontWeight: 600 }}>
-                  {getDoctorName()}
-                </Text>
-                <Text style={{ margin: "1%", fontSize: 12, color: "#777" }}>
-                  {getDoctorSpecialization()}, {getDoctorExperience()}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.appvideoCallSection}>
-              <Text style={styles.appVideoAppointmentText}>
-                Video Appointment
-              </Text>
-              <View style={styles.appvideoAppointmentDate}>
-                <Text
-                  style={{
-                    marginLeft: "5%",
-                    marginTop: "1%",
-                    fontSize: 14,
-                    color: "#f8f6f6ff",
-                  }}
-                >
-                  {appointmentData
-                    ? `${appointmentData.date} at ${addAmPm(
-                        appointmentData.start_time
-                      )}`
-                    : "No Appointment"}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.appVideoCallButton,
-                { opacity: appointmentData?.meet_link ? 1 : 0.3 },
-              ]}
-              disabled={!appointmentData?.meet_link}
-              onPress={handleJoinCall}
-            >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontWeight: "600",
-                  alignSelf: "center",
-                  fontSize: 20,
-                  marginTop: "3%",
-                }}
-              >
-                Join Call
-              </Text>
-            </TouchableOpacity>
-          </HoverScale>
 
           {/* MOBILE MEDILOCKER SECTION */}
           <Text style={styles.appHeadingText}>Your Medilocker</Text>
@@ -3555,7 +3578,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-   actionButtons: {
+  actionButtons: {
     flexDirection: "row",
     flex: 1,
     justifyContent: "center",
@@ -3563,7 +3586,7 @@ const styles = StyleSheet.create({
   },
   userDetailSection: {
     borderWidth: 1,
-    height:"auto",
+    height: "auto",
     width: "98%",
     borderColor: "#fff",
     backgroundColor: "#fff",
@@ -3594,7 +3617,7 @@ const styles = StyleSheet.create({
   appUserImageBox: {
     borderWidth: 1,
     height: "32%",
-    width: "13%",
+    width: "15%",
     marginVertical: "1%",
     marginHorizontal: "0.5%",
     borderColor: "#c8c7c7ff",
@@ -3841,7 +3864,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   appDoctorVideoAppointmentSection: {
-    minHeight: 170,
+    minHeight: 370,
     height: "auto",
     width: "98%",
     backgroundColor: "#fff",
@@ -3857,9 +3880,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   appDoctorDetail: {
-    height: "37%",
+    height: "27%",
     width: "100%",
     flexDirection: "row",
+    //borderWidth:1
   },
   doctorImageBox: {
     borderWidth: 1,
@@ -3871,8 +3895,8 @@ const styles = StyleSheet.create({
   },
   appDoctorImageBox: {
     borderWidth: 1,
-    height: "68%",
-    width: "13%",
+    height: "50%",
+    width: "15%",
     marginVertical: "2%",
     marginHorizontal: "2%",
     borderColor: "#c8c7c7ff",
@@ -3901,9 +3925,9 @@ const styles = StyleSheet.create({
   },
   appvideoCallSection: {
     borderWidth: 2,
-    height: "30%",
+    height: "27%",
     width: "80%",
-    marginVertical: "1%",
+    marginVertical: "0%",
     marginHorizontal: "1.5%",
     borderRadius: 5,
     borderColor: "#eceaeaff",
@@ -3948,6 +3972,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#408CFF",
     marginHorizontal: "1.5%",
     borderRadius: 5,
+    marginVertical:"3%"
   },
 
   videoCallButton: {
@@ -3963,11 +3988,34 @@ const styles = StyleSheet.create({
   appVideoCallButton: {
     backgroundColor: "#FF7072",
     color: "#fff",
-    height: "25%",
-    width: "70%",
-    borderRadius: 5,
+    height: "12%",
+    width: "78%",
+    borderRadius: 20,
     alignSelf: "center",
     textAlign: "center",
+    marginTop:"3%",
+  },
+  appRescheduleButton:{
+    backgroundColor: "#fff",
+    height: "12%",
+    width: "78%",
+    borderRadius: 20,
+    alignSelf: "center",
+    textAlign: "center",
+    borderWidth:1,
+    marginTop:"3%",
+    borderColor:"#adacacff"
+  },
+  appCancelButton:{
+    backgroundColor: "#fff",
+    height: "12%",
+    width: "78%",
+    borderRadius: 20,
+    alignSelf: "center",
+    textAlign: "center",
+    marginTop:"3%",
+    borderColor:"#adacacff",
+    //borderWidth:1
   },
 
   medilockerSection: {
@@ -4138,7 +4186,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   the: {
-    marginLeft:"2.5%",
+    marginLeft: "2.5%",
     width: "12%",
     fontWeight: 600,
     fontSize: 12,
@@ -4367,7 +4415,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
     marginBottom: "8%",
-    borderColor:"#bbbbbbff"
+    borderColor: "#bbbbbbff",
   },
   facingIssueInnerBox: {
     width: "97%",

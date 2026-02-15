@@ -17,9 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-const { width: screenWidth } = Dimensions.get("window");
-const isLaptopScreen = screenWidth > 768;
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatbot } from "../../../contexts/ChatbotContext";
 import { askBot } from "../../../utils/ChatBotService";
@@ -33,6 +30,9 @@ import { getSessionId } from "../../../utils/sessionManager";
 import SignInPopup from "./SignInPopup";
 import FormattedMessageText from "./FormattedMessageText";
 import PreviewMessage from "./PreviewMessage";
+
+const { width: screenWidth } = Dimensions.get("window");
+const isLaptopScreen = screenWidth > 768;
 
 const { width } = Dimensions.get("window");
 
