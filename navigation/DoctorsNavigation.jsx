@@ -32,6 +32,7 @@ import GeneratePrescription from "../screens/DoctorScreens/GeneratePrescription"
 import DrCalendarView from "../screens/DoctorScreens/DrCalendarView";
 import DoctorDashboard from "../screens/DoctorScreens/DoctorDashboard";
 import WelcomePage from "../screens/PatientScreens/WelcomePage";
+import DoctorSettings from "../screens/DoctorScreens/DoctorSettings";
 
 const Stack = createNativeStackNavigator();
 
@@ -64,7 +65,7 @@ const DoctorAppNavigation = ({ navigation }) => {
           });
         }
       }
-    }, [user, role, isLoading, navigation])
+    }, [user, role, isLoading, navigation]),
   );
 
   return (
@@ -172,6 +173,11 @@ const DoctorAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="AccountSettings"
           component={AccountSettings}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DoctorSettings"
+          component={DoctorSettings}
           options={{ headerShown: false }}
         />
 

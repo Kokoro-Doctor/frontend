@@ -2192,7 +2192,7 @@ const UserDashboard = ({ navigation }) => {
           headers: {
             Accept: "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -2331,6 +2331,7 @@ const UserDashboard = ({ navigation }) => {
   };
 
   // ------------------ Utility ------------------
+
   const getDoctorName = () =>
     doctorData?.doctor?.doctorname || doctorData?.doctorname || "—";
   const getDoctorSpecialization = () =>
@@ -2400,7 +2401,7 @@ const UserDashboard = ({ navigation }) => {
       const active = subscriptions.find(
         (sub) =>
           ["ACTIVE", "EXHAUSTED"].includes(sub.status) &&
-          isSubscriptionActiveByDate(sub.start_date, sub.end_date)
+          isSubscriptionActiveByDate(sub.start_date, sub.end_date),
       );
 
       console.log("✅ Active subscription:", active || "NONE");
@@ -2559,7 +2560,7 @@ const UserDashboard = ({ navigation }) => {
 
         const downloadResult = await FileSystem.downloadAsync(
           downloadUrl,
-          localUri
+          localUri,
         );
 
         if (!(await Sharing.isAvailableAsync())) {
@@ -2752,7 +2753,7 @@ const UserDashboard = ({ navigation }) => {
                             }}
                           >
                             {new Date(
-                              activeSubscription.start_date
+                              activeSubscription.start_date,
                             ).toLocaleDateString("en-IN", {
                               day: "2-digit",
                               month: "short",
@@ -2760,7 +2761,7 @@ const UserDashboard = ({ navigation }) => {
                             })}
                             {" - "}
                             {new Date(
-                              activeSubscription.end_date
+                              activeSubscription.end_date,
                             ).toLocaleDateString("en-IN", {
                               day: "2-digit",
                               month: "short",
@@ -2825,7 +2826,7 @@ const UserDashboard = ({ navigation }) => {
                       <Text style={styles.specificText}>
                         {appointmentData
                           ? `${appointmentData.date} at ${addAmPm(
-                              appointmentData.start_time
+                              appointmentData.start_time,
                             )}`
                           : "No Appointment"}
                       </Text>
@@ -2894,7 +2895,7 @@ const UserDashboard = ({ navigation }) => {
                       >
                         {appointmentData
                           ? `${appointmentData.date} at ${addAmPm(
-                              appointmentData.start_time
+                              appointmentData.start_time,
                             )}`
                           : "No Appointment"}
                       </Text>
@@ -3084,7 +3085,7 @@ const UserDashboard = ({ navigation }) => {
                               style={styles.issueRemoveBtn}
                               onPress={() => {
                                 const updated = issueDocs.filter(
-                                  (_, i) => i !== idx
+                                  (_, i) => i !== idx,
                                 );
                                 setIssueDocs(updated);
                               }}
@@ -3163,7 +3164,7 @@ const UserDashboard = ({ navigation }) => {
                       }}
                     >
                       {new Date(
-                        activeSubscription.start_date
+                        activeSubscription.start_date,
                       ).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",
@@ -3176,7 +3177,7 @@ const UserDashboard = ({ navigation }) => {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
-                        }
+                        },
                       )}
                     </Text>
                   )}
@@ -3199,87 +3200,142 @@ const UserDashboard = ({ navigation }) => {
               </View>
             </View>
           </HoverScale>
-          <Text style={styles.appHeadingText}>Upcoming Appointment</Text>
-          <HoverScale style={styles.appDoctorVideoAppointmentSection}>
-            <View style={styles.appDoctorDetail}>
-              <View style={styles.appDoctorImageBox}></View>
-              <View style={styles.appDoctorNameSpecializationSection}>
-                <Text style={{ margin: "1%", fontSize: 16, fontWeight: 600 }}>
-                  {getDoctorName()}
-                </Text>
-                <Text style={{ margin: "1%", fontSize: 12, color: "#777" }}>
-                  {getDoctorSpecialization()}, {getDoctorExperience()}
-                </Text>
+
+          {/* UPCOMING APPOINTMENT - Only show if user has booked */}
+          {appointmentData && (
+            <>
+              <Text style={styles.appHeadingText}>Upcoming appointment</Text>
+
+              <View style={styles.upcomingCard}>
+                {/* Doctor Row */}
+                <View style={styles.upcomingDoctorRow}>
+                  <View style={styles.upcomingDoctorLeft}>
+                    <View style={styles.upcomingDoctorImageBox}>
+                      {doctorData?.doctor?.profilePhoto ? (
+                        <Image
+                          source={{ uri: doctorData.doctor.profilePhoto }}
+                          style={styles.upcomingDoctorImage}
+                        />
+                      ) : (
+                        <Text style={styles.upcomingDoctorInitial}>
+                          {getDoctorName()?.charAt(0) || "D"}
+                        </Text>
+                      )}
+                    </View>
+
+                    <View>
+                      <Text style={styles.upcomingDoctorName}>
+                        {getDoctorName()}
+                      </Text>
+                      <Text style={styles.upcomingDoctorSpeciality}>
+                        {getDoctorSpecialization()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Confirmed Badge */}
+                  <View style={styles.confirmedBadge}>
+                    <Text style={styles.confirmedText}>Confirmed</Text>
+                  </View>
+                </View>
+
+                {/* Video Appointment Label */}
+                <Text style={styles.videoLabel}>Video appointment</Text>
+
+                {/* Date Time Pill */}
+                <View style={styles.dateTimePill}>
+                  <MaterialIcons name="calendar-today" size={14} color="#fff" />
+                  <Text style={styles.dateTimeText}>
+                    {appointmentData.date},{" "}
+                    {addAmPm(appointmentData.start_time)}
+                  </Text>
+                </View>
+
+                {/* Join Button */}
+                <TouchableOpacity
+                  style={styles.joinBtn}
+                  onPress={handleJoinCall}
+                >
+                  <MaterialIcons name="videocam" size={18} color="#fff" />
+                  <Text style={styles.joinBtnText}>Join Call</Text>
+                </TouchableOpacity>
+
+                {/* Reschedule */}
+                <TouchableOpacity style={styles.rescheduleBtn}>
+                  <MaterialIcons
+                    name="calendar-month"
+                    size={18}
+                    color="#408CFF"
+                  />
+                  <Text style={styles.rescheduleText}>Reschedule</Text>
+                </TouchableOpacity>
+
+                {/* Cancel */}
+                <TouchableOpacity>
+                  <Text style={styles.cancelText}>Cancel Appointment</Text>
+                </TouchableOpacity>
               </View>
-            </View>
-            <View style={styles.appvideoCallSection}>
-              <Text style={styles.appVideoAppointmentText}>
-                Video Appointment
-              </Text>
-              <View style={styles.appvideoAppointmentDate}>
-                <Text
-                  style={{
-                    marginLeft: "5%",
-                    marginTop: "1%",
-                    fontSize: 14,
-                    color: "#f8f6f6ff",
+            </>
+          )}
+
+          {/* SUBSCRIBED DOCTORS */}
+          {activeSubscription && doctorData && (
+            <>
+              <Text style={styles.appHeadingText}>Subscribed Doctors</Text>
+
+              <View style={styles.subscribedDoctorCard}>
+                {/* Doctor Left */}
+                <View style={styles.subscribedDoctorLeft}>
+                  <View style={styles.subscribedDoctorImageBox}>
+                    {doctorData?.doctor?.profilePhoto ? (
+                      <Image
+                        source={{ uri: doctorData.doctor.profilePhoto }}
+                        style={styles.subscribedDoctorImage}
+                      />
+                    ) : (
+                      <Text style={styles.subscribedDoctorInitial}>
+                        {getDoctorName()?.charAt(0) || "D"}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.subscribedDoctorName}>
+                      {getDoctorName()}
+                    </Text>
+
+                    <Text style={styles.subscribedDoctorSpecialization}>
+                      {getDoctorSpecialization()}
+                    </Text>
+
+                    <Text style={styles.subscribedDoctorExp}>
+                      {getDoctorExperience()}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Book Slot Button */}
+                <TouchableOpacity
+                  style={styles.bookSlotBtn}
+                  onPress={() => {
+                    navigation.navigate("Doctors", {
+                      screen: "DoctorsInfoWithBooking",
+                      params: {
+                        doctorId:
+                          doctorData?.doctor?.doctor_id ||
+                          doctorData?.doctor_id ||
+                          doctorData?.id ||
+                          doctorData?.email,
+                      },
+                    });
                   }}
                 >
-                  {appointmentData
-                    ? `${appointmentData.date} at ${addAmPm(
-                        appointmentData.start_time
-                      )}`
-                    : "No Appointment"}
-                </Text>
+                  <Text style={styles.bookSlotText}>Book Slot</Text>
+                </TouchableOpacity>
               </View>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.appVideoCallButton,
-                { opacity: appointmentData?.meet_link ? 1 : 0.3 },
-              ]}
-              disabled={!appointmentData?.meet_link}
-              onPress={handleJoinCall}
-            >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontWeight: "600",
-                  alignSelf: "center",
-                  fontSize: 20,
-                  marginTop: "3%",
-                }}
-              >
-                Join Call
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.appRescheduleButton}>
-              <Text
-                style={{
-                  color: "#548de4ff",
-                  fontWeight: "500",
-                  alignSelf: "center",
-                  fontSize: 17,
-                  marginTop: "3%",
-                }}
-              >
-                Reschedule
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.appCancelButton}>
-              <Text
-                style={{
-                  color: "#d82525ff",
-                  fontWeight: "500",
-                  alignSelf: "center",
-                  fontSize: 17,
-                  marginTop: "3%",
-                }}
-              >
-                Cancel Appointment
-              </Text>
-            </TouchableOpacity>
-          </HoverScale>
+            </>
+          )}
+
           <Text style={styles.appHeadingText}>Subscription Usage Stats</Text>
           <View style={styles.appCardSection}>
             <HoverScale style={styles.appCardView}>
@@ -3318,7 +3374,7 @@ const UserDashboard = ({ navigation }) => {
                 <Text style={styles.appSpecificText}>
                   {appointmentData
                     ? `${appointmentData.date} at ${addAmPm(
-                        appointmentData.start_time
+                        appointmentData.start_time,
                       )}`
                     : "No Appointment"}
                 </Text>
@@ -4568,6 +4624,228 @@ const styles = StyleSheet.create({
     color: "#888",
     marginTop: "0.5%",
     marginHorizontal: "1%",
+  },
+  /* SUBSCRIBED DOCTOR CARD */
+
+  subscribedDoctorCard: {
+    width: "98%",
+    alignSelf: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "3%",
+    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+  },
+
+  subscribedDoctorLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+
+  subscribedDoctorImageBox: {
+    height: 54,
+    width: 54,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    marginRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+
+  subscribedDoctorImage: {
+    height: "100%",
+    width: "100%",
+    borderRadius: 50,
+  },
+
+  subscribedDoctorInitial: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#FF7072",
+  },
+
+  subscribedDoctorName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#000",
+  },
+
+  subscribedDoctorSpecialization: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  subscribedDoctorExp: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
+  },
+
+  bookSlotBtn: {
+    backgroundColor: "#FF7072",
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+  },
+
+  bookSlotText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  /* UPCOMING APPOINTMENT CARD */
+
+  upcomingCard: {
+    width: "98%",
+    alignSelf: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: "3%",
+    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+  },
+
+  upcomingDoctorRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  upcomingDoctorLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  upcomingDoctorImageBox: {
+    height: 46,
+    width: 46,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+
+  upcomingDoctorImage: {
+    height: "100%",
+    width: "100%",
+    borderRadius: 50,
+  },
+
+  upcomingDoctorInitial: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FF7072",
+  },
+
+  upcomingDoctorName: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  upcomingDoctorSpeciality: {
+    fontSize: 12,
+    color: "#777",
+  },
+
+  /* Confirmed Badge */
+
+  confirmedBadge: {
+    backgroundColor: "#DFF5E8",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+
+  confirmedText: {
+    color: "#1BAA61",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  /* Video Label */
+
+  videoLabel: {
+    fontSize: 12,
+    color: "#555",
+    marginBottom: 6,
+  },
+
+  /* Date Time Pill */
+
+  dateTimePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#408CFF",
+    alignSelf: "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    marginBottom: 14,
+    gap: 6,
+  },
+
+  dateTimeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  /* Join Button */
+
+  joinBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FF6B6B",
+    paddingVertical: 14,
+    borderRadius: 28,
+    marginBottom: 12,
+    gap: 8,
+  },
+
+  joinBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+
+  /* Reschedule */
+
+  rescheduleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#408CFF",
+    paddingVertical: 12,
+    borderRadius: 28,
+    marginBottom: 10,
+    gap: 8,
+  },
+
+  rescheduleText: {
+    color: "#408CFF",
+    fontWeight: "600",
+  },
+
+  /* Cancel */
+
+  cancelText: {
+    textAlign: "center",
+    color: "#FF4D4F",
+    fontSize: 12,
+    marginTop: 4,
   },
 });
 

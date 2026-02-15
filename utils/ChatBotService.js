@@ -156,8 +156,9 @@ export const getUserIdentifier = (user, role) => {
  * @param {string} messageToSend - Message text
  * @param {string} selectedLanguage - Language code (e.g., 'en', 'hi')
  * @param {string} userId - User ID to pass to backend for history tracking (optional, extracted from user if not provided)
+ * @param {number} chatCount - Current chat count for anonymous users (optional)
  */
-export const askBot = async (user, role, messageToSend, selectedLanguage, userId = null) => {
+export const askBot = async (user, role, messageToSend, selectedLanguage, userId = null, chatCount = null) => {
   try {
     let bodyPayload;
 
@@ -198,13 +199,22 @@ export const askBot = async (user, role, messageToSend, selectedLanguage, userId
       if (!sessionId) {
         console.warn('getSessionId() returned no session ID. Check implementation.');
       }
+      // Ensure chatCount is a number or null
+      const chatCountToSend = (chatCount !== null && chatCount !== undefined && !isNaN(chatCount)) 
+        ? Number(chatCount) 
+        : null;
+      
       bodyPayload = {
         session_id: sessionId,
         message: messageToSend,
         language: selectedLanguage,
         role: normalizedRole, // Default to "patient" for anonymous users
         user_id: userIdToSend, // Will be null for anonymous users
+        chat_count: chatCountToSend, // Pass chat count for anonymous users
       };
+      
+      // Debug logging
+      console.log('ChatBotService - Sending chat request with chat_count:', bodyPayload.chat_count, 'type:', typeof bodyPayload.chat_count);
     }
 
     const response = await fetch(`${API_URL}/chat`, {
@@ -219,29 +229,11 @@ export const askBot = async (user, role, messageToSend, selectedLanguage, userId
 
     const botReply = await response.json();
     
-    // Normalize response format - support both legacy and new formats
-    if (botReply.text) {
-      // Legacy format: logged-in user or old API version
-      return {
-        text: botReply.text,
-        is_preview: false
-      };
-    } else if (botReply.is_preview) {
-      // New preview format
-      return {
-        preview_text: botReply.preview_text,
-        full_text: botReply.full_text,
-        is_preview: true,
-        cta_text: botReply.cta_text || "See full answer",
-        signup_action: botReply.signup_action || "signup"
-      };
-    } else {
-      // Fallback: try to extract text from any field
-      return {
-        text: botReply.preview_text || botReply.full_text || "Sorry, I couldn't process that.",
-        is_preview: false
-      };
-    }
+    // Always return full response format
+    return {
+      text: botReply.text || "Sorry, I couldn't process that.",
+      is_preview: false
+    };
   } catch (error) {
     console.error("Error communicating with Bot:", error);
     throw error;

@@ -786,33 +786,32 @@
 
 // export default DoctorSignupModal;
 
-import React, { useState, useRef, useEffect, useContext } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
-  View,
+  Animated,
+  Dimensions,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Modal,
-  Animated,
-  StyleSheet,
-  Platform,
-  Dimensions,
-  ScrollView,
+  View,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useRole } from "../../contexts/RoleContext";
-import { getErrorMessage } from "../../utils/errorUtils";
 import {
-  COUNTRY_CODES,
-  DEFAULT_COUNTRY_CODE,
-  validatePhoneNumber,
   buildFullPhoneNumber,
+  DEFAULT_COUNTRY_CODE,
   detectCountryCode,
   getCountryByCode,
+  validatePhoneNumber,
 } from "../../utils/countryCodes";
+import { getErrorMessage } from "../../utils/errorUtils";
 
 const WEB_CARD_WIDTH = 300;
 
@@ -1130,14 +1129,14 @@ const DoctorAuthModal = ({
     if (!validatePhoneNumber(digitsOnly, signupCountryCode)) {
       const country = getCountryByCode(signupCountryCode);
       setErrorMessage(
-        `Please enter a valid mobile number for ${country.name}.`
+        `Please enter a valid mobile number for ${country.name}.`,
       );
       return;
     }
 
     const normalizedPhone = buildPhoneNumber(
       phoneNumberToUse,
-      signupCountryCode
+      signupCountryCode,
     );
     if (!normalizedPhone) {
       setErrorMessage("Please enter a valid mobile number.");
@@ -1212,7 +1211,7 @@ const DoctorAuthModal = ({
     if (!validatePhoneNumber(digitsOnly, loginCountryCode)) {
       const country = getCountryByCode(loginCountryCode);
       setErrorMessage(
-        `Please enter a valid mobile number for ${country.name}.`
+        `Please enter a valid mobile number for ${country.name}.`,
       );
       return;
     }
@@ -1310,7 +1309,7 @@ const DoctorAuthModal = ({
     if (!validatePhoneNumber(digitsOnly, signupCountryCode)) {
       const country = getCountryByCode(signupCountryCode);
       setErrorMessage(
-        `Please enter a valid mobile number for ${country.name}.`
+        `Please enter a valid mobile number for ${country.name}.`,
       );
       return false;
     }
@@ -1326,14 +1325,14 @@ const DoctorAuthModal = ({
 
   const loginDigitsValid = validatePhoneNumber(
     sanitizeDigits(loginIdentifier),
-    loginCountryCode
+    loginCountryCode,
   );
   const showLoginPhoneError =
     loginIdentifier.trim().length > 0 && !loginDigitsValid;
 
   const signupDigitsValid = validatePhoneNumber(
     sanitizeDigits(signupIdentifier),
-    signupCountryCode
+    signupCountryCode,
   );
   const showSignupPhoneError =
     signupIdentifier.trim().length > 0 && !signupDigitsValid;
@@ -1437,12 +1436,18 @@ const DoctorAuthModal = ({
                     Mobile Number{" "}
                     <Text style={styles.requiredIndicator}>*</Text>
                   </Text>
-                  <View style={styles.phoneContainer}>
+                  <View
+                    style={[
+                      styles.phoneContainer,
+                      isLoginCountryDropdownOpen &&
+                        styles.phoneContainerWithDropdown,
+                    ]}
+                  >
                     <View style={styles.countryCodeContainer}>
                       <TouchableOpacity
                         onPress={() =>
                           setIsLoginCountryDropdownOpen(
-                            !isLoginCountryDropdownOpen
+                            !isLoginCountryDropdownOpen,
                           )
                         }
                         style={styles.countryCodeButton}
@@ -1468,7 +1473,10 @@ const DoctorAuthModal = ({
                             style={styles.countryDropdownScroll}
                             nestedScrollEnabled
                           >
-                            {COUNTRY_CODES.map((country) => (
+                            {[
+                              { code: "+91", name: "India", flag: "🇮🇳" },
+                              { code: "+1", name: "USA", flag: "🇺🇸" },
+                            ].map((country) => (
                               <TouchableOpacity
                                 key={country.code}
                                 style={styles.countryDropdownItem}
@@ -1555,12 +1563,18 @@ const DoctorAuthModal = ({
                     Mobile Number{" "}
                     <Text style={styles.requiredIndicator}>*</Text>
                   </Text>
-                  <View style={styles.phoneContainer}>
+                  <View
+                    style={[
+                      styles.phoneContainer,
+                      isSignupCountryDropdownOpen &&
+                        styles.phoneContainerWithDropdown,
+                    ]}
+                  >
                     <View style={styles.countryCodeContainer}>
                       <TouchableOpacity
                         onPress={() =>
                           setIsSignupCountryDropdownOpen(
-                            !isSignupCountryDropdownOpen
+                            !isSignupCountryDropdownOpen,
                           )
                         }
                         style={styles.countryCodeButton}
@@ -1586,7 +1600,10 @@ const DoctorAuthModal = ({
                             style={styles.countryDropdownScroll}
                             nestedScrollEnabled
                           >
-                            {COUNTRY_CODES.map((country) => (
+                            {[
+                              { code: "+91", name: "India", flag: "🇮🇳" },
+                              { code: "+1", name: "USA", flag: "🇺🇸" },
+                            ].map((country) => (
                               <TouchableOpacity
                                 key={country.code}
                                 style={styles.countryDropdownItem}
@@ -1872,6 +1889,10 @@ const styles = StyleSheet.create({
     minHeight: 50,
     backgroundColor: "#FFFFFF",
     overflow: "visible",
+    zIndex: 1,
+  },
+  phoneContainerWithDropdown: {
+    marginBottom: 220,
   },
   countryCodeContainer: {
     position: "relative",
@@ -1879,6 +1900,7 @@ const styles = StyleSheet.create({
     borderRightColor: "#DDD",
     paddingRight: 8,
     marginRight: 8,
+    zIndex: 10001,
   },
   countryCodeButton: {
     flexDirection: "row",
@@ -1903,12 +1925,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 4,
     maxHeight: 200,
-    zIndex: 1000,
+    zIndex: 10000,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 10,
   },
   countryDropdownScroll: {
     maxHeight: 200,
@@ -1942,6 +1964,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 3,
+    zIndex: 1,
   },
   disabledBtn: {
     opacity: 0.5,
@@ -1995,7 +2018,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 0,
-    opacity: 0.1,
+    opacity: 0.6,
   },
   resendBtn: {
     marginTop: 12,
