@@ -75,15 +75,19 @@ const NewestSidebar = ({ closeSidebar, activeItem = "Home" }) => {
       navigation.navigate("DoctorDashboard");
     } else if (menu === "Calendar") {
       navigation.navigate("DrCalendarView");
-    // } else if (menu === "Appointments") {
-    //   navigation.navigate("AppointmentsView");
-    // }
+      // } else if (menu === "Appointments") {
+      //   navigation.navigate("AppointmentsView");
+      // }
     } else if (menu === "Prescription") {
       navigation.navigate("Prescription");
     } else if (menu === "History") {
       navigation.navigate("History");
     } else if (menu === "Settings") {
-      navigation.navigate("ProfileSetting");
+      if (Platform.OS === "web" && width >= 900) {
+        navigation.navigate("ProfileSetting");
+      } else if (Platform.OS !== "web" || width < 900) {
+        navigation.navigate("DoctorSettings");
+      }
     } else if (menu === "Contact Us") {
       navigation.navigate("PatientAppNavigation", {
         screen: "ContactUs",

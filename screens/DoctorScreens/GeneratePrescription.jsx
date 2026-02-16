@@ -12,6 +12,7 @@ import {
   TextInput,
   ScrollView,
   Alert,
+  ActivityIndicator
 } from "react-native";
 import { Pressable } from "react-native";
 
@@ -590,6 +591,26 @@ const GeneratePrescription = ({ navigation, route }) => {
                   </TouchableOpacity>
                 </Pressable>
               ))
+          ) : loading ? (
+            <View
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                marginVertical: 20,
+              }}
+            >
+              <ActivityIndicator size="large" color="#FF7072" />
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: "#999",
+                  marginTop: 12,
+                  fontSize: 14,
+                }}
+              >
+                Loading files...
+              </Text>
+            </View>
           ) : (
             <Text
               style={{ textAlign: "center", color: "#999", marginVertical: 20 }}
@@ -1110,6 +1131,25 @@ const GeneratePrescription = ({ navigation, route }) => {
                                   </View>
                                 </View>
                               ))
+                          ) : loading ? (
+                            <View
+                              style={{
+                                height: 100,
+                                justifyContent: "center",
+                                alignItems: "center",
+                              }}
+                            >
+                              <ActivityIndicator size="large" color="#FF7072" />
+                              <Text
+                                style={{
+                                  color: "#999",
+                                  fontSize: 14,
+                                  marginTop: 12,
+                                }}
+                              >
+                                Loading files...
+                              </Text>
+                            </View>
                           ) : (
                             <View
                               style={{

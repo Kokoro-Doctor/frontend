@@ -559,14 +559,13 @@ import {
   StatusBar,
   Pressable,
   Dimensions,
-  StyleSheet
+  StyleSheet,
 } from "react-native";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { API_URL } from "../../../env-vars";
 import { useAuth } from "../../../contexts/AuthContext";
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
 import HeaderLoginSignUp from "../../../components/PatientScreenComponents/HeaderLoginSignUp";
-
 
 // Helper function to calculate end time (30 minutes after start)
 const getEndTime = (startTime) => {
@@ -587,6 +586,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [doctors, setDoctors] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [showFull, setShowFull] = useState(false);
 
   const { user } = useAuth();
@@ -625,7 +625,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
             (doc) =>
               String(doc.doctor_id) === String(route.params.doctorId) ||
               String(doc.id) === String(route.params.doctorId) ||
-              String(doc.email) === String(route.params.doctorId)
+              String(doc.email) === String(route.params.doctorId),
           );
 
           if (!foundDoctor) {
@@ -662,6 +662,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
     const getDatesAndSlots = async () => {
       if (!doctorIdentifier) return;
 
+      setLoadingSlots(true);
       const today = new Date();
       const next3Days = Array.from({ length: 3 }, (_, i) => {
         const date = new Date(today);
@@ -679,7 +680,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
             {
               method: "GET",
               headers: { "Content-Type": "application/json" },
-            }
+            },
           );
 
           console.log(`Response ${res.status} for ${weekday} (${dateString})`);
@@ -720,6 +721,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
         setSelectedDate(results[0].date);
         setAvailableSlots(results[0].slots);
       }
+      setLoadingSlots(false);
     };
 
     getDatesAndSlots();
@@ -787,20 +789,20 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
               slots: date.slots.map((slot) =>
                 slot.start === selectedTimeSlot
                   ? { ...slot, available: false, booking_id: data.booking_id }
-                  : slot
+                  : slot,
               ),
             };
           }
           return date;
-        })
+        }),
       );
 
       setAvailableSlots((prevSlots) =>
         prevSlots.map((slot) =>
           slot.start === selectedTimeSlot
             ? { ...slot, available: slot.available - 1 }
-            : slot
-        )
+            : slot,
+        ),
       );
 
       Alert.alert("Success", "Slot booked successfully!");
@@ -922,8 +924,8 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                                         i + 1 <= (review.rating || 0)
                                           ? "star"
                                           : i + 0.5 <= (review.rating || 0)
-                                          ? "star-half"
-                                          : "star-border"
+                                            ? "star-half"
+                                            : "star-border"
                                       }
                                       size={16}
                                       color="#FFD700"
@@ -1022,6 +1024,25 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                               );
                             })}
                           </ScrollView>
+                        ) : loadingSlots ? (
+                          <View
+                            style={{
+                              height: 100,
+                              justifyContent: "center",
+                              alignItems: "center",
+                            }}
+                          >
+                            <ActivityIndicator size="large" color="#FF7072" />
+                            <Text
+                              style={{
+                                color: "#999",
+                                fontSize: 14,
+                                marginTop: 12,
+                              }}
+                            >
+                              Loading available slots...
+                            </Text>
+                          </View>
                         ) : (
                           <Text style={styles.noSlotText}>
                             No slots available for this date
@@ -1196,6 +1217,26 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                           );
                         })}
                       </ScrollView>
+                    ) : loadingSlots ? (
+                      <View
+                        style={{
+                          justifyContent: "center",
+                          alignItems: "center",
+                          height: 100,
+                          marginVertical: 20,
+                        }}
+                      >
+                        <ActivityIndicator size="large" color="#FF7072" />
+                        <Text
+                          style={{
+                            color: "#999",
+                            marginTop: 12,
+                            fontSize: 14,
+                          }}
+                        >
+                          Loading available slots...
+                        </Text>
+                      </View>
                     ) : (
                       <Text style={styles.noSlotText}>
                         No slots available for this date
@@ -2025,6 +2066,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingVertical: "2%",
     paddingHorizontal: "3%",
+    paddingBottom: "5%",
     borderRadius: 3,
     borderWidth: 1,
     borderColor: "rgba(22, 128, 236, 0.75)",
