@@ -58,10 +58,11 @@ const Medilocker = ({ navigation }) => {
         if (data?.files) {
           const mappedFiles = data.files.map((file) => ({
             name: file.filename,
-            type: file.metadata.file_type,
-            size: file.metadata.file_size,
-            date: file.metadata.upload_date,
-            time: file.metadata.upload_time,
+            file_id: file.file_id,
+            type: file.metadata?.file_type,
+            size: file.metadata?.file_size,
+            date: file.metadata?.upload_date,
+            time: file.metadata?.upload_time,
           }));
 
           setFiles(mappedFiles);
@@ -185,9 +186,21 @@ const Medilocker = ({ navigation }) => {
         ],
       };
 
-      const data = await upload(payload);
+      await upload(payload);
 
-      setFiles((prevFiles) => [...prevFiles, newFile]);
+      // Reload from server to get file_id for the new file
+      const data = await FetchFromServer(user?.user_id || user?.email);
+      if (data?.files) {
+        const mappedFiles = data.files.map((file) => ({
+          name: file.filename,
+          file_id: file.file_id,
+          type: file.metadata?.file_type,
+          size: file.metadata?.file_size,
+          date: file.metadata?.upload_date,
+          time: file.metadata?.upload_time,
+        }));
+        setFiles(mappedFiles);
+      }
     } catch (err) {
       alert(`Error: ${err.error}`);
     }
@@ -197,9 +210,9 @@ const Medilocker = ({ navigation }) => {
     setIsGridView((prev) => !prev);
   };
 
-  const downloadFile = async (fileName) => {
+  const downloadFile = async (file) => {
     try {
-      const data = await download(user?.user_id || user?.email, fileName);
+      const data = await download(user?.user_id || user?.email, file.file_id);
       const downloadUrl = data.download_url;
 
       if (Platform.OS === "web") {
@@ -212,20 +225,20 @@ const Medilocker = ({ navigation }) => {
     }
   };
 
-  const removeFile = async (fileName) => {
+  const removeFile = async (file) => {
     try {
-      const data = await remove(user?.user_id || user?.email, fileName);
+      await remove(user?.user_id || user?.email, file.file_id);
 
-      setFiles(files.filter((file) => file.name !== fileName));
-      Alert.alert("Deleted", `${fileName} has been removed`);
+      setFiles(files.filter((f) => f.file_id !== file.file_id));
+      Alert.alert("Deleted", `${file.name} has been removed`);
     } catch (error) {
       Alert.alert("Error", error.message);
     }
   };
 
-  const shareFile = async (fileName) => {
+  const shareFile = async (file) => {
     try {
-      const data = await download(user?.user_id || user?.email, fileName);
+      const data = await download(user?.user_id || user?.email, file.file_id);
       const downloadUrl = data.download_url;
 
       if (Platform.OS === "web") {
@@ -239,9 +252,9 @@ const Medilocker = ({ navigation }) => {
 
         if (navigator.share) {
           await navigator.share({
-            title: fileName,
+            title: file.name,
             url: urlToShare,
-            text: `Check out this file: ${fileName}`,
+            text: `Check out this file: ${file.name}`,
           });
         } else {
           // Fallback to opening the download URL in a new tab.
@@ -250,7 +263,7 @@ const Medilocker = ({ navigation }) => {
       } else {
         
         // const localUri = FileSystem.cacheDirectory + fileName;
-        const localUri = `${FileSystem.cacheDirectory ?? ""}${fileName}`;
+        const localUri = `${FileSystem.cacheDirectory ?? ""}${file.name}`;
 
         const downloadResult = await FileSystem.downloadAsync(
           downloadUrl,
@@ -390,7 +403,7 @@ const Medilocker = ({ navigation }) => {
                               <View style={styles.actionButtons}>
                                 {/* Download Button */}
                                 <TouchableOpacity
-                                  onPress={() => downloadFile(item.name)}
+                                  onPress={() => downloadFile(item)}
                                 >
                                   <MaterialIcons
                                     name="file-download"
@@ -401,7 +414,7 @@ const Medilocker = ({ navigation }) => {
 
                                 {/* Delete Button */}
                                 <TouchableOpacity
-                                  onPress={() => removeFile(item.name)}
+                                  onPress={() => removeFile(item)}
                                 >
                                   <MaterialIcons
                                     name="delete"
@@ -412,7 +425,7 @@ const Medilocker = ({ navigation }) => {
 
                                 {/* Share Button */}
                                 <TouchableOpacity
-                                  onPress={() => shareFile(item.name)}
+                                  onPress={() => shareFile(item)}
                                 >
                                   <MaterialIcons
                                     name="share"
@@ -539,7 +552,7 @@ const Medilocker = ({ navigation }) => {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => downloadFile(selectedFile.name)}
+                    onPress={() => downloadFile(selectedFile)}
                   >
                     <View style={styles.appmenuItem}>
                       <MaterialIcons
@@ -553,7 +566,7 @@ const Medilocker = ({ navigation }) => {
 
                   {/* <TouchableOpacity onPress={removeFile}> */}
                   <TouchableOpacity
-                    onPress={() => removeFile(selectedFile.name)}
+                    onPress={() => removeFile(selectedFile)}
                   >
                     <View style={styles.appmenuItem}>
                       <MaterialIcons name="delete" size={20} color="#FF7072" />
@@ -562,7 +575,7 @@ const Medilocker = ({ navigation }) => {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => shareFile(selectedFile.name)}
+                    onPress={() => shareFile(selectedFile)}
                   >
                     <View style={styles.appmenuItem}>
                       <MaterialIcons name="share" size={20} color="#FF7072" />

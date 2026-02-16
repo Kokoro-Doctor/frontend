@@ -58,11 +58,11 @@ export const upload = async (payload) => {
     }
 };
 
-export const download = async (email, fileName) => {
+export const download = async (email, fileId) => {
     try {
         const encodedUserId = encodeURIComponent(email);
-        const encodedFileName = encodeURIComponent(fileName);
-        const response = await fetch(`${medilocker_API}/users/${encodedUserId}/files/${encodedFileName}/download`, {
+        const encodedFileId = encodeURIComponent(fileId);
+        const response = await fetch(`${medilocker_API}/users/${encodedUserId}/files/${encodedFileId}/download`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -82,11 +82,11 @@ export const download = async (email, fileName) => {
     }
 };
 
-export const remove = async (email, fileName) => {
+export const remove = async (email, fileId) => {
     try {
         const encodedUserId = encodeURIComponent(email);
-        const encodedFileName = encodeURIComponent(fileName);
-        const response = await fetch(`${medilocker_API}/users/${encodedUserId}/files/${encodedFileName}`, {
+        const encodedFileId = encodeURIComponent(fileId);
+        const response = await fetch(`${medilocker_API}/users/${encodedUserId}/files/${encodedFileId}`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
