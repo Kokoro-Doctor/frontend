@@ -122,10 +122,11 @@ const GeneratePrescription = ({ navigation, route }) => {
 
             const mappedFiles = filesData.files.map((file) => ({
               name: file.filename,
+              file_id: file.file_id,
               type: detectType(file.filename),
-              size: file.metadata.file_size,
-              date: file.metadata.upload_date,
-              time: file.metadata.upload_time,
+              size: file.metadata?.file_size,
+              date: file.metadata?.upload_date,
+              time: file.metadata?.upload_time,
             }));
 
             console.log("🔄 Mapped files:", mappedFiles);
@@ -172,7 +173,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
   const openQuickPreview = async (file) => {
     try {
-      const data = await download(user?.user_id || user?.email, file.name);
+      const data = await download(user?.user_id || user?.email, file.file_id);
 
       setSelectedFilePreview(file);
       setPreviewUrl(data.download_url);
@@ -192,9 +193,9 @@ const GeneratePrescription = ({ navigation, route }) => {
   //   Alert.alert("Download", `Downloading ${fileName}...`);
   // };
 
-  const downloadFile = async (fileName) => {
+  const downloadFile = async (file) => {
     try {
-      const data = await download(user?.user_id || user?.email, fileName);
+      const data = await download(user?.user_id || user?.email, file.file_id);
       const downloadUrl = data.download_url;
 
       if (Platform.OS === "web") {
@@ -213,24 +214,23 @@ const GeneratePrescription = ({ navigation, route }) => {
     }
   };
 
-  const removeFile = async (fileName) => {
+  const removeFile = async (file) => {
     try {
-      const data = await remove(user?.user_id || user?.email, fileName);
+      await remove(user?.user_id || user?.email, file.file_id);
 
-      setFiles(files.filter((file) => file.name !== fileName));
-      Alert.alert("Deleted", `${fileName} has been removed`);
+      setFiles(files.filter((f) => f.file_id !== file.file_id));
+      Alert.alert("Deleted", `${file.name} has been removed`);
     } catch (error) {
       Alert.alert("Error", error.message);
     }
   };
 
-  const shareFile = async (fileName) => {
+  const shareFile = async (file) => {
     try {
-      const data = await download(user?.user_id || user?.email, fileName);
+      const data = await download(user?.user_id || user?.email, file.file_id);
       const downloadUrl = data.download_url;
 
       if (Platform.OS === "web") {
-        //Shorten URL
         let urlToShare = downloadUrl;
         try {
           urlToShare = await shortenUrl(downloadUrl);
@@ -240,16 +240,15 @@ const GeneratePrescription = ({ navigation, route }) => {
 
         if (navigator.share) {
           await navigator.share({
-            title: fileName,
+            title: file.name,
             url: urlToShare,
-            text: `Check out this file: ${fileName}`,
+            text: `Check out this file: ${file.name}`,
           });
         } else {
-          // Fallback to opening the download URL in a new tab.
           window.open(downloadUrl, "_blank");
         }
       } else {
-        const localUri = FileSystem.cacheDirectory + fileName;
+        const localUri = FileSystem.cacheDirectory + file.name;
 
         const downloadResult = await FileSystem.downloadAsync(
           downloadUrl,
@@ -486,7 +485,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                 style={m.dropdownItem}
                 onPress={() => {
                   setFileMenuVisible(false);
-                  downloadFile(selectedFileForMenu.name);
+                  downloadFile(selectedFileForMenu);
                 }}
               >
                 <Text style={m.dropdownText}>Download</Text>
@@ -495,7 +494,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                 style={m.dropdownItem}
                 onPress={() => {
                   setFileMenuVisible(false);
-                  removeFile(selectedFileForMenu.name);
+                  removeFile(selectedFileForMenu);
                 }}
               >
                 <Text style={[m.dropdownText, { color: "red" }]}>Delete</Text>

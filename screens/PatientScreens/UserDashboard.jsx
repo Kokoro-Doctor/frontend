@@ -847,7 +847,7 @@
 //                         <View style={styles.actionButtons}>
 //                           {/* Download Button */}
 //                           <TouchableOpacity
-//                             onPress={() => downloadFile(row.name)}
+//                             onPress={() => downloadFile(row)}
 //                           >
 //                             <MaterialIcons
 //                               name="file-download"
@@ -858,7 +858,7 @@
 
 //                           {/* Delete Button */}
 //                           <TouchableOpacity
-//                             onPress={() => removeFile(row.name)}
+//                             onPress={() => removeFile(row)}
 //                           >
 //                             <MaterialIcons
 //                               name="delete"
@@ -869,7 +869,7 @@
 
 //                           {/* Share Button */}
 //                           <TouchableOpacity
-//                             onPress={() => shareFile(row.name)}
+//                             onPress={() => shareFile(row)}
 //                           >
 //                             <MaterialIcons
 //                               name="share"
@@ -2230,13 +2230,14 @@ const UserDashboard = ({ navigation }) => {
         console.log("✅ Files found:", data.files.length);
 
         const mappedFiles = data.files.map((file) => ({
-          id: file.filename,
-          date: file.metadata.upload_date,
-          time: file.metadata.upload_time,
+          id: file.file_id,
+          file_id: file.file_id,
+          date: file.metadata?.upload_date,
+          time: file.metadata?.upload_time,
           name: file.filename,
-          format: "." + file.metadata.file_type,
+          format: "." + (file.metadata?.file_type || ""),
           type: detectType(file.filename),
-          size: file.metadata.file_size,
+          size: file.metadata?.file_size,
         }));
 
         console.log("🔄 Mapped files:", mappedFiles);
@@ -2511,9 +2512,9 @@ const UserDashboard = ({ navigation }) => {
     }
   };
 
-  const downloadFile = async (fileName) => {
+  const downloadFile = async (file) => {
     try {
-      const data = await download(user?.user_id || user?.email, fileName);
+      const data = await download(user?.user_id || user?.email, file.file_id);
       const downloadUrl = data.download_url;
 
       if (Platform.OS === "web") {
@@ -2526,37 +2527,35 @@ const UserDashboard = ({ navigation }) => {
     }
   };
 
-  const removeFile = async (fileName) => {
+  const removeFile = async (file) => {
     try {
-      const data = await remove(user?.user_id || user?.email, fileName);
+      await remove(user?.user_id || user?.email, file.file_id);
 
-      // Refresh the document list from server
       await loadFilesFromServer();
 
-      showAlert("Deleted", `${fileName} has been removed`);
+      showAlert("Deleted", `${file.name} has been removed`);
     } catch (error) {
       showAlert("Error", error.message);
     }
   };
 
-  const shareFile = async (fileName) => {
+  const shareFile = async (file) => {
     try {
-      const data = await download(user?.user_id || user?.email, fileName);
+      const data = await download(user?.user_id || user?.email, file.file_id);
       const downloadUrl = data.download_url;
 
       if (Platform.OS === "web") {
         if (navigator.share) {
           await navigator.share({
-            title: fileName,
+            title: file.name,
             url: downloadUrl,
-            text: `Check out this file: ${fileName}`,
+            text: `Check out this file: ${file.name}`,
           });
         } else {
-          // Fallback to opening the download URL in a new tab.
           window.open(downloadUrl, "_blank");
         }
       } else {
-        const localUri = FileSystem.cacheDirectory + fileName;
+        const localUri = FileSystem.cacheDirectory + file.name;
 
         const downloadResult = await FileSystem.downloadAsync(
           downloadUrl,
@@ -2980,9 +2979,7 @@ const UserDashboard = ({ navigation }) => {
 
                         <View style={styles.actionButtons}>
                           {/* Download Button */}
-                          <TouchableOpacity
-                            onPress={() => downloadFile(row.name)}
-                          >
+                          <TouchableOpacity onPress={() => downloadFile(row)}>
                             <MaterialIcons
                               name="file-download"
                               size={24}
@@ -2991,9 +2988,7 @@ const UserDashboard = ({ navigation }) => {
                           </TouchableOpacity>
 
                           {/* Delete Button */}
-                          <TouchableOpacity
-                            onPress={() => removeFile(row.name)}
-                          >
+                          <TouchableOpacity onPress={() => removeFile(row)}>
                             <MaterialIcons
                               name="delete"
                               size={24}
@@ -3002,7 +2997,7 @@ const UserDashboard = ({ navigation }) => {
                           </TouchableOpacity>
 
                           {/* Share Button */}
-                          <TouchableOpacity onPress={() => shareFile(row.name)}>
+                          <TouchableOpacity onPress={() => shareFile(row)}>
                             <MaterialIcons
                               name="share"
                               size={24}
@@ -3462,7 +3457,7 @@ const UserDashboard = ({ navigation }) => {
                     <View style={styles.appActionButtons}>
                       <TouchableOpacity
                         style={styles.appActionBtn}
-                        onPress={() => downloadFile(row.name)}
+                        onPress={() => downloadFile(row)}
                       >
                         <MaterialIcons
                           name="file-download"
@@ -3473,7 +3468,7 @@ const UserDashboard = ({ navigation }) => {
 
                       <TouchableOpacity
                         style={styles.appActionBtn}
-                        onPress={() => removeFile(row.name)}
+                        onPress={() => removeFile(row)}
                       >
                         <MaterialIcons
                           name="delete"
@@ -3484,7 +3479,7 @@ const UserDashboard = ({ navigation }) => {
 
                       <TouchableOpacity
                         style={styles.appActionBtn}
-                        onPress={() => shareFile(row.name)}
+                        onPress={() => shareFile(row)}
                       >
                         <MaterialIcons name="share" size={20} color="#FF7072" />
                       </TouchableOpacity>
