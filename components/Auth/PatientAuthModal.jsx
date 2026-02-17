@@ -1221,7 +1221,7 @@ const PatientAuthModal = ({
                 onPress={onRequestClose}
                 style={styles.closeBtn}
               >
-                <Ionicons name="close" size={14} color="#9CA3AF" />
+                <Ionicons name="close" size={16} color="#9CA3AF" />
               </TouchableOpacity>
             </Animated.View>
           </Animated.View>
@@ -1257,7 +1257,7 @@ const PatientAuthModal = ({
                 setOtpTargetPhone("");
               }}
             >
-              <Ionicons name="close" size={14} color="#9CA3AF" />
+              <Ionicons name="close" size={16} color="#9CA3AF" />
             </TouchableOpacity>
             <Text style={styles.titleHead}>Verify OTP</Text>
             <Text style={{ fontSize: 11.7, color: "#000", fontWeight: "600" }}>
@@ -1589,12 +1589,12 @@ const styles = StyleSheet.create({
     right: 12,
     backgroundColor: "rgba(244, 246, 248, 0.6)",
     borderRadius: 12,
-    width: 10,
-    height: 10,
+    width: 11,
+    height: 11,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 0,
-    opacity: 0.6,
+    opacity: 0.9,
   },
   resendBtn: {
     marginTop: 12,

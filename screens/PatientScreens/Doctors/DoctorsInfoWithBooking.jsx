@@ -807,10 +807,18 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
 
       Alert.alert("Success", "Slot booked successfully!");
 
-      navigation.navigate("DoctorsBookingPaymentScreen", {
-        doctor: doctors,
-        selectedDate: selectedDate,
-        selectedTimeSlot: selectedTimeSlot,
+      // navigation.navigate("BookingConfirmation", {
+      //   doctor: doctors,
+      //   selectedDate: selectedDate,
+      //   selectedTimeSlot: selectedTimeSlot,
+      // });
+      navigation.navigate("Doctors", {
+        screen: "BookingConfirmation",
+        params: {
+          doctor: doctors,
+          selectedDate,
+          selectedTimeSlot,
+        },
       });
     } catch (error) {
       console.error("Booking error:", error);
@@ -1149,7 +1157,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                 </View>
               </View>
 
-              <View style={styles.availabilityContainer}>
+              {/* <View style={styles.availabilityContainer}>
                 <Text style={styles.availabilityTimeText}>Available Time</Text>
                 <View style={styles.availabilityShowBox}>
                   <View style={styles.dateSelector}>
@@ -1205,14 +1213,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                               >
                                 {slot.start} - {slot.end}
                               </Text>
-                              {/* <Text
-                                style={[
-                                  styles.bookNowText,
-                                  !isAvailable && styles.unavailableTimeSlotText,
-                                ]}
-                              >
-                                {isAvailable ? `${slot.available}` : ""}
-                              </Text> */}
+                              
                             </TouchableOpacity>
                           );
                         })}
@@ -1243,20 +1244,67 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                       </Text>
                     )}
                   </View>
-                  {/* <TouchableOpacity
-                    style={[
-                      styles.bookSlotButton,
-                      !selectedTimeSlot && {
-                        backgroundColor: "rgba(255, 112, 114, 0.6)",
-                      }, // greyed out if not selected
-                    ]}
-                    disabled={!selectedTimeSlot}
-                    onPress={bookSlot}
-                  >
-                    <Text style={styles.bookSlotText}>
-                      {selectedTimeSlot ? "Book Slot" : "Book Slot"}
-                    </Text>
-                  </TouchableOpacity> */}
+                </View>
+              </View> */}
+              <View style={styles.newAppointmentCardMobile}>
+                <Text style={styles.appointmentTitle}>Available Slots</Text>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.newDateTabs}
+                >
+                  {availableDates.map((date) => (
+                    <TouchableOpacity
+                      key={date.id}
+                      style={[
+                        styles.newDateTab,
+                        selectedDate === date.date && styles.newDateTabActive,
+                      ]}
+                      onPress={() => handleDateSelect(date.date)}
+                    >
+                      <Text
+                        style={[
+                          styles.newDateText,
+                          selectedDate === date.date &&
+                            styles.newDateTextActive,
+                        ]}
+                      >
+                        {date.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <View style={styles.newSlotGrid}>
+                  {availableSlots.map((slot, idx) => {
+                    const isAvailable = slot.available > 0;
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        disabled={!isAvailable}
+                        style={[
+                          styles.newSlotCardMobile,
+                          selectedTimeSlot === slot.start &&
+                            styles.newSlotCardActive,
+                          !isAvailable && styles.newSlotCardDisabled,
+                        ]}
+                        onPress={() =>
+                          isAvailable && handleSlotSelect(slot.start)
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.newSlotText,
+                            selectedTimeSlot === slot.start &&
+                              styles.newSlotTextActive,
+                          ]}
+                        >
+                          {slot.start}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -1652,7 +1700,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     borderRadius: 14,
     backgroundColor: "rgb(237, 109, 111)",
-    marginTop: "0%",
+    marginTop: "2%",
     ...Platform.select({
       web: {
         marginBottom: "15%",
@@ -2158,6 +2206,147 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     padding: "1%",
     alignSelf: "center",
+  },
+
+  /* ========== NEW MODERN BOOKING UI ========== */
+
+  newAppointmentCard: {
+    width: "32%",
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 20,
+    marginLeft: 20,
+    justifyContent: "space-between",
+    
+  },
+
+  newAppointmentCardMobile: {
+    width: "90%",
+    alignSelf: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 20,
+    marginTop: 20,
+    elevation: 4,
+    borderWidth:1,
+    borderColor:"#ccc9c9ff"
+  },
+
+  appointmentTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+    color: "#333",
+  },
+
+  newDateTabs: {
+    flexDirection: "row",
+    gap: 12,
+    borderWidth:1,
+    padding:"1.5%",
+    //width:"100%",
+    borderColor:"#c3c2c2ff",
+    borderRadius:10
+  },
+
+  newDateTab: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    borderWidth:1,
+    borderColor:"#f8f8f8ff"
+  },
+
+  newDateTabActive: {
+    backgroundColor: "#ff7072",
+  },
+
+  newDateText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  newDateTextActive: {
+    color: "#fff",
+  },
+
+  newSlotCount: {
+    fontSize: 10,
+    color: "#888",
+    
+  },
+
+  newSlotsContainer: {
+    marginTop: "2%",
+    flex: 1,
+  },
+
+  newSlotGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 1,
+    borderWidth:1,
+    marginVertical:"3%",
+    borderColor:"#d2d1d1ff",
+    borderRadius:10
+  },
+
+  newSlotCard: {
+    width: "30%",
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+    backgroundColor: "#fafafa",
+  },
+
+  newSlotCardMobile: {
+    width: "30%",
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+    backgroundColor: "#fafafa",
+    margin: 5,
+  },
+
+  newSlotCardActive: {
+    backgroundColor: "#ff7072",
+    borderColor: "#ff7072",
+  },
+
+  newSlotCardDisabled: {
+    backgroundColor: "#eee",
+    borderColor: "#ddd",
+  },
+
+  newSlotText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  newSlotTextActive: {
+    color: "#fff",
+  },
+
+  newBookButton: {
+    backgroundColor: "#ff7072",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    marginTop: 20,
+  },
+
+  newBookButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 
