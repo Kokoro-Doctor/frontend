@@ -672,7 +672,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
 
       const promises = next7Days.map(async (date) => {
         const dateString = date.toISOString().slice(0, 10);
-        const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+        const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
 
         try {
           const res = await fetch(
