@@ -664,13 +664,13 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
 
       setLoadingSlots(true);
       const today = new Date();
-      const next3Days = Array.from({ length: 3 }, (_, i) => {
+      const next7Days = Array.from({ length: 7 }, (_, i) => {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
         return date;
       });
 
-      const promises = next3Days.map(async (date) => {
+      const promises = next7Days.map(async (date) => {
         const dateString = date.toISOString().slice(0, 10);
         const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
 
@@ -726,6 +726,16 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
 
     getDatesAndSlots();
   }, [doctorIdentifier]);
+
+  const chunkDates = (dates, size = 3) => {
+    const result = [];
+    for (let i = 0; i < dates.length; i += size) {
+      result.push(dates.slice(i, i + size));
+    }
+    return result;
+  };
+
+  const groupedDates = chunkDates(availableDates, 3);
 
   const handleDateSelect = (dateStr) => {
     const selected = availableDates.find((d) => d.date === dateStr);
@@ -1249,7 +1259,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
               <View style={styles.newAppointmentCardMobile}>
                 <Text style={styles.appointmentTitle}>Available Slots</Text>
 
-                <ScrollView
+                {/* <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.newDateTabs}
@@ -1273,6 +1283,49 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                         {date.label}
                       </Text>
                     </TouchableOpacity>
+                  ))}
+                </ScrollView> */}
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {groupedDates.map((group, groupIndex) => (
+                    <View
+                      key={groupIndex}
+                      style={{
+                        width: windowWidth * 0.8,
+                        flexDirection: "row",
+                        justifyContent: "space-around",
+                        paddingHorizontal: "1%",
+                        //borderWidth:1
+                      }}
+                    >
+                      {group.map((date) => (
+                        <TouchableOpacity
+                          key={date.id}
+                          style={[
+                            styles.newDateTab,
+                            selectedDate === date.date &&
+                              styles.newDateTabActive,
+                          ]}
+                          onPress={() => handleDateSelect(date.date)}
+                        >
+                          <Text
+                            style={[
+                              styles.newDateText,
+                              selectedDate === date.date &&
+                                styles.newDateTextActive,
+                            ]}
+                          >
+                            {date.label}
+                          </Text>
+                          <Text style={styles.newSlotCount}>
+                            {date.slots.length} slots
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   ))}
                 </ScrollView>
 
@@ -2217,7 +2270,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginLeft: 20,
     justifyContent: "space-between",
-    
   },
 
   newAppointmentCardMobile: {
@@ -2228,8 +2280,8 @@ const styles = StyleSheet.create({
     padding: 20,
     marginTop: 20,
     elevation: 4,
-    borderWidth:1,
-    borderColor:"#ccc9c9ff"
+    borderWidth: 1,
+    borderColor: "#ccc9c9ff",
   },
 
   appointmentTitle: {
@@ -2242,31 +2294,43 @@ const styles = StyleSheet.create({
   newDateTabs: {
     flexDirection: "row",
     gap: 12,
-    borderWidth:1,
-    padding:"1.5%",
+    borderWidth: 1,
+    padding: "1%",
     //width:"100%",
-    borderColor:"#c3c2c2ff",
-    borderRadius:10
+    borderColor: "#5d5c5cff",
+    borderRadius: 10,
   },
 
+  // newDateTab: {
+  //   paddingVertical: 10,
+  //   paddingHorizontal: 15,
+  //   borderRadius: 12,
+  //   backgroundColor: "#f3f4f6",
+  //   alignItems: "center",
+  //   borderWidth: 1,
+  //   borderColor: "#c4c4c5ff",
+  // },
   newDateTab: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 12,
+    width: "31%", // important
+    paddingVertical: 1,
+    paddingHorizontal: 1,
+    borderRadius: 10,
     backgroundColor: "#f3f4f6",
     alignItems: "center",
-    borderWidth:1,
-    borderColor:"#f8f8f8ff"
+    borderWidth: 1,
+    borderColor: "#b6b5b5ff",
   },
 
   newDateTabActive: {
-    backgroundColor: "#ff7072",
+    backgroundColor: "#fc8a8bff",
   },
 
   newDateText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "500",
+    color: "#222121ff",
+    alignSelf:"center",
+    paddingHorizontal:"1%"
   },
 
   newDateTextActive: {
@@ -2275,8 +2339,7 @@ const styles = StyleSheet.create({
 
   newSlotCount: {
     fontSize: 10,
-    color: "#888",
-    
+    color: "#191818ff",
   },
 
   newSlotsContainer: {
@@ -2288,10 +2351,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 1,
-    borderWidth:1,
-    marginVertical:"3%",
-    borderColor:"#d2d1d1ff",
-    borderRadius:10
+    borderWidth: 1,
+    marginVertical: "3%",
+    borderColor: "#d2d1d1ff",
+    borderRadius: 10,
   },
 
   newSlotCard: {
