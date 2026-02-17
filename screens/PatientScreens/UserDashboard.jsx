@@ -3668,7 +3668,7 @@ const styles = StyleSheet.create({
   appUserImageBox: {
     borderWidth: 1,
     height: "32%",
-    width: "13%",
+    width: "15%",
     marginVertical: "1%",
     marginHorizontal: "0.5%",
     borderColor: "#c8c7c7ff",
@@ -3915,7 +3915,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   appDoctorVideoAppointmentSection: {
-    minHeight: 170,
+    minHeight: 370,
     height: "auto",
     width: "98%",
     backgroundColor: "#fff",
@@ -3931,9 +3931,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   appDoctorDetail: {
-    height: "37%",
+    height: "27%",
     width: "100%",
     flexDirection: "row",
+    //borderWidth:1
   },
   doctorImageBox: {
     borderWidth: 1,
@@ -3945,8 +3946,8 @@ const styles = StyleSheet.create({
   },
   appDoctorImageBox: {
     borderWidth: 1,
-    height: "68%",
-    width: "13%",
+    height: "50%",
+    width: "15%",
     marginVertical: "2%",
     marginHorizontal: "2%",
     borderColor: "#c8c7c7ff",
@@ -3975,9 +3976,9 @@ const styles = StyleSheet.create({
   },
   appvideoCallSection: {
     borderWidth: 2,
-    height: "30%",
+    height: "27%",
     width: "80%",
-    marginVertical: "1%",
+    marginVertical: "0%",
     marginHorizontal: "1.5%",
     borderRadius: 5,
     borderColor: "#eceaeaff",
@@ -4022,6 +4023,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#408CFF",
     marginHorizontal: "1.5%",
     borderRadius: 5,
+    marginVertical:"3%"
   },
 
   videoCallButton: {
@@ -4037,11 +4039,34 @@ const styles = StyleSheet.create({
   appVideoCallButton: {
     backgroundColor: "#FF7072",
     color: "#fff",
-    height: "25%",
-    width: "70%",
-    borderRadius: 5,
+    height: "12%",
+    width: "78%",
+    borderRadius: 20,
     alignSelf: "center",
     textAlign: "center",
+    marginTop:"3%",
+  },
+  appRescheduleButton:{
+    backgroundColor: "#fff",
+    height: "12%",
+    width: "78%",
+    borderRadius: 20,
+    alignSelf: "center",
+    textAlign: "center",
+    borderWidth:1,
+    marginTop:"3%",
+    borderColor:"#adacacff"
+  },
+  appCancelButton:{
+    backgroundColor: "#fff",
+    height: "12%",
+    width: "78%",
+    borderRadius: 20,
+    alignSelf: "center",
+    textAlign: "center",
+    marginTop:"3%",
+    borderColor:"#adacacff",
+    //borderWidth:1
   },
 
   medilockerSection: {

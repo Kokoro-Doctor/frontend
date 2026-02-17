@@ -34,7 +34,7 @@ const BookingConfirmation = ({ navigation, route }) => {
   };
 
   const handleDone = () => {
-    navigation.navigate("LandingPage");
+    navigation.navigate("UserDashboard");
   };
 
   return (
