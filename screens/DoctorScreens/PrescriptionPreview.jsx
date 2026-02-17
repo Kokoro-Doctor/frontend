@@ -18,12 +18,35 @@ import { AuthContext } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
-import {
-  formatPrescriptionText,
-  downloadPrescription,
-} from "../../utils/PrescriptionService";
+import Markdown from "react-native-markdown-display";
+import { downloadPrescription } from "../../utils/PrescriptionService";
 
 const { width, height } = Dimensions.get("window");
+
+const markdownStyles = {
+  body: {
+    fontSize: 14,
+    fontWeight: "300",
+    color: "#555555",
+    fontFamily: "Poppins",
+  },
+  strong: {
+    fontWeight: "600",
+    color: "#555555",
+  },
+};
+
+const markdownStylesMobile = {
+  body: {
+    fontSize: 14,
+    color: "#444",
+    lineHeight: 22,
+  },
+  strong: {
+    fontWeight: "600",
+    color: "#444",
+  },
+};
 
 const PrescriptionPreview = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
@@ -358,11 +381,13 @@ const PrescriptionPreview = ({ navigation, route }) => {
                                   multiline
                                 />
                               ) : (
-                                <Text style={styles.rxText} multiline>
-                                  {formatPrescriptionText(
-                                    currentPrescription.prescriptionReport
-                                  ) || "No prescription report generated"}
-                                </Text>
+                                <Markdown
+                                  style={markdownStyles}
+                                  mergeStyle={true}
+                                >
+                                  {currentPrescription.prescriptionReport ||
+                                    "No prescription report generated"}
+                                </Markdown>
                               )}
                             </View>
                           </View>
@@ -635,13 +660,13 @@ const PrescriptionPreview = ({ navigation, route }) => {
                   multiline
                 />
               ) : (
-                <Text style={stylesMobile.rxText}>
-                  {currentPrescription?.prescriptionReport
-                    ? formatPrescriptionText(
-                        currentPrescription.prescriptionReport
-                      )
-                    : "No prescription report generated"}
-                </Text>
+                <Markdown
+                  style={markdownStylesMobile}
+                  mergeStyle={true}
+                >
+                  {currentPrescription?.prescriptionReport ||
+                    "No prescription report generated"}
+                </Markdown>
               )}
             </ScrollView>
 

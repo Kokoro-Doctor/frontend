@@ -1,32 +1,20 @@
 import { Platform, Alert } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import MarkdownIt from "markdown-it";
+
+const md = new MarkdownIt();
 
 /**
- * Format prescription text: replace "-" with bullet points (•)
- * @param {string} text - The prescription text to format
- * @returns {string} - Formatted text with bullet points
+ * Convert prescription markdown to HTML for PDF export
+ * @param {string} text - The prescription text (markdown)
+ * @returns {string} - HTML string
  */
-export const formatPrescriptionText = (text) => {
+const markdownToHtml = (text) => {
   if (!text) return "";
-  // Replace "- " at the start of lines with "• " (bullet point)
-  // Also handle cases where there might be spaces before the dash
-  return text
-    .split("\n")
-    .map((line) => {
-      const trimmed = line.trim();
-      // Replace "- " at the start with "• "
-      if (trimmed.startsWith("- ")) {
-        return "• " + trimmed.substring(2);
-      }
-      // Replace "-" at the start (without space) with "• "
-      if (trimmed.startsWith("-")) {
-        return "• " + trimmed.substring(1).trim();
-      }
-      return line;
-    })
-    .join("\n");
+  return md.render(text);
 };
+
 
 /**
  * Generate HTML content for prescription PDF
@@ -37,7 +25,7 @@ export const formatPrescriptionText = (text) => {
 export const generatePrescriptionHTML = (prescription, doctorInfo) => {
   const doctorName = doctorInfo?.name || doctorInfo?.doctorname || "";
   const doctorSpecialty = doctorInfo?.specialization || "";
-  const formattedRX = formatPrescriptionText(
+  const rxHtml = markdownToHtml(
     prescription.prescriptionReport || ""
   );
 
@@ -137,7 +125,13 @@ export const generatePrescriptionHTML = (prescription, doctorInfo) => {
       font-size: 14px;
       color: #555;
       line-height: 1.8;
-      white-space: pre-wrap;
+    }
+    .rx-text strong {
+      font-weight: 600;
+    }
+    .rx-text ul, .rx-text ol {
+      margin: 0.5em 0;
+      padding-left: 1.5em;
     }
   </style>
 </head>
@@ -181,7 +175,7 @@ export const generatePrescriptionHTML = (prescription, doctorInfo) => {
 
   <div class="rx-section">
     <div class="rx-title">RX</div>
-    <div class="rx-text">${formattedRX || "No prescription report generated"}</div>
+    <div class="rx-text">${rxHtml || "No prescription report generated"}</div>
   </div>
 </body>
 </html>
