@@ -748,6 +748,21 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
     setSelectedTimeSlot(slot);
   };
 
+  const handlePageScroll = (event) => {
+    const pageIndex = Math.round(
+      event.nativeEvent.contentOffset.x / (windowWidth * 0.8),
+    );
+
+    const group = groupedDates[pageIndex];
+
+    if (group && group.length > 0) {
+      const firstDate = group[0];
+      setSelectedDate(firstDate.date);
+      setAvailableSlots(firstDate.slots || []);
+      setSelectedTimeSlot(null);
+    }
+  };
+
   const bookSlot = async () => {
     if (!selectedDate || !selectedTimeSlot) {
       Alert.alert("Error", "Please select a date and time slot.");
@@ -1259,36 +1274,11 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
               <View style={styles.newAppointmentCardMobile}>
                 <Text style={styles.appointmentTitle}>Available Slots</Text>
 
-                {/* <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.newDateTabs}
-                >
-                  {availableDates.map((date) => (
-                    <TouchableOpacity
-                      key={date.id}
-                      style={[
-                        styles.newDateTab,
-                        selectedDate === date.date && styles.newDateTabActive,
-                      ]}
-                      onPress={() => handleDateSelect(date.date)}
-                    >
-                      <Text
-                        style={[
-                          styles.newDateText,
-                          selectedDate === date.date &&
-                            styles.newDateTextActive,
-                        ]}
-                      >
-                        {date.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView> */}
                 <ScrollView
                   horizontal
                   pagingEnabled
                   showsHorizontalScrollIndicator={false}
+                  onMomentumScrollEnd={handlePageScroll}
                 >
                   {groupedDates.map((group, groupIndex) => (
                     <View
@@ -1329,7 +1319,7 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                   ))}
                 </ScrollView>
 
-                <View style={styles.newSlotGrid}>
+                {/* <View style={styles.newSlotGrid}>
                   {availableSlots.map((slot, idx) => {
                     const isAvailable = slot.available > 0;
                     return (
@@ -1358,6 +1348,59 @@ const DoctorsInfoWithBooking = ({ navigation, route }) => {
                       </TouchableOpacity>
                     );
                   })}
+                </View> */}
+                <View style={{ minHeight: 120, justifyContent: "center" }}>
+                  {loadingSlots ? (
+                    <View style={{ alignItems: "center", marginVertical: 20 }}>
+                      <ActivityIndicator size="large" color="#FF7072" />
+                      <Text style={{ marginTop: 10, color: "#888" }}>
+                        Loading available slots...
+                      </Text>
+                    </View>
+                  ) : availableSlots.length === 0 ? (
+                    <Text
+                      style={{
+                        textAlign: "center",
+                        color: "#999",
+                        marginTop: 20,
+                        fontSize: 14,
+                      }}
+                    >
+                      No slots available
+                    </Text>
+                  ) : (
+                    <View style={styles.newSlotGrid}>
+                      {availableSlots.map((slot, idx) => {
+                        const isAvailable = slot.available > 0;
+
+                        return (
+                          <TouchableOpacity
+                            key={idx}
+                            disabled={!isAvailable}
+                            style={[
+                              styles.newSlotCardMobile,
+                              selectedTimeSlot === slot.start &&
+                                styles.newSlotCardActive,
+                              !isAvailable && styles.newSlotCardDisabled,
+                            ]}
+                            onPress={() =>
+                              isAvailable && handleSlotSelect(slot.start)
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.newSlotText,
+                                selectedTimeSlot === slot.start &&
+                                  styles.newSlotTextActive,
+                              ]}
+                            >
+                              {slot.start}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -2326,11 +2369,11 @@ const styles = StyleSheet.create({
   },
 
   newDateText: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     color: "#222121ff",
-    alignSelf:"center",
-    paddingHorizontal:"1%"
+    alignSelf: "center",
+    paddingHorizontal: "1%",
   },
 
   newDateTextActive: {

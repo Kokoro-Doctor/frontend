@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,11 +9,18 @@ import {
   Linking,
   useWindowDimensions,
   StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
 import { AntDesign, Feather, FontAwesome5 } from "@expo/vector-icons";
+import ConfettiCannon from "react-native-confetti-cannon";
+import confetti from "canvas-confetti";
 
 const BookingConfirmation = ({ navigation, route }) => {
   const { width, height } = useWindowDimensions();
+  //const [celebrate, setCelebrate] = useState(false);
+  const [blastKey, setBlastKey] = useState(0);
+  const confettiInterval = React.useRef(null);
   const params = route?.params || {};
   const doctors = params.doctor;
   const selectedDate = params.selectedDate;
@@ -37,19 +44,98 @@ const BookingConfirmation = ({ navigation, route }) => {
     navigation.navigate("UserDashboard");
   };
 
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setCelebrate(true);
+
+  //     if (Platform.OS === "web") {
+  //       triggerWebConfetti();
+  //     }
+  //   }, 1000);
+
+  //   return () => clearTimeout(timer);
+  // }, []);
+  useEffect(() => {
+    confettiInterval.current = setInterval(() => {
+      if (Platform.OS === "web") {
+        // Web blast
+        confetti({
+          particleCount: 160,
+          spread: 100,
+          origin: { y: 0.7 },
+        });
+      } else {
+        // Mobile blast (force re-render)
+        setBlastKey((prev) => prev + 1);
+      }
+    }, 900); // blast every 0.9 seconds
+
+    return () => {
+      if (confettiInterval.current) {
+        clearInterval(confettiInterval.current);
+      }
+    };
+  }, []);
+
+
+  const rotateAnim = React.useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const rotateLoop = Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 3000, // speed (lower = faster)
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+
+    rotateLoop.start();
+
+    return () => rotateLoop.stop();
+  }, [rotateAnim]);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
   return (
     <View style={styles.container}>
+      {Platform.OS !== "web" && (
+        <ConfettiCannon
+          key={Math.random()} // forces re-render
+          count={180}
+          origin={{ x: width / 2, y: 0 }}
+          fadeOut
+          explosionSpeed={350}
+          fallSpeed={3000}
+        />
+      )}
+
       <StatusBar
         barStyle="light-content"
         backgroundColor={styles.container.backgroundColor}
       />
       <View style={styles.top}>
-        <View style={styles.bookingLogo}>
+        {/* <View style={styles.bookingLogo}>
           <Image
             source={require("../../../../assets/Icons/BookingConfirmation.png")}
             style={styles.bookingLogoImage}
           />
+        </View> */}
+        <View style={styles.bookingLogo}>
+          <Animated.View
+            style={{
+              transform: [{ rotate: spin }],
+            }}
+          >
+            <Image
+              source={require("../../../../assets/Icons/BookingConfirmation.png")}
+              style={styles.bookingLogoImage}
+            />
+          </Animated.View>
         </View>
+
         <View style={styles.topText}>
           <Text style={styles.title}>Booking Confirmed</Text>
           <Text style={styles.description}>
@@ -122,10 +208,21 @@ const styles = StyleSheet.create({
   top: {
     alignItems: "center",
   },
+  // bookingLogo: {
+  //   alignItems: "center",
+  //   marginBottom: "2%",
+  // },
   bookingLogo: {
     alignItems: "center",
     marginBottom: "2%",
+    shadowColor: "#1680EC",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    elevation: 10,
+    borderRadius: 50,
   },
+
   bookingLogoImage: {
     height: 80,
     width: 80,
