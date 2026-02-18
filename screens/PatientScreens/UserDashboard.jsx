@@ -2324,8 +2324,7 @@ const UserDashboard = ({ navigation }) => {
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}
       >
-        {" "}
-        {children}{" "}
+        {children}
       </Animated.View>
     );
   };
@@ -4028,7 +4027,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#408CFF",
     marginHorizontal: "1.5%",
     borderRadius: 5,
-    marginVertical:"3%"
+    marginVertical: "3%",
   },
 
   videoCallButton: {
@@ -4049,28 +4048,28 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: "center",
     textAlign: "center",
-    marginTop:"3%",
+    marginTop: "3%",
   },
-  appRescheduleButton:{
+  appRescheduleButton: {
     backgroundColor: "#fff",
     height: "12%",
     width: "78%",
     borderRadius: 20,
     alignSelf: "center",
     textAlign: "center",
-    borderWidth:1,
-    marginTop:"3%",
-    borderColor:"#adacacff"
+    borderWidth: 1,
+    marginTop: "3%",
+    borderColor: "#adacacff",
   },
-  appCancelButton:{
+  appCancelButton: {
     backgroundColor: "#fff",
     height: "12%",
     width: "78%",
     borderRadius: 20,
     alignSelf: "center",
     textAlign: "center",
-    marginTop:"3%",
-    borderColor:"#adacacff",
+    marginTop: "3%",
+    borderColor: "#adacacff",
     //borderWidth:1
   },
 
