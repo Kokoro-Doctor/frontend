@@ -1,2103 +1,633 @@
-// /* eslint-disable react-hooks/exhaustive-deps */
-// import React, { useRef, useState, useEffect } from "react";
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   Image,
-//   ImageBackground,
-//   ScrollView,
-//   Platform,
-//   Animated,
-//   Pressable,
-//   TouchableOpacity,
-//   TextInput,
-//   useWindowDimensions,
-//   Modal,
-// } from "react-native";
-// //gduywegduyxuygdusa
-// import { LinearGradient } from "expo-linear-gradient";
-// import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-// import { useNavigation } from "@react-navigation/native";
-// import mixpanel from "../../utils/Mixpanel";
-
-// export default function WelcomePage() {
-//   const concerns = [
-//     "Chest Pain",
-//     "Irregular Heartbeat",
-//     "High BP",
-//     "Missed Periods",
-//     "PCOS Symptoms",
-//     "Pregnancy Concerns",
-//   ];
-//   const pillIcons = {
-//     "Chest Pain": "heart-outline",
-//     "Irregular Heartbeat": "heart-pulse",
-//     "High BP": "heart-plus-outline",
-//     "Missed Periods": "calendar-blank-outline",
-//     "PCOS Symptoms": "gender-female",
-//     "Pregnancy Concerns": "baby-face-outline",
-//   };
-//   const symptomPrompts = {
-//     "Chest Pain":
-//       "I am experiencing chest pain. Please ask me relevant medical questions to understand my condition.",
-//     "Irregular Heartbeat":
-//       "I have an irregular heartbeat. Please ask follow-up questions to assess my heart health.",
-//     "High BP":
-//       "I have high blood pressure readings. Please guide me with questions.",
-//     "Missed Periods":
-//       "I have missed my periods. Please ask questions to understand possible causes.",
-//     "PCOS Symptoms":
-//       "I am experiencing PCOS-related symptoms. Please ask relevant questions.",
-//     "Pregnancy Concerns":
-//       "I have concerns related to pregnancy. Please ask the necessary questions.",
-//   };
-
-//   const [menuVisible, setMenuVisible] = useState(false);
-//   const [tryInput, setTryInput] = useState("");
-//   const [inputValue, setInputValue] = useState("");
-//   const [hasUserTyped, setHasUserTyped] = useState(false);
-//   const [doctorHover, setDoctorHover] = useState(false);
-//   const arrowTranslate = useRef(new Animated.Value(0)).current;
-//   const navigation = useNavigation();
-
-//   const { width } = useWindowDimensions();
-//   const isMobile = Platform.OS !== "web" || width < 1000;
-//   const mobileConcerns = [
-//     "Chest Pain",
-//     "Irregular Heartbeat",
-//     "High BP",
-//     "Missed Periods",
-//     "Pregnancy Concerns",
-//   ];
-
-//   const animatedConcerns = isMobile ? mobileConcerns : concerns;
-
-//   const [activePill, setActivePill] = useState(0);
-
-//   const scaleAnim = useRef(
-//     animatedConcerns.map(() => new Animated.Value(1))
-//   ).current;
-
-//   const isTyping = hasUserTyped;
-//   const isMobileWeb = Platform.OS === "web" && width < 1000;
-
-//   useEffect(() => {
-//     Animated.spring(arrowTranslate, {
-//       toValue: doctorHover ? 8 : 0, // ≈ 2% shift
-//       useNativeDriver: true,
-//     }).start();
-//   }, [arrowTranslate, doctorHover]);
-
-//   useEffect(() => {
-//     if (!hasUserTyped) {
-//       setTryInput(animatedConcerns[activePill]);
-//     }
-//   }, [activePill, hasUserTyped, animatedConcerns]);
-
-//   // ✅ AUTO ROTATE PILLS
-//   useEffect(() => {
-//     const interval = setInterval(() => {
-//       setActivePill((prev) => (prev + 1) % animatedConcerns.length);
-//     }, 2700);
-
-//     return () => clearInterval(interval);
-//   }, [animatedConcerns.length]);
-
-//   // ✅ SCALE ACTIVE PILL
-//   useEffect(() => {
-//     scaleAnim.forEach((anim, index) => {
-//       Animated.spring(anim, {
-//         toValue: index === activePill ? 1.08 : 1,
-//         useNativeDriver: true,
-//       }).start();
-//     });
-//   }, [activePill, scaleAnim]);
-//   const renderMobilePill = (item, index) => {
-//     const isActive = index === activePill;
-
-//     return (
-//       <Pressable
-//         key={item}
-//         onPress={() => {
-//           setActivePill(index);
-
-//           navigation.navigate("PatientAppNavigation", {
-//             screen: "MobileChatbot",
-//             params: {
-//               presetPrompt: symptomPrompts[item],
-//               source: "symptom-pill",
-//             },
-//           });
-//         }}
-//       >
-//         <Animated.View
-//           style={[
-//             styles.pillWrapper,
-//             { transform: [{ scale: scaleAnim[index] }] },
-//           ]}
-//         >
-//           {isActive ? (
-//             <LinearGradient
-//               colors={["#F9A8D4", "#F472B6"]}
-//               style={styles.pillGradient}
-//             >
-//               <View style={styles.pillContent}>
-//                 <MaterialCommunityIcons
-//                   name={pillIcons[item]}
-//                   size={14}
-//                   color="#7C1D9D"
-//                 />
-//                 <Text style={styles.pillActiveText}>{item.toLowerCase()}</Text>
-//               </View>
-//             </LinearGradient>
-//           ) : (
-//             <View style={styles.pill}>
-//               <View style={styles.pillContent}>
-//                 <MaterialCommunityIcons
-//                   name={pillIcons[item]}
-//                   size={14}
-//                   color="#6B7280"
-//                 />
-//                 <Text style={styles.pillText}>{item.toLowerCase()}</Text>
-//               </View>
-//             </View>
-//           )}
-//         </Animated.View>
-//       </Pressable>
-//     );
-//   };
-
-//   return (
-//     <>
-//       {Platform.OS === "web" && width > 1000 && (
-//         <View style={styles.container}>
-//           {/* ================= NAVBAR ================= */}
-//           <View style={styles.navbar}>
-//             <View style={styles.logoRow}>
-//               {/* <Image
-//             source={require("../../assets/Icons/newkokorologo.png")}
-//             style={styles.logo}
-//           /> */}
-//               <Image
-//                 source={require("../../assets/Images/KokoroLogo.png")}
-//                 style={styles.logo}
-//               />
-//               <View>
-//                 <Text style={styles.logoText}>Kokoro.Doctor</Text>
-//                 <Text style={styles.logoSub}>
-//                   Trusted by doctors as their cloud clinic
-//                 </Text>
-//               </View>
-//             </View>
-
-//             <View style={styles.navLinks}>
-//               {/* <NavHoverItem label="Women's Health" /> */}
-//               <NavHoverItem
-//                 onPress={() => {
-//                   mixpanel.track("Welcome - Our Doctors Clicked", {
-//                     source: "navbar",
-//                     destination: "DoctorResultShow",
-//                   });
-
-//                   navigation.navigate("PatientAppNavigation", {
-//                     screen: "Doctors",
-//                     params: {
-//                       screen: "DoctorResultShow",
-//                     },
-//                   });
-//                 }}
-//                 label="Our Doctors"
-//               />
-
-//               {/* <NavHoverItem label="Heart Health" /> */}
-//             </View>
-
-//             <View style={styles.navActions}>
-//               <NavHoverItem
-//                 label="Doctor Login"
-//                 onPress={() =>
-//                   navigation.navigate("DoctorAppNavigation", {
-//                     screen: "DoctorPortalLandingPage",
-//                   })
-//                 }
-//               />
-
-//               <HoverScaleTouchable
-//                 text="Start Health Check"
-//                 baseStyle={styles.startBtn}
-//                 hoverStyle={styles.startBtnHover}
-//                 textStyle={styles.startBtnText}
-//                 onPress={() => {
-//                   mixpanel.track("Welcome - Start Health Check Clicked", {
-//                     source: "navbar",
-//                     destination: "MobileChatbot",
-//                   });
-
-//                   navigation.navigate("PatientAppNavigation", {
-//                     screen: "MobileChatbot",
-//                   });
-//                 }}
-//               />
-//             </View>
-//           </View>
-
-//           {/* ================= HERO ================= */}
-//           <ScrollView
-//             contentContainerStyle={styles.heroContent}
-//             showsVerticalScrollIndicator={false}
-//           >
-//             <ImageBackground
-//               source={require("../../assets/Images/newlandaingpagepic.jpg")}
-//               style={styles.hero}
-//               resizeMode="cover"
-//             >
-//               <LinearGradient
-//                 pointerEvents="none" // 🔥 THIS IS THE KEY
-//                 colors={[
-//                   "rgba(255,255,255,0.92)",
-//                   "rgba(255,255,255,0.85)",
-//                   "rgba(255,255,255,0.75)",
-//                 ]}
-//                 style={StyleSheet.absoluteFill}
-//               />
-
-//               {/* Badge */}
-//               <View style={styles.badge}>
-//                 <Ionicons name="shield-checkmark" size={16} color="#EC4899" />
-//                 <Text style={styles.badgeText}>
-//                   Built with doctors • Incubated at Harvard Innovation Labs
-//                 </Text>
-//               </View>
-
-//               {/* Headline */}
-//               <Text style={styles.heading}>
-//                 Not feeling well?{"\n"}
-//                 <Text style={styles.headingPink}>
-//                   Start with your symptoms.
-//                 </Text>
-//                 {"\n"}We&apos;ll guide you.
-//               </Text>
-
-//               {/* Subtext */}
-//               <Text style={styles.subtext}>
-//                 Share what you&apos;re experiencing. Our medical AI will ask the
-//                 right questions
-//                 {"\n"}
-//                 and connect you with a trusted heart or women&apos;s health
-//                 specialist if needed.
-//               </Text>
-
-//               {/* Pills */}
-//               {/* Pills */}
-//               <View style={styles.pillsContainer}>
-//                 {/* First row (first 5 pills) */}
-//                 <View style={styles.pillsRow}>
-//                   {concerns.slice(0, 5).map((item, index) => {
-//                     const isActive = index === activePill;
-
-//                     return (
-//                       <Pressable
-//                         key={item}
-//                         onPress={() => {
-//                           mixpanel.track("Welcome - Symptom Pill Clicked", {
-//                             symptom: item,
-//                             source: "pill",
-//                             destination: "MobileChatbot",
-//                           });
-
-//                           setActivePill(index);
-
-//                           navigation.navigate("PatientAppNavigation", {
-//                             screen: "MobileChatbot",
-//                             params: {
-//                               presetPrompt: symptomPrompts[item],
-//                               source: "symptom-pill",
-//                             },
-//                           });
-//                         }}
-//                       >
-//                         <Animated.View
-//                           style={[
-//                             styles.pillWrapper,
-//                             { transform: [{ scale: scaleAnim[index] }] },
-//                           ]}
-//                         >
-//                           {isActive ? (
-//                             <LinearGradient
-//                               colors={["#F9A8D4", "#F472B6"]}
-//                               start={{ x: 0, y: 0 }}
-//                               end={{ x: 1, y: 1 }}
-//                               style={styles.pillGradient}
-//                             >
-//                               <View style={styles.pillContent}>
-//                                 <MaterialCommunityIcons
-//                                   name={pillIcons[item]}
-//                                   size={16}
-//                                   color="#7C1D9D"
-//                                 />
-//                                 <Text style={styles.pillActiveText}>
-//                                   {item.toLowerCase()}
-//                                 </Text>
-//                               </View>
-//                             </LinearGradient>
-//                           ) : (
-//                             <View style={styles.pill}>
-//                               <View style={styles.pillContent}>
-//                                 <MaterialCommunityIcons
-//                                   name={pillIcons[item]}
-//                                   size={16}
-//                                   color={isActive ? "#7C1D9D" : "#6B7280"}
-//                                 />
-//                                 <Text
-//                                   style={[
-//                                     styles.pillText,
-//                                     isActive && styles.pillActiveTextSmall,
-//                                   ]}
-//                                 >
-//                                   {item.toLowerCase()}
-//                                 </Text>
-//                               </View>
-//                             </View>
-//                           )}
-//                         </Animated.View>
-//                       </Pressable>
-//                     );
-//                   })}
-//                 </View>
-
-//                 {/* Second row (Pregnancy concerns centered) */}
-//                 <View style={styles.pillsRowCenter}>
-//                   {(() => {
-//                     const index = 5;
-//                     const item = concerns[5];
-//                     const isActive = index === activePill;
-
-//                     return (
-//                       <Pressable onPress={() => setActivePill(index)}>
-//                         <Animated.View
-//                           style={[
-//                             styles.pillWrapper,
-//                             { transform: [{ scale: scaleAnim[index] }] },
-//                           ]}
-//                         >
-//                           {isActive ? (
-//                             <LinearGradient
-//                               colors={["#F9A8D4", "#F472B6"]}
-//                               start={{ x: 0, y: 0 }}
-//                               end={{ x: 1, y: 1 }}
-//                               style={styles.pillGradient}
-//                             >
-//                               <View style={styles.pillContent}>
-//                                 <MaterialCommunityIcons
-//                                   name={pillIcons[item]}
-//                                   size={16}
-//                                   color="#7C1D9D"
-//                                 />
-//                                 <Text style={styles.pillActiveText}>
-//                                   {item.toLowerCase()}
-//                                 </Text>
-//                               </View>
-//                             </LinearGradient>
-//                           ) : (
-//                             <View style={styles.pill}>
-//                               <View style={styles.pillContent}>
-//                                 <MaterialCommunityIcons
-//                                   name={pillIcons[item]}
-//                                   size={16}
-//                                   color={isActive ? "#7C1D9D" : "#6B7280"}
-//                                 />
-//                                 <Text
-//                                   style={[
-//                                     styles.pillText,
-//                                     isActive && styles.pillActiveTextSmall,
-//                                   ]}
-//                                 >
-//                                   {item.toLowerCase()}
-//                                 </Text>
-//                               </View>
-//                             </View>
-//                           )}
-//                         </Animated.View>
-//                       </Pressable>
-//                     );
-//                   })()}
-//                 </View>
-//               </View>
-
-//               {/* CTA Card */}
-//               <View style={styles.ctaCard}>
-//                 <View style={styles.tryRow}>
-//                   <TouchableOpacity style={styles.arrowBox}>
-//                     <Ionicons name="arrow-up" size={26} color="#EC4899" />
-//                   </TouchableOpacity>
-
-//                   {/* Hide ONLY the "Try" label */}
-//                   {!isTyping && <Text style={styles.tryText}>Try</Text>}
-
-//                   {/* TextInput ALWAYS mounted */}
-//                   <TextInput
-//                     value={inputValue}
-//                     onChangeText={(text) => {
-//                       setInputValue(text);
-//                       setHasUserTyped(text.length > 0);
-//                     }}
-//                     onFocus={() => setHasUserTyped(true)}
-//                     onBlur={() => {
-//                       if (inputValue.trim() === "") {
-//                         setHasUserTyped(false);
-//                       }
-//                     }}
-//                     style={[
-//                       styles.tryInput,
-//                       isTyping && { marginLeft: 0 }, // optional polish
-//                     ]}
-//                     placeholder={tryInput}
-//                     placeholderTextColor="#EC4899"
-//                   />
-//                 </View>
-
-//                 <HoverScaleTouchable
-//                   text="Start Free Health Check →"
-//                   baseStyle={styles.ctaBtn}
-//                   hoverStyle={styles.ctaBtnHover}
-//                   textStyle={styles.ctaBtnText}
-//                   onPress={() => {
-//                     const textToSend = inputValue.trim();
-
-//                     mixpanel.track("Welcome - Free Health Check Started", {
-//                       source: "cta-card",
-//                       has_typed_text: !!textToSend,
-//                       text_length: textToSend.length,
-//                       destination: "MobileChatbot",
-//                     });
-
-//                     navigation.navigate("PatientAppNavigation", {
-//                       screen: "MobileChatbot",
-//                       params: {
-//                         presetPrompt: textToSend || null,
-//                         source: "free-text-input",
-//                       },
-//                     });
-//                   }}
-//                 />
-//               </View>
-
-//               <View
-//                 style={{
-//                   justifyContent: "center",
-//                   marginTop: "1%",
-//                   alignSelf: "center",
-//                 }}
-//               >
-//                 <Text style={{ color: "#EC4899", fontWeight: "500" }}>
-//                   No signup needed to start • Your data stays private
-//                 </Text>
-//               </View>
-
-//               <View
-//                 style={{
-//                   flexDirection: "row",
-//                   gap: 10,
-//                   justifyContent: "center",
-//                   marginTop: "1%",
-//                   marginBottom: "2%",
-//                 }}
-//               >
-//                 <Text>Or</Text>
-//                 <TouchableOpacity
-//                   activeOpacity={0.85}
-//                   onPress={() => {
-//                     mixpanel.track("Welcome - Talk to Doctor Clicked", {
-//                       source: "footer-cta",
-//                       destination: "DoctorResultShow",
-//                     });
-
-//                     navigation.navigate("PatientAppNavigation", {
-//                       screen: "Doctors",
-//                       params: {
-//                         screen: "DoctorResultShow",
-//                       },
-//                     });
-//                   }}
-//                   onMouseEnter={
-//                     Platform.OS === "web"
-//                       ? () => setDoctorHover(true)
-//                       : undefined
-//                   }
-//                   onMouseLeave={
-//                     Platform.OS === "web"
-//                       ? () => setDoctorHover(false)
-//                       : undefined
-//                   }
-//                   style={{
-//                     flexDirection: "row",
-//                     alignItems: "center",
-//                     cursor: Platform.OS === "web" ? "pointer" : "default",
-//                   }}
-//                 >
-//                   <Text
-//                     style={{
-//                       color: doctorHover ? "#EC4899" : "#F472B6",
-//                       fontWeight: "600",
-//                       fontSize: 14,
-//                     }}
-//                   >
-//                     Talk to a Doctor Now
-//                   </Text>
-
-//                   <Animated.Text
-//                     style={{
-//                       marginLeft: 6,
-//                       color: doctorHover ? "#EC4899" : "#F472B6",
-//                       transform: [{ translateX: arrowTranslate }],
-//                       fontWeight: "600",
-//                     }}
-//                   >
-//                     →
-//                   </Animated.Text>
-//                 </TouchableOpacity>
-//               </View>
-//             </ImageBackground>
-//           </ScrollView>
-//         </View>
-//       )}
-//       {(Platform.OS !== "web" || width < 1000) && (
-//         <View>
-//           <ScrollView
-//             showsVerticalScrollIndicator={false}
-//             contentContainerStyle={{
-//               backgroundColor: "#FFF",
-//             }}
-//           >
-//             <View>
-//               <Image
-//                 source={require("../../assets/Images/newlandaingpagepic.jpg")}
-//                 resizeMode="cover"
-//                 style={{
-//                   position: "absolute",
-//                   top: 0,
-//                   left: 0,
-//                   right: 0,
-//                   bottom: 0,
-//                   width: "100%",
-//                   height: "100%",
-//                 }}
-//               />
-//               <LinearGradient
-//                 colors={[
-//                   "rgba(255,255,255,0.95)",
-//                   "rgba(255,255,255,0.85)",
-//                   "rgba(255,255,255,0.75)",
-//                 ]}
-//                 style={StyleSheet.absoluteFill}
-//               />
-
-//               {/* Header */}
-//               <View
-//                 style={{
-//                   flexDirection: "row",
-//                   alignItems: "center",
-//                   justifyContent: "space-between",
-//                   paddingHorizontal: 16,
-//                   paddingTop: 32,
-//                 }}
-//               >
-//                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-//                   <Image
-//                     source={require("../../assets/Icons/newkokorologo.png")}
-//                     style={{ width: 32, height: 32, marginRight: 8 }}
-//                   />
-//                   <Text style={{ fontWeight: "700", fontSize: 16 }}>
-//                     Kokoro.Doctor
-//                   </Text>
-//                 </View>
-//                 <Pressable onPress={() => setMenuVisible(true)}>
-//                   <Ionicons name="menu" size={26} color="#000" />
-//                 </Pressable>
-//               </View>
-
-//               {/* Content */}
-//               <View style={{ paddingHorizontal: 20, marginTop: 30 }}>
-//                 <Text
-//                   style={{
-//                     fontSize: 32,
-//                     fontWeight: "800",
-//                     textAlign: "center",
-//                     color: "#111",
-//                     lineHeight: 40,
-//                   }}
-//                 >
-//                   Not feeling well?{"\n"}
-//                   <Text style={{ color: "#C084FC" }}>
-//                     Start with your symptoms.
-//                   </Text>
-//                   {"\n"}We&apos;ll guide you.
-//                 </Text>
-
-//                 <Text
-//                   style={{
-//                     textAlign: "center",
-//                     marginTop: 14,
-//                     color: "#6B7280",
-//                     fontSize: 15,
-//                     lineHeight: 22,
-//                   }}
-//                 >
-//                   Share what you&apos;re experiencing. Our medical AI will ask
-//                   the right questions and connect you with a trusted heart or
-//                   women&apos;s health specialist if needed.
-//                 </Text>
-
-//                 {/* Badge */}
-//                 <View
-//                   style={{
-//                     flexDirection: "row",
-//                     alignItems: "center",
-//                     alignSelf: "center",
-//                     marginTop: 20,
-//                     paddingHorizontal: 6,
-//                     paddingVertical: 6,
-//                     borderRadius: 999,
-//                     borderWidth: 1,
-//                     borderColor: "#E5E7EB",
-//                     backgroundColor: "#FFF",
-//                     gap: 6,
-//                   }}
-//                 >
-//                   <Ionicons name="shield-checkmark" size={14} color="#EC4899" />
-//                   <Text style={{ fontSize: 12 }}>
-//                     built with doctors • Incubated at Harvard Innovation Labs
-//                   </Text>
-//                 </View>
-
-//                 {/* Pills */}
-
-//                 <View style={{ marginTop: 28, alignItems: "center" }}>
-//                   <View style={styles.pillRow}>
-//                     {mobileConcerns
-//                       .slice(0, 2)
-//                       .map((item, index) => renderMobilePill(item, index))}
-//                   </View>
-
-//                   {/* Row 2 */}
-//                   <View style={styles.pillRow}>
-//                     {mobileConcerns
-//                       .slice(2, 4)
-//                       .map((item, index) => renderMobilePill(item, index + 2))}
-//                   </View>
-
-//                   {/* Row 3 */}
-//                   <View style={styles.pillRow}>
-//                     {renderMobilePill(mobileConcerns[4], 4)}
-//                   </View>
-//                 </View>
-
-//                 {/* Try input */}
-//                 <View
-//                   style={{
-//                     marginTop: 30,
-//                     backgroundColor: "#FFF",
-//                     borderRadius: 16,
-//                     padding: 14,
-//                     flexDirection: "row",
-//                     alignItems: "center",
-//                     gap: 10,
-//                   }}
-//                 >
-//                   <View
-//                     style={{
-//                       width: 42,
-//                       height: 42,
-//                       borderRadius: 12,
-//                       backgroundColor: "#F5F3FF",
-//                       alignItems: "center",
-//                       justifyContent: "center",
-//                     }}
-//                   >
-//                     <Ionicons name="arrow-up" size={22} color="#EC4899" />
-//                   </View>
-
-//                   {!isTyping && <Text style={{ color: "#6B7280" }}>Try</Text>}
-
-//                   <TextInput
-//                     value={inputValue}
-//                     onChangeText={(text) => {
-//                       setInputValue(text);
-//                       setHasUserTyped(text.length > 0);
-//                     }}
-//                     placeholder={tryInput}
-//                     placeholderTextColor="#EC4899"
-//                     style={{
-//                       flex: 1,
-//                       fontWeight: "600",
-//                       color: "#EC4899",
-
-//                       // 🔥 spacing inside input
-//                       paddingHorizontal: 14,
-//                       paddingVertical: 12,
-
-//                       // 🔥 border
-//                       borderWidth: 1,
-//                       borderColor: "#AAAAAA",
-//                       borderRadius: 12,
-//                     }}
-//                   />
-//                 </View>
-
-//                 {/* CTA */}
-//                 <TouchableOpacity
-//                   activeOpacity={0.9}
-//                   onPress={() => {
-//                     navigation.navigate("PatientAppNavigation", {
-//                       screen: "MobileChatbot",
-//                       params: {
-//                         presetPrompt: inputValue || null,
-//                         source: "free-text-input",
-//                       },
-//                     });
-//                   }}
-//                   style={{
-//                     marginTop: 18,
-//                     backgroundColor: "#F472B6",
-//                     paddingVertical: 16,
-//                     borderRadius: 999,
-//                   }}
-//                 >
-//                   <Text
-//                     style={{
-//                       textAlign: "center",
-//                       color: "#FFF",
-//                       fontWeight: "700",
-//                       fontSize: 15,
-//                     }}
-//                   >
-//                     Start Free Health Check →
-//                   </Text>
-//                 </TouchableOpacity>
-
-//                 {/* Footer */}
-//                 <Text
-//                   style={{
-//                     marginTop: 14,
-//                     textAlign: "center",
-//                     color: "#EC4899",
-//                     fontSize: 12,
-//                   }}
-//                 >
-//                   No signup needed to start • Your data stays private
-//                 </Text>
-
-//                 <TouchableOpacity
-//                   onPress={() =>
-//                     navigation.navigate("PatientAppNavigation", {
-//                       screen: "Doctors",
-//                       params: { screen: "DoctorResultShow" },
-//                     })
-//                   }
-//                   style={{
-//                     marginTop: "5%",
-//                     alignItems: "center",
-//                     marginBottom: "18%",
-//                     flexDirection: "row",
-//                     justifyContent: "center",
-//                   }}
-//                 >
-//                   <Text style={{ color: "#F472B6", fontWeight: "600" }}>
-//                     Or{" "}
-//                   </Text>
-//                   <Text style={{ color: "#F472B6", fontWeight: "600" }}>
-//                     Talk to Doctor Now →
-//                   </Text>
-//                 </TouchableOpacity>
-//               </View>
-//             </View>
-//           </ScrollView>
-//         </View>
-//       )}
-//       {menuVisible && isMobile && (
-//         <Modal transparent animationType="fade">
-//           {/* Overlay */}
-//           <Pressable
-//             style={styles.menuOverlay}
-//             onPress={() => setMenuVisible(false)}
-//           />
-
-//           {/* Dropdown */}
-//           <View style={styles.menuDropdown}>
-//             <Text style={styles.menuTitle}>Menu</Text>
-
-//             <Pressable
-//               style={styles.menuItem}
-//               onPress={() => {
-//                 setMenuVisible(false);
-
-//                 mixpanel.track("Mobile Menu - Our Doctors Clicked", {
-//                   source: "mobile-menu",
-//                 });
-
-//                 navigation.navigate("PatientAppNavigation", {
-//                   screen: "Doctors",
-//                   params: {
-//                     screen: "DoctorResultShow",
-//                   },
-//                 });
-//               }}
-//             >
-//               <Text style={styles.menuText}>Our Doctors</Text>
-//             </Pressable>
-
-//             <Pressable
-//               style={styles.menuItem}
-//               onPress={() => {
-//                 setMenuVisible(false);
-
-//                 mixpanel.track("Mobile Menu - Doctor Login Clicked", {
-//                   source: "mobile-menu",
-//                 });
-
-//                 navigation.navigate("DoctorAppNavigation", {
-//                   screen: "DoctorPortalLandingPage",
-//                 });
-//               }}
-//             >
-//               <Text style={styles.menuText}>Doctor Login</Text>
-//             </Pressable>
-//           </View>
-//         </Modal>
-//       )}
-//     </>
-//   );
-// }
-
-// /* ================= COMPONENT ================= */
-// function NavHoverItem({ label, onPress }) {
-//   const [hovered, setHovered] = useState(false);
-
-//   return (
-//     <TouchableOpacity
-//       activeOpacity={0.7}
-//       onPress={onPress}
-//       onMouseEnter={Platform.OS === "web" ? () => setHovered(true) : undefined}
-//       onMouseLeave={Platform.OS === "web" ? () => setHovered(false) : undefined}
-//       style={{ cursor: Platform.OS === "web" ? "pointer" : "default" }}
-//     >
-//       <Text style={[styles.navText, hovered && styles.navTextHover]}>
-//         {label}
-//       </Text>
-//     </TouchableOpacity>
-//   );
-// }
-
-// function HoverScaleTouchable({
-//   text,
-//   baseStyle,
-//   hoverStyle,
-//   textStyle,
-//   onPress,
-// }) {
-//   const scale = useRef(new Animated.Value(1)).current;
-//   const [hovered, setHovered] = useState(false);
-
-//   return (
-//     <TouchableOpacity
-//       activeOpacity={0.85}
-//       onPress={onPress}
-//       onMouseEnter={
-//         Platform.OS === "web"
-//           ? () => {
-//               setHovered(true);
-//               Animated.spring(scale, {
-//                 toValue: 1.07,
-//                 useNativeDriver: true,
-//               }).start();
-//             }
-//           : undefined
-//       }
-//       onMouseLeave={
-//         Platform.OS === "web"
-//           ? () => {
-//               setHovered(false);
-//               Animated.spring(scale, {
-//                 toValue: 1,
-//                 useNativeDriver: true,
-//               }).start();
-//             }
-//           : undefined
-//       }
-//       style={{ cursor: Platform.OS === "web" ? "pointer" : "default" }}
-//     >
-//       <Animated.View
-//         style={[baseStyle, hovered && hoverStyle, { transform: [{ scale }] }]}
-//       >
-//         <Text style={textStyle}>{text}</Text>
-//       </Animated.View>
-//     </TouchableOpacity>
-//   );
-// }
-
-// /* ================= STYLES ================= */
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: "#FFF",
-//   },
-//   startBtnHover: {
-//     backgroundColor: "#EC4899", // darker pink
-//   },
-//   tryInput: {
-//     fontSize: 14,
-//     fontWeight: "600",
-//     color: "#EC4899",
-//     minWidth: 390,
-//     padding: 0,
-//     marginLeft: 4,
-//     // Web only
-//     outlineStyle: "none",
-//     borderWidth: 1,
-//     borderColor: "#c5c4c4ff",
-//     borderRadius: 10,
-//     minHeight: 43,
-//   },
-//   pillsContainer: {
-//     alignItems: "center",
-//     marginBottom: 32,
-//   },
-//   menuOverlay: {
-//     position: "absolute",
-//     top: 0,
-//     left: 0,
-//     right: 0,
-//     bottom: 0,
-//     backgroundColor: "rgba(0,0,0,0.15)",
-//   },
-
-//   menuDropdown: {
-//     position: "absolute",
-//     top: 70, // just below header
-//     right: 16,
-//     width: 220,
-//     backgroundColor: "#FFF",
-//     borderRadius: 14,
-//     paddingVertical: 8,
-
-//     shadowColor: "#000",
-//     shadowOpacity: 0.15,
-//     shadowRadius: 16,
-//     elevation: 10,
-//   },
-
-//   menuTitle: {
-//     fontSize: 14,
-//     fontWeight: "600",
-//     color: "#6B7280",
-//     paddingHorizontal: 16,
-//     paddingVertical: 10,
-//   },
-
-//   menuItem: {
-//     paddingVertical: 14,
-//     paddingHorizontal: 16,
-//   },
-
-//   menuText: {
-//     fontSize: 15,
-//     fontWeight: "500",
-//     color: "#111827",
-//   },
-
-//   ctaBtnHover: {
-//     backgroundColor: "#EC4899", // darker pink
-//   },
-//   pillWrapper: {
-//     borderRadius: 999,
-//   },
-
-//   pillGradient: {
-//     paddingVertical: 10,
-//     paddingHorizontal: 18,
-//     borderRadius: 999,
-//   },
-
-//   pillActiveText: {
-//     fontSize: 14,
-//     fontWeight: "600",
-//     color: "#7C1D9D",
-//   },
-
-//   /* NAVBAR */
-//   navbar: {
-//     // marginTop:"1%",
-//     height: "10%",
-//     flexDirection: "row",
-//     alignItems: "center",
-//     // paddingHorizontal: 32,
-
-//     backgroundColor: "#FFF",
-//     justifyContent: "space-between",
-//   },
-//   logoRow: {
-//     marginLeft: "6%",
-//     flexDirection: "row",
-//     alignItems: "center",
-//   },
-//   logo: {
-//     width: 36,
-//     height: 36,
-//     marginRight: 10,
-//   },
-//   logoText: {
-//     fontSize: 18,
-//     fontWeight: "700",
-//     color: "#1F2937",
-//   },
-//   logoSub: {
-//     fontSize: 10,
-//     color: "#6B7280",
-//     fontWeight: "500",
-//   },
-//   navLinks: {
-//     flexDirection: "row",
-//     gap: 28,
-//     //borderWidth:1,
-//     marginLeft: "50%",
-//   },
-//   navText: {
-//     color: "#6B7280",
-//     fontSize: 15,
-//     fontWeight: "600",
-//   },
-//   navTextHover: {
-//     color: "#000",
-//   },
-//   navActions: {
-//     marginRight: "6%",
-//     flexDirection: "row",
-//     alignItems: "center",
-//     gap: 16,
-//   },
-//   loginText: {
-//     color: "#6B7280",
-//     fontSize: 14,
-//     fontWeight: "500",
-//   },
-//   startBtn: {
-//     backgroundColor: "#F472B6",
-//     paddingHorizontal: 18,
-//     paddingVertical: 10,
-//     borderRadius: 999,
-//   },
-//   startBtnText: {
-//     color: "#FFF",
-//     fontWeight: "600",
-//   },
-//   pillContent: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     gap: 6,
-//   },
-//   /* HERO */
-//   hero: {
-//     flex: 1,
-//     height: "100%",
-//     width: "100%",
-//   },
-//   arrowBox: {
-//     width: 44,
-//     height: 44,
-//     borderRadius: 14,
-//     backgroundColor: "#F5F3FF", // very light lavender
-//     alignItems: "center",
-//     justifyContent: "center",
-
-//     // shadow (iOS)
-//     shadowColor: "#000",
-//     shadowOpacity: 0.08,
-//     shadowRadius: 12,
-//     shadowOffset: { width: 0, height: 4 },
-
-//     // shadow (Android)
-//     elevation: 4,
-//   },
-//   heroContent: {
-//     // flex:1,
-//     height: "auto",
-//     // paddingHorizontal: 32,
-//     // paddingTop: 60,
-//     // paddingBottom: 80,
-//     // maxWidth: 1100,
-//     // alignSelf: "center",
-//   },
-
-//   badge: {
-//     marginTop: "4%",
-//     flexDirection: "row",
-//     alignItems: "center",
-//     backgroundColor: "#FFF",
-//     alignSelf: "center",
-//     paddingHorizontal: 16,
-//     paddingVertical: 8,
-//     borderRadius: 999,
-//     gap: 8,
-//     marginBottom: 32,
-//     borderWidth: 1,
-//     borderColor: "#E5E7EB",
-//   },
-//   badgeText: {
-//     fontSize: 14,
-//     color: "#374151",
-//     fontWeight: "500",
-//   },
-
-//   heading: {
-//     fontSize: Platform.OS === "web" ? 56 : 38,
-//     fontWeight: "800",
-//     color: "#1F2937",
-//     textAlign: "center",
-//     lineHeight: Platform.OS === "web" ? 68 : 46,
-//     marginBottom: 24,
-//   },
-//   headingPink: {
-//     color: "#C084FC",
-//   },
-
-//   subtext: {
-//     textAlign: "center",
-//     fontSize: 20,
-//     color: "#6B7280",
-//     maxWidth: 720,
-//     alignSelf: "center",
-//     marginBottom: 32,
-//     lineHeight: 24,
-//     fontWeight: "400",
-//   },
-
-//   pillsRow: {
-//     flexDirection: "row",
-//     flexWrap: "wrap",
-//     justifyContent: "center",
-//     gap: 12,
-//     marginBottom: 10,
-//   },
-//   pillsRowCenter: {
-//     flexDirection: "row",
-//     justifyContent: "center",
-//   },
-
-//   pill: {
-//     borderWidth: 1,
-//     borderColor: "#E5E7EB",
-//     paddingVertical: 10,
-//     paddingHorizontal: 18,
-//     borderRadius: 999,
-//     backgroundColor: "#FFF",
-//   },
-//   pillActiveTextSmall: {
-//     color: "#7C1D9D",
-//     fontWeight: "600",
-//   },
-//   pillActive: {
-//     backgroundColor: "#F472B6",
-//     borderColor: "#F472B6",
-//   },
-//   pillText: {
-//     fontSize: 14,
-//     color: "#374151",
-//     fontWeight: "500",
-//   },
-//   pillTextActive: {
-//     color: "#FFF",
-//     fontWeight: "600",
-//   },
-
-//   ctaCard: {
-//     width: "50%",
-//     alignSelf: "center",
-//     backgroundColor: "#FFF",
-//     borderRadius: 18,
-//     padding: 20,
-//     flexDirection: Platform.OS === "web" ? "row" : "column",
-//     alignItems: "center",
-//     justifyContent: "space-between",
-//     gap: 16,
-//     shadowColor: "#000",
-//     shadowOpacity: 0.08,
-//     shadowRadius: 16,
-//     elevation: 6,
-//   },
-//   tryRow: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     gap: 8,
-//   },
-//   tryText: {
-//     marginLeft: "2%",
-//     fontSize: 18,
-//     color: "#6B7280",
-//     fontWeight: "400",
-//   },
-//   pillRow: {
-//     flexDirection: "row",
-//     justifyContent: "center",
-//     gap: 10,
-//     marginBottom: 10,
-//   },
-
-//   tryPink: {
-//     color: "#EC4899",
-//     fontWeight: "600",
-//   },
-
-//   ctaBtn: {
-//     backgroundColor: "#F472B6",
-//     paddingHorizontal: 26,
-//     paddingVertical: 14,
-//     borderRadius: 999,
-//   },
-//   ctaBtnText: {
-//     color: "#FFF",
-//     fontWeight: "700",
-//     fontSize: 15,
-//   },
-// });
-
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Image,
-  ImageBackground,
-  ScrollView,
-  Platform,
-  Animated,
-  Pressable,
-  TouchableOpacity,
   TextInput,
+  ScrollView,
+  TouchableOpacity,
   useWindowDimensions,
+  Platform,
+  ImageBackground,
+  Animated,
+  Easing,
   Modal,
+  Pressable,
 } from "react-native";
-//gduywegduyxuygdusa
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import mixpanel from "../../utils/Mixpanel";
 
-export default function WelcomePage() {
-  const concerns = [
-    "Chest Pain",
-    "Irregular Heartbeat",
-    "High BP",
-    "Missed Periods",
-    "PCOS Symptoms",
-    "Pregnancy Concerns",
-  ];
-  const pillIcons = {
-    "Chest Pain": "heart-outline",
-    "Irregular Heartbeat": "heart-pulse",
-    "High BP": "heart-plus-outline",
-    "Missed Periods": "calendar-blank-outline",
-    "PCOS Symptoms": "gender-female",
-    "Pregnancy Concerns": "baby-face-outline",
-  };
-  const symptomPrompts = {
-    "Chest Pain":
-      "I am experiencing chest pain. Please ask me relevant medical questions to understand my condition.",
-    "Irregular Heartbeat":
-      "I have an irregular heartbeat. Please ask follow-up questions to assess my heart health.",
-    "High BP":
-      "I have high blood pressure readings. Please guide me with questions.",
-    "Missed Periods":
-      "I have missed my periods. Please ask questions to understand possible causes.",
-    "PCOS Symptoms":
-      "I am experiencing PCOS-related symptoms. Please ask relevant questions.",
-    "Pregnancy Concerns":
-      "I have concerns related to pregnancy. Please ask the necessary questions.",
-  };
-
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [tryInput, setTryInput] = useState("");
-  const [inputValue, setInputValue] = useState("");
-  const [hasUserTyped, setHasUserTyped] = useState(false);
-  const [doctorHover, setDoctorHover] = useState(false);
-  const arrowTranslate = useRef(new Animated.Value(0)).current;
-  const navigation = useNavigation();
-
+export default function KokoroDoctorScreen() {
+  const [searchText, setSearchText] = useState("");
   const { width } = useWindowDimensions();
-  const isMobile = Platform.OS !== "web" || width < 1000;
-  const mobileConcerns = [
-    "Chest Pain",
-    "Irregular Heartbeat",
-    "High BP",
-    "Missed Periods",
-    "Pregnancy Concerns",
-  ];
+  const isMobile = width < 768;
+  const navigation = useNavigation();
+  const [menuVisible, setMenuVisible] = useState(false);
 
-  const animatedConcerns = isMobile ? mobileConcerns : concerns;
+  const scrollRef = useRef(null);
+  const scrollX = useRef(0);
+  const intervalRef = useRef(null);
+  const pauseTimeout = useRef(null);
+  const [isPaused, setIsPaused] = useState(false);
 
-  const [activePill, setActivePill] = useState(0);
+  // Animation states
+  const animationProgress = useRef(new Animated.Value(0)).current;
+  const blinkOpacity = useRef(new Animated.Value(1)).current;
+  const rotationValue = useRef(new Animated.Value(0)).current;
+  const animationRef = useRef(null);
+  const blinkRef = useRef(null);
+  const rotationRef = useRef(null);
 
-  const scaleAnim = useRef(
-    animatedConcerns.map(() => new Animated.Value(1)),
-  ).current;
+  // Cubic bezier curve for smooth path animation
+  const calculateCurvePosition = (progress) => {
+    // Path: top-left (0,0) -> bottom-middle (0.5,1) -> top-right (1,0) -> back
+    let x, y, t;
 
-  const isTyping = hasUserTyped;
-  const isMobileWeb = Platform.OS === "web" && width < 1000;
-
-  useEffect(() => {
-    Animated.spring(arrowTranslate, {
-      toValue: doctorHover ? 8 : 0, // ≈ 2% shift
-      useNativeDriver: true,
-    }).start();
-  }, [arrowTranslate, doctorHover]);
-
-  useEffect(() => {
-    if (!hasUserTyped) {
-      setTryInput(animatedConcerns[activePill]);
+    if (progress < 0.5) {
+      // First half: top-left to bottom-middle
+      t = progress * 2; // 0 to 1
+      // Quadratic bezier: start(0,0), control(0.25,0.6), end(0.5,1)
+      x =
+        Math.pow(1 - t, 2) * 0 + 2 * (1 - t) * t * 0.15 + Math.pow(t, 2) * 0.5;
+      y = Math.pow(1 - t, 2) * 0 + 2 * (1 - t) * t * 0.7 + Math.pow(t, 2) * 1;
+    } else {
+      // Second half: bottom-middle to top-right
+      t = (progress - 0.5) * 2; // 0 to 1
+      // Quadratic bezier: start(0.5,1), control(0.75,0.6), end(1,0)
+      x = Math.pow(1 - t, 2) * 0.5 + 2 * (1 - t) * t * 0.8 + Math.pow(t, 2) * 1;
+      y = Math.pow(1 - t, 2) * 1 + 2 * (1 - t) * t * 0.5 + Math.pow(t, 2) * 0;
     }
-  }, [activePill, hasUserTyped, animatedConcerns]);
 
-  // ✅ AUTO ROTATE PILLS
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActivePill((prev) => (prev + 1) % animatedConcerns.length);
-    }, 2700);
-
-    return () => clearInterval(interval);
-  }, [animatedConcerns.length]);
-
-  // ✅ SCALE ACTIVE PILL
-  useEffect(() => {
-    scaleAnim.forEach((anim, index) => {
-      Animated.spring(anim, {
-        toValue: index === activePill ? 1.08 : 1,
-        useNativeDriver: true,
-      }).start();
-    });
-  }, [activePill, scaleAnim]);
-  const renderMobilePill = (item, index) => {
-    const isActive = index === activePill;
-
-    return (
-      <Pressable
-        key={item}
-        onPress={() => {
-          setActivePill(index);
-
-          navigation.navigate("PatientAppNavigation", {
-            screen: "MobileChatbot",
-            params: {
-              presetPrompt: symptomPrompts[item],
-              source: "symptom-pill",
-            },
-          });
-        }}
-      >
-        <Animated.View
-          style={[
-            styles.pillWrapper,
-            { transform: [{ scale: scaleAnim[index] }] },
-          ]}
-        >
-          {isActive ? (
-            <LinearGradient
-              colors={["#F9A8D4", "#F472B6"]}
-              style={styles.pillGradient}
-            >
-              <View style={styles.pillContent}>
-                <MaterialCommunityIcons
-                  name={pillIcons[item]}
-                  size={14}
-                  color="#7C1D9D"
-                />
-                <Text style={styles.pillActiveText}>{item.toLowerCase()}</Text>
-              </View>
-            </LinearGradient>
-          ) : (
-            <View style={styles.pill}>
-              <View style={styles.pillContent}>
-                <MaterialCommunityIcons
-                  name={pillIcons[item]}
-                  size={14}
-                  color="#6B7280"
-                />
-                <Text style={styles.pillText}>{item.toLowerCase()}</Text>
-              </View>
-            </View>
-          )}
-        </Animated.View>
-      </Pressable>
-    );
+    return { x, y };
   };
+
+  useEffect(() => {
+    // Main animation loop - discrete blink positions
+    const startAnimation = () => {
+      animationProgress.setValue(0);
+
+      animationRef.current = Animated.timing(animationProgress, {
+        toValue: 1,
+        duration: 6000, // 6 seconds for full cycle through 3 positions
+        easing: Easing.linear,
+        useNativeDriver: false,
+      }).start(({ finished }) => {
+        if (finished) {
+          startAnimation(); // Loop
+        }
+      });
+    };
+
+    // Rotation animation - rotates during each appearance
+    const startRotationCycle = () => {
+      rotationRef.current = Animated.sequence([
+        // Point A: Rotate 0 to 360 degrees (800ms)
+        Animated.timing(rotationValue, {
+          toValue: 360,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        // Pause during gap between A and B (800ms)
+        Animated.timing(rotationValue, {
+          toValue: 360,
+          duration: 800,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        // Point B: Rotate 360 to 720 degrees (800ms)
+        Animated.timing(rotationValue, {
+          toValue: 720,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        // Pause during gap between B and C (800ms)
+        Animated.timing(rotationValue, {
+          toValue: 720,
+          duration: 800,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        // Point C: Rotate 720 to 1080 degrees (800ms)
+        Animated.timing(rotationValue, {
+          toValue: 1080,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        // Pause during gap back to start (800ms)
+        Animated.timing(rotationValue, {
+          toValue: 1080,
+          duration: 800,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) {
+          rotationValue.setValue(0);
+          startRotationCycle(); // Loop rotation
+        }
+      });
+    };
+
+    // Blinking animation with discrete steps
+    // Stage A (0-0.33): Blink - opacity 0->1->0
+    // Stage B (0.33-0.66): Blink - opacity 0->1->0
+    // Stage C (0.66-1): Blink - opacity 0->1->0
+    const startBlinkCycle = () => {
+      blinkRef.current = Animated.sequence([
+        // Point A: Top-left
+        Animated.timing(blinkOpacity, {
+          toValue: 1,
+          duration: 250,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        Animated.timing(blinkOpacity, {
+          toValue: 0,
+          duration: 250,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        // Gap to Point B
+        Animated.timing(blinkOpacity, {
+          toValue: 0,
+          duration: 800,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        // Point B: Bottom-middle
+        Animated.timing(blinkOpacity, {
+          toValue: 1,
+          duration: 250,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        Animated.timing(blinkOpacity, {
+          toValue: 0,
+          duration: 250,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        // Gap to Point C
+        Animated.timing(blinkOpacity, {
+          toValue: 0,
+          duration: 800,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        // Point C: Top-right
+        Animated.timing(blinkOpacity, {
+          toValue: 1,
+          duration: 250,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+        Animated.timing(blinkOpacity, {
+          toValue: 0,
+          duration: 250,
+          easing: Easing.ease,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) {
+          startBlinkCycle(); // Loop
+        }
+      });
+    };
+
+    startAnimation();
+    startRotationCycle();
+    startBlinkCycle();
+
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.stop?.();
+      }
+      if (rotationRef.current) {
+        rotationRef.current.stop?.();
+      }
+      if (blinkRef.current) {
+        blinkRef.current.stop?.();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      if (!scrollRef.current) return;
+      if (isPaused) return;
+
+      scrollX.current += 1;
+
+      scrollRef.current.scrollTo({
+        x: scrollX.current,
+        animated: false, // ⭐ important (no animation lag)
+      });
+
+      if (scrollX.current > 700) {
+        scrollX.current = 0;
+        scrollRef.current.scrollTo({ x: 0, animated: false });
+      }
+    }, 20);
+
+    return () => clearInterval(intervalRef.current);
+  }, [isPaused]);
+
+  const tryItems = [
+    "Chest Pain",
+    "High BP",
+    "Paracetamol",
+    "Headache",
+    "Crocin",
+    "Period Pain",
+    "Meftal Spas",
+  ];
 
   return (
     <>
-      {Platform.OS === "web" && width > 1000 && (
-        <View style={styles.container}>
-          {/* ================= NAVBAR ================= */}
-          <View style={styles.navbar}>
-            <View style={styles.logoRow}>
+      <ScrollView style={styles.container}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <View style={styles.logoRow}>
+            <Image
+              source={require("../../assets/Images/KokoroLogo.png")}
+              style={styles.logo}
+            />
+            <Text style={styles.logoText}>Kokoro.Doctor</Text>
+          </View>
+
+          <TouchableOpacity onPress={() => setMenuVisible(true)}>
+            <Ionicons name="menu" size={26} />
+          </TouchableOpacity>
+        </View>
+
+        {/* HERO CARD */}
+        <ImageBackground
+          source={require("../../assets/Images/TopCardd.png")} // 👈 your 1st image
+          style={styles.heroCard}
+          imageStyle={styles.heroBgImage}
+        >
+          {/* TEXT + BUTTON */}
+          <View style={styles.heroContent}>
+            <Text style={styles.heroTitle}>
+              If something feels off or {"\n"}your medicines confuse you
+            </Text>
+
+            <TouchableOpacity
+              style={styles.helpBtn}
+              onPress={() => {
+                mixpanel.track("Get Help Now Clicked", {
+                  source: "hero-card",
+                  destination: "DoctorResultShow",
+                });
+
+                navigation.navigate("PatientAppNavigation", {
+                  screen: "Doctors",
+                  params: {
+                    screen: "DoctorResultShow",
+                  },
+                });
+              }}
+            >
+              <Text style={styles.helpText}>Get Help Now</Text>
+              <Ionicons name="arrow-forward" size={16} color="#ff4d4d" />
+            </TouchableOpacity>
+          </View>
+
+          {/* DOCTOR CUTOUT */}
+          <Image
+            source={require("../../assets/Images/newtopcarddr.png")}
+            style={styles.heroDoctor}
+          />
+        </ImageBackground>
+
+        {/* TRUST BADGES */}
+        <View style={styles.badgeRow}>
+          <View style={styles.badge}>
+            {/* Built with doctors */}
+            <View style={styles.badgeItem}>
               <Image
-                source={require("../../assets/Images/KokoroLogo.png")}
-                style={styles.logo}
+                source={require("../../assets/Images/stethoscopees.png")}
+                style={styles.badgeIcon}
               />
-              <View>
-                <Text style={styles.logoText}>Kokoro.Doctor</Text>
-                <Text style={styles.logoSub}>
-                  Trusted by doctors as their cloud clinic
-                </Text>
-              </View>
+              <Text style={styles.badgeText}>built with doctors</Text>
             </View>
 
-            <View style={styles.navLink}>
-              {/* <NavHoverItem label="Women's Health" /> */}
-              <NavHoverItem
+            {/* Harvard */}
+            <View style={styles.badgeItem}>
+              <Image
+                source={require("../../assets/Images/capharvard.png")}
+                style={styles.badgeIcon}
+              />
+              <Text style={styles.badgeText}>Harvard Innovation Labs</Text>
+            </View>
+
+            {/* Private & Secure */}
+            <View style={styles.badgeItem}>
+              <Image
+                source={require("../../assets/Images/checkk.png")}
+                style={styles.badgeIcon}
+              />
+              <Text style={styles.badgeText}>Private & Secure</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* SEARCH */}
+        <View style={styles.searchBox}>
+          {/* ANIMATED CURVE PATH ICON */}
+          <Animated.View
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              overflow: "hidden",
+              borderRadius: 18,
+            }}
+            pointerEvents="none"
+          >
+            <Animated.Image
+              source={require("../../assets/Images/animateicon.png")}
+              style={[
+                {
+                  position: "absolute",
+                  width: 20,
+                  height: 20,
+                  resizeMode: "contain",
+                },
+                {
+                  // Discrete blink positions across full width
+                  // Point A (top-left): 0-0.33
+                  // Point B (bottom-middle): 0.33-0.66
+                  // Point C (top-right): 0.66-1
+                  transform: [
+                    {
+                      translateX: animationProgress.interpolate({
+                        inputRange: [0, 0.33, 0.66, 1],
+                        outputRange: [8, 140, 260, 8], // Full width coverage
+                        extrapolate: "clamp",
+                      }),
+                    },
+                    {
+                      translateY: animationProgress.interpolate({
+                        inputRange: [0, 0.33, 0.66, 1],
+                        outputRange: [-8, 32, -8, -8], // A: top, B: bottom, C: top
+                        extrapolate: "clamp",
+                      }),
+                    },
+                    {
+                      rotate: rotationValue.interpolate({
+                        inputRange: [0, 360, 720, 1080],
+                        outputRange: ["0deg", "360deg", "720deg", "1080deg"],
+                        extrapolate: "clamp",
+                      }),
+                    },
+                  ],
+                  opacity: blinkOpacity,
+                },
+              ]}
+            />
+          </Animated.View>
+
+          <TextInput
+            placeholder="Type your medicine name or symptoms..."
+            value={searchText}
+            onChangeText={setSearchText}
+            style={{
+              flex: 1,
+              color: "#9B9A9A",
+              marginLeft: 8,
+              borderWidth: 1,
+              borderColor: "#AAAAAA",
+              paddingVertical: 16,
+              paddingLeft: 12,
+              borderRadius: 14,
+              fontSize: 15,
+            }}
+          />
+
+          <TouchableOpacity
+            style={styles.searchBtn}
+            onPress={() => {
+              const textToSend = searchText.trim();
+
+              if (!textToSend) return; // prevent empty search
+
+              navigation.navigate("PatientAppNavigation", {
+                screen: "MobileChatbot",
+                params: {
+                  presetPrompt: textToSend,
+                  source: "medicine-input",
+                },
+              });
+            }}
+          >
+            <Ionicons name="search" size={18} color="#555" />
+          </TouchableOpacity>
+        </View>
+
+        {/* TRY CHIPS */}
+        <View style={styles.tryContainer}>
+          <Text style={styles.tryLabel}>Try</Text>
+
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            scrollEnabled={false}
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="always"
+            contentContainerStyle={styles.tryScroll}
+            pointerEvents="box-none" // ⭐ gesture priority
+          >
+            {[...tryItems, ...tryItems].map((item, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.chip}
+                activeOpacity={0.8}
+                delayPressIn={0}
                 onPress={() => {
-                  mixpanel.track("Welcome - Know your medicine Clicked", {
-                    source: "navbar",
-                    destination: "NewMedicineLandingPage",
+                  const textToSend = item.trim();
+
+                  if (!textToSend) return;
+
+                  mixpanel.track("Try Pill Clicked", {
+                    pill_name: item,
+                    source: "landing-try-section",
                   });
 
-                  navigation.navigate("NewMedicineLandingPage");
+                  navigation.navigate("PatientAppNavigation", {
+                    screen: "MobileChatbot",
+                    params: {
+                      presetPrompt: textToSend,
+                      source: "medicine-input",
+                    },
+                  });
                 }}
-                label="Know Your Medicine"
-              />
-            </View>
+                onTouchStart={() => {
+                  setIsPaused(true);
 
-            <View style={styles.navLinks}>
-              {/* <NavHoverItem label="Women's Health" /> */}
-              <NavHoverItem
-                onPress={() => {
-                  mixpanel.track("Welcome - Our Doctors Clicked", {
-                    source: "navbar",
-                    destination: "DoctorResultShow",
-                  });
+                  if (pauseTimeout.current) {
+                    clearTimeout(pauseTimeout.current);
+                  }
+                }}
+                onTouchEnd={() => {
+                  pauseTimeout.current = setTimeout(() => {
+                    setIsPaused(false);
+                  }, 800);
+                }}
+              >
+                <Text style={styles.chipText}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
+        {/* SERVICES */}
+        <View style={styles.servicesGrid}>
+          {[
+            {
+              title: "Talk to\nDoctor",
+              img: require("../../assets/Images/talkdr.png"),
+              bg: "#E9DDB5",
+            },
+            {
+              title: "Upload\nPrescription",
+              img: require("../../assets/Images/Uploadprescriptionn.png"),
+              bg: "#CFE9D6",
+            },
+            {
+              title: "Heart Check",
+              img: require("../../assets/Images/heart stethoscope transperent 1.png"),
+              bg: "#C9CEF6",
+            },
+            {
+              title: "Women\nHealth",
+              img: require("../../assets/Images/pregnant girll.png"),
+              bg: "#F6C7D2",
+            },
+          ].map((item, i) => (
+            <TouchableOpacity
+              key={i}
+              activeOpacity={0.9}
+              style={[styles.serviceCard, { backgroundColor: item.bg }]}
+              onPress={() => {
+                const title = item.title.replace("\n", " ").trim();
+
+                // Analytics
+                mixpanel.track("Service Card Clicked", {
+                  service_name: title,
+                  source: "landing-services",
+                });
+
+                // 👉 Talk to Doctor → DoctorResultShow
+                if (title === "Talk to Doctor") {
                   navigation.navigate("PatientAppNavigation", {
                     screen: "Doctors",
                     params: {
                       screen: "DoctorResultShow",
                     },
                   });
-                }}
-                label="Our Doctors"
-              />
-
-              {/* <NavHoverItem label="Heart Health" /> */}
-            </View>
-
-            <View style={styles.navActions}>
-              <NavHoverItem
-                label="Doctor Login"
-                onPress={() =>
-                  navigation.navigate("DoctorAppNavigation", {
-                    screen: "DoctorPortalLandingPage",
-                  })
                 }
-              />
 
-              <HoverScaleTouchable
-                text="Start Health Check"
-                baseStyle={styles.startBtn}
-                hoverStyle={styles.startBtnHover}
-                textStyle={styles.startBtnText}
-                onPress={() => {
-                  mixpanel.track("Welcome - Start Health Check Clicked", {
-                    source: "navbar",
-                    destination: "MobileChatbot",
-                  });
-
+                // 👉 Heart & Women → Chatbot
+                if (title === "Heart Check" || title === "Women Health") {
                   navigation.navigate("PatientAppNavigation", {
                     screen: "MobileChatbot",
+                    params: {
+                      presetPrompt: title,
+                      source: "service-card",
+                    },
                   });
-                }}
-              />
-            </View>
-          </View>
+                }
 
-          {/* ================= HERO ================= */}
-          <ScrollView
-            contentContainerStyle={styles.heroContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <ImageBackground
-              source={require("../../assets/Images/newlandaingpagepic.jpg")}
-              style={styles.hero}
-              resizeMode="cover"
+                // 👉 Upload Prescription → Prescription
+                if (title === "Upload Prescription") {
+                  navigation.navigate("DoctorAppNavigation", {
+                    screen: "Prescription",
+                  });
+                }
+              }}
             >
-              <LinearGradient
-                pointerEvents="none" // 🔥 THIS IS THE KEY
-                colors={[
-                  "rgba(255,255,255,0.92)",
-                  "rgba(255,255,255,0.85)",
-                  "rgba(255,255,255,0.75)",
+              {/* IMAGE AREA */}
+              <Image
+                source={item.img}
+                style={[
+                  styles.serviceImg,
+                  item.title.includes("Women") && styles.womenHealthImg,
                 ]}
-                style={StyleSheet.absoluteFill}
               />
 
-              {/* Badge */}
-              <View style={styles.badge}>
-                <Ionicons name="shield-checkmark" size={16} color="#EC4899" />
-                <Text style={styles.badgeText}>
-                  Built with doctors • Incubated at Harvard Innovation Labs
-                </Text>
+              {/* LABEL AREA */}
+              <View style={styles.serviceLabel}>
+                <Text style={styles.serviceText}>{item.title}</Text>
               </View>
-
-              {/* Headline */}
-              <Text style={styles.heading}>
-                Not feeling well?{"\n"}
-                <Text style={styles.headingPink}>
-                  Start with your symptoms.
-                </Text>
-                {"\n"}We&apos;ll guide you.
-              </Text>
-
-              {/* Subtext */}
-              <Text style={styles.subtext}>
-                Share what you&apos;re experiencing. Our medical AI will ask the
-                right questions
-                {"\n"}
-                and connect you with a trusted heart or women&apos;s health
-                specialist if needed.
-              </Text>
-
-              {/* Pills */}
-              {/* Pills */}
-              <View style={styles.pillsContainer}>
-                {/* First row (first 5 pills) */}
-                <View style={styles.pillsRow}>
-                  {concerns.slice(0, 5).map((item, index) => {
-                    const isActive = index === activePill;
-
-                    return (
-                      <Pressable
-                        key={item}
-                        onPress={() => {
-                          mixpanel.track("Welcome - Symptom Pill Clicked", {
-                            symptom: item,
-                            source: "pill",
-                            destination: "MobileChatbot",
-                          });
-
-                          setActivePill(index);
-
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "MobileChatbot",
-                            params: {
-                              presetPrompt: symptomPrompts[item],
-                              source: "symptom-pill",
-                            },
-                          });
-                        }}
-                      >
-                        <Animated.View
-                          style={[
-                            styles.pillWrapper,
-                            { transform: [{ scale: scaleAnim[index] }] },
-                          ]}
-                        >
-                          {isActive ? (
-                            <LinearGradient
-                              colors={["#F9A8D4", "#F472B6"]}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 1 }}
-                              style={styles.pillGradient}
-                            >
-                              <View style={styles.pillContent}>
-                                <MaterialCommunityIcons
-                                  name={pillIcons[item]}
-                                  size={16}
-                                  color="#7C1D9D"
-                                />
-                                <Text style={styles.pillActiveText}>
-                                  {item.toLowerCase()}
-                                </Text>
-                              </View>
-                            </LinearGradient>
-                          ) : (
-                            <View style={styles.pill}>
-                              <View style={styles.pillContent}>
-                                <MaterialCommunityIcons
-                                  name={pillIcons[item]}
-                                  size={16}
-                                  color={isActive ? "#7C1D9D" : "#6B7280"}
-                                />
-                                <Text
-                                  style={[
-                                    styles.pillText,
-                                    isActive && styles.pillActiveTextSmall,
-                                  ]}
-                                >
-                                  {item.toLowerCase()}
-                                </Text>
-                              </View>
-                            </View>
-                          )}
-                        </Animated.View>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                {/* Second row (Pregnancy concerns centered) */}
-                <View style={styles.pillsRowCenter}>
-                  {(() => {
-                    const index = 5;
-                    const item = concerns[5];
-                    const isActive = index === activePill;
-
-                    return (
-                      <Pressable onPress={() => setActivePill(index)}>
-                        <Animated.View
-                          style={[
-                            styles.pillWrapper,
-                            { transform: [{ scale: scaleAnim[index] }] },
-                          ]}
-                        >
-                          {isActive ? (
-                            <LinearGradient
-                              colors={["#F9A8D4", "#F472B6"]}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 1 }}
-                              style={styles.pillGradient}
-                            >
-                              <View style={styles.pillContent}>
-                                <MaterialCommunityIcons
-                                  name={pillIcons[item]}
-                                  size={16}
-                                  color="#7C1D9D"
-                                />
-                                <Text style={styles.pillActiveText}>
-                                  {item.toLowerCase()}
-                                </Text>
-                              </View>
-                            </LinearGradient>
-                          ) : (
-                            <View style={styles.pill}>
-                              <View style={styles.pillContent}>
-                                <MaterialCommunityIcons
-                                  name={pillIcons[item]}
-                                  size={16}
-                                  color={isActive ? "#7C1D9D" : "#6B7280"}
-                                />
-                                <Text
-                                  style={[
-                                    styles.pillText,
-                                    isActive && styles.pillActiveTextSmall,
-                                  ]}
-                                >
-                                  {item.toLowerCase()}
-                                </Text>
-                              </View>
-                            </View>
-                          )}
-                        </Animated.View>
-                      </Pressable>
-                    );
-                  })()}
-                </View>
-              </View>
-
-              {/* CTA Card */}
-              <View style={styles.ctaCard}>
-                <View style={styles.tryRow}>
-                  <TouchableOpacity style={styles.arrowBox}>
-                    <Ionicons name="arrow-up" size={26} color="#EC4899" />
-                  </TouchableOpacity>
-
-                  {/* Hide ONLY the "Try" label */}
-                  {!isTyping && <Text style={styles.tryText}>Try</Text>}
-
-                  {/* TextInput ALWAYS mounted */}
-                  <TextInput
-                    value={inputValue}
-                    onChangeText={(text) => {
-                      setInputValue(text);
-                      setHasUserTyped(text.length > 0);
-                    }}
-                    onFocus={() => setHasUserTyped(true)}
-                    onBlur={() => {
-                      if (inputValue.trim() === "") {
-                        setHasUserTyped(false);
-                      }
-                    }}
-                    style={[
-                      styles.tryInput,
-                      isTyping && { marginLeft: 0 }, // optional polish
-                    ]}
-                    placeholder={tryInput}
-                    placeholderTextColor="#EC4899"
-                  />
-                </View>
-
-                <HoverScaleTouchable
-                  text="Start Free Health Check →"
-                  baseStyle={styles.ctaBtn}
-                  hoverStyle={styles.ctaBtnHover}
-                  textStyle={styles.ctaBtnText}
-                  onPress={() => {
-                    const textToSend = inputValue.trim();
-
-                    mixpanel.track("Welcome - Free Health Check Started", {
-                      source: "cta-card",
-                      has_typed_text: !!textToSend,
-                      text_length: textToSend.length,
-                      destination: "MobileChatbot",
-                    });
-
-                    navigation.navigate("PatientAppNavigation", {
-                      screen: "MobileChatbot",
-                      params: {
-                        presetPrompt: textToSend || null,
-                        source: "free-text-input",
-                      },
-                    });
-                  }}
-                />
-              </View>
-
-              <View
-                style={{
-                  justifyContent: "center",
-                  marginTop: "1%",
-                  alignSelf: "center",
-                }}
-              >
-                <Text style={{ color: "#EC4899", fontWeight: "500" }}>
-                  No signup needed to start • Your data stays private
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: 10,
-                  justifyContent: "center",
-                  marginTop: "1%",
-                  marginBottom: "2%",
-                }}
-              >
-                <Text>Or</Text>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    mixpanel.track("Welcome - Talk to Doctor Clicked", {
-                      source: "footer-cta",
-                      destination: "DoctorResultShow",
-                    });
-
-                    navigation.navigate("PatientAppNavigation", {
-                      screen: "Doctors",
-                      params: {
-                        screen: "DoctorResultShow",
-                      },
-                    });
-                  }}
-                  onMouseEnter={
-                    Platform.OS === "web"
-                      ? () => setDoctorHover(true)
-                      : undefined
-                  }
-                  onMouseLeave={
-                    Platform.OS === "web"
-                      ? () => setDoctorHover(false)
-                      : undefined
-                  }
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    cursor: Platform.OS === "web" ? "pointer" : "default",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: doctorHover ? "#EC4899" : "#F472B6",
-                      fontWeight: "600",
-                      fontSize: 14,
-                    }}
-                  >
-                    Talk to a Doctor Now
-                  </Text>
-
-                  <Animated.Text
-                    style={{
-                      marginLeft: 6,
-                      color: doctorHover ? "#EC4899" : "#F472B6",
-                      transform: [{ translateX: arrowTranslate }],
-                      fontWeight: "600",
-                    }}
-                  >
-                    →
-                  </Animated.Text>
-                </TouchableOpacity>
-              </View>
-            </ImageBackground>
-          </ScrollView>
+            </TouchableOpacity>
+          ))}
         </View>
-      )}
-      {(Platform.OS !== "web" || width < 1000) && (
-        <View style={{ flex: 1 }}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              flexGrow: 1,
-              paddingBottom: 40,
+
+        {/* FEATURED */}
+        <Text style={styles.sectionTitle}>Featured</Text>
+
+        <View style={styles.featureRow}>
+          <TouchableOpacity
+            onPress={() => {
+              mixpanel.track("Featured CTA Clicked", {
+                banner: "bottomcta1",
+                source: "landing-featured",
+                destination: "DoctorResultShow",
+              });
+
+              navigation.navigate("PatientAppNavigation", {
+                screen: "Doctors",
+                params: {
+                  screen: "DoctorResultShow",
+                },
+              });
             }}
           >
-            <View style={{ backgroundColor: "#FFF", minHeight: "100%" }}>
-              <Image
-                source={require("../../assets/Images/newlandaingpagepic.jpg")}
-                resizeMode="cover"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  width: "100%",
-                  height: "100%",
-                }}
-              />
-              <LinearGradient
-                colors={[
-                  "rgba(255,255,255,0.95)",
-                  "rgba(255,255,255,0.85)",
-                  "rgba(255,255,255,0.75)",
-                ]}
-                style={StyleSheet.absoluteFill}
-              />
+            <Image
+              source={require("../../assets/Images/bottomcta1.png")}
+              style={styles.featureCard}
+            />
+          </TouchableOpacity>
 
-              {/* Header */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingHorizontal: 16,
-                  paddingTop: 32,
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Image
-                    source={require("../../assets/Images/KokoroLogo.png")}
-                    style={{ width: 22, height: 22 }}
-                  />
-                  <Text
-                    style={{
-                      fontWeight: "700",
-                      fontSize: 16,
-                      marginLeft: "3%",
-                    }}
-                  >
-                    Kokoro.Doctor
-                  </Text>
-                </View>
-                <Pressable onPress={() => setMenuVisible(true)}>
-                  <Ionicons name="menu" size={26} color="#000" />
-                </Pressable>
-              </View>
+          <TouchableOpacity
+            onPress={() => {
+              mixpanel.track("Featured CTA Clicked", {
+                banner: "bottomcta-know-medicine",
+                source: "landing-featured",
+                destination: "NewMedicineLandingPage",
+              });
 
-              {/* Content */}
-              <View style={{ paddingHorizontal: 20, marginTop: 30 }}>
-                <Text
-                  style={{
-                    fontSize: 32,
-                    fontWeight: "800",
-                    textAlign: "center",
-                    color: "#111",
-                    lineHeight: 40,
-                  }}
-                >
-                  Not feeling well?{"\n"}
-                  <Text style={{ color: "#C084FC" }}>
-                    Start with your symptoms.
-                  </Text>
-                  {"\n"}We&apos;ll guide you.
-                </Text>
-
-                <Text
-                  style={{
-                    textAlign: "center",
-                    marginTop: 14,
-                    color: "#6B7280",
-                    fontSize: 15,
-                    lineHeight: 22,
-                  }}
-                >
-                  Share what you&apos;re experiencing. Our medical AI will ask
-                  the right questions and connect you with a trusted heart or
-                  women&apos;s health specialist if needed.
-                </Text>
-
-                {/* Badge */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    alignSelf: "center",
-                    marginTop: 20,
-                    paddingHorizontal: 6,
-                    paddingVertical: 6,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: "#E5E7EB",
-                    backgroundColor: "#FFF",
-                    gap: 6,
-                  }}
-                >
-                  <Ionicons name="shield-checkmark" size={14} color="#EC4899" />
-                  <Text style={{ fontSize: 12 }}>
-                    built with doctors • Incubated at Harvard Innovation Labs
-                  </Text>
-                </View>
-
-                {/* Pills */}
-
-                <View style={{ marginTop: 28, alignItems: "center" }}>
-                  <View style={styles.pillRow}>
-                    {mobileConcerns
-                      .slice(0, 2)
-                      .map((item, index) => renderMobilePill(item, index))}
-                  </View>
-
-                  {/* Row 2 */}
-                  <View style={styles.pillRow}>
-                    {mobileConcerns
-                      .slice(2, 4)
-                      .map((item, index) => renderMobilePill(item, index + 2))}
-                  </View>
-
-                  {/* Row 3 */}
-                  <View style={styles.pillRow}>
-                    {renderMobilePill(mobileConcerns[4], 4)}
-                  </View>
-                </View>
-
-                {/* Try input */}
-                <View
-                  style={{
-                    marginTop: 30,
-                    backgroundColor: "#FFF",
-                    borderRadius: 16,
-                    padding: 14,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 12,
-                      backgroundColor: "#F5F3FF",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Ionicons name="arrow-up" size={22} color="#EC4899" />
-                  </View>
-
-                  {!isTyping && <Text style={{ color: "#6B7280" }}>Try</Text>}
-
-                  <TextInput
-                    value={inputValue}
-                    onChangeText={(text) => {
-                      setInputValue(text);
-                      setHasUserTyped(text.length > 0);
-                    }}
-                    placeholder={tryInput}
-                    placeholderTextColor="#EC4899"
-                    style={{
-                      flex: 1,
-                      fontWeight: "600",
-                      color: "#EC4899",
-
-                      // 🔥 spacing inside input
-                      paddingHorizontal: 14,
-                      paddingVertical: 12,
-
-                      // 🔥 border
-                      borderWidth: 1,
-                      borderColor: "#AAAAAA",
-                      borderRadius: 12,
-                    }}
-                  />
-                </View>
-
-                {/* CTA */}
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={() => {
-                    navigation.navigate("PatientAppNavigation", {
-                      screen: "MobileChatbot",
-                      params: {
-                        presetPrompt: inputValue || null,
-                        source: "free-text-input",
-                      },
-                    });
-                  }}
-                  style={{
-                    marginTop: 18,
-                    backgroundColor: "#F472B6",
-                    paddingVertical: 16,
-                    borderRadius: 999,
-                  }}
-                >
-                  <Text
-                    style={{
-                      textAlign: "center",
-                      color: "#FFF",
-                      fontWeight: "700",
-                      fontSize: 15,
-                    }}
-                  >
-                    Start Free Health Check →
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Footer */}
-                <Text
-                  style={{
-                    marginTop: 14,
-                    textAlign: "center",
-                    color: "#EC4899",
-                    fontSize: 12,
-                  }}
-                >
-                  No signup needed to start • Your data stays private
-                </Text>
-
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate("PatientAppNavigation", {
-                      screen: "Doctors",
-                      params: { screen: "DoctorResultShow" },
-                    })
-                  }
-                  style={{
-                    marginTop: "5%",
-                    alignItems: "center",
-                    marginBottom: "18%",
-                    flexDirection: "row",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ color: "#F472B6", fontWeight: "600" }}>
-                    Or{" "}
-                  </Text>
-                  <Text style={{ color: "#F472B6", fontWeight: "600" }}>
-                    Talk to Doctor Now →
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </ScrollView>
+              navigation.navigate("NewMedicineLandingPage");
+            }}
+          >
+            <Image
+              source={require("../../assets/Images/bottomcta.png")}
+              style={styles.featureCard}
+            />
+          </TouchableOpacity>
         </View>
-      )}
-      {menuVisible && isMobile && (
+
+        {/* FOOTER TRUST */}
+        <View style={styles.footerTrust}>
+          <Image source={require("../../assets/Images/bottomimg.png")} />
+          <View>
+            <Text style={{ fontWeight: "600" }}>
+              Trusted by 10,000+ patients
+            </Text>
+            <Text style={{ fontSize: 12, color: "#777" }}>
+              Verified doctors available
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+      {menuVisible && (
         <Modal transparent animationType="fade">
           {/* Overlay */}
           <Pressable
@@ -2109,6 +639,7 @@ export default function WelcomePage() {
           <View style={styles.menuDropdown}>
             <Text style={styles.menuTitle}>Menu</Text>
 
+            {/* Know Your Medicine */}
             <Pressable
               style={styles.menuItem}
               onPress={() => {
@@ -2124,6 +655,7 @@ export default function WelcomePage() {
               <Text style={styles.menuText}>Know Your Medicine</Text>
             </Pressable>
 
+            {/* Our Doctors */}
             <Pressable
               style={styles.menuItem}
               onPress={() => {
@@ -2144,6 +676,7 @@ export default function WelcomePage() {
               <Text style={styles.menuText}>Our Doctors</Text>
             </Pressable>
 
+            {/* Doctor Login */}
             <Pressable
               style={styles.menuItem}
               onPress={() => {
@@ -2166,100 +699,275 @@ export default function WelcomePage() {
     </>
   );
 }
-
-/* ================= COMPONENT ================= */
-function NavHoverItem({ label, onPress }) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={onPress}
-      onMouseEnter={Platform.OS === "web" ? () => setHovered(true) : undefined}
-      onMouseLeave={Platform.OS === "web" ? () => setHovered(false) : undefined}
-      style={{ cursor: Platform.OS === "web" ? "pointer" : "default" }}
-    >
-      <Text style={[styles.navText, hovered && styles.navTextHover]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-function HoverScaleTouchable({
-  text,
-  baseStyle,
-  hoverStyle,
-  textStyle,
-  onPress,
-}) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={onPress}
-      onMouseEnter={
-        Platform.OS === "web"
-          ? () => {
-              setHovered(true);
-              Animated.spring(scale, {
-                toValue: 1.07,
-                useNativeDriver: true,
-              }).start();
-            }
-          : undefined
-      }
-      onMouseLeave={
-        Platform.OS === "web"
-          ? () => {
-              setHovered(false);
-              Animated.spring(scale, {
-                toValue: 1,
-                useNativeDriver: true,
-              }).start();
-            }
-          : undefined
-      }
-      style={{ cursor: Platform.OS === "web" ? "pointer" : "default" }}
-    >
-      <Animated.View
-        style={[baseStyle, hovered && hoverStyle, { transform: [{ scale }] }]}
-      >
-        <Text style={textStyle}>{text}</Text>
-      </Animated.View>
-    </TouchableOpacity>
-  );
-}
-
-/* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
   container: {
+    marginTop: "3%",
     flex: 1,
-    backgroundColor: "#FFF",
+    backgroundColor: "#f6f6f6",
+    padding: 16,
   },
-  startBtnHover: {
-    backgroundColor: "#EC4899", // darker pink
-  },
-  tryInput: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#EC4899",
-    minWidth: 390,
-    padding: 0,
-    marginLeft: 4,
-    // Web only
-    outlineStyle: "none",
-    borderWidth: 1,
-    borderColor: "#c5c4c4ff",
-    borderRadius: 10,
-    minHeight: 43,
-  },
-  pillsContainer: {
+
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 16,
+  },
+
+  logoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  logo: {
+    width: 28,
+    height: 28,
+    marginRight: 6,
+  },
+
+  logoText: {
+    fontWeight: "700",
+    fontSize: 16,
+  },
+
+  heroCard: {
+    marginTop: "2%",
+    borderRadius: 16,
+    marginBottom: 16,
+    minHeight: 150,
+    overflow: "hidden",
+    justifyContent: "center",
+  },
+
+  heroBgImage: {
+    resizeMode: "cover",
+  },
+
+  heroContent: {
+    padding: 20,
+    paddingRight: 110, // space for doctor
+  },
+
+  heroTitle: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+
+  heroDoctor: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    width: 120,
+    height: 140,
+    marginRight: "5%",
+    resizeMode: "contain",
+  },
+
+  helpBtn: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: "center",
+    alignSelf: "flex-start",
+  },
+
+  helpText: {
+    color: "#ff4d4d",
+    fontWeight: "600",
+    marginRight: 6,
+  },
+
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 14,
+    justifyContent: "center",
+  },
+
+  badge: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#FF7072",
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  badgeItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  badgeIcon: {
+    width: 16, // 👈 emoji-like size
+    height: 16,
+    marginRight: 4,
+    resizeMode: "contain",
+  },
+
+  badgeText: {
+    fontSize: 11,
+    color: "#444444",
+    fontWeight: "400",
+  },
+
+  searchBox: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 12,
+    alignItems: "center",
+    marginBottom: 14,
+
+    // Shadow (App look)
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+
+  searchBtn: {
+    backgroundColor: "#F4E3FFBF",
+    padding: 10,
+    borderRadius: 12,
+    marginLeft: "2%",
+  },
+
+  /* TRY SECTION */
+  tryContainer: {
+    marginTop: "4%",
+    flexDirection: "row",
+    alignItems: "center", // vertical center
+    height: 40, // same row height
+  },
+
+  tryLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginRight: 10,
+    color: "#444",
+  },
+
+  tryScroll: {
+    alignItems: "center", // center chips vertically
+    paddingRight: 10,
+  },
+
+  /* CHIP */
+  chip: {
+    borderWidth: 1.5,
+    borderColor: "#FF7072",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999, // perfect pill
+    marginRight: 10,
+    backgroundColor: "#FFEEEE",
+  },
+
+  chipText: {
+    color: "#E4677C",
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  /* SERVICES GRID */
+  /* GRID */
+  servicesGrid: {
+    marginTop: 24,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  /* CARD */
+  serviceCard: {
+    width: "23%",
+    height: 120,
+    borderRadius: 16,
+    overflow: "hidden",
+    justifyContent: "flex-end",
+  },
+
+  /* IMAGE */
+  serviceImg: {
+    position: "absolute",
+    top: 0,
+    width: "100%",
+    height: "75%", // ⭐ image top area
+    resizeMode: "contain",
+  },
+  womenHealthImg: {
+    resizeMode: "cover", // fill portrait image
+    height: "100%",
+  },
+
+  /* BOTTOM LABEL BG */
+  serviceLabel: {
+    height: "35%",
+    backgroundColor: "rgba(255,255,255,0.6)", // faded glass
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+
+  /* TITLE */
+  serviceText: {
+    fontSize: 14, // ⭐ big text
+    fontWeight: "600",
+    textAlign: "center",
+    color: "#000",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", // serif look
+    lineHeight: 20,
+  },
+  sectionTitle: {
+    marginTop: "4%",
+    color: "#444444",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+
+  featureRow: {
+    marginTop: "3%",
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  featureCard: {
+    flex: 1,
+    borderRadius: 18,
+    padding: 16,
+  },
+
+  featureTitle: {
+    color: "#fff",
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+
+  featureSub: {
+    color: "#fff",
+    fontSize: 12,
+  },
+
+  footerTrust: {
+    flexDirection: "row",
+    backgroundColor: "#FFEEEE",
+    borderRadius: 34,
+    padding: 16,
+    marginTop: 20,
+    alignItems: "center",
+    alignContent: "center",
+    gap: 14,
+    justifyContent: "center",
   },
   menuOverlay: {
     position: "absolute",
@@ -2272,7 +980,7 @@ const styles = StyleSheet.create({
 
   menuDropdown: {
     position: "absolute",
-    top: 70, // just below header
+    top: 70,
     right: 16,
     width: 220,
     backgroundColor: "#FFF",
@@ -2302,264 +1010,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
     color: "#111827",
-  },
-
-  ctaBtnHover: {
-    backgroundColor: "#EC4899", // darker pink
-  },
-  pillWrapper: {
-    borderRadius: 999,
-  },
-
-  pillGradient: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 999,
-  },
-
-  pillActiveText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#7C1D9D",
-  },
-
-  /* NAVBAR */
-  navbar: {
-    // marginTop:"1%",
-    height: "10%",
-    flexDirection: "row",
-    alignItems: "center",
-    // paddingHorizontal: 32,
-
-    backgroundColor: "#FFF",
-    justifyContent: "space-between",
-  },
-  logoRow: {
-    marginLeft: "6%",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logo: {
-    width: 36,
-    height: 36,
-    marginRight: 10,
-  },
-  logoText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1F2937",
-  },
-  logoSub: {
-    fontSize: 10,
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  navLink: {
-    left: "38%",
-    color: "#000",
-    fontWeight: 600,
-  },
-  navLinks: {
-    flexDirection: "row",
-    gap: 28,
-    //borderWidth:1,
-    marginLeft: "40%",
-  },
-  navText: {
-    color: "#6B7280",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  navTextHover: {
-    color: "#000",
-  },
-  navActions: {
-    marginRight: "6%",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  loginText: {
-    color: "#6B7280",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  startBtn: {
-    backgroundColor: "#F472B6",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 999,
-  },
-  startBtnText: {
-    color: "#FFF",
-    fontWeight: "600",
-  },
-  pillContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  /* HERO */
-  hero: {
-    flex: 1,
-    height: "100%",
-    width: "100%",
-  },
-  arrowBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "#F5F3FF", // very light lavender
-    alignItems: "center",
-    justifyContent: "center",
-
-    // shadow (iOS)
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-
-    // shadow (Android)
-    elevation: 4,
-  },
-  heroContent: {
-    // flex:1,
-    height: "auto",
-    // paddingHorizontal: 32,
-    // paddingTop: 60,
-    // paddingBottom: 80,
-    // maxWidth: 1100,
-    // alignSelf: "center",
-  },
-
-  badge: {
-    marginTop: "4%",
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    alignSelf: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    gap: 8,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  badgeText: {
-    fontSize: 14,
-    color: "#374151",
-    fontWeight: "500",
-  },
-
-  heading: {
-    fontSize: Platform.OS === "web" ? 56 : 38,
-    fontWeight: "800",
-    color: "#1F2937",
-    textAlign: "center",
-    lineHeight: Platform.OS === "web" ? 68 : 46,
-    marginBottom: 24,
-  },
-  headingPink: {
-    color: "#C084FC",
-  },
-
-  subtext: {
-    textAlign: "center",
-    fontSize: 20,
-    color: "#6B7280",
-    maxWidth: 720,
-    alignSelf: "center",
-    marginBottom: 32,
-    lineHeight: 24,
-    fontWeight: "400",
-  },
-
-  pillsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 12,
-    marginBottom: 10,
-  },
-  pillsRowCenter: {
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-
-  pill: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 999,
-    backgroundColor: "#FFF",
-  },
-  pillActiveTextSmall: {
-    color: "#7C1D9D",
-    fontWeight: "600",
-  },
-  pillActive: {
-    backgroundColor: "#F472B6",
-    borderColor: "#F472B6",
-  },
-  pillText: {
-    fontSize: 14,
-    color: "#374151",
-    fontWeight: "500",
-  },
-  pillTextActive: {
-    color: "#FFF",
-    fontWeight: "600",
-  },
-
-  ctaCard: {
-    width: "50%",
-    alignSelf: "center",
-    backgroundColor: "#FFF",
-    borderRadius: 18,
-    padding: 20,
-    flexDirection: Platform.OS === "web" ? "row" : "column",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  tryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  tryText: {
-    marginLeft: "2%",
-    fontSize: 18,
-    color: "#6B7280",
-    fontWeight: "400",
-  },
-  pillRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 10,
-    marginBottom: 10,
-  },
-
-  tryPink: {
-    color: "#EC4899",
-    fontWeight: "600",
-  },
-
-  ctaBtn: {
-    backgroundColor: "#F472B6",
-    paddingHorizontal: 26,
-    paddingVertical: 14,
-    borderRadius: 999,
-  },
-  ctaBtnText: {
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 15,
   },
 });
