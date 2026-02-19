@@ -14,6 +14,7 @@ import {
   Easing,
   Modal,
   Pressable,
+  Dimensions,
 } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -248,6 +249,8 @@ export default function KokoroDoctorScreen() {
     "Meftal Spas",
   ];
 
+  const windowWidth = Dimensions.get("window").width;
+
   return (
     <>
       <ScrollView style={styles.container}>
@@ -407,7 +410,7 @@ export default function KokoroDoctorScreen() {
               paddingVertical: 16,
               paddingLeft: 12,
               borderRadius: 14,
-              fontSize: 15,
+              fontSize: windowWidth > 400 ? 15 : 12,
             }}
           />
 
@@ -574,44 +577,48 @@ export default function KokoroDoctorScreen() {
         <Text style={styles.sectionTitle}>Featured</Text>
 
         <View style={styles.featureRow}>
-          <TouchableOpacity
-            onPress={() => {
-              mixpanel.track("Featured CTA Clicked", {
-                banner: "bottomcta1",
-                source: "landing-featured",
-                destination: "DoctorResultShow",
-              });
+          <View>
+            <TouchableOpacity
+              onPress={() => {
+                mixpanel.track("Featured CTA Clicked", {
+                  banner: "bottomcta1",
+                  source: "landing-featured",
+                  destination: "DoctorResultShow",
+                });
 
-              navigation.navigate("PatientAppNavigation", {
-                screen: "Doctors",
-                params: {
-                  screen: "DoctorResultShow",
-                },
-              });
-            }}
-          >
-            <Image
-              source={require("../../assets/Images/bottomcta1.png")}
-              style={styles.featureCard}
-            />
-          </TouchableOpacity>
+                navigation.navigate("PatientAppNavigation", {
+                  screen: "Doctors",
+                  params: {
+                    screen: "DoctorResultShow",
+                  },
+                });
+              }}
+            >
+              <Image
+                source={require("../../assets/Images/bottomcta1.png")}
+                style={styles.featureCard}
+              />
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity
-            onPress={() => {
-              mixpanel.track("Featured CTA Clicked", {
-                banner: "bottomcta-know-medicine",
-                source: "landing-featured",
-                destination: "NewMedicineLandingPage",
-              });
+          <View>
+            <TouchableOpacity
+              onPress={() => {
+                mixpanel.track("Featured CTA Clicked", {
+                  banner: "bottomcta-know-medicine",
+                  source: "landing-featured",
+                  destination: "NewMedicineLandingPage",
+                });
 
-              navigation.navigate("NewMedicineLandingPage");
-            }}
-          >
-            <Image
-              source={require("../../assets/Images/bottomcta.png")}
-              style={styles.featureCard}
-            />
-          </TouchableOpacity>
+                navigation.navigate("NewMedicineLandingPage");
+              }}
+            >
+              <Image
+                source={require("../../assets/Images/bottomcta.png")}
+                style={styles.featureCard}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* FOOTER TRUST */}
@@ -699,11 +706,13 @@ export default function KokoroDoctorScreen() {
     </>
   );
 }
+
+const windowWidth = Dimensions.get("window").width;
 const styles = StyleSheet.create({
   container: {
-    marginTop: "3%",
+    paddingTop: "4%",
     flex: 1,
-    backgroundColor: "#f6f6f6",
+    backgroundColor: "#fff",
     padding: 16,
   },
 
@@ -815,7 +824,7 @@ const styles = StyleSheet.create({
   },
 
   badgeText: {
-    fontSize: 11,
+    fontSize: windowWidth > 390 ? 11 : 9,
     color: "#444444",
     fontWeight: "400",
   },
@@ -936,26 +945,17 @@ const styles = StyleSheet.create({
   },
 
   featureRow: {
-    marginTop: "3%",
+    marginTop: 12,
     flexDirection: "row",
-    gap: 12,
+    justifyContent: "space-between",
   },
 
   featureCard: {
     flex: 1,
+    width: windowWidth < 400 ? 160 : 180,
     borderRadius: 18,
-    padding: 16,
-  },
 
-  featureTitle: {
-    color: "#fff",
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-
-  featureSub: {
-    color: "#fff",
-    fontSize: 12,
+    resizeMode: "cover",
   },
 
   footerTrust: {
