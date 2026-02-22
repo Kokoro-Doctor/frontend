@@ -377,7 +377,7 @@ const Medilocker = ({ navigation }) => {
                       <View style={styles.Spart}>
                         <FlatList
                           data={filteredFiles}
-                          keyExtractor={(item) => item.name}
+                          keyExtractor={(item, index) => item.file_id || item.name || `file-${index}`}
                           ListHeaderComponent={
                             <View style={styles.tableHeader}>
                               <Text style={styles.headerText}>File Name</Text>
@@ -505,7 +505,7 @@ const Medilocker = ({ navigation }) => {
             <FlatList
               data={filteredFiles}
               key={isGridView ? "grid" : "list"}
-              keyExtractor={(item, index) => index.toString()}
+              keyExtractor={(item, index) => item.file_id || item.name || `file-${index}`}
               numColumns={isGridView ? 3 : 1}
               renderItem={({ item }) => (
                 <View
