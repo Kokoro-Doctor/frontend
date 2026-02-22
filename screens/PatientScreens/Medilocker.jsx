@@ -105,28 +105,6 @@ const Medilocker = ({ navigation }) => {
     }
   };
 
-  const uploadFile = async () => {
-    setUploadProgress(0);
-    setUploadStatus("uploading");
-
-    try {
-      for (let i = 1; i <= 100; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 5));
-        setUploadProgress(i);
-      }
-
-      setUploadStatus("success");
-
-      // Hide the success message after 2 seconds
-      setTimeout(() => {
-        setUploadStatus(null);
-      }, 2000);
-    } catch (error) {
-      console.error("Upload failed:", error);
-      setUploadStatus("error");
-    }
-  };
-
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: "*/*" });
@@ -134,7 +112,7 @@ const Medilocker = ({ navigation }) => {
         return;
       }
       if (!result.assets || result.assets.length === 0) {
-        alert("Error ,No file data received.");
+        alert("Error, No file data received.");
         return;
       }
       const asset = result.assets[0];
@@ -158,18 +136,6 @@ const Medilocker = ({ navigation }) => {
         return;
       }
 
-      const newFile = {
-        name: fileName,
-        size: fileSize,
-        type: fileType,
-        date: new Date().toLocaleDateString(),
-        time: new Date().toLocaleTimeString(),
-      };
-
-      if (Platform.OS !== "web" || width < 1000) {
-        await uploadFile();
-      }
-
       const payload = {
         user_id: user?.user_id || user?.email,
         files: [
@@ -179,14 +145,47 @@ const Medilocker = ({ navigation }) => {
             metadata: {
               file_type: fileType,
               file_size: fileSize,
-              upload_date: newFile.date,
-              upload_time: newFile.time,
+              upload_date: new Date().toLocaleDateString(),
+              upload_time: new Date().toLocaleTimeString(),
             },
           },
         ],
       };
 
-      await upload(payload);
+      // Show progress UI on mobile / small screens
+      const showProgress = Platform.OS !== "web" || width < 1000;
+      if (showProgress) {
+        setUploadProgress(0);
+        setUploadStatus("uploading");
+      }
+
+      try {
+        // Animate progress while the real upload runs
+        const uploadPromise = upload(payload);
+
+        if (showProgress) {
+          // Tick progress to 90% while waiting (real upload determines completion)
+          let progress = 0;
+          const tick = setInterval(() => {
+            progress = Math.min(progress + 5, 90);
+            setUploadProgress(progress);
+          }, 200);
+
+          await uploadPromise;
+          clearInterval(tick);
+          setUploadProgress(100);
+          setUploadStatus("success");
+          setTimeout(() => setUploadStatus(null), 2000);
+        } else {
+          await uploadPromise;
+        }
+      } catch (uploadErr) {
+        if (showProgress) {
+          setUploadStatus("error");
+          setTimeout(() => setUploadStatus(null), 3000);
+        }
+        throw uploadErr;
+      }
 
       // Reload from server to get file_id for the new file
       const data = await FetchFromServer(user?.user_id || user?.email);
@@ -202,7 +201,7 @@ const Medilocker = ({ navigation }) => {
         setFiles(mappedFiles);
       }
     } catch (err) {
-      alert(`Error: ${err.error}`);
+      alert(`Error: ${err.message || err}`);
     }
   };
 

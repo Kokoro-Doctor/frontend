@@ -1098,7 +1098,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                                   <View style={styles.actionButtons}>
                                     {/* Download Button */}
                                     <TouchableOpacity
-                                      onPress={() => downloadFile(file.name)}
+                                      onPress={() => downloadFile(file)}
                                     >
                                       <MaterialIcons
                                         name="file-download"
@@ -1109,7 +1109,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
                                     {/* Delete Button */}
                                     <TouchableOpacity
-                                      onPress={() => removeFile(file.name)}
+                                      onPress={() => removeFile(file)}
                                     >
                                       <MaterialIcons
                                         name="delete"
@@ -1120,7 +1120,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
                                     {/* Share Button */}
                                     <TouchableOpacity
-                                      onPress={() => shareFile(file.name)}
+                                      onPress={() => shareFile(file)}
                                     >
                                       <MaterialIcons
                                         name="share"
