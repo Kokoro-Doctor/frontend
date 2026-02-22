@@ -84,6 +84,9 @@ export const download = async (email, fileId) => {
 
 export const remove = async (email, fileId) => {
     try {
+        if (!fileId) {
+            throw new Error("File ID is required for delete");
+        }
         const encodedUserId = encodeURIComponent(email);
         const encodedFileId = encodeURIComponent(fileId);
         const response = await fetch(`${medilocker_API}/users/${encodedUserId}/files/${encodedFileId}`, {
@@ -94,7 +97,14 @@ export const remove = async (email, fileId) => {
         });
 
         if (!response.ok) {
-            throw new Error("Delete request failed");
+            let message = "Delete request failed";
+            try {
+                const errData = await response.json();
+                message = errData.detail || errData.message || message;
+            } catch (_) {
+                message = `${message} (${response.status})`;
+            }
+            throw new Error(message);
         }
 
         const data = await response.json();
@@ -103,6 +113,7 @@ export const remove = async (email, fileId) => {
     } catch (err) {
         alert(`Error: ${err.message}`);
         Alert.alert(`Error: ${err.message}`);
+        throw err;
     }
 };
 
