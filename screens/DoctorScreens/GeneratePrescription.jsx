@@ -12,7 +12,7 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
 import { Pressable } from "react-native";
 
@@ -426,10 +426,10 @@ const GeneratePrescription = ({ navigation, route }) => {
           </View>
 
           <Text style={m.name}>{user?.name}</Text>
-          <Text style={m.subtitle}>(Cardiac Patient)</Text>
+          <Text style={m.subtitle}>(Heart Patient)</Text>
         </View>
 
-        {/* DETAILS */}
+        {/* DETAILS
         <TouchableOpacity
           style={[
             m.generateButton,
@@ -443,7 +443,7 @@ const GeneratePrescription = ({ navigation, route }) => {
               ? "Generating..."
               : "Generate Prescription"}
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <View style={m.infoCard}>
           {/* <InfoRow
@@ -472,36 +472,6 @@ const GeneratePrescription = ({ navigation, route }) => {
         </View>
 
         {/* FILE MENU MODAL */}
-        {fileMenuVisible && selectedFileForMenu && (
-          <>
-            {/* Backdrop */}
-            <Pressable
-              style={m.backdrop}
-              onPress={() => setFileMenuVisible(false)}
-            />
-            {/* Dropdown Menu */}
-            <View style={m.floatingMenu}>
-              <Pressable
-                style={m.dropdownItem}
-                onPress={() => {
-                  setFileMenuVisible(false);
-                  downloadFile(selectedFileForMenu);
-                }}
-              >
-                <Text style={m.dropdownText}>Download</Text>
-              </Pressable>
-              <Pressable
-                style={m.dropdownItem}
-                onPress={() => {
-                  setFileMenuVisible(false);
-                  removeFile(selectedFileForMenu);
-                }}
-              >
-                <Text style={[m.dropdownText, { color: "red" }]}>Delete</Text>
-              </Pressable>
-            </View>
-          </>
-        )}
 
         {/* DOCUMENTS */}
         <View style={m.docsCard}>
@@ -560,64 +530,96 @@ const GeneratePrescription = ({ navigation, route }) => {
           </View>
 
           {/* SAMPLE FILE ITEM */}
-          {files.length > 0 ? (
-            files
-              .filter((file) =>
-                file.name.toLowerCase().includes(searchQuery.toLowerCase()),
-              )
-              .map((file, i) => (
-                <Pressable
-                  key={i}
-                  style={m.fileRow}
-                  onPress={() => openQuickPreview(file)}
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={{ paddingBottom: 10 }}
+            >
+              {files.length > 0 ? (
+                files
+                  .filter((file) =>
+                    file.name.toLowerCase().includes(searchQuery.toLowerCase()),
+                  )
+                  .map((file, i) => (
+                    <Pressable
+                      key={i}
+                      style={m.fileRow}
+                      onPress={() => openQuickPreview(file)}
+                    >
+                      <Text style={m.fileIcon}>📄</Text>
+
+                      <View style={{ flex: 1 }}>
+                        <Text style={m.fileName}>{file.name}</Text>
+
+                        <Text style={m.fileMeta}>{file.type}</Text>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedFileForMenu(file);
+                          setFileMenuVisible(true);
+                        }}
+                      >
+                        <Text style={m.more}>⋯</Text>
+                      </TouchableOpacity>
+                    </Pressable>
+                  ))
+              ) : loading ? (
+                <ActivityIndicator
+                  size="large"
+                  color="#FF7072"
+                  style={{ marginTop: 20 }}
+                />
+              ) : (
+                <Text
+                  style={{
+                    textAlign: "center",
+                    color: "#999",
+                    marginTop: 20,
+                  }}
                 >
-                  <Text style={m.fileIcon}>📄</Text>
+                  No documents uploaded
+                </Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+        {/* NEW REPORT ALERT */}
+        <View style={m.newReportBox}>
+          <Text style={m.newReportTexts}>2 new reports</Text>
+          <Text style={m.newReportText}>added since last review.</Text>
+        </View>
 
-                  <View style={{ flex: 1 }}>
-                    <Text style={m.fileName}>{file.name}</Text>
-                    <Text style={m.fileMeta}>
-                      {file.type} · {file.size}
-                    </Text>
-                  </View>
+        {/* AI FULL CASE REVIEW CARD */}
+        <View style={m.aiReviewCard}>
+          {/* top icon */}
+          <View style={m.aiIcon}>
+            {/* <Ionicons name="heart" size={18} color="#FF7072" /> */}
+            <Image source={require("../../assets/Images/heartBottom.png")} />
+          </View>
 
-                  {/* MEATBALL MENU BUTTON */}
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedFileForMenu(file);
-                      setFileMenuVisible(true);
-                    }}
-                  >
-                    <Text style={m.more}>⋯</Text>
-                  </TouchableOpacity>
-                </Pressable>
-              ))
-          ) : loading ? (
-            <View
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-                marginVertical: 20,
-              }}
-            >
-              <ActivityIndicator size="large" color="#FF7072" />
-              <Text
-                style={{
-                  textAlign: "center",
-                  color: "#999",
-                  marginTop: 12,
-                  fontSize: 14,
-                }}
-              >
-                Loading files...
-              </Text>
-            </View>
-          ) : (
-            <Text
-              style={{ textAlign: "center", color: "#999", marginVertical: 20 }}
-            >
-              No documents uploaded
-            </Text>
-          )}
+          <Text style={m.aiTitle}>AI-Powered Full Case Review</Text>
+
+          <Text style={m.aiSubtitle}>
+            Looking across all reports to build a {"\n"}complete patient story
+          </Text>
+
+          <TouchableOpacity
+            style={m.analysisButton}
+            onPress={() => navigation.navigate("FullCaseAnalysis")}
+          >
+            {/* <Ionicons
+              name="sparkles-outline"
+              size={18}
+              color="#fff"
+              style={{ marginRight: 6 }}
+            /> */}
+            <Image
+              source={require("../../assets/Images/BottomCTAfullcase.png")}
+            />
+
+            <Text style={m.analysisText}>Full Case Analysis</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     );
@@ -1098,7 +1100,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                                   <View style={styles.actionButtons}>
                                     {/* Download Button */}
                                     <TouchableOpacity
-                                      onPress={() => downloadFile(file)}
+                                      onPress={() => downloadFile(file.name)}
                                     >
                                       <MaterialIcons
                                         name="file-download"
@@ -1109,7 +1111,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
                                     {/* Delete Button */}
                                     <TouchableOpacity
-                                      onPress={() => removeFile(file)}
+                                      onPress={() => removeFile(file.name)}
                                     >
                                       <MaterialIcons
                                         name="delete"
@@ -1120,7 +1122,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
                                     {/* Share Button */}
                                     <TouchableOpacity
-                                      onPress={() => shareFile(file)}
+                                      onPress={() => shareFile(file.name)}
                                     >
                                       <MaterialIcons
                                         name="share"
@@ -1477,6 +1479,65 @@ const GeneratePrescription = ({ navigation, route }) => {
             </View>
           </View>
         )}
+
+      {/* FILE MENU OVERLAY */}
+      {fileMenuVisible && selectedFileForMenu && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99999,
+          }}
+        >
+          {/* backdrop */}
+          <Pressable
+            style={{
+              flex: 1,
+              backgroundColor: "transparent",
+            }}
+            onPress={() => setFileMenuVisible(false)}
+          />
+
+          {/* menu */}
+          <View
+            style={{
+              position: "absolute",
+              bottom: 120,
+              right: 20,
+              backgroundColor: "#fff",
+              borderRadius: 10,
+              width: 160,
+              elevation: 20,
+              shadowColor: "#000",
+              shadowOpacity: 0.25,
+              shadowRadius: 10,
+            }}
+          >
+            <Pressable
+              style={{ padding: 14 }}
+              onPress={() => {
+                setFileMenuVisible(false);
+                downloadFile(selectedFileForMenu);
+              }}
+            >
+              <Text>Download</Text>
+            </Pressable>
+
+            <Pressable
+              style={{ padding: 14 }}
+              onPress={() => {
+                setFileMenuVisible(false);
+                removeFile(selectedFileForMenu);
+              }}
+            >
+              <Text style={{ color: "red" }}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </>
   );
 };
@@ -1858,6 +1919,8 @@ const m = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 20,
+
+    height: 300, // ⭐ same like design (adjust 400–450 if needed)
   },
 
   docsHeader: {
@@ -1970,6 +2033,87 @@ const m = StyleSheet.create({
   dropdownText: {
     fontSize: 14,
     color: "#000",
+  },
+  newReportBox: {
+    justifyContent: "center",
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: "#FF7072",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 14,
+    backgroundColor: "#FFF5F5",
+    gap: 4,
+  },
+  newReportTexts: {
+    textAlign: "center",
+    color: "#FF7072",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  newReportText: {
+    textAlign: "center",
+    color: "#FF7072",
+    fontSize: 14,
+    fontWeight: "400",
+  },
+
+  aiReviewCard: {
+    borderTopWidth: 6,
+    borderTopColor: "#FF7072",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 40,
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+
+  aiIcon: {
+    backgroundColor: "#FFEAEA",
+    height: 36,
+    width: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  aiTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  aiSubtitle: {
+    textAlign: "center",
+    color: "#888",
+    fontSize: 13,
+    marginTop: 6,
+    marginBottom: 16,
+  },
+
+  analysisButton: {
+    width: "100%",
+    justifyContent: "center",
+    flexDirection: "row",
+    backgroundColor: "#FF7072",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    gap: 10,
+  },
+
+  analysisText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
   },
 });
 
