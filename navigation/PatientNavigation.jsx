@@ -49,7 +49,7 @@ import PlatinumPlan from "../screens/PatientScreens/Pricing/App/PlatinumPlan";
 //Other Screens
 import BillReceipt from "../screens/PatientScreens/BillReceipt";
 import Error from "../screens/PatientScreens/Error";
-import Medilocker from "../screens/PatientScreens/Medilocker";
+import NewMedilockerScreen from "../screens/PatientScreens/NewMedilockerScreen";
 import Settings from "../screens/PatientScreens/Settings";
 import Help from "../screens/PatientScreens/Help";
 import ContactUs from "../screens/PatientScreens/ContactUs";
@@ -334,8 +334,8 @@ const AppNavigation = ({ navigation }) => {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Medilocker"
-          component={Medilocker}
+          name="NewMedilockerScreen"
+          component={NewMedilockerScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
