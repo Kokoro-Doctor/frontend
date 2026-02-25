@@ -29,6 +29,7 @@ import Prescription from "../screens/DoctorScreens/Prescription";
 import PrescriptionPreview from "../screens/DoctorScreens/PrescriptionPreview";
 import DoctorsSubscribers from "../screens/DoctorScreens/DoctorsSubscribers";
 import GeneratePrescription from "../screens/DoctorScreens/GeneratePrescription";
+import FullCaseAnalysis from "../screens/DoctorScreens/FullCaseAnalysis";
 import DrCalendarView from "../screens/DoctorScreens/DrCalendarView";
 import DoctorDashboard from "../screens/DoctorScreens/DoctorDashboard";
 import WelcomePage from "../screens/PatientScreens/WelcomePage";
@@ -163,6 +164,11 @@ const DoctorAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="GeneratePrescription"
           component={GeneratePrescription}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="FullCaseAnalysis"
+          component={FullCaseAnalysis}
           options={{ headerShown: false }}
         />
         <Stack.Screen
