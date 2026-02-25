@@ -217,7 +217,7 @@ export const askBot = async (user, role, messageToSend, selectedLanguage, userId
       console.log('ChatBotService - Sending chat request with chat_count:', bodyPayload.chat_count, 'type:', typeof bodyPayload.chat_count);
     }
 
-    const response = await fetch(`${API_URL}/chat`, {
+    const response = await fetch(`${API_URL}/chat/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(bodyPayload),
