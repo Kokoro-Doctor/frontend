@@ -610,7 +610,15 @@ export default function KokoroDoctorScreen() {
                     </Text>
                   </View>
 
-                  <TouchableOpacity style={webStyles.arrowBtn}>
+                  <TouchableOpacity
+                    style={webStyles.arrowBtn}
+                    onPress={() =>
+                      navigation.navigate("PatientAppNavigation", {
+                        screen: "Doctors",
+                        params: { screen: "DoctorResultShow" },
+                      })
+                    }
+                  >
                     <Ionicons name="arrow-forward" size={20} color="#FF5A5F" />
                   </TouchableOpacity>
                 </View>
@@ -638,7 +646,12 @@ export default function KokoroDoctorScreen() {
                     </Text>
                   </View>
 
-                  <TouchableOpacity style={webStyles.arrowBtn}>
+                  <TouchableOpacity
+                    style={webStyles.arrowBtn}
+                    onPress={() =>
+                      navigation.navigate("NewMedicineLandingPage")
+                    }
+                  >
                     <Ionicons name="arrow-forward" size={20} color="#FF5A5F" />
                   </TouchableOpacity>
                 </View>
