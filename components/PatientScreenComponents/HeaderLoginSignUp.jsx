@@ -12,7 +12,7 @@ import {
   Pressable,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import { useLoginModal } from "../../contexts/LoginModalContext";
@@ -27,7 +27,7 @@ const defaultAvatar = require("../../assets/Images/user-icon.jpg");
 
 const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const navigation = useNavigation();
-  const route = useRoute();
+  //const route = useRoute();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [isHovered, setIsHovered] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);

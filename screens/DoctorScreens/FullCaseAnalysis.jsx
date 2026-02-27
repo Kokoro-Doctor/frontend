@@ -9,245 +9,804 @@ import {
   Text,
   Image,
   ScrollView,
-  Linking,
   TextInput,
-  StatusBar,
+  ImageBackground,
+  Animated,
 } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
+import BackButton from "../../components/PatientScreenComponents/BackButton";
 
 const documents = [1, 2, 3, 4, 5, 6];
+const { width, height } = Dimensions.get("window");
 
 export default function FullCaseAnalysis({ navigation, route }) {
   const [activeTab, setActiveTab] = useState("All");
+  const { width } = useWindowDimensions();
+  const [chatOpen, setChatOpen] = useState(false);
+  const slideAnim = useState(new Animated.Value(height))[0];
+
+  const openChat = () => {
+    setChatOpen(true);
+    Animated.timing(slideAnim, {
+      toValue: 130, // 👈 adjust to match title bottom position
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const closeChat = () => {
+    Animated.timing(slideAnim, {
+      toValue: height,
+      duration: 250,
+      useNativeDriver: false,
+    }).start(() => setChatOpen(false));
+  };
   return (
-    <View style={styles.container}>
-      {/* HEADER */}
-      <View
-        style={[
-          styles.header,
-          Platform.OS === "web" ? { height: "auto" } : { height: "auto" },
-        ]}
-      >
-        <HeaderLoginSignUp navigation={navigation} />
-      </View>
-
-      {/* TITLE */}
-      <View style={styles.titleSection}>
-        <Text style={styles.title}>Full case analysis</Text>
-      </View>
-
-      {/* ALERT */}
-      <View style={styles.alertBox}>
-        <Image source={require("../../assets/Images/heartFullCase.png")} />
-        <Text style={styles.alertText}>
-          2 New Reports added since last review
-        </Text>
-      </View>
-
-      {/* FILTER BUTTONS */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabsWrapper}
-        contentContainerStyle={styles.tabs}
-      >
-        {/* ALL */}
-        <TouchableOpacity
-          onPress={() => setActiveTab("All")}
-          style={[
-            styles.tabCommon,
-            activeTab === "All" ? styles.activeTab : styles.inactiveTab,
-          ]}
-        >
-          <Image
-            source={require("../../assets/Images/Allfullcase.png")}
-            style={{ width: 16, height: 20 }}
-            resizeMode="contain"
-          />
-
-          <Text
-            style={activeTab === "All" ? styles.activeTabText : styles.tabText}
-          >
-            All
-          </Text>
-        </TouchableOpacity>
-
-        {/* PRESCRIPTION */}
-        <TouchableOpacity
-          onPress={() => setActiveTab("Prescription")}
-          style={[
-            styles.tabCommon,
-            activeTab === "Prescription"
-              ? styles.activeTab
-              : styles.inactiveTab,
-          ]}
-        >
-          <Image
-            source={require("../../assets/Images/myPrescription.png")}
-            style={{ width: 16, height: 20 }}
-            resizeMode="contain"
-          />
-
-          <Text
-            style={
-              activeTab === "Prescription"
-                ? styles.activeTabText
-                : styles.tabText
-            }
-          >
-            My Prescriptions
-          </Text>
-        </TouchableOpacity>
-
-        {/* SCAN REPORT */}
-        <TouchableOpacity
-          onPress={() => setActiveTab("Scan")}
-          style={[
-            styles.tabCommon,
-            activeTab === "Scan" ? styles.activeTab : styles.inactiveTab,
-          ]}
-        >
-          <Image
-            source={require("../../assets/Images/scanReports.png")}
-            style={{ width: 16, height: 20 }}
-            resizeMode="contain"
-          />
-
-          <Text
-            style={activeTab === "Scan" ? styles.activeTabText : styles.tabText}
-          >
-            Scan Reports
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setActiveTab("Lab")}
-          style={[
-            styles.tabCommon,
-            activeTab === "Lab" ? styles.activeTab : styles.inactiveTab,
-          ]}
-        >
-          <Image
-            source={require("../../assets/Images/tubechemical.png")}
-            style={{ width: 16, height: 20 }}
-            resizeMode="contain"
-          />
-
-          <Text
-            style={activeTab === "Lab" ? styles.activeTabText : styles.tabText}
-          >
-            Lab Reports
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setActiveTab("Hospital")}
-          style={[
-            styles.tabCommon,
-            activeTab === "Hospital" ? styles.activeTab : styles.inactiveTab,
-          ]}
-        >
-          <Image
-            source={require("../../assets/Images/hospitalFullcase.png")}
-            style={{ width: 16, height: 20 }}
-            resizeMode="contain"
-          />
-
-          <Text
-            style={
-              activeTab === "Hospital" ? styles.activeTabText : styles.tabText
-            }
-          >
-            Hospital History
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setActiveTab("Health")}
-          style={[
-            styles.tabCommon,
-            activeTab === "Health" ? styles.activeTab : styles.inactiveTab,
-          ]}
-        >
-          <Image
-            source={require("../../assets/Images/heartShield.png")}
-            style={{ width: 16, height: 20 }}
-            resizeMode="contain"
-          />
-
-          <Text
-            style={
-              activeTab === "Health" ? styles.activeTabText : styles.tabText
-            }
-          >
-            Health Insurance & ID
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* DOCUMENT LIST */}
-      <View style={styles.docsCard}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {documents.map((item, index) => (
-            <View key={index} style={styles.card}>
-              <View style={styles.fileIcon}>
-                <Feather name="file-text" size={22} color="#FF6B6B" />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fileTitle}>Prescription 1</Text>
-
-                <Text style={styles.meta}>SIZE : 12 MB Format : PDF</Text>
-
-                <Text style={styles.meta}>
-                  Date : 26-june-25 Time : 10:00 AM
-                </Text>
-              </View>
-
-              <View>
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>My Prescription</Text>
+    <>
+      {Platform.OS === "web" && width > 1000 && (
+        <View style={styles.webContainer}>
+          <View style={styles.imageContainer}>
+            <ImageBackground
+              source={require("../../assets/DoctorsPortal/Images/DoctorDashboard.png")}
+              style={styles.imageBackground}
+              resizeMode="cover"
+            >
+              <View style={styles.parent}>
+                <View style={styles.Left}>
+                  <NewestSidebar navigation={navigation} />
                 </View>
+                <View style={styles.Right}>
+                  <HeaderLoginSignUp navigation={navigation} />
+                  <BackButton />
+                  <View style={styles.fullCaseDetailSection}>
+                    <View style={styles.titleBox}>
+                      <Text style={styles.titleText}>Full Case Analysis</Text>
+                    </View>
+                    <View style={styles.upperSection}>
+                      <View style={styles.upperLeftSection}>
+                        <View style={styles.caseAnalysisDocSection}>
+                          <Text style={styles.upperText}>
+                            Full Case Analysis
+                          </Text>
+                          <Text style={styles.lowerText}>Total documents</Text>
+                        </View>
+                        <View style={styles.filesUploadingCountSection}>
+                          <Text style={styles.uploadingText}>
+                            2 new reports added since last review
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity style={styles.generateButton}>
+                        <Image
+                          source={require("../../assets/DoctorsPortal/Icons/generateButtonIcon.png")}
+                          style={styles.btnIcon}
+                        />
+                        <Text style={styles.btnText}>
+                          Generate Prescription
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.uploadedDocChatbotSection}>
+                      {/* LEFT SECTION - MEDILOCKER */}
+                      <View style={styles.medilockerSection}>
+                        <View style={styles.webTabsRow}>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.webTabsContainer}
+                          >
+                            {[
+                              {
+                                label: "All",
+                                icon: require("../../assets/DoctorsPortal/Icons/Allfullcase.png"),
+                              },
+                              {
+                                label: "My Prescriptions",
+                                icon: require("../../assets/DoctorsPortal/Icons/myPrescription.png"),
+                              },
+                              {
+                                label: "Scan Reports",
+                                icon: require("../../assets/DoctorsPortal/Icons/scanReports.png"),
+                              },
+                              {
+                                label: "Lab Reports",
+                                icon: require("../../assets/DoctorsPortal/Icons/tubechemical.png"),
+                              },
+                              {
+                                label: "Hospital History",
+                                icon: require("../../assets/DoctorsPortal/Icons/hospitalFullcase.png"),
+                              },
+                              {
+                                label: "Health Insurance & ID",
+                                icon: require("../../assets/DoctorsPortal/Icons/heartShield.png"),
+                              },
+                            ].map((tab) => (
+                              <TouchableOpacity
+                                key={tab.label}
+                                onPress={() => setActiveTab(tab.label)}
+                                style={[
+                                  styles.webTab,
+                                  activeTab === tab.label &&
+                                    styles.webActiveTab,
+                                ]}
+                              >
+                                <Image
+                                  source={tab.icon}
+                                  style={[
+                                    styles.webTabIcon,
+                                    activeTab === tab.label && {
+                                      tintColor: "#fff",
+                                    },
+                                  ]}
+                                  resizeMode="contain"
+                                />
 
-                <Ionicons
-                  name="ellipsis-horizontal"
-                  size={18}
-                  style={{ alignSelf: "flex-end", marginTop: 6 }}
-                />
+                                <Text
+                                  style={[
+                                    styles.webTabText,
+                                    activeTab === tab.label &&
+                                      styles.webActiveTabText,
+                                  ]}
+                                >
+                                  {tab.label}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+
+                        {/* FILE LIST (Vertical Scroll) */}
+                        <View style={styles.webFileListWrapper}>
+                          <ScrollView showsVerticalScrollIndicator>
+                            {documents.map((item, index) => (
+                              <View key={index} style={styles.webFileCard}>
+                                <View style={{ flex: 1 }}>
+                                  <Text style={styles.webFileTitle}>
+                                    Document Name
+                                  </Text>
+                                  <Text style={styles.webFileMeta}>
+                                    File details will come from backend
+                                  </Text>
+                                </View>
+                                <Feather
+                                  name="more-horizontal"
+                                  size={18}
+                                  color="#888"
+                                />
+                              </View>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      </View>
+
+                      {/* RIGHT SECTION - CHATBOT */}
+                      <View style={styles.chatbotSection}>
+                        <View style={styles.chatbotHeader}>
+                          <Image
+                            source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                            style={styles.clinicalAILogo}
+                          />
+                          <Text style={styles.chatbotTitle}>
+                            Clinical AI Assistant {"\n"}
+                            <Text style={styles.smallDescription}>
+                              You&apos;re not alone in this case, we&apos;re
+                              here to assist.
+                            </Text>
+                          </Text>
+                        </View>
+
+                        {/* CHAT AREA (EMPTY — backend will handle) */}
+                        <View style={styles.chatArea}>
+                          {/* LLM messages will render here */}
+                        </View>
+
+                        {/* INPUT SECTION */}
+                        <View style={styles.chatInputContainer}>
+                          <TextInput
+                            placeholder="Ask something about reports..."
+                            placeholderTextColor="#999"
+                            style={styles.chatInput}
+                          />
+                          <TouchableOpacity style={styles.sendBtn}>
+                            <Ionicons name="send" size={18} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
               </View>
+            </ImageBackground>
+          </View>
+        </View>
+      )}
+      {(Platform.OS !== "web" || width < 1000) && (
+        <View style={styles.container}>
+          {/* HEADER */}
+          <View
+            style={[
+              styles.header,
+              Platform.OS === "web" ? { height: "auto" } : { height: "auto" },
+            ]}
+          >
+            <HeaderLoginSignUp navigation={navigation} route={route} />
+          </View>
+
+          {/* TITLE */}
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>Full case analysis</Text>
+          </View>
+
+          {/* ALERT */}
+          <View style={styles.alertBox}>
+            <Image source={require("../../assets/Images/heartFullCase.png")} />
+            <Text style={styles.alertText}>
+              2 New Reports added since last review
+            </Text>
+          </View>
+
+          {/* FILTER BUTTONS */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabsWrapper}
+            contentContainerStyle={styles.tabs}
+          >
+            {/* ALL */}
+            <TouchableOpacity
+              onPress={() => setActiveTab("All")}
+              style={[
+                styles.tabCommon,
+                activeTab === "All" ? styles.activeTab : styles.inactiveTab,
+              ]}
+            >
+              <Image
+                source={require("../../assets/DoctorsPortal/Icons/Allfullcase.png")}
+                style={{ width: 16, height: 20 }}
+                resizeMode="contain"
+              />
+
+              <Text
+                style={
+                  activeTab === "All" ? styles.activeTabText : styles.tabText
+                }
+              >
+                All
+              </Text>
+            </TouchableOpacity>
+
+            {/* PRESCRIPTION */}
+            <TouchableOpacity
+              onPress={() => setActiveTab("Prescription")}
+              style={[
+                styles.tabCommon,
+                activeTab === "Prescription"
+                  ? styles.activeTab
+                  : styles.inactiveTab,
+              ]}
+            >
+              <Image
+                source={require("../../assets/DoctorsPortal/Icons/myPrescription.png")}
+                style={{ width: 16, height: 20 }}
+                resizeMode="contain"
+              />
+
+              <Text
+                style={
+                  activeTab === "Prescription"
+                    ? styles.activeTabText
+                    : styles.tabText
+                }
+              >
+                My Prescriptions
+              </Text>
+            </TouchableOpacity>
+
+            {/* SCAN REPORT */}
+            <TouchableOpacity
+              onPress={() => setActiveTab("Scan")}
+              style={[
+                styles.tabCommon,
+                activeTab === "Scan" ? styles.activeTab : styles.inactiveTab,
+              ]}
+            >
+              <Image
+                source={require("../../assets/DoctorsPortal/Icons/scanReports.png")}
+                style={{ width: 16, height: 20 }}
+                resizeMode="contain"
+              />
+
+              <Text
+                style={
+                  activeTab === "Scan" ? styles.activeTabText : styles.tabText
+                }
+              >
+                Scan Reports
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setActiveTab("Lab")}
+              style={[
+                styles.tabCommon,
+                activeTab === "Lab" ? styles.activeTab : styles.inactiveTab,
+              ]}
+            >
+              <Image
+                source={require("../../assets/DoctorsPortal/Icons/tubechemical.png")}
+                style={{ width: 16, height: 20 }}
+                resizeMode="contain"
+              />
+
+              <Text
+                style={
+                  activeTab === "Lab" ? styles.activeTabText : styles.tabText
+                }
+              >
+                Lab Reports
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setActiveTab("Hospital")}
+              style={[
+                styles.tabCommon,
+                activeTab === "Hospital"
+                  ? styles.activeTab
+                  : styles.inactiveTab,
+              ]}
+            >
+              <Image
+                source={require("../../assets/DoctorsPortal/Icons/hospitalFullcase.png")}
+                style={{ width: 16, height: 20 }}
+                resizeMode="contain"
+              />
+
+              <Text
+                style={
+                  activeTab === "Hospital"
+                    ? styles.activeTabText
+                    : styles.tabText
+                }
+              >
+                Hospital History
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setActiveTab("Health")}
+              style={[
+                styles.tabCommon,
+                activeTab === "Health" ? styles.activeTab : styles.inactiveTab,
+              ]}
+            >
+              <Image
+                source={require("../../assets/DoctorsPortal/Icons/heartShield.png")}
+                style={{ width: 16, height: 20 }}
+                resizeMode="contain"
+              />
+
+              <Text
+                style={
+                  activeTab === "Health" ? styles.activeTabText : styles.tabText
+                }
+              >
+                Health Insurance & ID
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          {/* DOCUMENT LIST */}
+          <View style={styles.docsCard}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {documents.map((item, index) => (
+                <View key={index} style={styles.card}>
+                  <View style={styles.fileIcon}>
+                    <Feather name="file-text" size={22} color="#FF6B6B" />
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.fileTitle}>Prescription 1</Text>
+
+                    <Text style={styles.meta}>SIZE : 12 MB Format : PDF</Text>
+
+                    <Text style={styles.meta}>
+                      Date : 26-june-25 Time : 10:00 AM
+                    </Text>
+                  </View>
+
+                  <View>
+                    <View style={styles.tag}>
+                      <Text style={styles.tagText}>My Prescription</Text>
+                    </View>
+
+                    <Ionicons
+                      name="ellipsis-horizontal"
+                      size={18}
+                      style={{ alignSelf: "flex-end", marginTop: 6 }}
+                    />
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+          {/* AI BUTTON */}
+          <TouchableOpacity style={styles.aiButton}>
+            <Text style={styles.aiText}>Clinical AI Assistant</Text>
+          </TouchableOpacity>
+
+          {/* FLOATING BUTTON */}
+          <TouchableOpacity style={styles.floatingBtn} onPress={openChat}>
+            <Image
+              source={require("../../assets/Images/floatingHeart.png")}
+              style={{
+                width: 55,
+                height: 55,
+                resizeMode: "cover",
+              }}
+            />
+          </TouchableOpacity>
+
+          {/* GENERATE BUTTON */}
+          <TouchableOpacity style={styles.generateBtn}>
+            <Image
+              source={require("../../assets/Images/BottomCTAfullcase.png")}
+            />
+
+            <Text style={styles.generateText}>Generate Prescription</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {chatOpen && (
+        <Animated.View style={[styles.mobileChatContainer, { top: slideAnim }]}>
+          {/* Header */}
+          <View style={styles.mobileChatHeader}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Image
+                source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                style={{ width: 20, height: 20 }}
+              />
+              <Text style={styles.mobileChatTitle}>Clinical AI Assistant</Text>
             </View>
-          ))}
-        </ScrollView>
-      </View>
-      {/* AI BUTTON */}
-      <TouchableOpacity style={styles.aiButton}>
-        <Text style={styles.aiText}>Clinical AI Assistant</Text>
-      </TouchableOpacity>
 
-      {/* FLOATING BUTTON */}
-      <TouchableOpacity style={styles.floatingBtn}>
-        <Image
-          source={require("../../assets/Images/floatingHeart.png")}
-          style={{
-            width: 55,
-            height: 55,
-            resizeMode: "cover",
-          }}
-        />
-      </TouchableOpacity>
+            <TouchableOpacity onPress={closeChat}>
+              <Ionicons name="close" size={22} />
+            </TouchableOpacity>
+          </View>
 
-      {/* GENERATE BUTTON */}
-      <TouchableOpacity style={styles.generateBtn}>
-        <Image source={require("../../assets/Images/BottomCTAfullcase.png")} />
+          {/* Chat Area */}
+          <View style={styles.mobileChatArea}>
+            {/* LLM messages render here */}
+          </View>
 
-        <Text style={styles.generateText}>Generate Prescription</Text>
-      </TouchableOpacity>
-    </View>
+          {/* Input */}
+          <View style={styles.mobileChatInput}>
+            <TextInput
+              placeholder="Ask something about reports..."
+              style={styles.chatInput}
+            />
+            <TouchableOpacity style={styles.sendBtn}>
+              <Ionicons name="send" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
+    </>
   );
 }
 const windowWidth = Dimensions.get("window").width;
 const styles = StyleSheet.create({
+  webContainer: {
+    flex: 1,
+    borderWidth: 1,
+    height: "100%",
+    width: "100%",
+    borderColor: "#c10f0fff",
+  },
+  imageContainer: {
+    borderColor: "#00ffff",
+    height: "100%",
+    width: "100%",
+  },
+
+  imageBackground: {
+    width: "100%",
+    height: "100%",
+    //transform:[{scale:0.8}],
+    opacity: 80,
+    alignSelf: "center",
+    flexDirection: "column",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  parent: {
+    flexDirection: "row",
+    height: "100%",
+    width: "100%",
+  },
+  Left: {
+    height: "100%",
+    width: "15%",
+    //borderWidth: 1,
+  },
+  Right: {
+    height: "100%",
+    width: "85%",
+    //borderWidth: 2,
+    flexDirection: "column",
+  },
+  fullCaseDetailSection: {
+    borderWidth: 2,
+    borderColor: "#0e0e0eff",
+    width: "96%",
+    height: "80%",
+    alignSelf: "center",
+    backgroundColor: "#fff",
+  },
+  titleBox: {
+    //borderWidth:1,
+    width: "100%",
+    height: "9%",
+    backgroundColor: "#FCA2A21F",
+  },
+  titleText: {
+    fontSize: 25,
+    fontWeight: 600,
+    marginTop: "1.5%",
+    marginHorizontal: "3%",
+  },
+  upperSection: {
+    //borderWidth:1,
+    height: "10%",
+    width: "100%",
+    boxShadow: "rgba(17, 17, 26, 0.1) 0px 1px 0px",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  upperLeftSection: {
+    //borderWidth: 1,
+    height: "75%",
+    width: "40%",
+    marginLeft: "2%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+  },
+  caseAnalysisDocSection: {
+    //borderWidth:1,
+    width: "40%",
+    height: "100%",
+  },
+  upperText: {
+    fontSize: 15,
+    fontWeight: 500,
+    color: "#FF7072",
+    alignSelf: "center",
+    marginTop: "3%",
+  },
+  lowerText: {
+    fontSize: 12,
+    fontWeight: 400,
+    color: "#8b8b8bff",
+    marginLeft: "20%",
+    marginTop: "1%",
+  },
+  filesUploadingCountSection: {
+    borderWidth: 1,
+    width: "50%",
+    height: "60%",
+    backgroundColor: "#FFF8F8",
+    borderColor: "#FF7072",
+    borderRadius: 5,
+  },
+  uploadingText: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: "#FF7072",
+    alignSelf: "center",
+    marginTop: "2%",
+  },
+  generateButton: {
+    //borderWidth: 1,
+    height: "50%",
+    width: "18%",
+    marginRight: "4%",
+    borderRadius: 6,
+    flexDirection: "row",
+    backgroundColor: "#FF7072",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  btnIcon: {
+    height: 22,
+    width: 22,
+  },
+  btnText: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: "#fff",
+  },
+  uploadedDocChatbotSection: {
+    //borderWidth: 1,
+    borderColor: "#2f0697ff",
+    flex: 1,
+    flexDirection: "row",
+    padding: 20,
+    gap: 20,
+    marginTop: "1%",
+    alignItems: "stretch",
+    minHeight: 0,
+  },
+
+  // medilockerSection: {
+  //   width: "45%",
+  //   backgroundColor: "#FFF",
+  //   borderRadius: 10,
+  //   padding: 15,
+  //   shadowColor: "#000",
+  //   shadowOpacity: 0.05,
+  //   shadowRadius: 8,
+  // },
+  medilockerSection: {
+    width: "45%",
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    padding: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    flexDirection: "column",
+  },
+
+  webTabsRow: {
+    height: 50, // ← fixed height stops it from expanding
+    flexShrink: 0, // ← prevents flex from squishing it
+  },
+
+  webTabsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+  },
+
+  webTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FF7072",
+    backgroundColor: "#fff",
+    gap: 8,
+  },
+
+  webTabIcon: {
+    width: 16,
+    height: 16,
+    tintColor: "#FF7072",
+  },
+
+  webActiveTab: {
+    backgroundColor: "#FF7072",
+  },
+
+  webTabText: {
+    color: "#FF7072",
+    fontWeight: "500",
+    fontSize: 13,
+  },
+
+  webActiveTabText: {
+    color: "#fff",
+  },
+
+  webFileListWrapper: {
+    flex: 1,
+    marginTop: 10,
+    minHeight: 0, // ← critical for web: allows flex child to shrink properly
+  },
+
+  webFileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#F1F1F1",
+    marginBottom: 12,
+    backgroundColor: "#fff",
+  },
+
+  webFileTitle: {
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+  webFileMeta: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 4,
+  },
+
+  /* ================= RIGHT CHATBOT ================= */
+
+  chatbotSection: {
+    flex: 1, // ADD THIS (was width: "55%", keep that too)
+    //width: "55%",
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    //display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+
+  chatbotHeader: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F1F1",
+    flexDirection: "row",
+  },
+
+  clinicalAILogo: {
+    height: 20,
+    width: 20,
+  },
+
+  chatbotTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#333",
+    marginLeft: "1%",
+  },
+
+  smallDescription: {
+    fontSize: 11,
+    fontWeight: 500,
+    color: "#999999",
+  },
+
+  chatArea: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#FAFAFA",
+  },
+
+  chatInputContainer: {
+    flexDirection: "row",
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F1F1",
+  },
+
+  chatInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+
+  sendBtn: {
+    marginLeft: 10,
+    backgroundColor: "#FF7072",
+    borderRadius: 8,
+    height: 40,
+    width: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // ****************** APP ****************** //
   container: {
     flex: 1,
     backgroundColor: "#fff",
@@ -334,7 +893,6 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     alignItems: "center",
-
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -389,18 +947,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 25,
     bottom: "10%",
-
     height: 72,
     width: 72,
     borderRadius: 36, // ✅ makes perfect circle
-
     backgroundColor: "#FF7072",
-
     justifyContent: "center",
     alignItems: "center",
-
     elevation: 10,
-
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
@@ -451,27 +1004,57 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 10,
   },
-
-  activeTab: {
-    backgroundColor: "#FF7072",
-  },
-
   inactiveTab: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#FF7072",
   },
-
-  activeTabText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-
-  tabText: {
-    color: "#FF7072",
-    fontWeight: "500",
-  },
   tabsWrapper: {
     maxHeight: 55, // ✅ controls extra vertical space
+  },
+
+  mobileChatContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 130, // ← set fixed top instead of animated, or keep slideAnim
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    // Remove height: height ← THIS is what pushes the send button off screen
+  },
+
+  mobileChatHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F1F1",
+  },
+
+  mobileChatTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+
+  mobileChatArea: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#FAFAFA",
+  },
+
+  mobileChatInput: {
+    flexDirection: "row",
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F1F1",
+    alignItems: "center", // ← ADD THIS
   },
 });
