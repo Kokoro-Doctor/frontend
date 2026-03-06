@@ -97,7 +97,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
         // APPOINTMENT (SOURCE OF TRUTH)
         const apptRes = await fetch(
-          `${API_URL}/booking/doctors/${doctorId}/users/${userId}/latest`,
+          `${API_URL}/booking/doctors/${doctorId}/users/${userId}`,
         );
         const apptData = await apptRes.json();
 
@@ -606,7 +606,12 @@ const GeneratePrescription = ({ navigation, route }) => {
 
           <TouchableOpacity
             style={m.analysisButton}
-            onPress={() => navigation.navigate("FullCaseAnalysis")}
+            onPress={() =>
+              navigation.navigate("FullCaseAnalysis", {
+                userId,
+                doctorId,
+              })
+            }
           >
             {/* <Ionicons
               name="sparkles-outline"
@@ -1187,7 +1192,10 @@ const GeneratePrescription = ({ navigation, route }) => {
                           <TouchableOpacity
                             style={styles.analysisButtonWeb}
                             onPress={() =>
-                              navigation.navigate("FullCaseAnalysis")
+                              navigation.navigate("FullCaseAnalysis", {
+                                userId,
+                                doctorId,
+                              })
                             }
                           >
                             <Image

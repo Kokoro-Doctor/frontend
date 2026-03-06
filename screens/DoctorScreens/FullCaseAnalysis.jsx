@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -17,6 +17,9 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
+import { API_URL } from "../../env-vars";
+import { useAuth } from "../../contexts/AuthContext";
+//import * as ImagePicker from "expo-image-picker";
 
 const documents = [1, 2, 3, 4, 5, 6];
 const { width, height } = Dimensions.get("window");
@@ -26,6 +29,135 @@ export default function FullCaseAnalysis({ navigation, route }) {
   const { width } = useWindowDimensions();
   const [chatOpen, setChatOpen] = useState(false);
   const slideAnim = useState(new Animated.Value(height))[0];
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { user, role } = useAuth();
+  const { userId, doctorId } = route.params || {};
+  const [messages, setMessages] = useState([]);
+  const [question, setQuestion] = useState("");
+  const [sending, setSending] = useState(false);
+  const [botTyping, setBotTyping] = useState(false);
+  const scrollRef = React.useRef();
+
+  const CATEGORY_MAP = {
+    All: "ALL",
+    "My Prescriptions": "MY_PRESCRIPTION",
+    "Scan Reports": "SCAN_REPORT",
+    "Lab Reports": "LAB_REPORT",
+    "Hospital History": "HOSPITAL_RECORD",
+    "Health Insurance & ID": "HEALTH_INSURANCE",
+
+    // Mobile keys
+    Prescription: "MY_PRESCRIPTION",
+    Scan: "SCAN_REPORT",
+    Lab: "LAB_REPORT",
+    Hospital: "HOSPITAL_RECORD",
+    Health: "HEALTH_INSURANCE",
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchFiles(activeTab);
+    }
+  }, [activeTab, userId]);
+
+  const fetchFiles = async (categoryLabel) => {
+    try {
+      if (!userId) {
+        console.log("❌ No patient userId received");
+        return;
+      }
+
+      setLoading(true);
+
+      const category = CATEGORY_MAP[categoryLabel];
+      let url = `${API_URL}/medilocker/users/${userId}/files`;
+
+      if (category && category !== "ALL") {
+        url += `?category=${category}`;
+      }
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      setFiles(Array.isArray(data) ? data : data.files || []);
+    } catch (error) {
+      console.log("Error fetching files:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!question.trim()) return;
+
+    const userMessage = {
+      type: "user",
+      text: question,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setQuestion("");
+
+    try {
+      setBotTyping(true);
+
+      // 🧠 Create patient prompt context
+      const patientContext = {
+        patient_id: userId,
+        doctor_id: doctorId,
+        selected_category: CATEGORY_MAP[activeTab],
+        documents: files.map((file) => ({
+          file_name: file.file_name || file.filename || file.name,
+          file_type: file.file_type || file.type,
+          file_size: file.file_size || file.size,
+          uploaded_at: file.uploaded_at || file.created_at,
+          category: file.category,
+        })),
+      };
+
+      const response = await fetch(
+        `${API_URL}/medilocker/users/${userId}/clinical-query`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            question: question,
+            context: patientContext, // 👈 send patient data
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      const botMessage = {
+        type: "bot",
+        text: data.answer || data.response || "No response received",
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { type: "bot", text: "Error getting response" },
+      ]);
+    } finally {
+      setBotTyping(false);
+    }
+  };
+
+  // const pickImage = async () => {
+  //   const result = await ImagePicker.launchImageLibraryAsync({
+  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  //     quality: 0.7,
+  //   });
+
+  //   if (!result.canceled) {
+  //     setSelectedImage(result.assets[0].uri);
+  //   }
+  // };
 
   const openChat = () => {
     setChatOpen(true);
@@ -160,15 +292,30 @@ export default function FullCaseAnalysis({ navigation, route }) {
                         {/* FILE LIST (Vertical Scroll) */}
                         <View style={styles.webFileListWrapper}>
                           <ScrollView showsVerticalScrollIndicator>
-                            {documents.map((item, index) => (
+                            {/* {files.map((file, index) => (
                               <View key={index} style={styles.webFileCard}>
                                 <View style={{ flex: 1 }}>
-                                  <Text style={styles.webFileTitle}>
-                                    Document Name
+                                  <Text style={styles.fileTitle}>
+                                    {file.file_name}
                                   </Text>
-                                  <Text style={styles.webFileMeta}>
-                                    File details will come from backend
+
+                                  <Text style={styles.meta}>
+                                    SIZE: {file.file_size} | Format:{" "}
+                                    {file.file_type}
                                   </Text>
+
+                                  <Text style={styles.meta}>
+                                    Date:{" "}
+                                    {new Date(
+                                      file.uploaded_at,
+                                    ).toLocaleDateString()}
+                                  </Text>
+
+                                  <View style={styles.tag}>
+                                    <Text style={styles.tagText}>
+                                      {file.category.replace("_", " ")}
+                                    </Text>
+                                  </View>
                                 </View>
                                 <Feather
                                   name="more-horizontal"
@@ -176,7 +323,63 @@ export default function FullCaseAnalysis({ navigation, route }) {
                                   color="#888"
                                 />
                               </View>
-                            ))}
+                            ))} */}
+                            {loading ? (
+                              <Text
+                                style={{ textAlign: "center", marginTop: 20 }}
+                              >
+                                Loading...
+                              </Text>
+                            ) : files.length === 0 ? (
+                              <Text
+                                style={{ textAlign: "center", marginTop: 20 }}
+                              >
+                                No documents found
+                              </Text>
+                            ) : (
+                              files.map((file, index) => (
+                                <View key={index} style={styles.webFileCard}>
+                                  <View style={{ flex: 1 }}>
+                                    <Text style={styles.fileTitle}>
+                                      {file.file_name ||
+                                        file.filename ||
+                                        file.name ||
+                                        "Unknown File"}
+                                    </Text>
+
+                                    <Text style={styles.meta}>
+                                      SIZE:{" "}
+                                      {file.file_size || file.size || "N/A"} |
+                                      Format:{" "}
+                                      {file.file_type ||
+                                        file.fileType ||
+                                        file.type ||
+                                        "N/A"}
+                                    </Text>
+
+                                    <Text style={styles.meta}>
+                                      Date:{" "}
+                                      {file.uploaded_at || file.created_at
+                                        ? new Date(
+                                            file.uploaded_at || file.created_at,
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                    </Text>
+                                    <View style={styles.tag}>
+                                      <Text style={styles.tagText}>
+                                        {file.category?.replace("_", " ")}
+                                      </Text>
+                                    </View>
+                                  </View>
+
+                                  <Feather
+                                    name="more-horizontal"
+                                    size={18}
+                                    color="#888"
+                                  />
+                                </View>
+                              ))
+                            )}
                           </ScrollView>
                         </View>
                       </View>
@@ -199,17 +402,103 @@ export default function FullCaseAnalysis({ navigation, route }) {
 
                         {/* CHAT AREA (EMPTY — backend will handle) */}
                         <View style={styles.chatArea}>
-                          {/* LLM messages will render here */}
+                          <ScrollView showsVerticalScrollIndicator={false}>
+                            {messages.map((msg, index) => (
+                              <View
+                                key={index}
+                                style={{
+                                  flexDirection:
+                                    msg.type === "bot" ? "row" : "row-reverse",
+                                  marginBottom: 10,
+                                  alignItems: "flex-start",
+                                }}
+                              >
+                                {msg.type === "bot" && (
+                                  <Image
+                                    source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                                    style={{
+                                      width: 28,
+                                      height: 28,
+                                      marginRight: 6,
+                                    }}
+                                  />
+                                )}
+
+                                <View
+                                  style={{
+                                    backgroundColor:
+                                      msg.type === "user"
+                                        ? "#FF7072"
+                                        : "#F2F2F2",
+                                    padding: 10,
+                                    borderRadius: 10,
+                                    maxWidth: "75%",
+                                  }}
+                                >
+                                  <Text
+                                    style={{
+                                      color:
+                                        msg.type === "user" ? "#fff" : "#333",
+                                    }}
+                                  >
+                                    {msg.text}
+                                  </Text>
+                                </View>
+                              </View>
+                            ))}
+                            {botTyping && (
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  marginTop: 6,
+                                }}
+                              >
+                                <Image
+                                  source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    marginRight: 6,
+                                  }}
+                                />
+
+                                <View
+                                  style={{
+                                    backgroundColor: "#F2F2F2",
+                                    padding: 10,
+                                    borderRadius: 10,
+                                    flexDirection: "row",
+                                  }}
+                                >
+                                  <Text style={{ fontSize: 20 }}>...</Text>
+                                </View>
+                              </View>
+                            )}
+                          </ScrollView>
                         </View>
 
                         {/* INPUT SECTION */}
                         <View style={styles.chatInputContainer}>
+                          {/* <TouchableOpacity onPress={pickImage}>
+                            <Ionicons
+                              name="image-outline"
+                              size={22}
+                              color="#888"
+                            />
+                          </TouchableOpacity> */}
+
                           <TextInput
                             placeholder="Ask something about reports..."
-                            placeholderTextColor="#999"
                             style={styles.chatInput}
+                            value={question}
+                            onChangeText={setQuestion}
                           />
-                          <TouchableOpacity style={styles.sendBtn}>
+
+                          <TouchableOpacity
+                            style={styles.sendBtn}
+                            onPress={sendMessage}
+                          >
                             <Ionicons name="send" size={18} color="#fff" />
                           </TouchableOpacity>
                         </View>
@@ -399,7 +688,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
           </ScrollView>
 
           {/* DOCUMENT LIST */}
-          <View style={styles.docsCard}>
+          {/* <View style={styles.docsCard}>
             <ScrollView showsVerticalScrollIndicator={false}>
               {documents.map((item, index) => (
                 <View key={index} style={styles.card}>
@@ -430,6 +719,69 @@ export default function FullCaseAnalysis({ navigation, route }) {
                   </View>
                 </View>
               ))}
+            </ScrollView>
+          </View> */}
+          <View style={styles.docsCard}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {loading ? (
+                <Text style={{ textAlign: "center", marginTop: 20 }}>
+                  Loading...
+                </Text>
+              ) : files.length === 0 ? (
+                <Text style={{ textAlign: "center", marginTop: 20 }}>
+                  No documents found
+                </Text>
+              ) : (
+                files.map((file, index) => (
+                  <View key={index} style={styles.card}>
+                    <View style={styles.fileIcon}>
+                      <Feather name="file-text" size={22} color="#FF6B6B" />
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      {/* FILE NAME */}
+                      <Text style={styles.fileTitle}>
+                        {file.file_name ||
+                          file.filename ||
+                          file.name ||
+                          "Unknown File"}
+                      </Text>
+
+                      {/* SIZE + FORMAT */}
+                      <Text style={styles.meta}>
+                        SIZE : {file.file_size || file.size || "N/A"} | Format :{" "}
+                        {file.file_type || file.fileType || file.type || "N/A"}
+                      </Text>
+
+                      {/* DATE */}
+                      <Text style={styles.meta}>
+                        Date :{" "}
+                        {file.uploaded_at || file.created_at
+                          ? new Date(
+                              file.uploaded_at || file.created_at,
+                            ).toLocaleDateString()
+                          : "N/A"}
+                      </Text>
+                    </View>
+
+                    <View>
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>
+                          {file.category
+                            ? file.category.replace("_", " ")
+                            : "General"}
+                        </Text>
+                      </View>
+
+                      <Ionicons
+                        name="ellipsis-horizontal"
+                        size={18}
+                        style={{ alignSelf: "flex-end", marginTop: 6 }}
+                      />
+                    </View>
+                  </View>
+                ))
+              )}
             </ScrollView>
           </View>
           {/* AI BUTTON */}
@@ -478,16 +830,101 @@ export default function FullCaseAnalysis({ navigation, route }) {
 
           {/* Chat Area */}
           <View style={styles.mobileChatArea}>
-            {/* LLM messages render here */}
+            <ScrollView
+              ref={scrollRef}
+              onContentSizeChange={() =>
+                scrollRef.current?.scrollToEnd({ animated: true })
+              }
+            >
+              {messages.map((msg, index) => (
+                <View
+                  key={index}
+                  style={{
+                    flexDirection: msg.type === "bot" ? "row" : "row-reverse",
+                    marginBottom: 10,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  {msg.type === "bot" && (
+                    <Image
+                      source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        marginRight: 6,
+                      }}
+                    />
+                  )}
+
+                  <View
+                    style={{
+                      backgroundColor:
+                        msg.type === "user" ? "#FF7072" : "#F2F2F2",
+                      padding: 10,
+                      borderRadius: 10,
+                      maxWidth: "75%",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: msg.type === "user" ? "#fff" : "#333",
+                      }}
+                    >
+                      {msg.text}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+              {botTyping && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 6,
+                  }}
+                >
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                    style={{ width: 28, height: 28, marginRight: 6 }}
+                  />
+
+                  <View
+                    style={{
+                      backgroundColor: "#F2F2F2",
+                      padding: 10,
+                      borderRadius: 10,
+                      flexDirection: "row",
+                    }}
+                  >
+                    <Text style={{ fontSize: 20 }}>...</Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
           </View>
+          {/* {selectedImage && (
+            <View style={{ padding: 10 }}>
+              <Image
+                source={{ uri: selectedImage }}
+                style={{ width: 100, height: 100, borderRadius: 8 }}
+              />
+            </View>
+          )} */}
 
           {/* Input */}
           <View style={styles.mobileChatInput}>
+            {/* <TouchableOpacity onPress={pickImage}>
+              <Ionicons name="image-outline" size={22} color="#888" />
+            </TouchableOpacity> */}
+
             <TextInput
               placeholder="Ask something about reports..."
               style={styles.chatInput}
+              value={question}
+              onChangeText={setQuestion}
             />
-            <TouchableOpacity style={styles.sendBtn}>
+
+            <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
               <Ionicons name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -991,7 +1428,7 @@ const styles = StyleSheet.create({
 
     flexDirection: "row",
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 0,
     gap: 10,
     alignItems: "center",
   },
@@ -1010,7 +1447,8 @@ const styles = StyleSheet.create({
     borderColor: "#FF7072",
   },
   tabsWrapper: {
-    maxHeight: 55, // ✅ controls extra vertical space
+    maxHeight: 63,
+    //borderWidth:1
   },
 
   mobileChatContainer: {
