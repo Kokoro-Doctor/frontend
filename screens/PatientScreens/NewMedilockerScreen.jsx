@@ -1135,6 +1135,7 @@ const styles = StyleSheet.create({
     // height: "14%",
     // //borderWidth:1,
     // padding:"1.5%",
+    zIndex: 2,
     padding: 10,
     ...Platform.select({
       web: {

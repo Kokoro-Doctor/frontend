@@ -1425,11 +1425,12 @@ const stylesMobile = StyleSheet.create({
   },
 
   header: {
-    paddingHorizontal: "2%",
-    paddingVertical: "1%",
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    zIndex: 2,
+    ...Platform.select({
+      web: {
+        width: "100%",
+      },
+    }),
   },
 
   headers: {
