@@ -61,7 +61,7 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
       });
     } else if (menu === "Medilocker") {
       navigation.navigate("PatientAppNavigation", {
-        screen: "Medilocker",
+        screen: "NewMedilockerScreen",
       });
     } else if (menu === "Book Hospital") {
       navigation.navigate("PatientAppNavigation", {
