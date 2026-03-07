@@ -512,7 +512,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
         </View>
       )}
       {(Platform.OS !== "web" || width < 1000) && (
-        <View style={styles.container}>
+        <ScrollView style={styles.container}>
           {/* HEADER */}
           <View
             style={[
@@ -785,7 +785,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
             </ScrollView>
           </View>
           {/* AI BUTTON */}
-          <TouchableOpacity style={styles.aiButton}>
+          <TouchableOpacity style={styles.aiButton} onPress={openChat}>
             <Text style={styles.aiText}>Clinical AI Assistant</Text>
           </TouchableOpacity>
 
@@ -809,7 +809,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
 
             <Text style={styles.generateText}>Generate Prescription</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       )}
       {chatOpen && (
         <Animated.View style={[styles.mobileChatContainer, { top: slideAnim }]}>
@@ -1383,7 +1383,7 @@ const styles = StyleSheet.create({
   floatingBtn: {
     position: "absolute",
     right: 25,
-    bottom: "10%",
+    bottom: "8%",
     height: 72,
     width: 72,
     borderRadius: 36, // ✅ makes perfect circle
@@ -1423,14 +1423,12 @@ const styles = StyleSheet.create({
     marginTop: "4%",
   },
   tabs: {
-    marginTop: "4%",
-    paddingBottom: "4%",
-
+    marginTop: "2%",
     flexDirection: "row",
-    paddingHorizontal: 12,
-    paddingVertical: 0,
-    gap: 10,
     alignItems: "center",
+    paddingHorizontal: 12,
+    gap: 10,
+    paddingBottom: 10,
   },
 
   tabCommon: {
