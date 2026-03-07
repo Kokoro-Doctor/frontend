@@ -215,7 +215,7 @@ const LandingPage = ({ navigation, route }) => {
                         style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("PatientAppNavigation", {
-                            screen: "Medilocker",
+                            screen: "NewMedilockerScreen",
                           });
                         }}
                       >
@@ -366,7 +366,7 @@ const LandingPage = ({ navigation, route }) => {
                 style={styles.cardStyle}
                 onPress={() => {
                   navigation.navigate("PatientAppNavigation", {
-                    screen: "Medilocker",
+                    screen: "NewMedilockerScreen",
                   });
                 }}
               >
