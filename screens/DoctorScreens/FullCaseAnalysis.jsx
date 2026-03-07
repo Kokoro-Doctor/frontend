@@ -210,7 +210,10 @@ export default function FullCaseAnalysis({ navigation, route }) {
                           </Text>
                         </View>
                       </View>
-                      <TouchableOpacity style={styles.generateButton}>
+                      <TouchableOpacity
+                        style={styles.generateButton}
+                        onPress={() => navigation.navigate("Prescription")}
+                      >
                         <Image
                           source={require("../../assets/DoctorsPortal/Icons/generateButtonIcon.png")}
                           style={styles.btnIcon}
@@ -802,7 +805,10 @@ export default function FullCaseAnalysis({ navigation, route }) {
           </TouchableOpacity>
 
           {/* GENERATE BUTTON */}
-          <TouchableOpacity style={styles.generateBtn}>
+          <TouchableOpacity
+            style={styles.generateBtn}
+            onPress={() => navigation.navigate("Prescription")}
+          >
             <Image
               source={require("../../assets/Images/BottomCTAfullcase.png")}
             />
@@ -1034,8 +1040,8 @@ const styles = StyleSheet.create({
   },
   filesUploadingCountSection: {
     borderWidth: 1,
-    width: "50%",
-    height: "60%",
+    width: "60%",
+    height: "70%",
     backgroundColor: "#FFF8F8",
     borderColor: "#FF7072",
     borderRadius: 5,
@@ -1050,7 +1056,7 @@ const styles = StyleSheet.create({
   generateButton: {
     //borderWidth: 1,
     height: "50%",
-    width: "18%",
+    width: "20%",
     marginRight: "4%",
     borderRadius: 6,
     flexDirection: "row",
@@ -1063,7 +1069,7 @@ const styles = StyleSheet.create({
     width: 22,
   },
   btnText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 600,
     color: "#fff",
   },
@@ -1436,7 +1442,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 16,
-    paddingVertical: 9,
+    paddingVertical: 5,
     borderRadius: 10,
   },
   inactiveTab: {
