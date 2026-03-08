@@ -12,6 +12,8 @@ import {
   ScrollView,
   TextInput,
   StatusBar,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 
 import { AuthContext } from "../../contexts/AuthContext";
@@ -20,6 +22,7 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import BackButton from "../../components/PatientScreenComponents/BackButton";
 import Markdown from "react-native-markdown-display";
 import { downloadPrescription } from "../../utils/PrescriptionService";
+import { savePrescriptionToMedilocker } from "../../utils/MedilockerService";
 
 const { width, height } = Dimensions.get("window");
 
@@ -52,10 +55,14 @@ const PrescriptionPreview = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const { user } = useContext(AuthContext);
 
-  // Get prescription and user from route params
-  const { generatedPrescription: initialPrescription } = route.params || {};
+  // Get prescription and patient user ID from route params
+  const {
+    generatedPrescription: initialPrescription,
+    patientUserId,
+  } = route.params || {};
 
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isSavingPrescription, setIsSavingPrescription] = useState(false);
   const [editedPrescription, setEditedPrescription] = useState(null);
   const [currentPrescription, setCurrentPrescription] = useState(
     initialPrescription || null,
@@ -117,10 +124,53 @@ const PrescriptionPreview = ({ navigation, route }) => {
     await downloadPrescription(currentPrescription, user);
   };
 
-  const handleApprovePrescription = () => {
-    // TODO: Implement approve prescription functionality
-    console.log("Approve prescription");
-    alert("Approve functionality will be implemented soon");
+  /**
+   * Format prescription object into full text for Medilocker storage.
+   */
+  const formatPrescriptionForStorage = (prescription) => {
+    const lines = [
+      "--- Prescription ---",
+      `Date: ${prescription.date || ""}`,
+      `Patient: ${prescription.patientName || ""}`,
+      `Age: ${prescription.age || ""}`,
+      `Gender: ${prescription.gender || ""}`,
+      `Diagnosis: ${prescription.diagnosis || ""}`,
+      "",
+      "--- Prescription Report ---",
+      prescription.prescriptionReport || "No prescription report generated",
+    ];
+    return lines.join("\n");
+  };
+
+  const handleApprovePrescription = async () => {
+    if (!patientUserId) {
+      Alert.alert(
+        "Cannot Save",
+        "Patient ID is required to save prescription to Medilocker. This prescription was not generated from a patient's Medilocker.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    try {
+      setIsSavingPrescription(true);
+      const prescriptionText = formatPrescriptionForStorage(currentPrescription);
+      await savePrescriptionToMedilocker(patientUserId, prescriptionText);
+      Alert.alert(
+        "Success",
+        "Prescription has been saved to the patient's Medilocker. The patient can view and download it from their documents.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error("Failed to save prescription:", error);
+      Alert.alert(
+        "Save Failed",
+        error.message || "Failed to save prescription to Medilocker. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsSavingPrescription(false);
+    }
   };
 
   if (!currentPrescription) {
@@ -469,10 +519,15 @@ const PrescriptionPreview = ({ navigation, route }) => {
                                 styles.approveButton,
                               ]}
                               onPress={handleApprovePrescription}
+                              disabled={isSavingPrescription}
                             >
-                              <Text style={styles.approveButtonText}>
-                                Approve Prescription
-                              </Text>
+                              {isSavingPrescription ? (
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                              ) : (
+                                <Text style={styles.approveButtonText}>
+                                  Approve Prescription
+                                </Text>
+                              )}
                             </TouchableOpacity>
                           )}
                         </View>
@@ -716,12 +771,20 @@ const PrescriptionPreview = ({ navigation, route }) => {
               </TouchableOpacity>
             )}
 
-            {/* Approved Button */}
+            {/* Approve Prescription Button */}
             {!isEditMode && (
-              <TouchableOpacity style={stylesMobile.approveBtn}>
-                <Text style={stylesMobile.approveBtnText}>
-                  Approved Prescription
-                </Text>
+              <TouchableOpacity
+                style={stylesMobile.approveBtn}
+                onPress={handleApprovePrescription}
+                disabled={isSavingPrescription}
+              >
+                {isSavingPrescription ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={stylesMobile.approveBtnText}>
+                    Approve Prescription
+                  </Text>
+                )}
               </TouchableOpacity>
             )}
           </View>

@@ -127,6 +127,39 @@ export const shortenUrl = async (longUrl) => {
     return shortenedUrl;
 };
 
+/**
+ * Save an approved prescription to the patient's Medilocker.
+ * @param {string} userId - Patient's user ID (Medilocker owner)
+ * @param {string} prescriptionContent - Full prescription text to store
+ * @returns {Promise<{file_id: string, filename: string}>}
+ */
+export const savePrescriptionToMedilocker = async (userId, prescriptionContent) => {
+    try {
+        const encodedUserId = encodeURIComponent(userId);
+        const response = await fetch(
+            `${medilocker_API}/users/${encodedUserId}/prescription/save`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ prescription: prescriptionContent }),
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+                errorData.detail || errorData.message || `Save failed: ${response.status}`
+            );
+        }
+
+        return await response.json();
+    } catch (err) {
+        throw err;
+    }
+};
+
 export const extractStructuredData = async (files) => {
     const apiUrl = `${medilocker_API}/prescription`;
 
