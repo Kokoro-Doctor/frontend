@@ -12,6 +12,7 @@ import {
   TextInput,
   ImageBackground,
   Animated,
+  Alert,
 } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -37,6 +38,9 @@ export default function FullCaseAnalysis({ navigation, route }) {
   const [question, setQuestion] = useState("");
   const [sending, setSending] = useState(false);
   const [botTyping, setBotTyping] = useState(false);
+  const [isGeneratingPrescription, setIsGeneratingPrescription] =
+    useState(false);
+  const [patient, setPatient] = useState(null);
   const scrollRef = React.useRef();
 
   const CATEGORY_MAP = {
@@ -56,10 +60,37 @@ export default function FullCaseAnalysis({ navigation, route }) {
   };
 
   useEffect(() => {
-    if (userId) {
-      fetchFiles(activeTab);
-    }
+    if (!userId) return;
+
+    fetchPatient(); // load patient first
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    fetchFiles(activeTab); // files depend on tab
   }, [activeTab, userId]);
+
+  const fetchPatient = async () => {
+    try {
+      const response = await fetch(`${API_URL}/users/${userId}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch patient");
+      }
+
+      const data = await response.json();
+
+      console.log("Patient raw response:", JSON.stringify(data, null, 2));
+
+      // ✅ Mirror exactly what GeneratePrescription does:
+      const userProfile = data.user || data;
+      setPatient(userProfile);
+    } catch (error) {
+      console.log("Error fetching patient:", error);
+      Alert.alert("Error", "Failed to load patient data");
+    }
+  };
 
   const fetchFiles = async (categoryLabel) => {
     try {
@@ -85,6 +116,128 @@ export default function FullCaseAnalysis({ navigation, route }) {
       console.log("Error fetching files:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // const generatePrescriptionFromMedilocker = async () => {
+  //   if (!userId) {
+  //     Alert.alert("Error", "User ID is required");
+  //     return;
+  //   }
+
+  //   try {
+  //     setIsGeneratingPrescription(true);
+
+  //     const response = await fetch(
+  //       `${API_URL}/medilocker/users/${userId}/prescription`,
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //       },
+  //     );
+
+  //     if (!response.ok) {
+  //       const errorData = await response.json().catch(() => ({}));
+  //       throw new Error(
+  //         errorData.detail ||
+  //           `Failed to generate prescription: ${response.status}`,
+  //       );
+  //     }
+
+  //     const prescriptionData = await response.json();
+
+  //     const formattedPrescription = {
+  //       prescriptionReport:
+  //         prescriptionData.prescription || "No prescription data available",
+
+  //       patientName: patient?.name || null,
+  //       age: patient?.age ? patient.age.toString() : null,
+  //       gender: patient?.gender || null,
+
+  //       date: new Date().toLocaleDateString("en-GB", {
+  //         day: "2-digit",
+  //         month: "short",
+  //         year: "numeric",
+  //       }),
+
+  //       diagnosis: prescriptionData.patient_details?.diagnosis || null,
+  //     };
+
+  //     navigation.navigate("PrescriptionPreview", {
+  //       generatedPrescription: formattedPrescription,
+  //     });
+  //   } catch (error) {
+  //     console.error("❌ Failed to generate prescription:", error);
+  //     Alert.alert("Error", error.message || "Failed to generate prescription");
+  //   } finally {
+  //     setIsGeneratingPrescription(false);
+  //   }
+  // };
+
+  const generatePrescriptionFromMedilocker = async () => {
+    if (!userId) {
+      Alert.alert("Error", "User ID is required");
+      return;
+    }
+
+    if (!patient) {
+      Alert.alert("Please wait", "Patient data is still loading");
+      return;
+    }
+
+    try {
+      setIsGeneratingPrescription(true);
+
+      const response = await fetch(
+        `${API_URL}/medilocker/users/${userId}/prescription`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail ||
+            `Failed to generate prescription: ${response.status}`,
+        );
+      }
+
+      const prescriptionData = await response.json();
+
+      console.log("Prescription API response:", prescriptionData);
+
+      const formattedPrescription = {
+        prescriptionReport:
+          prescriptionData.prescription || "No prescription data available",
+
+        // ✅ use patient state
+        patientName: patient?.name || "",
+        age: patient?.age ? patient.age.toString() : "",
+        gender: patient?.gender || "",
+
+        date: new Date().toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+
+        diagnosis: prescriptionData.patient_details?.diagnosis || "",
+      };
+
+      navigation.navigate("PrescriptionPreview", {
+        generatedPrescription: formattedPrescription,
+      });
+    } catch (error) {
+      console.error("❌ Failed to generate prescription:", error);
+      Alert.alert("Error", error.message || "Failed to generate prescription");
+    } finally {
+      setIsGeneratingPrescription(false);
     }
   };
 
@@ -210,16 +363,20 @@ export default function FullCaseAnalysis({ navigation, route }) {
                           </Text>
                         </View>
                       </View>
+
                       <TouchableOpacity
-                        style={styles.generateButton}
-                        onPress={() => navigation.navigate("Prescription")}
+                        style={styles.generateBtn}
+                        onPress={generatePrescriptionFromMedilocker}
+                        disabled={isGeneratingPrescription}
                       >
                         <Image
-                          source={require("../../assets/DoctorsPortal/Icons/generateButtonIcon.png")}
-                          style={styles.btnIcon}
+                          source={require("../../assets/Images/BottomCTAfullcase.png")}
                         />
-                        <Text style={styles.btnText}>
-                          Generate Prescription
+
+                        <Text style={styles.generateText}>
+                          {isGeneratingPrescription
+                            ? "Generating..."
+                            : "Generate Prescription"}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -807,13 +964,18 @@ export default function FullCaseAnalysis({ navigation, route }) {
           {/* GENERATE BUTTON */}
           <TouchableOpacity
             style={styles.generateBtn}
-            onPress={() => navigation.navigate("Prescription")}
+            onPress={generatePrescriptionFromMedilocker}
+            disabled={isGeneratingPrescription}
           >
             <Image
               source={require("../../assets/Images/BottomCTAfullcase.png")}
             />
 
-            <Text style={styles.generateText}>Generate Prescription</Text>
+            <Text style={styles.generateText}>
+              {isGeneratingPrescription
+                ? "Generating..."
+                : "Generate Prescription"}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       )}
@@ -1405,7 +1567,7 @@ const styles = StyleSheet.create({
 
   generateBtn: {
     alignSelf: "center",
-    width: "85%",
+    width: "25%",
     justifyContent: "center",
     flexDirection: "row",
     backgroundColor: "#FF7072",
@@ -1414,7 +1576,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     gap: 10,
-    marginTop: "20%",
+    marginTop: "0%",
   },
 
   generateText: {
