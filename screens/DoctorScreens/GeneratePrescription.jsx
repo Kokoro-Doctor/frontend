@@ -585,10 +585,10 @@ const GeneratePrescription = ({ navigation, route }) => {
           </View>
         </View>
         {/* NEW REPORT ALERT */}
-        <View style={m.newReportBox}>
+        {/* <View style={m.newReportBox}>
           <Text style={m.newReportTexts}>2 new reports</Text>
           <Text style={m.newReportText}>added since last review.</Text>
-        </View>
+        </View> */}
 
         {/* AI FULL CASE REVIEW CARD */}
         <View style={m.aiReviewCard}>

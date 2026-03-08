@@ -204,16 +204,13 @@ export default function FullCaseAnalysis({ navigation, route }) {
                           </Text>
                           <Text style={styles.lowerText}>Total documents</Text>
                         </View>
-                        <View style={styles.filesUploadingCountSection}>
+                        {/* <View style={styles.filesUploadingCountSection}>
                           <Text style={styles.uploadingText}>
                             2 new reports added since last review
                           </Text>
-                        </View>
+                        </View> */}
                       </View>
-                      <TouchableOpacity
-                        style={styles.generateButton}
-                        onPress={() => navigation.navigate("Prescription")}
-                      >
+                      <TouchableOpacity style={styles.generateButton}>
                         <Image
                           source={require("../../assets/DoctorsPortal/Icons/generateButtonIcon.png")}
                           style={styles.btnIcon}
@@ -532,12 +529,12 @@ export default function FullCaseAnalysis({ navigation, route }) {
           </View>
 
           {/* ALERT */}
-          <View style={styles.alertBox}>
+          {/* <View style={styles.alertBox}>
             <Image source={require("../../assets/Images/heartFullCase.png")} />
             <Text style={styles.alertText}>
               2 New Reports added since last review
             </Text>
-          </View>
+          </View> */}
 
           {/* FILTER BUTTONS */}
           <ScrollView
@@ -788,9 +785,9 @@ export default function FullCaseAnalysis({ navigation, route }) {
             </ScrollView>
           </View>
           {/* AI BUTTON */}
-          <TouchableOpacity style={styles.aiButton} onPress={openChat}>
+          <View style={styles.aiButton}>
             <Text style={styles.aiText}>Clinical AI Assistant</Text>
-          </TouchableOpacity>
+          </View>
 
           {/* FLOATING BUTTON */}
           <TouchableOpacity style={styles.floatingBtn} onPress={openChat}>
@@ -805,10 +802,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
           </TouchableOpacity>
 
           {/* GENERATE BUTTON */}
-          <TouchableOpacity
-            style={styles.generateBtn}
-            onPress={() => navigation.navigate("Prescription")}
-          >
+          <TouchableOpacity style={styles.generateBtn}>
             <Image
               source={require("../../assets/Images/BottomCTAfullcase.png")}
             />
@@ -1011,16 +1005,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   upperLeftSection: {
-    //borderWidth: 1,
+    // borderWidth: 1,
     height: "75%",
-    width: "40%",
-    marginLeft: "2%",
+    width: "30%",
+    marginLeft: "4%",
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
+    alignItems: "flex-start",
+    justifyContent:"flex-start",
   },
   caseAnalysisDocSection: {
-    //borderWidth:1,
+    justifyContent:"flex-start",
+    // borderWidth:1,
     width: "40%",
     height: "100%",
   },
@@ -1040,8 +1035,8 @@ const styles = StyleSheet.create({
   },
   filesUploadingCountSection: {
     borderWidth: 1,
-    width: "60%",
-    height: "70%",
+    width: "50%",
+    height: "60%",
     backgroundColor: "#FFF8F8",
     borderColor: "#FF7072",
     borderRadius: 5,
@@ -1056,7 +1051,7 @@ const styles = StyleSheet.create({
   generateButton: {
     //borderWidth: 1,
     height: "50%",
-    width: "20%",
+    width: "18%",
     marginRight: "4%",
     borderRadius: 6,
     flexDirection: "row",
@@ -1069,7 +1064,7 @@ const styles = StyleSheet.create({
     width: 22,
   },
   btnText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 600,
     color: "#fff",
   },
@@ -1442,7 +1437,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 16,
-    paddingVertical: 5,
+    paddingVertical: 9,
     borderRadius: 10,
   },
   inactiveTab: {
