@@ -13,8 +13,8 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
-import { Pressable } from "react-native";
 
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -97,7 +97,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
         // APPOINTMENT (SOURCE OF TRUTH)
         const apptRes = await fetch(
-          `${API_URL}/booking/doctors/${doctorId}/users/${userId}/latest`,
+          `${API_URL}/booking/doctors/${doctorId}/users/${userId}`,
         );
         const apptData = await apptRes.json();
 
@@ -587,10 +587,10 @@ const GeneratePrescription = ({ navigation, route }) => {
           </View>
         </View>
         {/* NEW REPORT ALERT */}
-        <View style={m.newReportBox}>
+        {/* <View style={m.newReportBox}>
           <Text style={m.newReportTexts}>2 new reports</Text>
           <Text style={m.newReportText}>added since last review.</Text>
-        </View>
+        </View> */}
 
         {/* AI FULL CASE REVIEW CARD */}
         <View style={m.aiReviewCard}>
@@ -608,7 +608,12 @@ const GeneratePrescription = ({ navigation, route }) => {
 
           <TouchableOpacity
             style={m.analysisButton}
-            onPress={() => navigation.navigate("FullCaseAnalysis")}
+            onPress={() =>
+              navigation.navigate("FullCaseAnalysis", {
+                userId,
+                doctorId,
+              })
+            }
           >
             {/* <Ionicons
               name="sparkles-outline"
@@ -660,7 +665,11 @@ const GeneratePrescription = ({ navigation, route }) => {
                       </View>
                     </View>
 
-                    <View style={styles.lowerPart}>
+                    <ScrollView
+                      style={styles.lowerPart}
+                      contentContainerStyle={{ paddingBottom: 40 }}
+                      showsVerticalScrollIndicator={true}
+                    >
                       <View style={styles.container}>
                         <View style={{ flexDirection: "row" }}>
                           <View style={styles.imageBox}>
@@ -802,12 +811,12 @@ const GeneratePrescription = ({ navigation, route }) => {
                                   {user?.status}
                                 </Text>
                               </View>
-                              <View>
+                              {/* <View>
                                 <Text style={styles.firstTexttwo}>
                                   {" "}
                                   Cancelled
                                 </Text>
-                              </View>
+                              </View> */}
                             </View>
                             <View
                               style={{
@@ -830,13 +839,21 @@ const GeneratePrescription = ({ navigation, route }) => {
                               </View>
                             </View>
                           </View>
+                          <TouchableOpacity
+                            style={{ marginTop: "2%", marginLeft: "6%" }}
+                          >
+                            <Image
+                              source={require("../../assets/DoctorsPortal/Icons/call_Icon.png")}
+                              style={styles.midddleIcon}
+                            />
+                          </TouchableOpacity>
 
                           {/* <TouchableOpacity style={styles.generateButton}>
                             <Text style={styles.generateText}>
                               Generate Prescription
                             </Text>
                           </TouchableOpacity> */}
-                          <TouchableOpacity
+                          {/* <TouchableOpacity
                             style={[
                               styles.generateButton,
                               isGeneratingPrescription &&
@@ -850,34 +867,13 @@ const GeneratePrescription = ({ navigation, route }) => {
                                 ? "Generating..."
                                 : "Generate Prescription"}
                             </Text>
-                          </TouchableOpacity>
+                          </TouchableOpacity> */}
                         </View>
                         <View style={styles.lowerSectionContainer}>
                           <View style={{ marginLeft: "2%" }}>
                             <Text style={styles.middleText}>
                               Patients Uploaded Documents
                             </Text>
-                          </View>
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              justifyContent: "flex-end",
-                              gap: "1.5%",
-                              marginRight: "1.5%",
-                            }}
-                          >
-                            <TouchableOpacity>
-                              <Image
-                                source={require("../../assets/DoctorsPortal/Icons/call_Icon.png")}
-                                style={styles.midddleIcon}
-                              />
-                            </TouchableOpacity>
-                            <TouchableOpacity>
-                              <Image
-                                source={require("../../assets/DoctorsPortal/Icons/fileSave.png")}
-                                style={styles.middleIcon}
-                              />
-                            </TouchableOpacity>
                           </View>
                         </View>
                       </View>
@@ -955,7 +951,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                         </View>
 
                         {/* FILE ROWS - WEB VIEW */}
-                        <ScrollView style={{ height: "100%", width: "100%" }}>
+                        <ScrollView style={{ maxHeight: 150, width: "100%" }}>
                           {files.length > 0 ? (
                             files
                               .filter((file) =>
@@ -1102,7 +1098,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                                   <View style={styles.actionButtons}>
                                     {/* Download Button */}
                                     <TouchableOpacity
-                                      onPress={() => downloadFile(file.name)}
+                                      onPress={() => downloadFile(file)}
                                     >
                                       <MaterialIcons
                                         name="file-download"
@@ -1113,7 +1109,7 @@ const GeneratePrescription = ({ navigation, route }) => {
 
                                     {/* Delete Button */}
                                     <TouchableOpacity
-                                      onPress={() => removeFile(file.name)}
+                                      onPress={() => removeFile(file)}
                                     >
                                       <MaterialIcons
                                         name="delete"
@@ -1168,225 +1164,59 @@ const GeneratePrescription = ({ navigation, route }) => {
                             </View>
                           )}
                         </ScrollView>
+                      </View>
+                      {/* AI POWERED FULL CASE REVIEW - WEB */}
+                      <View style={styles.aiReviewCardWeb}>
+                        <View style={styles.aiRowWeb}>
+                          {/* LEFT SIDE */}
+                          <View style={styles.aiLeftWeb}>
+                            <View style={styles.aiIconWeb}>
+                              <Image
+                                source={require("../../assets/Images/heartBottom.png")}
+                                style={{ width: 14, height: 14 }}
+                                resizeMode="contain"
+                              />
+                            </View>
 
-                        {/* QUICK PREVIEW MODAL */}
-                        {/* QUICK PREVIEW MODAL */}
-                        {previewModalVisible && selectedFilePreview && (
-                          <View
-                            style={{
-                              position:
-                                Platform.OS === "web" ? "fixed" : "absolute",
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              backgroundColor: "rgba(0,0,0,0.85)",
-                              zIndex: 999999,
-                              padding: "2%",
-                              alignItems: "center",
-                            }}
-                          >
-                            <View
-                              style={{
-                                backgroundColor: "#000",
-                                width: "95%",
-                                height: "90%",
-                                overflow: "hidden",
-                                position: "relative",
-                              }}
-                            >
-                              {/* HEADER */}
-                              <View
-                                style={{
-                                  padding: 14,
-                                  backgroundColor: "#FF7072",
-                                  flexDirection: "row",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                }}
-                              >
-                                <Text
-                                  style={{ fontSize: 16, fontWeight: "600" }}
-                                >
-                                  {selectedFilePreview.name}
-                                </Text>
+                            <View>
+                              <Text style={styles.aiTitleWeb}>
+                                AI-Powered Full Case Review
+                              </Text>
 
-                                <TouchableOpacity
-                                  onPress={() => {
-                                    setPreviewModalVisible(false);
-                                    setPreviewUrl(null);
-                                    setZoomLevel(1); // ✅ reset zoom
-                                  }}
-                                >
-                                  <Text style={{ fontSize: 16, color: "#111" }}>
-                                    Close
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-
-                              {/* ZOOM CONTROLS (WEB ONLY) */}
-                              {Platform.OS === "web" && (
-                                <View
-                                  style={{
-                                    position: "absolute",
-                                    bottom: 30,
-                                    right: 30,
-                                    flexDirection: "row",
-                                    gap: 12,
-                                    zIndex: 1000000,
-                                  }}
-                                >
-                                  {/* Zoom In */}
-                                  <TouchableOpacity
-                                    onPress={() =>
-                                      setZoomLevel((z) => Math.min(z + 0.25, 4))
-                                    }
-                                    style={{
-                                      backgroundColor: "#FF7072",
-                                      paddingVertical: 10,
-                                      paddingHorizontal: 14,
-                                      borderRadius: 6,
-                                    }}
-                                  >
-                                    <Text
-                                      style={{
-                                        color: "#fff",
-                                        fontSize: 18,
-                                        fontWeight: "700",
-                                      }}
-                                    >
-                                      +
-                                    </Text>
-                                  </TouchableOpacity>
-
-                                  {/* Zoom Out */}
-                                  <TouchableOpacity
-                                    onPress={() =>
-                                      setZoomLevel((z) => Math.max(z - 0.25, 1))
-                                    }
-                                    style={{
-                                      backgroundColor: "#FF7072",
-                                      paddingVertical: 10,
-                                      paddingHorizontal: 14,
-                                      borderRadius: 6,
-                                    }}
-                                  >
-                                    <Text
-                                      style={{
-                                        color: "#fff",
-                                        fontSize: 18,
-                                        fontWeight: "700",
-                                      }}
-                                    >
-                                      −
-                                    </Text>
-                                  </TouchableOpacity>
-                                </View>
-                              )}
-
-                              {/* CONTENT */}
-                              <View
-                                style={{ flex: 1, backgroundColor: "#f5f5f5" }}
-                              >
-                                {/* IMAGE FILES */}
-                                {["png", "jpg", "jpeg"].includes(
-                                  selectedFilePreview.name
-                                    .split(".")
-                                    .pop()
-                                    .toLowerCase(),
-                                ) &&
-                                  (Platform.OS === "web" ? (
-                                    <div
-                                      style={{
-                                        width: "100%",
-                                        height: "100%",
-                                        overflow: "auto",
-                                        backgroundColor: "#f5f5f5",
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          justifyContent: "center",
-                                          alignItems: "flex-start",
-                                          padding: 20,
-                                        }}
-                                      >
-                                        <img
-                                          src={previewUrl}
-                                          alt="Preview"
-                                          style={{
-                                            maxWidth: "100%", // ✅ ALWAYS fit initially
-                                            height: "auto",
-                                            transform: `scale(${zoomLevel})`,
-                                            transformOrigin: "top center",
-                                            transition: "transform 0.2s ease",
-                                          }}
-                                        />
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <ScrollView
-                                      contentContainerStyle={{
-                                        flexGrow: 1,
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                      }}
-                                      maximumZoomScale={4}
-                                      minimumZoomScale={1}
-                                    >
-                                      <Image
-                                        source={{ uri: previewUrl }}
-                                        style={{
-                                          width: "100%",
-                                          height: "100%",
-                                        }}
-                                        resizeMode="contain"
-                                      />
-                                    </ScrollView>
-                                  ))}
-
-                                {/* PDF FILES */}
-                                {selectedFilePreview.name
-                                  .toLowerCase()
-                                  .endsWith(".pdf") &&
-                                  Platform.OS === "web" && (
-                                    <iframe
-                                      src={previewUrl}
-                                      title="PDF Preview"
-                                      style={{
-                                        width: "100%",
-                                        height: "100%",
-                                        border: "none",
-                                      }}
-                                    />
-                                  )}
-
-                                {/* UNSUPPORTED */}
-                                {!["png", "jpg", "jpeg", "pdf"].includes(
-                                  selectedFilePreview.name
-                                    .split(".")
-                                    .pop()
-                                    .toLowerCase(),
-                                ) && (
-                                  <View
-                                    style={{
-                                      flex: 1,
-                                      justifyContent: "center",
-                                      alignItems: "center",
-                                    }}
-                                  >
-                                    <Text style={{ color: "#666" }}>
-                                      Preview not available for this file type.
-                                    </Text>
-                                  </View>
-                                )}
-                              </View>
+                              <Text style={styles.aiSubtitleWeb}>
+                                Looking across all reports to build a complete
+                                patient story
+                              </Text>
                             </View>
                           </View>
-                        )}
+
+                          {/* RIGHT SIDE BUTTON */}
+                          <TouchableOpacity
+                            style={styles.analysisButtonWeb}
+                            onPress={() =>
+                              navigation.navigate("FullCaseAnalysis", {
+                                userId,
+                                doctorId,
+                              })
+                            }
+                          >
+                            <Image
+                              source={require("../../assets/Images/BottomCTAfullcase.png")}
+                              style={{ width: 14, height: 14 }}
+                              resizeMode="contain"
+                            />
+                            <Text style={styles.analysisTextWeb}>
+                              Full Case Analysis
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* DISCLAIMER */}
+                        <Text style={styles.aiDisclaimerWeb}>
+                          Built to assist your judgment not replace it.
+                        </Text>
                       </View>
-                    </View>
+                    </ScrollView>
                   </View>
                 </View>
               </View>
@@ -1403,49 +1233,160 @@ const GeneratePrescription = ({ navigation, route }) => {
         />
       )}
 
-      {/* QUICK PREVIEW MODAL — MOBILE + WEB */}
-      {/* QUICK PREVIEW MODAL — MOBILE ONLY */}
-      {(Platform.OS !== "web" || width < 1000) &&
-        previewModalVisible &&
-        selectedFilePreview && (
+      {/* QUICK PREVIEW MODAL — UNIFIED (WEB + MOBILE) */}
+      {previewModalVisible && selectedFilePreview && (
+        <View
+          style={{
+            position: Platform.OS === "web" ? "fixed" : "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.9)",
+            zIndex: 999999,
+            alignItems: "center",
+            padding: Platform.OS === "web" ? "2%" : 0,
+          }}
+        >
+          {/* HEADER */}
           <View
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0,0,0,0.9)",
-              zIndex: 9999,
+              backgroundColor: "#FF7072",
+              padding: 14,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              width: Platform.OS === "web" ? "95%" : "100%",
             }}
           >
-            {/* HEADER */}
-            <View
-              style={{
-                backgroundColor: "#FF7072",
-                padding: 14,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
+            <Text style={{ fontSize: 16, fontWeight: "600", color: "#000" }}>
+              {selectedFilePreview.name}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                setPreviewModalVisible(false);
+                setPreviewUrl(null);
+                setZoomLevel(1);
               }}
             >
-              <Text style={{ fontSize: 16, fontWeight: "600", color: "#000" }}>
-                {selectedFilePreview.name}
-              </Text>
+              <Text style={{ fontSize: 16, color: "#111" }}>Close</Text>
+            </TouchableOpacity>
+          </View>
 
+          {/* WEB ZOOM CONTROLS */}
+          {Platform.OS === "web" && (
+            <View
+              style={{
+                position: "absolute",
+                bottom: 30,
+                right: 30,
+                flexDirection: "row",
+                gap: 12,
+                zIndex: 1000000,
+              }}
+            >
               <TouchableOpacity
-                onPress={() => {
-                  setPreviewModalVisible(false);
-                  setPreviewUrl(null);
+                onPress={() => setZoomLevel((z) => Math.min(z + 0.25, 4))}
+                style={{
+                  backgroundColor: "#FF7072",
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  borderRadius: 6,
                 }}
               >
-                <Text style={{ fontSize: 16, color: "#111" }}>Close</Text>
+                <Text
+                  style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}
+                >
+                  +
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setZoomLevel((z) => Math.max(z - 0.25, 1))}
+                style={{
+                  backgroundColor: "#FF7072",
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  borderRadius: 6,
+                }}
+              >
+                <Text
+                  style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}
+                >
+                  −
+                </Text>
               </TouchableOpacity>
             </View>
+          )}
 
-            {/* CONTENT */}
+          {/* CONTENT */}
+          {Platform.OS === "web" ? (
+            <View
+              style={{
+                backgroundColor: "#f5f5f5",
+                width: "95%",
+                height: "90%",
+                overflow: "auto",
+                position: "relative",
+              }}
+            >
+              {/* IMAGE (WEB) */}
+              {["png", "jpg", "jpeg"].includes(
+                selectedFilePreview.name.split(".").pop().toLowerCase(),
+              ) ? (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    overflow: "auto",
+                    backgroundColor: "#f5f5f5",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "flex-start",
+                      padding: 20,
+                    }}
+                  >
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      style={{
+                        maxWidth: "100%",
+                        height: "auto",
+                        transform: `scale(${zoomLevel})`,
+                        transformOrigin: "top center",
+                        transition: "transform 0.2s ease",
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : selectedFilePreview.name.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={previewUrl}
+                  title="PDF Preview"
+                  style={{ width: "100%", height: "100%", border: "none" }}
+                />
+              ) : (
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "#666" }}>
+                    Preview not available for this file type.
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : (
             <View style={{ flex: 1, backgroundColor: "#000" }}>
-              {/* IMAGE PREVIEW */}
+              {/* IMAGE PREVIEW (MOBILE) */}
               {["png", "jpg", "jpeg"].includes(
                 selectedFilePreview.name.split(".").pop().toLowerCase(),
               ) && (
@@ -1466,21 +1407,18 @@ const GeneratePrescription = ({ navigation, route }) => {
                 </ScrollView>
               )}
 
-              {/* PDF PREVIEW */}
+              {/* PDF PREVIEW (MOBILE) */}
               {selectedFilePreview.name.toLowerCase().endsWith(".pdf") && (
                 <Text
-                  style={{
-                    color: "#fff",
-                    textAlign: "center",
-                    marginTop: 40,
-                  }}
+                  style={{ color: "#fff", textAlign: "center", marginTop: 40 }}
                 >
                   PDF preview opens in browser
                 </Text>
               )}
             </View>
-          </View>
-        )}
+          )}
+        </View>
+      )}
 
       {/* FILE MENU OVERLAY */}
       {fileMenuVisible && selectedFileForMenu && (
@@ -1608,7 +1546,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     marginBottom: "4%",
     borderRadius: 5,
-    overflow: "hidden",
+    overflow: Platform.OS === "web" ? "visible" : "hidden",
     width: "92%",
     marginHorizontal: "4%",
   },
@@ -1653,15 +1591,15 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "column",
     //borderWidth: 2,
-    height: "50%",
+    // height: "50%",
     borderColor: "#190678ff",
   },
   lowerSectionContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     //borderWidth:1,
-    marginVertical: "2%",
-    height: "25%",
+    marginTop: 20,
+    marginBottom: 10,
   },
   // imageBox: {
   //   //margin: "1%",
@@ -1743,13 +1681,11 @@ const styles = StyleSheet.create({
     marginTop: "6%",
   },
   bottomPart: {
-    //marginLeft: "1%",
-    //marginTop: "0.5%",
     borderWidth: 1,
     borderRadius: 8,
     borderColor: "#DADADA",
-    height: "50%",
     width: "100%",
+    overflow: "hidden", // important
   },
   upperMiddlepart: {
     height: "20%",
@@ -1803,7 +1739,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderBottomColor: "#DADADA",
-    height: "20%",
+    height: 40,
     width: "100%",
     backgroundColor: "#FF70720F",
     borderRadius: 0,
@@ -1817,6 +1753,73 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#444444",
     fontFamily: "Poppins - Medium",
+  },
+  aiReviewCardWeb: {
+    marginTop: "2%",
+    borderRadius: 12,
+    borderTopWidth: 8,
+    borderTopColor: "#FF6B6B",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#FF7072",
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+  },
+
+  aiRowWeb: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  aiLeftWeb: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  aiIconWeb: {
+    backgroundColor: "#FFECEC",
+    height: 28,
+    width: 28,
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+
+  aiTitleWeb: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#1F1F1F",
+  },
+
+  aiSubtitleWeb: {
+    fontSize: 12,
+    color: "#8E8E8E",
+    marginTop: 2,
+  },
+
+  aiDisclaimerWeb: {
+    color: "#FF6B6B",
+    fontSize: 11,
+    marginTop: 14,
+    fontStyle: "italic",
+  },
+
+  analysisButtonWeb: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FF6B6B",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+  },
+
+  analysisTextWeb: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "500",
+    marginLeft: 6,
   },
 });
 const m = StyleSheet.create({

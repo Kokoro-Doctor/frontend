@@ -319,6 +319,7 @@ import DoctorResultShow from "../screens/PatientScreens/Doctors/DoctorResultShow
 import DoctorPortalLandingPage from "../screens/DoctorScreens/DoctorPortalLandingPage";
 import NewMedicineLandingPage from "../screens/NewMedicineLandingPage";
 
+
 // Lazy-loaded navigators
 let DoctorAppNavigation;
 let AppNavigation;

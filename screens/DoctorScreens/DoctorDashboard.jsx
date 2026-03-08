@@ -1563,11 +1563,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   header: {
-    paddingHorizontal: "2%",
-    paddingVertical: "1%",
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    zIndex: 2,
+    ...Platform.select({
+      web: {
+        width: "100%",
+      },
+    }),
   },
   welcomeSection: {
     paddingHorizontal: "2%",
