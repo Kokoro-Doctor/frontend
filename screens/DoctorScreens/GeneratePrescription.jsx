@@ -457,7 +457,7 @@ const GeneratePrescription = ({ navigation, route }) => {
             <Text style={m.infoTxt}>{appointment?.date?.split("T")[0]}</Text>
           </View>
 
-          <View style={{ marginTop: "5%", marginLeft: "3%" }}>
+          <View style={{ marginTop: "2%", marginLeft: "3%" }}>
             <Text style={m.infoText}>Time</Text>
             <Text style={m.infoTxt}>11:00 AM</Text>
           </View>
@@ -467,10 +467,47 @@ const GeneratePrescription = ({ navigation, route }) => {
         </View>
 
         <View style={m.infoCard}>
-          <View style={{ marginTop: "2%", marginLeft: "3%" }}>
+          <View style={{ marginTop: "1%", marginLeft: "3%" }}>
             <Text style={m.infoText}>Status</Text>
             <Text style={m.infoTxt}>Cancelled</Text>
           </View>
+        </View>
+
+        {/* AI FULL CASE REVIEW CARD */}
+        <View style={m.aiReviewCard}>
+          {/* top icon */}
+          <View style={m.aiIcon}>
+            {/* <Ionicons name="heart" size={18} color="#FF7072" /> */}
+            <Image source={require("../../assets/Images/heartBottom.png")} />
+          </View>
+
+          <Text style={m.aiTitle}>AI-Powered Full Case Review</Text>
+
+          <Text style={m.aiSubtitle}>
+            Looking across all reports to build a {"\n"}complete patient story
+          </Text>
+
+          <TouchableOpacity
+            style={m.analysisButton}
+            onPress={() =>
+              navigation.navigate("FullCaseAnalysis", {
+                userId,
+                doctorId,
+              })
+            }
+          >
+            {/* <Ionicons
+              name="sparkles-outline"
+              size={18}
+              color="#fff"
+              style={{ marginRight: 6 }}
+            /> */}
+            <Image
+              source={require("../../assets/Images/BottomCTAfullcase.png")}
+            />
+
+            <Text style={m.analysisText}>Full Case Analysis</Text>
+          </TouchableOpacity>
         </View>
 
         {/* FILE MENU MODAL */}
@@ -591,43 +628,6 @@ const GeneratePrescription = ({ navigation, route }) => {
           <Text style={m.newReportTexts}>2 new reports</Text>
           <Text style={m.newReportText}>added since last review.</Text>
         </View> */}
-
-        {/* AI FULL CASE REVIEW CARD */}
-        <View style={m.aiReviewCard}>
-          {/* top icon */}
-          <View style={m.aiIcon}>
-            {/* <Ionicons name="heart" size={18} color="#FF7072" /> */}
-            <Image source={require("../../assets/Images/heartBottom.png")} />
-          </View>
-
-          <Text style={m.aiTitle}>AI-Powered Full Case Review</Text>
-
-          <Text style={m.aiSubtitle}>
-            Looking across all reports to build a {"\n"}complete patient story
-          </Text>
-
-          <TouchableOpacity
-            style={m.analysisButton}
-            onPress={() =>
-              navigation.navigate("FullCaseAnalysis", {
-                userId,
-                doctorId,
-              })
-            }
-          >
-            {/* <Ionicons
-              name="sparkles-outline"
-              size={18}
-              color="#fff"
-              style={{ marginRight: 6 }}
-            /> */}
-            <Image
-              source={require("../../assets/Images/BottomCTAfullcase.png")}
-            />
-
-            <Text style={m.analysisText}>Full Case Analysis</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     );
   };
@@ -1883,9 +1883,10 @@ const m = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 2,
     padding: 12,
-    marginBottom: 12,
-    flexDirection: "column",
+    marginBottom: 10,
+    flexDirection: "row",
     borderColor: "#D6D7D8",
+    justifyContent:"space-between"
   },
 
   infoText: {
