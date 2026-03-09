@@ -654,8 +654,15 @@ const GeneratePrescription = ({ navigation, route }) => {
                   <NewestSidebar navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
-                  <HeaderLoginSignUp navigation={navigation} />
-                  <BackButton />
+                  <View style={styles.headerTop}>
+                    <View style={styles.header}>
+                      <HeaderLoginSignUp navigation={navigation} />
+                    </View>
+
+                    <View style={styles.backbtn}>
+                      <BackButton />
+                    </View>
+                  </View>
                   <View style={styles.contentContainer}>
                     <View style={styles.upperPart}>
                       <View>
@@ -869,8 +876,58 @@ const GeneratePrescription = ({ navigation, route }) => {
                             </Text>
                           </TouchableOpacity> */}
                         </View>
+                        <View style={styles.aiReviewCardWeb}>
+                          <View style={styles.aiRowWeb}>
+                            {/* LEFT SIDE */}
+                            <View style={styles.aiLeftWeb}>
+                              <View style={styles.aiIconWeb}>
+                                <Image
+                                  source={require("../../assets/Images/heartBottom.png")}
+                                  style={{ width: 14, height: 14 }}
+                                  resizeMode="contain"
+                                />
+                              </View>
+
+                              <View>
+                                <Text style={styles.aiTitleWeb}>
+                                  AI-Powered Full Case Review
+                                </Text>
+
+                                <Text style={styles.aiSubtitleWeb}>
+                                  Looking across all reports to build a complete
+                                  patient story
+                                </Text>
+                              </View>
+                            </View>
+
+                            {/* RIGHT SIDE BUTTON */}
+                            <TouchableOpacity
+                              style={styles.analysisButtonWeb}
+                              onPress={() =>
+                                navigation.navigate("FullCaseAnalysis", {
+                                  userId,
+                                  doctorId,
+                                })
+                              }
+                            >
+                              <Image
+                                source={require("../../assets/Images/BottomCTAfullcase.png")}
+                                style={{ width: 14, height: 14 }}
+                                resizeMode="contain"
+                              />
+                              <Text style={styles.analysisTextWeb}>
+                                Full Case Analysis
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+
+                          {/* DISCLAIMER */}
+                          <Text style={styles.aiDisclaimerWeb}>
+                            Built to assist your judgment not replace it.
+                          </Text>
+                        </View>
                         <View style={styles.lowerSectionContainer}>
-                          <View style={{ marginLeft: "2%" }}>
+                          <View style={{ marginLeft: "1%"}}>
                             <Text style={styles.middleText}>
                               Patients Uploaded Documents
                             </Text>
@@ -1166,56 +1223,6 @@ const GeneratePrescription = ({ navigation, route }) => {
                         </ScrollView>
                       </View>
                       {/* AI POWERED FULL CASE REVIEW - WEB */}
-                      <View style={styles.aiReviewCardWeb}>
-                        <View style={styles.aiRowWeb}>
-                          {/* LEFT SIDE */}
-                          <View style={styles.aiLeftWeb}>
-                            <View style={styles.aiIconWeb}>
-                              <Image
-                                source={require("../../assets/Images/heartBottom.png")}
-                                style={{ width: 14, height: 14 }}
-                                resizeMode="contain"
-                              />
-                            </View>
-
-                            <View>
-                              <Text style={styles.aiTitleWeb}>
-                                AI-Powered Full Case Review
-                              </Text>
-
-                              <Text style={styles.aiSubtitleWeb}>
-                                Looking across all reports to build a complete
-                                patient story
-                              </Text>
-                            </View>
-                          </View>
-
-                          {/* RIGHT SIDE BUTTON */}
-                          <TouchableOpacity
-                            style={styles.analysisButtonWeb}
-                            onPress={() =>
-                              navigation.navigate("FullCaseAnalysis", {
-                                userId,
-                                doctorId,
-                              })
-                            }
-                          >
-                            <Image
-                              source={require("../../assets/Images/BottomCTAfullcase.png")}
-                              style={{ width: 14, height: 14 }}
-                              resizeMode="contain"
-                            />
-                            <Text style={styles.analysisTextWeb}>
-                              Full Case Analysis
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        {/* DISCLAIMER */}
-                        <Text style={styles.aiDisclaimerWeb}>
-                          Built to assist your judgment not replace it.
-                        </Text>
-                      </View>
                     </ScrollView>
                   </View>
                 </View>
@@ -1522,6 +1529,25 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "85%",
   },
+  headerTop: {
+    //borderWidth: 1,
+    height: "13%",
+    width: "94%",
+    alignSelf: "center",
+    flexDirection: "column",
+    //justifyContent:"space-around"
+  },
+  header: {
+    //borderWidth: 1,
+    height: "59%",
+    width: "100%",
+  },
+  backbtn: {
+    //borderWidth: 1,
+    height: "40%",
+    width: "5%",
+    marginHorizontal: "1%",
+  },
   firstTextBox: {
     marginTop: "0%",
     marginLeft: "0.5%",
@@ -1598,7 +1624,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     //borderWidth:1,
-    marginTop: 20,
+    marginTop: 14,
     marginBottom: 10,
   },
   // imageBox: {
@@ -1616,8 +1642,8 @@ const styles = StyleSheet.create({
     marginTop: "0%",
     marginRight: "0.6%",
     marginLeft: "1%",
-    height: "44%",
-    width: "5.7%",
+    height: "50%",
+    width: "5.1%",
     borderRadius: 50,
     backgroundColor: "#efefefff",
     borderColor: "#fbf9f9ff",
@@ -1678,7 +1704,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "500",
     fontFamily: "Inter - Medium",
-    marginTop: "6%",
+    marginTop: "3%",
   },
   bottomPart: {
     borderWidth: 1,
@@ -1755,15 +1781,16 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins - Medium",
   },
   aiReviewCardWeb: {
-    marginTop: "2%",
+    marginTop: "3%",
     borderRadius: 12,
-    borderTopWidth: 8,
-    borderTopColor: "#FF6B6B",
+    borderTopWidth: 3,
+    borderTopColor: "#f99191ff",
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#FF7072",
-    paddingVertical: 18,
-    paddingHorizontal: 24,
+    borderColor: "#c0bdbdff",
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    width:"100%"
   },
 
   aiRowWeb: {
@@ -1817,7 +1844,7 @@ const styles = StyleSheet.create({
 
   analysisTextWeb: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "500",
     marginLeft: 6,
   },
@@ -1886,7 +1913,7 @@ const m = StyleSheet.create({
     marginBottom: 10,
     flexDirection: "row",
     borderColor: "#D6D7D8",
-    justifyContent:"space-between"
+    justifyContent: "space-between",
   },
 
   infoText: {
