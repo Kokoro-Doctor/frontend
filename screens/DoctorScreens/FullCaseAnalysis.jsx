@@ -41,6 +41,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
   const [isGeneratingPrescription, setIsGeneratingPrescription] =
     useState(false);
   const [patient, setPatient] = useState(null);
+  const [loadingSteps, setLoadingSteps] = useState("");
   const scrollRef = React.useRef();
 
   const CATEGORY_MAP = {
@@ -63,6 +64,77 @@ export default function FullCaseAnalysis({ navigation, route }) {
     if (!userId) return;
 
     fetchPatient(); // load patient first
+  }, [userId]);
+
+  const startStreamingSteps = () => {
+    const steps = [
+      "Reviewing patient reports...",
+      "Reading lab and scan results...",
+      "Checking clinical indicators...",
+      "Generating clinical summary...",
+    ];
+
+    let index = 0;
+
+    const interval = setInterval(() => {
+      setLoadingSteps(steps[index]); // replace text instead of adding
+      index++;
+
+      if (index >= steps.length) {
+        clearInterval(interval);
+      }
+    }, 1500);
+
+    return interval;
+  };
+
+  useEffect(() => {
+    const loadInitialSummary = async () => {
+      if (!userId) return;
+
+      try {
+        setBotTyping(true);
+
+        const streamInterval = startStreamingSteps();
+
+        const response = await fetch(
+          `${API_URL}/medilocker/users/${userId}/clinical-query`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              question: "Give a clinical summary of this patient's case",
+              context: {
+                patient_id: userId,
+                doctor_id: doctorId,
+                documents: [],
+              },
+            }),
+          },
+        );
+
+        clearInterval(streamInterval);
+
+        const data = await response.json();
+
+        setLoadingSteps([]); // clear fake messages
+
+        setMessages([
+          {
+            type: "bot",
+            text: data.answer || "No response received",
+          },
+        ]);
+      } catch (error) {
+        console.log("Clinical query error:", error);
+      } finally {
+        setBotTyping(false);
+      }
+    };
+
+    loadInitialSummary();
   }, [userId]);
 
   useEffect(() => {
@@ -118,63 +190,6 @@ export default function FullCaseAnalysis({ navigation, route }) {
       setLoading(false);
     }
   };
-
-  // const generatePrescriptionFromMedilocker = async () => {
-  //   if (!userId) {
-  //     Alert.alert("Error", "User ID is required");
-  //     return;
-  //   }
-
-  //   try {
-  //     setIsGeneratingPrescription(true);
-
-  //     const response = await fetch(
-  //       `${API_URL}/medilocker/users/${userId}/prescription`,
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //       },
-  //     );
-
-  //     if (!response.ok) {
-  //       const errorData = await response.json().catch(() => ({}));
-  //       throw new Error(
-  //         errorData.detail ||
-  //           `Failed to generate prescription: ${response.status}`,
-  //       );
-  //     }
-
-  //     const prescriptionData = await response.json();
-
-  //     const formattedPrescription = {
-  //       prescriptionReport:
-  //         prescriptionData.prescription || "No prescription data available",
-
-  //       patientName: patient?.name || null,
-  //       age: patient?.age ? patient.age.toString() : null,
-  //       gender: patient?.gender || null,
-
-  //       date: new Date().toLocaleDateString("en-GB", {
-  //         day: "2-digit",
-  //         month: "short",
-  //         year: "numeric",
-  //       }),
-
-  //       diagnosis: prescriptionData.patient_details?.diagnosis || null,
-  //     };
-
-  //     navigation.navigate("PrescriptionPreview", {
-  //       generatedPrescription: formattedPrescription,
-  //     });
-  //   } catch (error) {
-  //     console.error("❌ Failed to generate prescription:", error);
-  //     Alert.alert("Error", error.message || "Failed to generate prescription");
-  //   } finally {
-  //     setIsGeneratingPrescription(false);
-  //   }
-  // };
 
   const generatePrescriptionFromMedilocker = async () => {
     if (!userId) {
@@ -301,17 +316,6 @@ export default function FullCaseAnalysis({ navigation, route }) {
       setBotTyping(false);
     }
   };
-
-  // const pickImage = async () => {
-  //   const result = await ImagePicker.launchImageLibraryAsync({
-  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //     quality: 0.7,
-  //   });
-
-  //   if (!result.canceled) {
-  //     setSelectedImage(result.assets[0].uri);
-  //   }
-  // };
 
   const openChat = () => {
     setChatOpen(true);
@@ -575,6 +579,35 @@ export default function FullCaseAnalysis({ navigation, route }) {
                                 </View>
                               </View>
                             ))}
+                            {/* {botTyping && loadingSteps === "" && (
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  marginTop: 6,
+                                }}
+                              >
+                                <Image
+                                  source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    marginRight: 6,
+                                  }}
+                                />
+
+                                <View
+                                  style={{
+                                    backgroundColor: "#F2F2F2",
+                                    padding: 10,
+                                    borderRadius: 10,
+                                    flexDirection: "row",
+                                  }}
+                                >
+                                  <Text style={{ fontSize: 20 }}>{loadingSteps}</Text>
+                                </View>
+                              </View>
+                            )} */}
                             {botTyping && (
                               <View
                                 style={{
@@ -600,7 +633,10 @@ export default function FullCaseAnalysis({ navigation, route }) {
                                     flexDirection: "row",
                                   }}
                                 >
-                                  <Text style={{ fontSize: 20 }}>...</Text>
+                                  <Text style={{ fontSize: 14 }}>
+                                    {loadingSteps ||
+                                      "Analyzing patient reports..."}
+                                  </Text>
                                 </View>
                               </View>
                             )}
@@ -1012,7 +1048,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
                   </View>
                 </View>
               ))}
-              {botTyping && (
+              {/* {botTyping && loadingSteps === "" && (
                 <View
                   style={{
                     flexDirection: "row",
@@ -1022,7 +1058,11 @@ export default function FullCaseAnalysis({ navigation, route }) {
                 >
                   <Image
                     source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
-                    style={{ width: 28, height: 28, marginRight: 6 }}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      marginRight: 6,
+                    }}
                   />
 
                   <View
@@ -1033,7 +1073,38 @@ export default function FullCaseAnalysis({ navigation, route }) {
                       flexDirection: "row",
                     }}
                   >
-                    <Text style={{ fontSize: 20 }}>...</Text>
+                    <Text style={{ fontSize: 20 }}>{loadingSteps}</Text>
+                  </View>
+                </View>
+              )} */}
+              {botTyping && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 6,
+                  }}
+                >
+                  <Image
+                    source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      marginRight: 6,
+                    }}
+                  />
+
+                  <View
+                    style={{
+                      backgroundColor: "#F2F2F2",
+                      padding: 10,
+                      borderRadius: 10,
+                      flexDirection: "row",
+                    }}
+                  >
+                    <Text style={{ fontSize: 14 }}>
+                      {loadingSteps || "Analyzing patient reports..."}
+                    </Text>
                   </View>
                 </View>
               )}
