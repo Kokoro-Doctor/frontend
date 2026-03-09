@@ -45,14 +45,14 @@ export default function FullCaseAnalysis({ navigation, route }) {
 
   const CATEGORY_MAP = {
     All: "ALL",
-    "My Prescriptions": "MY_PRESCRIPTION",
+    Prescriptions: "PRESCRIPTION",
     "Scan Reports": "SCAN_REPORT",
     "Lab Reports": "LAB_REPORT",
     "Hospital History": "HOSPITAL_RECORD",
     "Health Insurance & ID": "HEALTH_INSURANCE",
 
     // Mobile keys
-    Prescription: "MY_PRESCRIPTION",
+    Prescription: "PRESCRIPTION",
     Scan: "SCAN_REPORT",
     Lab: "LAB_REPORT",
     Hospital: "HOSPITAL_RECORD",
@@ -232,6 +232,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
 
       navigation.navigate("PrescriptionPreview", {
         generatedPrescription: formattedPrescription,
+        userId,
       });
     } catch (error) {
       console.error("❌ Failed to generate prescription:", error);
@@ -357,7 +358,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
                           </Text>
                           <Text style={styles.lowerText}>Total documents</Text>
                         </View>
-                         {/* <View style={styles.filesUploadingCountSection}>
+                        {/* <View style={styles.filesUploadingCountSection}>
                           <Text style={styles.uploadingText}>
                             2 new reports added since last review
                           </Text>
@@ -382,209 +383,166 @@ export default function FullCaseAnalysis({ navigation, route }) {
                     </View>
                     <View style={styles.uploadedDocChatbotSection}>
                       {/* LEFT SECTION - MEDILOCKER */}
-                        <View style={styles.medilockerSection}>
-                          <View style={styles.webTabsRow}>
-                            <ScrollView
-                              horizontal
-                              showsHorizontalScrollIndicator={false}
-                              contentContainerStyle={styles.webTabsContainer}
-                            >
-                              {[
-                                {
-                                  label: "All",
-                                  icon: require("../../assets/DoctorsPortal/Icons/Allfullcase.png"),
-                                },
-                                {
-                                  label: "My Prescriptions",
-                                  icon: require("../../assets/DoctorsPortal/Icons/myPrescription.png"),
-                                },
-                                {
-                                  label: "Scan Reports",
-                                  icon: require("../../assets/DoctorsPortal/Icons/scanReports.png"),
-                                },
-                                {
-                                  label: "Lab Reports",
-                                  icon: require("../../assets/DoctorsPortal/Icons/tubechemical.png"),
-                                },
-                                {
-                                  label: "Hospital History",
-                                  icon: require("../../assets/DoctorsPortal/Icons/hospitalFullcase.png"),
-                                },
-                                {
-                                  label: "Health Insurance & ID",
-                                  icon: require("../../assets/DoctorsPortal/Icons/heartShield.png"),
-                                },
-                              ].map((tab) => (
-                                <TouchableOpacity
-                                  key={tab.label}
-                                  onPress={() => setActiveTab(tab.label)}
+                      <View style={styles.medilockerSection}>
+                        <View style={styles.webTabsRow}>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.webTabsContainer}
+                          >
+                            {[
+                              {
+                                label: "All",
+                                icon: require("../../assets/DoctorsPortal/Icons/Allfullcase.png"),
+                              },
+                              {
+                                label: "Prescriptions",
+                                icon: require("../../assets/DoctorsPortal/Icons/myPrescription.png"),
+                              },
+                              {
+                                label: "Scan Reports",
+                                icon: require("../../assets/DoctorsPortal/Icons/scanReports.png"),
+                              },
+                              {
+                                label: "Lab Reports",
+                                icon: require("../../assets/DoctorsPortal/Icons/tubechemical.png"),
+                              },
+                              {
+                                label: "Hospital History",
+                                icon: require("../../assets/DoctorsPortal/Icons/hospitalFullcase.png"),
+                              },
+                              {
+                                label: "Health Insurance & ID",
+                                icon: require("../../assets/DoctorsPortal/Icons/heartShield.png"),
+                              },
+                            ].map((tab) => (
+                              <TouchableOpacity
+                                key={tab.label}
+                                onPress={() => setActiveTab(tab.label)}
+                                style={[
+                                  styles.webTab,
+                                  activeTab === tab.label &&
+                                    styles.webActiveTab,
+                                ]}
+                              >
+                                <Image
+                                  source={tab.icon}
                                   style={[
-                                    styles.webTab,
+                                    styles.webTabIcon,
+                                    activeTab === tab.label && {
+                                      tintColor: "#fff",
+                                    },
+                                  ]}
+                                  resizeMode="contain"
+                                />
+
+                                <Text
+                                  style={[
+                                    styles.webTabText,
                                     activeTab === tab.label &&
-                                      styles.webActiveTab,
+                                      styles.webActiveTabText,
                                   ]}
                                 >
-                                  <Image
-                                    source={tab.icon}
-                                    style={[
-                                      styles.webTabIcon,
-                                      activeTab === tab.label && {
-                                        tintColor: "#fff",
-                                      },
-                                    ]}
-                                    resizeMode="contain"
-                                  />
-
-                                  <Text
-                                    style={[
-                                      styles.webTabText,
-                                      activeTab === tab.label &&
-                                        styles.webActiveTabText,
-                                    ]}
-                                  >
-                                    {tab.label}
-                                  </Text>
-                                </TouchableOpacity>
-                              ))}
-                            </ScrollView>
-                          </View>
-
-                          {/* FILE LIST (Vertical Scroll) */}
-                          <View style={styles.webFileListWrapper}>
-                            <ScrollView showsVerticalScrollIndicator>
-                              {loading ? (
-                                <Text
-                                  style={{ textAlign: "center", marginTop: 20 }}
-                                >
-                                  Loading...
+                                  {tab.label}
                                 </Text>
-                              ) : files.length === 0 ? (
-                                <Text
-                                  style={{ textAlign: "center", marginTop: 20 }}
-                                >
-                                  No documents found
-                                </Text>
-                              ) : (
-                                files.map((file, index) => (
-                                  <View key={index} style={styles.webFileCard}>
-                                    <View style={{ flex: 1 }}>
-                                      <Text style={styles.fileTitle}>
-                                        {file.file_name ||
-                                          file.filename ||
-                                          file.name ||
-                                          "Unknown File"}
-                                      </Text>
-
-                                      <Text style={styles.meta}>
-                                        SIZE:{" "}
-                                        {file.file_size || file.size || "N/A"} |
-                                        Format:{" "}
-                                        {file.file_type ||
-                                          file.fileType ||
-                                          file.type ||
-                                          "N/A"}
-                                      </Text>
-
-                                      <Text style={styles.meta}>
-                                        Date:{" "}
-                                        {file.uploaded_at || file.created_at
-                                          ? new Date(
-                                              file.uploaded_at ||
-                                                file.created_at,
-                                            ).toLocaleDateString()
-                                          : "N/A"}
-                                      </Text>
-                                      <View style={styles.tag}>
-                                        <Text style={styles.tagText}>
-                                          {file.category?.replace("_", " ")}
-                                        </Text>
-                                      </View>
-                                    </View>
-
-                                    <Feather
-                                      name="more-horizontal"
-                                      size={18}
-                                      color="#888"
-                                    />
-                                  </View>
-                                ))
-                              )}
-                            </ScrollView>
-                          </View>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
                         </View>
 
-                        {/* RIGHT SECTION - CHATBOT */}
-                        <View style={styles.chatbotSection}>
-                          <View style={styles.chatbotHeader}>
-                            <Image
-                              source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
-                              style={styles.clinicalAILogo}
-                            />
-                            <Text style={styles.chatbotTitle}>
-                              Clinical AI Assistant {"\n"}
-                              <Text style={styles.smallDescription}>
-                                You&apos;re not alone in this case, we&apos;re
-                                here to assist.
+                        {/* FILE LIST (Vertical Scroll) */}
+                        <View style={styles.webFileListWrapper}>
+                          <ScrollView showsVerticalScrollIndicator>
+                            {loading ? (
+                              <Text
+                                style={{ textAlign: "center", marginTop: 20 }}
+                              >
+                                Loading...
                               </Text>
-                            </Text>
-                          </View>
-
-                          {/* CHAT AREA (EMPTY — backend will handle) */}
-                          <View style={styles.chatArea}>
-                            <ScrollView showsVerticalScrollIndicator={false}>
-                              {messages.map((msg, index) => (
-                                <View
-                                  key={index}
-                                  style={{
-                                    flexDirection:
-                                      msg.type === "bot"
-                                        ? "row"
-                                        : "row-reverse",
-                                    marginBottom: 10,
-                                    alignItems: "flex-start",
-                                  }}
-                                >
-                                  {msg.type === "bot" && (
-                                    <Image
-                                      source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
-                                      style={{
-                                        width: 28,
-                                        height: 28,
-                                        marginRight: 6,
-                                      }}
-                                    />
-                                  )}
-
-                                  <View
-                                    style={{
-                                      backgroundColor:
-                                        msg.type === "user"
-                                          ? "#FF7072"
-                                          : "#F2F2F2",
-                                      padding: 10,
-                                      borderRadius: 10,
-                                      maxWidth: "75%",
-                                    }}
-                                  >
-                                    <Text
-                                      style={{
-                                        color:
-                                          msg.type === "user" ? "#fff" : "#333",
-                                      }}
-                                    >
-                                      {msg.text}
+                            ) : files.length === 0 ? (
+                              <Text
+                                style={{ textAlign: "center", marginTop: 20 }}
+                              >
+                                No documents found
+                              </Text>
+                            ) : (
+                              files.map((file, index) => (
+                                <View key={index} style={styles.webFileCard}>
+                                  <View style={{ flex: 1 }}>
+                                    <Text style={styles.fileTitle}>
+                                      {file.file_name ||
+                                        file.filename ||
+                                        file.name ||
+                                        "Unknown File"}
                                     </Text>
+
+                                    <Text style={styles.meta}>
+                                      SIZE:{" "}
+                                      {file.file_size || file.size || "N/A"} |
+                                      Format:{" "}
+                                      {file.file_type ||
+                                        file.fileType ||
+                                        file.type ||
+                                        "N/A"}
+                                    </Text>
+
+                                    <Text style={styles.meta}>
+                                      Date:{" "}
+                                      {file.uploaded_at || file.created_at
+                                        ? new Date(
+                                            file.uploaded_at || file.created_at,
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                    </Text>
+                                    <View style={styles.tag}>
+                                      <Text style={styles.tagText}>
+                                        {file.category?.replace("_", " ")}
+                                      </Text>
+                                    </View>
                                   </View>
+
+                                  <Feather
+                                    name="more-horizontal"
+                                    size={18}
+                                    color="#888"
+                                  />
                                 </View>
-                              ))}
-                              {botTyping && (
-                                <View
-                                  style={{
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    marginTop: 6,
-                                  }}
-                                >
+                              ))
+                            )}
+                          </ScrollView>
+                        </View>
+                      </View>
+
+                      {/* RIGHT SECTION - CHATBOT */}
+                      <View style={styles.chatbotSection}>
+                        <View style={styles.chatbotHeader}>
+                          <Image
+                            source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                            style={styles.clinicalAILogo}
+                          />
+                          <Text style={styles.chatbotTitle}>
+                            Clinical AI Assistant {"\n"}
+                            <Text style={styles.smallDescription}>
+                              You&apos;re not alone in this case, we&apos;re
+                              here to assist.
+                            </Text>
+                          </Text>
+                        </View>
+
+                        {/* CHAT AREA (EMPTY — backend will handle) */}
+                        <View style={styles.chatArea}>
+                          <ScrollView showsVerticalScrollIndicator={false}>
+                            {messages.map((msg, index) => (
+                              <View
+                                key={index}
+                                style={{
+                                  flexDirection:
+                                    msg.type === "bot" ? "row" : "row-reverse",
+                                  marginBottom: 10,
+                                  alignItems: "flex-start",
+                                }}
+                              >
+                                {msg.type === "bot" && (
                                   <Image
                                     source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
                                     style={{
@@ -593,25 +551,65 @@ export default function FullCaseAnalysis({ navigation, route }) {
                                       marginRight: 6,
                                     }}
                                   />
+                                )}
 
-                                  <View
+                                <View
+                                  style={{
+                                    backgroundColor:
+                                      msg.type === "user"
+                                        ? "#FF7072"
+                                        : "#F2F2F2",
+                                    padding: 10,
+                                    borderRadius: 10,
+                                    maxWidth: "75%",
+                                  }}
+                                >
+                                  <Text
                                     style={{
-                                      backgroundColor: "#F2F2F2",
-                                      padding: 10,
-                                      borderRadius: 10,
-                                      flexDirection: "row",
+                                      color:
+                                        msg.type === "user" ? "#fff" : "#333",
                                     }}
                                   >
-                                    <Text style={{ fontSize: 20 }}>...</Text>
-                                  </View>
+                                    {msg.text}
+                                  </Text>
                                 </View>
-                              )}
-                            </ScrollView>
-                          </View>
+                              </View>
+                            ))}
+                            {botTyping && (
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  marginTop: 6,
+                                }}
+                              >
+                                <Image
+                                  source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    marginRight: 6,
+                                  }}
+                                />
 
-                          {/* INPUT SECTION */}
-                          <View style={styles.chatInputContainer}>
-                            {/* <TouchableOpacity onPress={pickImage}>
+                                <View
+                                  style={{
+                                    backgroundColor: "#F2F2F2",
+                                    padding: 10,
+                                    borderRadius: 10,
+                                    flexDirection: "row",
+                                  }}
+                                >
+                                  <Text style={{ fontSize: 20 }}>...</Text>
+                                </View>
+                              </View>
+                            )}
+                          </ScrollView>
+                        </View>
+
+                        {/* INPUT SECTION */}
+                        <View style={styles.chatInputContainer}>
+                          {/* <TouchableOpacity onPress={pickImage}>
                             <Ionicons
                               name="image-outline"
                               size={22}
@@ -619,26 +617,25 @@ export default function FullCaseAnalysis({ navigation, route }) {
                             />
                           </TouchableOpacity> */}
 
-                            <TextInput
-                              placeholder="Ask something about reports..."
-                              style={styles.chatInput}
-                              value={question}
-                              onChangeText={setQuestion}
-                            />
+                          <TextInput
+                            placeholder="Ask something about reports..."
+                            style={styles.chatInput}
+                            value={question}
+                            onChangeText={setQuestion}
+                          />
 
-                            <TouchableOpacity
-                              style={styles.sendBtn}
-                              onPress={sendMessage}
-                            >
-                              <Ionicons name="send" size={18} color="#fff" />
-                            </TouchableOpacity>
-                          </View>
+                          <TouchableOpacity
+                            style={styles.sendBtn}
+                            onPress={sendMessage}
+                          >
+                            <Ionicons name="send" size={18} color="#fff" />
+                          </TouchableOpacity>
                         </View>
                       </View>
                     </View>
                   </View>
                 </View>
-              
+              </View>
             </ImageBackground>
           </View>
         </View>
@@ -721,7 +718,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
                     : styles.tabText
                 }
               >
-                My Prescriptions
+                Prescriptions
               </Text>
             </TouchableOpacity>
 

@@ -12,14 +12,31 @@ import {
   ScrollView,
   TextInput,
   StatusBar,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
+
+/** Web-safe alert: Alert.alert doesn't work on web, so use window.alert */
+const showAlert = (title, message, buttons) => {
+  if (Platform.OS === "web") {
+    window.alert([title, message].filter(Boolean).join("\n\n"));
+    const okBtn = buttons?.find((b) => b.style !== "cancel");
+    okBtn?.onPress?.();
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
 
 import { AuthContext } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
 import Markdown from "react-native-markdown-display";
-import { downloadPrescription } from "../../utils/PrescriptionService";
+import {
+  downloadPrescription,
+  generatePrescriptionPDFAsBase64,
+} from "../../utils/PrescriptionService";
+import { savePrescriptionToMedilocker } from "../../utils/MedilockerService";
 
 const { width, height } = Dimensions.get("window");
 
@@ -52,10 +69,14 @@ const PrescriptionPreview = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const { user } = useContext(AuthContext);
 
-  // Get prescription and user from route params
-  const { generatedPrescription: initialPrescription } = route.params || {};
+  // Get prescription and patient user ID from route params
+  const {
+    generatedPrescription: initialPrescription,
+    userId,
+  } = route.params || {};
 
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isSavingPrescription, setIsSavingPrescription] = useState(false);
   const [editedPrescription, setEditedPrescription] = useState(null);
   const [currentPrescription, setCurrentPrescription] = useState(
     initialPrescription || null,
@@ -117,10 +138,38 @@ const PrescriptionPreview = ({ navigation, route }) => {
     await downloadPrescription(currentPrescription, user);
   };
 
-  const handleApprovePrescription = () => {
-    // TODO: Implement approve prescription functionality
-    console.log("Approve prescription");
-    alert("Approve functionality will be implemented soon");
+  const handleApprovePrescription = async () => {
+    if (!userId) {
+      showAlert(
+        "Cannot Save",
+        "Patient ID is required to save prescription to Medilocker. This prescription was not generated from a patient's Medilocker.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    try {
+      setIsSavingPrescription(true);
+      const pdfBase64 = await generatePrescriptionPDFAsBase64(
+        currentPrescription,
+        user
+      );
+      await savePrescriptionToMedilocker(userId, pdfBase64);
+      showAlert(
+        "Success",
+        "Prescription PDF has been saved to the patient's Medilocker. The patient can view and download it from their documents.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error("Failed to save prescription:", error);
+      showAlert(
+        "Save Failed",
+        error.message || "Failed to save prescription to Medilocker. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsSavingPrescription(false);
+    }
   };
 
   if (!currentPrescription) {
@@ -469,10 +518,15 @@ const PrescriptionPreview = ({ navigation, route }) => {
                                 styles.approveButton,
                               ]}
                               onPress={handleApprovePrescription}
+                              disabled={isSavingPrescription}
                             >
-                              <Text style={styles.approveButtonText}>
-                                Approve Prescription
-                              </Text>
+                              {isSavingPrescription ? (
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                              ) : (
+                                <Text style={styles.approveButtonText}>
+                                  Approve Prescription
+                                </Text>
+                              )}
                             </TouchableOpacity>
                           )}
                         </View>
@@ -716,12 +770,20 @@ const PrescriptionPreview = ({ navigation, route }) => {
               </TouchableOpacity>
             )}
 
-            {/* Approved Button */}
+            {/* Approve Prescription Button */}
             {!isEditMode && (
-              <TouchableOpacity style={stylesMobile.approveBtn}>
-                <Text style={stylesMobile.approveBtnText}>
-                  Approved Prescription
-                </Text>
+              <TouchableOpacity
+                style={stylesMobile.approveBtn}
+                onPress={handleApprovePrescription}
+                disabled={isSavingPrescription}
+              >
+                {isSavingPrescription ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={stylesMobile.approveBtnText}>
+                    Approve Prescription
+                  </Text>
+                )}
               </TouchableOpacity>
             )}
           </View>

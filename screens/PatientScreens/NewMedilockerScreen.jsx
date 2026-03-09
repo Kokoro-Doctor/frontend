@@ -52,7 +52,7 @@ const Medilocker = ({ navigation }) => {
   const tabs = [
     {
       id: "prescription",
-      label: "My Prescriptions",
+      label: "Prescriptions",
       color: "#FFF4F4",
       icon: require("../../assets/Icons/prescriptionPillIcon.png"),
     },
@@ -675,7 +675,6 @@ const Medilocker = ({ navigation }) => {
                       styles.dropdownHeader,
                       {
                         backgroundColor: tab.color,
-                        
                       },
                     ]}
                     onPress={() => toggleSection(tab.id)}
@@ -1231,8 +1230,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderWidth:1,
-    borderColor:"#c7c6c6ff"
+    borderWidth: 1,
+    borderColor: "#c7c6c6ff",
   },
 
   applistButton: {
