@@ -369,12 +369,12 @@ const GeneratePrescription = ({ navigation, route }) => {
         if (navigation && typeof navigation.push === "function") {
           navigation.push("PrescriptionPreview", {
             generatedPrescription: formattedPrescription,
-            patientUserId: userIdentifier,
+            userId: userIdentifier,
           });
         } else if (navigation && typeof navigation.navigate === "function") {
           navigation.navigate("PrescriptionPreview", {
             generatedPrescription: formattedPrescription,
-            patientUserId: userIdentifier,
+            userId: userIdentifier,
           });
         } else {
           throw new Error("Navigation object is not available");

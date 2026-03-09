@@ -16,12 +16,26 @@ import {
   ActivityIndicator,
 } from "react-native";
 
+/** Web-safe alert: Alert.alert doesn't work on web, so use window.alert */
+const showAlert = (title, message, buttons) => {
+  if (Platform.OS === "web") {
+    window.alert([title, message].filter(Boolean).join("\n\n"));
+    const okBtn = buttons?.find((b) => b.style !== "cancel");
+    okBtn?.onPress?.();
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
+
 import { AuthContext } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
 import Markdown from "react-native-markdown-display";
-import { downloadPrescription } from "../../utils/PrescriptionService";
+import {
+  downloadPrescription,
+  generatePrescriptionPDFAsBase64,
+} from "../../utils/PrescriptionService";
 import { savePrescriptionToMedilocker } from "../../utils/MedilockerService";
 
 const { width, height } = Dimensions.get("window");
@@ -58,7 +72,7 @@ const PrescriptionPreview = ({ navigation, route }) => {
   // Get prescription and patient user ID from route params
   const {
     generatedPrescription: initialPrescription,
-    patientUserId,
+    userId,
   } = route.params || {};
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -124,27 +138,9 @@ const PrescriptionPreview = ({ navigation, route }) => {
     await downloadPrescription(currentPrescription, user);
   };
 
-  /**
-   * Format prescription object into full text for Medilocker storage.
-   */
-  const formatPrescriptionForStorage = (prescription) => {
-    const lines = [
-      "--- Prescription ---",
-      `Date: ${prescription.date || ""}`,
-      `Patient: ${prescription.patientName || ""}`,
-      `Age: ${prescription.age || ""}`,
-      `Gender: ${prescription.gender || ""}`,
-      `Diagnosis: ${prescription.diagnosis || ""}`,
-      "",
-      "--- Prescription Report ---",
-      prescription.prescriptionReport || "No prescription report generated",
-    ];
-    return lines.join("\n");
-  };
-
   const handleApprovePrescription = async () => {
-    if (!patientUserId) {
-      Alert.alert(
+    if (!userId) {
+      showAlert(
         "Cannot Save",
         "Patient ID is required to save prescription to Medilocker. This prescription was not generated from a patient's Medilocker.",
         [{ text: "OK" }]
@@ -154,16 +150,19 @@ const PrescriptionPreview = ({ navigation, route }) => {
 
     try {
       setIsSavingPrescription(true);
-      const prescriptionText = formatPrescriptionForStorage(currentPrescription);
-      await savePrescriptionToMedilocker(patientUserId, prescriptionText);
-      Alert.alert(
+      const pdfBase64 = await generatePrescriptionPDFAsBase64(
+        currentPrescription,
+        user
+      );
+      await savePrescriptionToMedilocker(userId, pdfBase64);
+      showAlert(
         "Success",
-        "Prescription has been saved to the patient's Medilocker. The patient can view and download it from their documents.",
+        "Prescription PDF has been saved to the patient's Medilocker. The patient can view and download it from their documents.",
         [{ text: "OK" }]
       );
     } catch (error) {
       console.error("Failed to save prescription:", error);
-      Alert.alert(
+      showAlert(
         "Save Failed",
         error.message || "Failed to save prescription to Medilocker. Please try again.",
         [{ text: "OK" }]

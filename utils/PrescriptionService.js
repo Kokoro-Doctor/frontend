@@ -1,6 +1,7 @@
 import { Platform, Alert } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import * as Print from "expo-print";
 import MarkdownIt from "markdown-it";
 
 const md = new MarkdownIt();
@@ -180,6 +181,44 @@ export const generatePrescriptionHTML = (prescription, doctorInfo) => {
 </body>
 </html>
   `;
+};
+
+/**
+ * Generate prescription as PDF and return base64-encoded string.
+ * Uses the same HTML as Download PDF for consistent output.
+ * @param {Object} prescription - The prescription object
+ * @param {Object} doctorInfo - Doctor information object
+ * @returns {Promise<string>} Base64-encoded PDF
+ */
+export const generatePrescriptionPDFAsBase64 = async (prescription, doctorInfo) => {
+  if (!prescription) {
+    throw new Error("Prescription data is required");
+  }
+  const htmlContent = generatePrescriptionHTML(prescription, doctorInfo);
+
+  if (Platform.OS === "web") {
+    const html2pdf = (await import("html2pdf.js")).default;
+    const dataUrl = await html2pdf()
+      .set({
+        margin: 10,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .from(htmlContent, "string")
+      .outputPdf("datauristring");
+    const base64 = dataUrl.split(",")[1] || dataUrl;
+    return base64;
+  }
+
+  const { uri } = await Print.printToFileAsync({ html: htmlContent });
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  try {
+    await FileSystem.deleteAsync(uri, { idempotent: true });
+  } catch (_) {}
+  return base64;
 };
 
 /**

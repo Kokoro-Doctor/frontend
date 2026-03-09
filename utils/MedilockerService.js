@@ -128,12 +128,12 @@ export const shortenUrl = async (longUrl) => {
 };
 
 /**
- * Save an approved prescription to the patient's Medilocker.
+ * Save an approved prescription (PDF) to the patient's Medilocker.
  * @param {string} userId - Patient's user ID (Medilocker owner)
- * @param {string} prescriptionContent - Full prescription text to store
+ * @param {string} prescriptionPdfBase64 - Base64-encoded PDF content
  * @returns {Promise<{file_id: string, filename: string}>}
  */
-export const savePrescriptionToMedilocker = async (userId, prescriptionContent) => {
+export const savePrescriptionToMedilocker = async (userId, prescriptionPdfBase64) => {
     try {
         const encodedUserId = encodeURIComponent(userId);
         const response = await fetch(
@@ -143,7 +143,7 @@ export const savePrescriptionToMedilocker = async (userId, prescriptionContent) 
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ prescription: prescriptionContent }),
+                body: JSON.stringify({ prescription_pdf: prescriptionPdfBase64 }),
             }
         );
 
