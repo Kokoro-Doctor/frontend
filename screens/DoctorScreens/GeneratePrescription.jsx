@@ -1570,7 +1570,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: "0.5%",
     backgroundColor: "#FFFFFF",
-    marginBottom: "4%",
+    marginBottom: "1%",
     borderRadius: 5,
     overflow: Platform.OS === "web" ? "visible" : "hidden",
     width: "92%",
