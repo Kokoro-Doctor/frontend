@@ -530,7 +530,7 @@ export default function KokoroDoctorScreen() {
               },
               {
                 title: "Women\nHealth",
-                img: require("../../assets/Images/newgirlpregpic.png"),
+                img: require("../../assets/Images/newgirlpregpic2.png"),
               },
             ].map((item, i) => (
               <TouchableOpacity
@@ -1140,11 +1140,11 @@ const webStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.25)",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 40,
     alignSelf: "flex-start",
-    marginBottom: 24,
+    marginBottom: 10,
   },
 
   badgeItemWeb: {
@@ -1158,8 +1158,8 @@ const webStyles = StyleSheet.create({
     resizeMode: "contain",
   },
   iconWhiteBox: {
-    width: 26,
-    height: 26,
+    width: 20,
+    height: 20,
     borderRadius: 8,
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
@@ -1173,7 +1173,7 @@ const webStyles = StyleSheet.create({
 
   badgeTextWeb: {
     color: "#fff",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "500",
   },
 
@@ -1199,7 +1199,7 @@ const webStyles = StyleSheet.create({
   sectionTitle: {
     marginLeft: "8%",
     marginRight: "8%",
-    marginTop: 40,
+    marginTop: 20,
     fontSize: 18,
     fontWeight: "600",
     color: "#444",
@@ -1215,7 +1215,8 @@ const webStyles = StyleSheet.create({
 
   featureCard: {
     width: "48%",
-    aspectRatio: 1.75, // ⭐ EXACT ratio for your banner
+    aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
+    // height: 180, // ⭐ fixed height for consistency
     borderRadius: 20,
     overflow: "hidden",
   },
@@ -1281,7 +1282,7 @@ const webStyles = StyleSheet.create({
     marginTop: 40,
     backgroundColor: "#FFEAEA",
     borderRadius: 40,
-    padding: 20,
+    paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -1289,8 +1290,8 @@ const webStyles = StyleSheet.create({
   },
 
   trustImg: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     resizeMode: "contain",
   },
 
@@ -1352,9 +1353,12 @@ const webStyles = StyleSheet.create({
   },
 
   heroCard: {
-    marginTop: "2%",
-    width: "100%", // ⭐ force full width
-    height: 300,
+    marginLeft: "8%",
+    marginRight: "8%",
+    marginTop: "1%",
+    // width: "100%", // ⭐ force full width
+    width: "auto",
+    height: 220,
     paddingLeft: 50,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1409,7 +1413,7 @@ const webStyles = StyleSheet.create({
   },
 
   heroTitle: {
-    fontSize: 32,
+    fontSize: 24,
     color: "#fff",
     fontWeight: "700",
     marginBottom: 20,
@@ -1432,8 +1436,8 @@ const webStyles = StyleSheet.create({
 
   heroDoctor: {
     alignSelf: "baseline",
-    width: 370,
-    height: 355,
+    width: 275,
+    height: 260,
     resizeMode: "contain",
   },
 
@@ -1471,7 +1475,7 @@ const webStyles = StyleSheet.create({
 
   serviceCard: {
     width: "23%",
-    height: 130, // ⭐ smaller like mobile
+    height: 185,
     borderRadius: 16,
     overflow: "hidden",
     justifyContent: "flex-end",
