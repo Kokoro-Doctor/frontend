@@ -14,6 +14,7 @@ import {
 import SideBarNavigation from "../../../components/PatientScreenComponents/SideBarNavigation";
 import { Ionicons } from "@expo/vector-icons";
 import Header from "../../../components/PatientScreenComponents/Header";
+import BackButton from "../../../components/PatientScreenComponents/BackButton";
 
 const AboutUsMain = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
@@ -53,6 +54,7 @@ const AboutUsMain = ({ navigation, route }) => {
                   <Text style={styles.tagline}>
                     Your AI-Powered Heart Health Companion
                   </Text>
+                  <BackButton />
                 </View>
 
                 <View style={styles.AboutSection}>
@@ -149,7 +151,8 @@ const AboutUsMain = ({ navigation, route }) => {
 
                 <View style={styles.access}>
                   <Text style={styles.head}>
-                    What if you could assess your heart & reproductive health instantly?
+                    What if you could assess your heart & reproductive health
+                    instantly?
                   </Text>
                   <Text style={styles.subhead}>
                     That’s why we created Kokoro.Doctor.
@@ -259,20 +262,20 @@ const AboutUsMain = ({ navigation, route }) => {
                   </View>
 
                   {/* Pricing Section */}
-                  <Text style={styles.pricingHeader}>PRICING</Text>
-                  <Text style={styles.pricingSubText}>
+                  {/* <Text style={styles.pricingHeader}>PRICING</Text> */}
+                  {/* <Text style={styles.pricingSubText}>
                     We believe affordable healthcare should be a reality for
                     everyone.
-                  </Text>
+                  </Text> */}
 
                   {/* Monthly Plan */}
-                  <View style={styles.pricingBox}>
+                  {/* <View style={styles.pricingBox}>
                     <Text style={styles.priceText}>₹1,999</Text>
                     <Text style={styles.priceLabel}>per Month</Text>
-                  </View>
+                  </View> */}
 
                   {/* Yearly Plan with Discount */}
-                  <View style={styles.discountContainer}>
+                  {/* <View style={styles.discountContainer}>
                     <TouchableOpacity style={styles.discountBadge}>
                       <Text style={styles.discountText}>SAVE 15 %</Text>
                     </TouchableOpacity>
@@ -280,14 +283,14 @@ const AboutUsMain = ({ navigation, route }) => {
                       <Text style={styles.priceText}>₹9,999</Text>
                       <Text style={styles.priceLabel}>per Year</Text>
                     </View>
-                  </View>
+                  </View> */}
 
                   {/* Terms Note */}
-                  <Text style={styles.note}>
+                  {/* <Text style={styles.note}>
                     *This includes unlimited AI heart health assessments,
                     emergency alerts, priority doctor consultations, and secure
                     MediLocker.
-                  </Text>
+                  </Text> */}
                 </View>
 
                 {/* <View style={styles.resolution}>
@@ -1218,8 +1221,8 @@ const styles = StyleSheet.create({
   //--------- final page
   FinalThought: {
     backgroundColor: "white",
-    padding: 40,
-    marginTop: 30,
+    paddingHorizontal: 70,
+    marginTop: "1%",
   },
   Heading: {
     fontSize: 32,
