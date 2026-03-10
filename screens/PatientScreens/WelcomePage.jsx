@@ -364,7 +364,7 @@ export default function KokoroDoctorScreen() {
               </View>
 
               <Text style={webStyles.heroTitle}>
-                If something feels off or{"\n"}your medicines confuse you
+                If something feels off or your medicines confuse you
               </Text>
 
               <TouchableOpacity
@@ -1144,7 +1144,7 @@ const webStyles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 40,
     alignSelf: "flex-start",
-    marginBottom: 10,
+    marginTop: "1%",
   },
 
   badgeItemWeb: {
@@ -1364,8 +1364,9 @@ const webStyles = StyleSheet.create({
     marginTop: "1%",
     // width: "100%", // ⭐ force full width
     width: "auto",
-    height: 220,
+    height: 150,
     paddingLeft: 50,
+    paddingRight: 50,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -1419,18 +1420,19 @@ const webStyles = StyleSheet.create({
   },
 
   heroTitle: {
-    fontSize: 24,
+    marginTop: "2%",
+    fontSize: 22,
     color: "#fff",
     fontWeight: "700",
-    marginBottom: 20,
   },
 
   heroBtn: {
+    marginTop: "2%",
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
     paddingHorizontal: 22,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: 40,
     alignSelf: "flex-start",
   },
@@ -1442,8 +1444,8 @@ const webStyles = StyleSheet.create({
 
   heroDoctor: {
     alignSelf: "baseline",
-    width: 275,
-    height: 260,
+    width: 205,
+    height: 165,
     resizeMode: "contain",
   },
 
