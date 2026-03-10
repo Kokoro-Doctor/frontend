@@ -1215,10 +1215,16 @@ const webStyles = StyleSheet.create({
 
   featureCard: {
     width: "48%",
-    aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
+    // aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
+    aspectRatio: 2.25,
     // height: 180, // ⭐ fixed height for consistency
     borderRadius: 20,
     overflow: "hidden",
+    ...Platform.select({
+      macos: {
+        aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
+      },
+    }),
   },
   featureImage: {
     width: "100%",
