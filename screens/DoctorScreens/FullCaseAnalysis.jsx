@@ -18,6 +18,7 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
+import FormattedMessageText from "../../components/PatientScreenComponents/ChatbotComponents/FormattedMessageText";
 import { API_URL } from "../../env-vars";
 import { useAuth } from "../../contexts/AuthContext";
 //import * as ImagePicker from "expo-image-picker";
@@ -349,26 +350,10 @@ export default function FullCaseAnalysis({ navigation, route }) {
                 </View>
                 <View style={styles.Right}>
                   <HeaderLoginSignUp navigation={navigation} />
-                  <BackButton />
                   <View style={styles.fullCaseDetailSection}>
                     <View style={styles.titleBox}>
+                      <BackButton />
                       <Text style={styles.titleText}>Full Case Analysis</Text>
-                    </View>
-                    <View style={styles.upperSection}>
-                      <View style={styles.upperLeftSection}>
-                        <View style={styles.caseAnalysisDocSection}>
-                          <Text style={styles.upperText}>
-                            Full Case Analysis
-                          </Text>
-                          <Text style={styles.lowerText}>Total documents</Text>
-                        </View>
-                        {/* <View style={styles.filesUploadingCountSection}>
-                          <Text style={styles.uploadingText}>
-                            2 new reports added since last review
-                          </Text>
-                        </View> */}
-                      </View>
-
                       <TouchableOpacity
                         style={styles.generateBtn}
                         onPress={generatePrescriptionFromMedilocker}
@@ -376,8 +361,8 @@ export default function FullCaseAnalysis({ navigation, route }) {
                       >
                         <Image
                           source={require("../../assets/Images/BottomCTAfullcase.png")}
+                          style={styles.generateBtnImage}
                         />
-
                         <Text style={styles.generateText}>
                           {isGeneratingPrescription
                             ? "Generating..."
@@ -454,62 +439,63 @@ export default function FullCaseAnalysis({ navigation, route }) {
                           </ScrollView>
                         </View>
 
-                        {/* FILE LIST (Vertical Scroll) */}
+                        {/* FILE LIST */}
                         <View style={styles.webFileListWrapper}>
-                          <ScrollView showsVerticalScrollIndicator>
+                          <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.webFileListContent}
+                          >
                             {loading ? (
-                              <Text
-                                style={{ textAlign: "center", marginTop: 20 }}
-                              >
+                              <Text style={styles.webFileListEmpty}>
                                 Loading...
                               </Text>
                             ) : files.length === 0 ? (
-                              <Text
-                                style={{ textAlign: "center", marginTop: 20 }}
-                              >
-                                No documents found
+                              <Text style={styles.webFileListEmpty}>
+                                No documents
                               </Text>
                             ) : (
                               files.map((file, index) => (
                                 <View key={index} style={styles.webFileCard}>
-                                  <View style={{ flex: 1 }}>
-                                    <Text style={styles.fileTitle}>
+                                  <Feather
+                                    name="file-text"
+                                    size={18}
+                                    color="#FF7072"
+                                    style={styles.webFileIcon}
+                                  />
+                                  <View style={styles.webFileContent}>
+                                    <Text
+                                      style={styles.webFileTitle}
+                                      numberOfLines={2}
+                                    >
                                       {file.file_name ||
                                         file.filename ||
                                         file.name ||
                                         "Unknown File"}
                                     </Text>
-
-                                    <Text style={styles.meta}>
-                                      SIZE:{" "}
-                                      {file.file_size || file.size || "N/A"} |
-                                      Format:{" "}
-                                      {file.file_type ||
-                                        file.fileType ||
-                                        file.type ||
-                                        "N/A"}
-                                    </Text>
-
-                                    <Text style={styles.meta}>
-                                      Date:{" "}
+                                    <Text style={styles.webFileMeta}>
                                       {file.uploaded_at || file.created_at
                                         ? new Date(
                                             file.uploaded_at || file.created_at,
-                                          ).toLocaleDateString()
-                                        : "N/A"}
+                                          ).toLocaleDateString("en-GB", {
+                                            day: "numeric",
+                                            month: "short",
+                                            year: "numeric",
+                                          })
+                                        : "—"}
+                                      {(file.file_type ||
+                                        file.fileType ||
+                                        file.type) && (
+                                        <Text style={styles.webFileType}>
+                                          {" · "}
+                                          {(
+                                            file.file_type ||
+                                            file.fileType ||
+                                            file.type
+                                          ).toUpperCase()}
+                                        </Text>
+                                      )}
                                     </Text>
-                                    <View style={styles.tag}>
-                                      <Text style={styles.tagText}>
-                                        {file.category?.replace("_", " ")}
-                                      </Text>
-                                    </View>
                                   </View>
-
-                                  <Feather
-                                    name="more-horizontal"
-                                    size={18}
-                                    color="#888"
-                                  />
                                 </View>
                               ))
                             )}
@@ -568,14 +554,13 @@ export default function FullCaseAnalysis({ navigation, route }) {
                                     maxWidth: "75%",
                                   }}
                                 >
-                                  <Text
-                                    style={{
-                                      color:
-                                        msg.type === "user" ? "#fff" : "#333",
-                                    }}
-                                  >
-                                    {msg.text}
-                                  </Text>
+                                  <FormattedMessageText
+                                    sender={msg.type}
+                                    text={msg.text}
+                                    textColor={
+                                      msg.type === "user" ? "#fff" : "#333"
+                                    }
+                                  />
                                 </View>
                               </View>
                             ))}
@@ -677,21 +662,21 @@ export default function FullCaseAnalysis({ navigation, route }) {
         </View>
       )}
       {(Platform.OS !== "web" || width < 1000) && (
-        <ScrollView style={styles.container}>
-          {/* HEADER */}
-          <View
-            style={[
-              styles.header,
-              Platform.OS === "web" ? { height: "auto" } : { height: "auto" },
-            ]}
+        <View style={styles.mobileWrapper}>
+          <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
           >
-            <HeaderLoginSignUp navigation={navigation} route={route} />
-          </View>
+            {/* HEADER */}
+            <View style={styles.header}>
+              <HeaderLoginSignUp navigation={navigation} route={route} />
+            </View>
 
-          {/* TITLE */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>Full case analysis</Text>
-          </View>
+            {/* TITLE */}
+            <View style={styles.titleSection}>
+              <Text style={styles.title}>Full case analysis</Text>
+            </View>
 
           {/* ALERT */}
           {/* <View style={styles.alertBox}>
@@ -701,13 +686,13 @@ export default function FullCaseAnalysis({ navigation, route }) {
             </Text>
           </View> */}
 
-          {/* FILTER BUTTONS */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tabsWrapper}
-            contentContainerStyle={styles.tabs}
-          >
+            {/* FILTER BUTTONS */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabsWrapper}
+              contentContainerStyle={styles.tabs}
+            >
             {/* ALL */}
             <TouchableOpacity
               onPress={() => setActiveTab("All")}
@@ -850,9 +835,9 @@ export default function FullCaseAnalysis({ navigation, route }) {
                 Health Insurance & ID
               </Text>
             </TouchableOpacity>
-          </ScrollView>
+            </ScrollView>
 
-          {/* DOCUMENT LIST */}
+            {/* DOCUMENT LIST */}
           {/* <View style={styles.docsCard}>
             <ScrollView showsVerticalScrollIndicator={false}>
               {documents.map((item, index) => (
@@ -886,75 +871,77 @@ export default function FullCaseAnalysis({ navigation, route }) {
               ))}
             </ScrollView>
           </View> */}
-          <View style={styles.docsCard}>
+            <View style={styles.docsCard}>
             <ScrollView showsVerticalScrollIndicator={false}>
               {loading ? (
-                <Text style={{ textAlign: "center", marginTop: 20 }}>
-                  Loading...
-                </Text>
+                <Text style={styles.fileListEmpty}>Loading...</Text>
               ) : files.length === 0 ? (
-                <Text style={{ textAlign: "center", marginTop: 20 }}>
-                  No documents found
-                </Text>
+                <Text style={styles.fileListEmpty}>No documents</Text>
               ) : (
                 files.map((file, index) => (
                   <View key={index} style={styles.card}>
                     <View style={styles.fileIcon}>
-                      <Feather name="file-text" size={22} color="#FF6B6B" />
+                      <Feather name="file-text" size={20} color="#FF7072" />
                     </View>
-
-                    <View style={{ flex: 1 }}>
-                      {/* FILE NAME */}
-                      <Text style={styles.fileTitle}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text
+                        style={styles.fileTitle}
+                        numberOfLines={2}
+                      >
                         {file.file_name ||
                           file.filename ||
                           file.name ||
                           "Unknown File"}
                       </Text>
-
-                      {/* SIZE + FORMAT */}
                       <Text style={styles.meta}>
-                        SIZE : {file.file_size || file.size || "N/A"} | Format :{" "}
-                        {file.file_type || file.fileType || file.type || "N/A"}
-                      </Text>
-
-                      {/* DATE */}
-                      <Text style={styles.meta}>
-                        Date :{" "}
                         {file.uploaded_at || file.created_at
                           ? new Date(
                               file.uploaded_at || file.created_at,
-                            ).toLocaleDateString()
-                          : "N/A"}
+                            ).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                        {(file.file_type ||
+                          file.fileType ||
+                          file.type) && (
+                          <Text style={styles.metaType}>
+                            {" · "}
+                            {(file.file_type || file.fileType || file.type).toUpperCase()}
+                          </Text>
+                        )}
                       </Text>
-                    </View>
-
-                    <View>
-                      <View style={styles.tag}>
-                        <Text style={styles.tagText}>
-                          {file.category
-                            ? file.category.replace("_", " ")
-                            : "General"}
-                        </Text>
-                      </View>
-
-                      <Ionicons
-                        name="ellipsis-horizontal"
-                        size={18}
-                        style={{ alignSelf: "flex-end", marginTop: 6 }}
-                      />
                     </View>
                   </View>
                 ))
               )}
             </ScrollView>
           </View>
-          {/* AI BUTTON */}
-          <View style={styles.aiButton}>
-            <Text style={styles.aiText}>Clinical AI Assistant</Text>
-          </View>
+            {/* AI BUTTON */}
+            <View style={styles.aiButton}>
+              <Text style={styles.aiText}>Clinical AI Assistant</Text>
+            </View>
 
-          {/* FLOATING BUTTON */}
+            {/* GENERATE BUTTON */}
+            <TouchableOpacity
+              style={styles.generateButton}
+              onPress={generatePrescriptionFromMedilocker}
+              disabled={isGeneratingPrescription}
+            >
+              <Image
+                source={require("../../assets/Images/BottomCTAfullcase.png")}
+              />
+
+              <Text style={styles.generateText}>
+                {isGeneratingPrescription
+                  ? "Generating..."
+                  : "Generate Prescription"}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          {/* FLOATING BUTTON - outside ScrollView for fixed position */}
           <TouchableOpacity style={styles.floatingBtn} onPress={openChat}>
             <Image
               source={require("../../assets/Images/floatingHeart.png")}
@@ -965,24 +952,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
               }}
             />
           </TouchableOpacity>
-
-          {/* GENERATE BUTTON */}
-          <TouchableOpacity
-            style={styles.generateButton}
-            onPress={generatePrescriptionFromMedilocker}
-            disabled={isGeneratingPrescription}
-          >
-            <Image
-              source={require("../../assets/Images/BottomCTAfullcase.png")}
-            />
-
-            <Text style={styles.generateText}>
-              {isGeneratingPrescription
-                ? "Generating..."
-                : "Generate Prescription"}
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+        </View>
       )}
       {chatOpen && (
         <Animated.View style={[styles.mobileChatContainer, { top: slideAnim }]}>
@@ -1038,13 +1008,11 @@ export default function FullCaseAnalysis({ navigation, route }) {
                       maxWidth: "75%",
                     }}
                   >
-                    <Text
-                      style={{
-                        color: msg.type === "user" ? "#fff" : "#333",
-                      }}
-                    >
-                      {msg.text}
-                    </Text>
+                    <FormattedMessageText
+                      sender={msg.type}
+                      text={msg.text}
+                      textColor={msg.type === "user" ? "#fff" : "#333"}
+                    />
                   </View>
                 </View>
               ))}
@@ -1145,21 +1113,20 @@ const windowWidth = Dimensions.get("window").width;
 const styles = StyleSheet.create({
   webContainer: {
     flex: 1,
-    borderWidth: 1,
     height: "100%",
     width: "100%",
-    borderColor: "#c10f0fff",
+    minHeight: 0,
   },
   imageContainer: {
-    borderColor: "#00ffff",
     height: "100%",
     width: "100%",
+    flex: 1,
+    minHeight: 0,
   },
 
   imageBackground: {
     width: "100%",
     height: "100%",
-    //transform:[{scale:0.8}],
     opacity: 80,
     alignSelf: "center",
     flexDirection: "column",
@@ -1169,77 +1136,50 @@ const styles = StyleSheet.create({
   },
   parent: {
     flexDirection: "row",
+    flex: 1,
     height: "100%",
     width: "100%",
+    minHeight: 0,
   },
   Left: {
     height: "100%",
     width: "15%",
-    //borderWidth: 1,
+    flexShrink: 0,
   },
   Right: {
-    height: "100%",
-    width: "85%",
-    //borderWidth: 2,
+    flex: 1,
     flexDirection: "column",
+    minHeight: 0,
+    paddingHorizontal: "0.5%",
+    paddingTop: 4,
   },
   fullCaseDetailSection: {
-    borderWidth: 2,
-    borderColor: "#0e0e0eff",
-    width: "96%",
-    height: "80%",
+    flex: 1,
+    width: "99%",
     alignSelf: "center",
     backgroundColor: "#fff",
+    borderRadius: 12,
+    overflow: "hidden",
+    minHeight: 0,
   },
   titleBox: {
-    //borderWidth:1,
     width: "100%",
-    height: "9%",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     backgroundColor: "#FCA2A21F",
+    flexShrink: 0,
+    gap: 12,
   },
   titleText: {
-    fontSize: 25,
+    fontSize: 20,
     fontWeight: 600,
-    marginTop: "1.5%",
-    marginHorizontal: "3%",
+    flex: 1,
   },
-  upperSection: {
-    //borderWidth:1,
-    height: "10%",
-    width: "100%",
-    boxShadow: "rgba(17, 17, 26, 0.1) 0px 1px 0px",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  upperLeftSection: {
-    // borderWidth: 1,
-    height: "75%",
-    width: "30%",
-    marginLeft: "4%",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "flex-start",
-  },
-  caseAnalysisDocSection: {
-    justifyContent: "flex-start",
-    // borderWidth:1,
-    width: "40%",
-    height: "100%",
-  },
-  upperText: {
-    fontSize: 15,
-    fontWeight: 500,
-    color: "#FF7072",
-    alignSelf: "center",
-    marginTop: "3%",
-  },
-  lowerText: {
-    fontSize: 12,
-    fontWeight: 400,
-    color: "#8b8b8bff",
-    marginLeft: "20%",
-    marginTop: "1%",
+  generateBtnImage: {
+    width: 20,
+    height: 20,
   },
   filesUploadingCountSection: {
     borderWidth: 1,
@@ -1257,15 +1197,14 @@ const styles = StyleSheet.create({
     marginTop: "2%",
   },
   generateBtn: {
-    //borderWidth: 1,
-    height: "50%",
-    width: "18%",
-    marginRight: "4%",
-    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     flexDirection: "row",
     backgroundColor: "#FF7072",
-    justifyContent: "space-around",
+    justifyContent: "center",
     alignItems: "center",
+    gap: 6,
   },
   btnIcon: {
     height: 22,
@@ -1277,22 +1216,22 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   uploadedDocChatbotSection: {
-    //borderWidth: 1,
-    borderColor: "#2f0697ff",
     flex: 1,
     flexDirection: "row",
-    padding: 20,
-    gap: 20,
-    marginTop: "1%",
+    padding: 10,
+    gap: 10,
     alignItems: "stretch",
     minHeight: 0,
   },
 
   medilockerSection: {
-    width: "45%",
+    width: "35%",
+    minWidth: 260,
+    maxWidth: 380,
+    flexShrink: 0,
     backgroundColor: "#FFF",
     borderRadius: 10,
-    padding: 15,
+    padding: 12,
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -1300,8 +1239,8 @@ const styles = StyleSheet.create({
   },
 
   webTabsRow: {
-    height: 50, // ← fixed height stops it from expanding
-    flexShrink: 0, // ← prevents flex from squishing it
+    height: 44,
+    flexShrink: 0,
   },
 
   webTabsContainer: {
@@ -1314,13 +1253,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 16,
-    height: 40,
+    paddingHorizontal: 12,
+    height: 36,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#FF7072",
     backgroundColor: "#fff",
-    gap: 8,
+    gap: 6,
   },
 
   webTabIcon: {
@@ -1345,40 +1284,63 @@ const styles = StyleSheet.create({
 
   webFileListWrapper: {
     flex: 1,
-    marginTop: 10,
-    minHeight: 0, // ← critical for web: allows flex child to shrink properly
+    marginTop: 8,
+    minHeight: 0,
+  },
+
+  webFileListContent: {
+    paddingBottom: 8,
+  },
+
+  webFileListEmpty: {
+    textAlign: "center",
+    color: "#888",
+    fontSize: 14,
+    marginTop: 24,
   },
 
   webFileCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#F1F1F1",
-    marginBottom: 12,
-    backgroundColor: "#fff",
+    paddingVertical: 10,
+    paddingHorizontal: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+
+  webFileIcon: {
+    marginRight: 10,
+  },
+
+  webFileContent: {
+    flex: 1,
+    minWidth: 0,
   },
 
   webFileTitle: {
     fontWeight: "600",
     fontSize: 14,
+    color: "#333",
   },
 
   webFileMeta: {
     fontSize: 12,
     color: "#888",
-    marginTop: 4,
+    marginTop: 2,
+  },
+
+  webFileType: {
+    fontSize: 11,
+    color: "#999",
   },
 
   /* ================= RIGHT CHATBOT ================= */
 
   chatbotSection: {
-    flex: 1, // ADD THIS (was width: "55%", keep that too)
-    //width: "55%",
+    flex: 1,
+    minWidth: 320,
     backgroundColor: "#FFF",
     borderRadius: 10,
-    //display: "flex",
     flexDirection: "column",
     overflow: "hidden",
     shadowColor: "#000",
@@ -1387,10 +1349,11 @@ const styles = StyleSheet.create({
   },
 
   chatbotHeader: {
-    padding: 15,
+    padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#F1F1F1",
     flexDirection: "row",
+    flexShrink: 0,
   },
 
   clinicalAILogo: {
@@ -1413,15 +1376,17 @@ const styles = StyleSheet.create({
 
   chatArea: {
     flex: 1,
-    padding: 20,
+    padding: 16,
     backgroundColor: "#FAFAFA",
+    minHeight: 0,
   },
 
   chatInputContainer: {
     flexDirection: "row",
-    padding: 15,
+    padding: 12,
     borderTopWidth: 1,
     borderTopColor: "#F1F1F1",
+    flexShrink: 0,
   },
 
   chatInput: {
@@ -1444,10 +1409,19 @@ const styles = StyleSheet.create({
   },
 
   // ****************** APP ****************** //
+  mobileWrapper: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingBottom: "6%",
+  },
+
+  scrollContent: {
+    paddingBottom: 100,
+    flexGrow: 1,
   },
 
   header: {
@@ -1464,7 +1438,8 @@ const styles = StyleSheet.create({
   },
 
   titleSection: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
 
   title: {
@@ -1522,18 +1497,14 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    borderWidth: 1,
     flexDirection: "row",
-    backgroundColor: "#fff",
-    marginHorizontal: 14,
-    marginBottom: 12,
-    padding: 14,
-    borderRadius: 12,
+    backgroundColor: "#FAFAFA",
+    marginHorizontal: 12,
+    marginBottom: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
   },
 
   fileIcon: {
@@ -1542,7 +1513,8 @@ const styles = StyleSheet.create({
 
   fileTitle: {
     fontWeight: "600",
-    fontSize: 15,
+    fontSize: 14,
+    color: "#333",
   },
 
   meta: {
@@ -1551,26 +1523,25 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  tag: {
-    borderWidth: 1,
-    borderColor: "#FF6B6B",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-
-  tagText: {
-    color: "#FF6B6B",
+  metaType: {
+    color: "#999",
     fontSize: 11,
   },
 
+  fileListEmpty: {
+    textAlign: "center",
+    color: "#888",
+    fontSize: 14,
+    marginTop: 24,
+  },
+
   aiButton: {
-    marginTop: "2%",
+    marginTop: 16,
     alignSelf: "center",
     borderWidth: 1,
     borderColor: "#FF707233",
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 12,
   },
 
@@ -1582,53 +1553,56 @@ const styles = StyleSheet.create({
 
   floatingBtn: {
     position: "absolute",
-    right: 25,
-    bottom: "8%",
-    height: 72,
-    width: 72,
-    borderRadius: 36, // ✅ makes perfect circle
+    right: 20,
+    bottom: 100,
+    height: 60,
+    width: 60,
+    borderRadius: 30,
     backgroundColor: "#FF7072",
     justifyContent: "center",
     alignItems: "center",
     elevation: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowRadius: 6,
   },
 
   generateButton: {
     alignSelf: "center",
-    width: "75%",
+    width: "90%",
+    maxWidth: 400,
     justifyContent: "center",
     flexDirection: "row",
     backgroundColor: "#FF7072",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     borderRadius: 8,
     alignItems: "center",
     gap: 10,
-    marginTop: "20%",
+    marginTop: 24,
+    marginBottom: 24,
   },
 
   generateText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 14,
   },
   docsCard: {
+    height: windowWidth > 400 ? 380 : 320,
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    height: windowWidth > 400 ? 420 : 270,
-    marginTop: "4%",
+    marginTop: 12,
+    marginHorizontal: 12,
   },
   tabs: {
-    marginTop: "2%",
+    marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    gap: 10,
-    paddingBottom: 10,
+    gap: 8,
+    paddingBottom: 12,
   },
 
   tabCommon: {
@@ -1645,8 +1619,7 @@ const styles = StyleSheet.create({
     borderColor: "#FF7072",
   },
   tabsWrapper: {
-    maxHeight: 63,
-    //borderWidth:1
+    maxHeight: 56,
   },
 
   mobileChatContainer: {

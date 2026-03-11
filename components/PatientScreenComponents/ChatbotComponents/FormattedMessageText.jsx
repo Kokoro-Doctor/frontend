@@ -25,6 +25,54 @@ const createMarkdownStyles = (color) =>
       fontStyle: "italic",
       color,
     },
+    heading1: {
+      fontWeight: "700",
+      fontSize: 22,
+      color,
+      marginTop: 12,
+      marginBottom: 6,
+    },
+    heading2: {
+      fontWeight: "700",
+      fontSize: 19,
+      color,
+      marginTop: 10,
+      marginBottom: 4,
+    },
+    heading3: {
+      fontWeight: "700",
+      fontSize: 16,
+      color,
+      marginTop: 8,
+      marginBottom: 4,
+    },
+    heading4: {
+      fontWeight: "700",
+      fontSize: 15,
+      color,
+      marginTop: 6,
+      marginBottom: 2,
+    },
+    heading5: {
+      fontWeight: "700",
+      fontSize: 14,
+      color,
+      marginTop: 4,
+      marginBottom: 2,
+    },
+    heading6: {
+      fontWeight: "700",
+      fontSize: 13,
+      color,
+      marginTop: 4,
+      marginBottom: 2,
+    },
+    hr: {
+      height: 0,
+      marginVertical: 4,
+      borderWidth: 0,
+      opacity: 0,
+    },
     bullet_list: {
       marginBottom: 8,
     },
@@ -45,11 +93,15 @@ const createMarkdownStyles = (color) =>
 const botMarkdownStyles = createMarkdownStyles("#333");
 const userMarkdownStyles = createMarkdownStyles("#000");
 
-const FormattedMessageText = ({ sender, text }) => {
-  const markdownStyle = sender === "user" ? userMarkdownStyles : botMarkdownStyles;
+const FormattedMessageText = ({ sender, text, textColor }) => {
+  const markdownStyle =
+    textColor != null
+      ? createMarkdownStyles(textColor)
+      : sender === "user"
+        ? userMarkdownStyles
+        : botMarkdownStyles;
 
   return <Markdown style={markdownStyle}>{text || ""}</Markdown>;
 };
 
 export default FormattedMessageText;
-
