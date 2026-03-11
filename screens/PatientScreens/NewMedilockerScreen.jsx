@@ -5,7 +5,7 @@ import {
   StyleSheet,
   View,
   Text,
-  TextInput,
+  //TextInput,
   TouchableOpacity,
   Alert,
   FlatList,
@@ -43,7 +43,7 @@ const Medilocker = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const { user } = useContext(AuthContext);
   const { triggerLoginModal } = useLoginModal();
-  const [isGridView, setIsGridView] = useState(true);
+  //const [isGridView, setIsGridView] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -395,143 +395,196 @@ const Medilocker = ({ navigation }) => {
     <>
       {Platform.OS === "web" && width > 1000 && (
         <View style={styles.container}>
-          <View style={styles.imageContainer}>
-            <ImageBackground
-              source={require("../../assets/Images/MedicineBackground.png")}
-              style={styles.imageBackground}
-              resizeMode="cover"
-            >
-              <View style={styles.parent}>
-                <View style={styles.Left}>
-                  <SideBarNavigation navigation={navigation} />
-                </View>
-                <View style={styles.Right}>
-                  <View style={styles.header}>
-                    <HeaderLoginSignUp navigation={navigation} />
-                  </View>
+          <ImageBackground
+            source={require("../../assets/Images/MedicineBackground.png")}
+            style={styles.imageBackground}
+            resizeMode="cover"
+          >
+            <View style={styles.parent}>
+              {/* Sidebar */}
+              <View style={styles.Left}>
+                <SideBarNavigation navigation={navigation} />
+              </View>
+
+              {/* Right Panel */}
+              <View style={styles.Right}>
+                <View style={styles.header}>
+                  <HeaderLoginSignUp navigation={navigation} />
                   <BackButton />
-                  <View style={styles.right_middle}>
-                    <TouchableOpacity
-                      style={styles.uploadBar}
-                      onPress={pickDocument}
-                      activeOpacity={0.8}
-                    >
+                </View>
+
+                <View style={styles.webContainer}>
+                  <Text style={styles.webTitle}>Medilocker</Text>
+
+                  {/* TABS + UPLOAD FLEX ROW */}
+                  <View style={styles.topFlexRow}>
+                    {/* LEFT TABS */}
+                    <View style={styles.tabsContainer}>
+                      {tabs.map((tab) => (
+                        <TouchableOpacity
+                          key={tab.id}
+                          style={[
+                            styles.webTab,
+                            { backgroundColor: tab.color },
+                            activeTab === tab.id && styles.activeTab,
+                          ]}
+                          onPress={() => setActiveTab(tab.id)}
+                        >
+                          <Image source={tab.icon} style={styles.webTabIcon} />
+
+                          <Text style={styles.webTabText}>{tab.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {/* RIGHT UPLOAD */}
+                    <View style={styles.webUploadBox}>
                       <MaterialIcons
                         name="cloud-upload"
-                        size={20}
-                        color="#FF7072"
-                        style={styles.uploadBarIcon}
+                        size={60}
+                        color="#FF6B6B"
                       />
-                      <Text style={styles.uploadBarText}>
-                        Drag & drop files here or{" "}
-                        <Text style={styles.uploadBarLink}>browse</Text>
+
+                      <Text style={styles.uploadDragText}>
+                        Drag and Drop your documents here, or
                       </Text>
-                    </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.uploadBrowseBtn}
+                        onPress={pickDocument}
+                      >
+                        <Text style={styles.uploadBrowseText}>
+                          Click to Browse
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
-                  <View style={styles.right_bottom}>
-                    <View style={styles.file_Container}>
-                      {/* Header Section */}
-                      <View style={styles.Fpart}>
-                        <View style={styles.searchFilterContainer}>
-                          <Text style={styles.tableTitle}>Files Uploaded</Text>
-
-                          <View style={styles.searchBox}>
-                            <MaterialIcons
-                              name="search"
-                              size={20}
-                              color="#FF7072"
-                            />
-                            <TextInput
-                              style={styles.searchInput}
-                              placeholder="Search for Documents"
-                              value={searchQuery}
-                              onChangeText={setSearchQuery}
-                            />
-                          </View>
-
-                          <TouchableOpacity style={styles.filterButton}>
-                            <MaterialIcons
-                              name="filter-list"
-                              size={20}
-                              color="#FF7072"
-                            />
-                            <Text style={styles.filterText}>Filters</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-
-                      {/* Table Section */}
-                      <View style={styles.Spart}>
-                        <FlatList
-                          data={filteredFiles}
-                          keyExtractor={(item) => item.name}
-                          ListHeaderComponent={
-                            <View style={styles.tableHeader}>
-                              <Text style={styles.headerText}>File Name</Text>
-                              <Text style={styles.headerText}>
-                                Document Type
-                              </Text>
-                              <Text style={styles.headerText}>File Size</Text>
-                              <Text style={styles.headerText}>
-                                Creation Date
-                              </Text>
-                              <Text style={styles.headerText}>Time</Text>
-                              <Text style={styles.headerText}>Actions</Text>
-                            </View>
-                          }
-                          renderItem={({ item }) => (
-                            <View style={styles.tableRow}>
-                              <Text style={styles.rowText}>{item.name}</Text>
-                              <Text style={styles.rowText}>{item.type}</Text>
-                              <Text style={styles.rowText}>{item.size}</Text>
-                              <Text style={styles.rowText}>{item.date}</Text>
-                              <Text style={styles.rowText}>{item.time}</Text>
-
-                              <View style={styles.actionButtons}>
-                                {/* Download Button */}
-                                <TouchableOpacity
-                                  onPress={() => downloadFile(item)}
-                                >
-                                  <MaterialIcons
-                                    name="file-download"
-                                    size={24}
-                                    color="#FF7072"
-                                  />
-                                </TouchableOpacity>
-
-                                {/* Delete Button */}
-                                <TouchableOpacity
-                                  onPress={() => removeFile(item)}
-                                >
-                                  <MaterialIcons
-                                    name="delete"
-                                    size={24}
-                                    color="#FF7072"
-                                  />
-                                </TouchableOpacity>
-
-                                {/* Share Button */}
-                                <TouchableOpacity
-                                  onPress={() => shareFile(item)}
-                                >
-                                  <MaterialIcons
-                                    name="share"
-                                    size={24}
-                                    color="#FF7072"
-                                  />
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                          )}
-                        />
-                      </View>
+                  {/* SUCCESS MESSAGE */}
+                  {uploadStatus === "success" && (
+                    <View style={styles.uploadMessage}>
+                      <Text style={{ color: "#2b7cff" }}>
+                        Uploaded! your new document has been uploaded to{" "}
+                        {activeTab}
+                      </Text>
                     </View>
+                  )}
+
+                  {/* UPLOADED FILES */}
+                  <View style={styles.uploadedContainer}>
+                    <View style={styles.uploadedHeader}>
+                      <MaterialIcons name="folder" size={18} color="#FF7072" />
+                      <Text style={styles.uploadedTitle}>Uploaded Files</Text>
+                    </View>
+
+                    {/* SCROLL AREA */}
+                    <ScrollView
+                      style={styles.webFilesScroll}
+                      showsVerticalScrollIndicator={true}
+                    >
+                      {tabs.map((tab) => (
+                        <View key={tab.id} style={styles.webDropdownSection}>
+                          {/* DROPDOWN HEADER */}
+                          <TouchableOpacity
+                            style={styles.webDropdownHeader}
+                            onPress={() => toggleSection(tab.id)}
+                          >
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                              }}
+                            >
+                              <MaterialIcons
+                                name={
+                                  expandedSections[tab.id]
+                                    ? "keyboard-arrow-down"
+                                    : "keyboard-arrow-right"
+                                }
+                                size={22}
+                              />
+
+                              <Text style={styles.webDropdownTitle}>
+                                {tab.label}
+                              </Text>
+                            </View>
+
+                            <Text style={styles.webCount}>
+                              {groupedFiles[tab.id]?.length || 0}
+                            </Text>
+                          </TouchableOpacity>
+
+                          {/* FILE LIST */}
+                          {expandedSections[tab.id] && (
+                            <FlatList
+                              data={groupedFiles[tab.id]}
+                              keyExtractor={(item) => item.file_id}
+                              scrollEnabled={false}
+                              renderItem={({ item }) => (
+                                <View style={styles.webFileRow}>
+                                  <Text style={styles.webFileName}>
+                                    {item.name}
+                                  </Text>
+                                  <Text style={styles.webFileDate}>
+                                    {item.date}
+                                  </Text>
+                                  <Text style={styles.webFileDate}>
+                                    {item.time}
+                                  </Text>
+
+                                  <View style={styles.webFileActions}>
+                                    <TouchableOpacity
+                                      onPress={() => downloadFile(item)}
+                                    >
+                                      <MaterialIcons
+                                        name="visibility"
+                                        size={20}
+                                        color="#FF7072"
+                                      />
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                      onPress={() => downloadFile(item)}
+                                    >
+                                      <MaterialIcons
+                                        name="file-download"
+                                        size={20}
+                                        color="#FF7072"
+                                      />
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                      onPress={() => removeFile(item)}
+                                    >
+                                      <MaterialIcons
+                                        name="delete"
+                                        size={20}
+                                        color="#FF7072"
+                                      />
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                      onPress={() => shareFile(item)}
+                                    >
+                                      <MaterialIcons
+                                        name="share"
+                                        size={20}
+                                        color="#FF7072"
+                                      />
+                                    </TouchableOpacity>
+                                  </View>
+                                </View>
+                              )}
+                            />
+                          )}
+                        </View>
+                      ))}
+                    </ScrollView>
                   </View>
                 </View>
               </View>
-            </ImageBackground>
-          </View>
+            </View>
+          </ImageBackground>
         </View>
       )}
 
@@ -1124,6 +1177,177 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
   },
+
+  webContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    padding: 40,
+    width: "97%",
+    alignSelf: "center",
+  },
+
+  webTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    marginBottom: 10,
+    alignSelf: "center",
+  },
+
+  topFlexRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 25,
+  },
+
+  tabsContainer: {
+    flex: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 15,
+  },
+
+  webTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    minWidth: 170,
+  },
+
+  webTabIcon: {
+    width: 28,
+    height: 28,
+    marginRight: 10,
+    resizeMode: "contain",
+  },
+
+  webTabText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+
+  activeTab: {
+    borderWidth: 2,
+    borderColor: "#333",
+  },
+
+  webUploadBox: {
+    width: 380,
+    minHeight: 170,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "#e5e5e5",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+
+  uploadDragText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#666",
+  },
+
+  uploadBrowseBtn: {
+    marginTop: 10,
+    backgroundColor: "#FF7072",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+
+  uploadBrowseText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+
+  uploadMessage: {
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: "#9cc2ff",
+    padding: 12,
+    borderRadius: 6,
+  },
+
+  uploadedContainer: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "#ceccccff",
+    borderRadius: 10,
+    padding: 15,
+    flex: 1, // ← replaces height: 450
+    height: 240, // ← optional safety floor
+    // remove overflow: "hidden"
+  },
+
+  uploadedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  uploadedTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+
+  webDropdownSection: {
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: 6,
+    marginTop: 10,
+  },
+
+  webDropdownHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: "#fafafa",
+  },
+
+  webDropdownTitle: {
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+
+  webCount: {
+    fontWeight: "600",
+  },
+
+  webFileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+
+  webFileName: {
+    flex: 2,
+  },
+
+  webFileDate: {
+    flex: 1,
+  },
+
+  webFileActions: {
+    flexDirection: "row",
+    gap: 10,
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  webFilesScroll: {
+    flex: 1,
+    maxHeight: 400, // ← add this
+  },
+
+  //*********App**********/
   appContainer: {
     // width: "100%",
     // height: "100%",
