@@ -20,6 +20,8 @@ import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSideba
 import BackButton from "../../components/PatientScreenComponents/BackButton";
 import { API_URL } from "../../env-vars";
 import { useAuth } from "../../contexts/AuthContext";
+//import Markdown from "react-native-markdown-display";
+import FormattedMessageText from "../../components/PatientScreenComponents/ChatbotComponents/FormattedMessageText";
 //import * as ImagePicker from "expo-image-picker";
 
 const documents = [1, 2, 3, 4, 5, 6];
@@ -557,7 +559,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
                                   />
                                 )}
 
-                                <View
+                                {/* <View
                                   style={{
                                     backgroundColor:
                                       msg.type === "user"
@@ -576,6 +578,19 @@ export default function FullCaseAnalysis({ navigation, route }) {
                                   >
                                     {msg.text}
                                   </Text>
+                                </View> */}
+                                <View
+                                  style={{
+                                    backgroundColor:
+                                      msg.type === "user"
+                                        ? "#FF7072"
+                                        : "#F2F2F2",
+                                    padding: 10,
+                                    borderRadius: 10,
+                                    maxWidth: "75%",
+                                  }}
+                                >
+                                  <FormattedMessageText sender={msg.type} text={msg.text} />
                                 </View>
                               </View>
                             ))}
@@ -1001,7 +1016,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
                     />
                   )}
 
-                  <View
+                  {/* <View
                     style={{
                       backgroundColor:
                         msg.type === "user" ? "#FF7072" : "#F2F2F2",
@@ -1017,6 +1032,17 @@ export default function FullCaseAnalysis({ navigation, route }) {
                     >
                       {msg.text}
                     </Text>
+                  </View> */}
+                  <View
+                    style={{
+                      backgroundColor:
+                        msg.type === "user" ? "#FF7072" : "#F2F2F2",
+                      padding: 10,
+                      borderRadius: 10,
+                      maxWidth: "75%",
+                    }}
+                  >
+                    <FormattedMessageText sender={msg.type} text={msg.text} />
                   </View>
                 </View>
               ))}
@@ -1086,6 +1112,50 @@ export default function FullCaseAnalysis({ navigation, route }) {
   );
 }
 const windowWidth = Dimensions.get("window").width;
+// const markdownStyles = {
+//   body: {
+//     color: "#7b7b7bff",
+//     fontSize: 14,
+//     lineHeight: 20,
+//   },
+
+//   heading2: {
+//     fontSize: 16,
+//     fontWeight: "700",
+//     marginTop: 8,
+//     marginBottom: 6,
+//     color:"#9a0d0dff"
+//   },
+
+//   heading3: {
+//     fontSize: 15,
+//     fontWeight: "600",
+//     marginTop: 6,
+//     marginBottom: 4,
+//     color:"#e14242ff"
+//   },
+
+//   strong: {
+//     fontWeight: "700",
+//     color:"#343434ff"
+//   },
+
+//   bullet_list: {
+//     marginTop: 4,
+//     color:"#000"
+//   },
+
+//   list_item: {
+//     marginBottom: 4,
+//     color:"#000"
+//   },
+
+//   hr: {
+//     backgroundColor: "#E5E5E5",
+//     height: 1,
+//     marginVertical: 8,
+//   },
+// };
 const styles = StyleSheet.create({
   webContainer: {
     flex: 1,
