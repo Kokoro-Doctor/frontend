@@ -3,6 +3,11 @@ import { API_URL } from "../env-vars";
 
 const medilocker_API = `${API_URL}/medilocker`;
 
+// Debug: log API base on first Medilocker call (helps verify live vs local)
+if (typeof window !== "undefined") {
+  console.log("[Medilocker] API base", { API_URL, medilocker_API });
+}
+
 export const FetchFromServer = async (email) => {
     try {
         const encodedUserId = encodeURIComponent(email);
@@ -136,26 +141,36 @@ export const shortenUrl = async (longUrl) => {
 export const savePrescriptionToMedilocker = async (userId, prescriptionPdfBase64) => {
     try {
         const encodedUserId = encodeURIComponent(userId);
-        const response = await fetch(
-            `${medilocker_API}/users/${encodedUserId}/prescription/save`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ prescription_pdf: prescriptionPdfBase64 }),
-            }
-        );
+        const url = `${medilocker_API}/users/${encodedUserId}/prescription/save`;
+        console.log("[Medilocker] savePrescription request", { url, payloadSize: prescriptionPdfBase64?.length });
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ prescription_pdf: prescriptionPdfBase64 }),
+        });
+
+        console.log("[Medilocker] savePrescription response", {
+            status: response.status,
+            ok: response.ok,
+            url: response.url,
+        });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
+            console.error("[Medilocker] savePrescription error", { status: response.status, errorData });
             throw new Error(
                 errorData.detail || errorData.message || `Save failed: ${response.status}`
             );
         }
 
-        return await response.json();
+        const data = await response.json();
+        console.log("[Medilocker] savePrescription success", data);
+        return data;
     } catch (err) {
+        console.error("[Medilocker] savePrescription exception", err);
         throw err;
     }
 };

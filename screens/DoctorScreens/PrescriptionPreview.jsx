@@ -139,7 +139,10 @@ const PrescriptionPreview = ({ navigation, route }) => {
   };
 
   const handleApprovePrescription = async () => {
+    console.log("[ApprovePrescription] Started", { userId, hasPrescription: !!currentPrescription });
+
     if (!userId) {
+      console.warn("[ApprovePrescription] Aborted: no userId");
       showAlert(
         "Cannot Save",
         "Patient ID is required to save prescription to Medilocker. This prescription was not generated from a patient's Medilocker.",
@@ -150,18 +153,31 @@ const PrescriptionPreview = ({ navigation, route }) => {
 
     try {
       setIsSavingPrescription(true);
+      console.log("[ApprovePrescription] Generating PDF...");
       const pdfBase64 = await generatePrescriptionPDFAsBase64(
         currentPrescription,
         user
       );
+      console.log("[ApprovePrescription] PDF generated", {
+        base64Length: pdfBase64?.length,
+        approxSizeKB: pdfBase64 ? Math.round((pdfBase64.length * 3) / 4 / 1024) : 0,
+      });
+
+      console.log("[ApprovePrescription] Saving to Medilocker...");
       await savePrescriptionToMedilocker(userId, pdfBase64);
+      console.log("[ApprovePrescription] Save succeeded");
       showAlert(
         "Success",
         "Prescription PDF has been saved to the patient's Medilocker. The patient can view and download it from their documents.",
         [{ text: "OK" }]
       );
     } catch (error) {
-      console.error("Failed to save prescription:", error);
+      console.error("[ApprovePrescription] Failed:", error);
+      console.error("[ApprovePrescription] Error details:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+      });
       showAlert(
         "Save Failed",
         error.message || "Failed to save prescription to Medilocker. Please try again.",
@@ -169,6 +185,7 @@ const PrescriptionPreview = ({ navigation, route }) => {
       );
     } finally {
       setIsSavingPrescription(false);
+      console.log("[ApprovePrescription] Finished");
     }
   };
 
