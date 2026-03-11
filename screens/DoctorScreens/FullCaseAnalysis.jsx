@@ -579,35 +579,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
                                 </View>
                               </View>
                             ))}
-                            {/* {botTyping && loadingSteps === "" && (
-                              <View
-                                style={{
-                                  flexDirection: "row",
-                                  alignItems: "center",
-                                  marginTop: 6,
-                                }}
-                              >
-                                <Image
-                                  source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
-                                  style={{
-                                    width: 28,
-                                    height: 28,
-                                    marginRight: 6,
-                                  }}
-                                />
 
-                                <View
-                                  style={{
-                                    backgroundColor: "#F2F2F2",
-                                    padding: 10,
-                                    borderRadius: 10,
-                                    flexDirection: "row",
-                                  }}
-                                >
-                                  <Text style={{ fontSize: 20 }}>{loadingSteps}</Text>
-                                </View>
-                              </View>
-                            )} */}
                             {botTyping && (
                               <View
                                 style={{
@@ -1048,35 +1020,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
                   </View>
                 </View>
               ))}
-              {/* {botTyping && loadingSteps === "" && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: 6,
-                  }}
-                >
-                  <Image
-                    source={require("../../assets/DoctorsPortal/Icons/clinicalAILogo.png")}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      marginRight: 6,
-                    }}
-                  />
 
-                  <View
-                    style={{
-                      backgroundColor: "#F2F2F2",
-                      padding: 10,
-                      borderRadius: 10,
-                      flexDirection: "row",
-                    }}
-                  >
-                    <Text style={{ fontSize: 20 }}>{loadingSteps}</Text>
-                  </View>
-                </View>
-              )} */}
               {botTyping && (
                 <View
                   style={{
