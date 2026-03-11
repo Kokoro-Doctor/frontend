@@ -106,7 +106,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              question: "Give a clinical summary of this patient's case",
+              question: "",
               context: {
                 patient_id: userId,
                 doctor_id: doctorId,
