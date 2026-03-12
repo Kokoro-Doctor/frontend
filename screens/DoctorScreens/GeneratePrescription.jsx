@@ -493,6 +493,7 @@ const GeneratePrescription = ({ navigation, route }) => {
               navigation.navigate("FullCaseAnalysis", {
                 userId,
                 doctorId,
+                showIntro: true,
               })
             }
           >
@@ -907,6 +908,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                                 navigation.navigate("FullCaseAnalysis", {
                                   userId,
                                   doctorId,
+                                  showIntro: true,
                                 })
                               }
                             >

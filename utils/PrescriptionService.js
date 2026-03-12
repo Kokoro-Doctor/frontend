@@ -191,13 +191,18 @@ export const generatePrescriptionHTML = (prescription, doctorInfo) => {
  * @returns {Promise<string>} Base64-encoded PDF
  */
 export const generatePrescriptionPDFAsBase64 = async (prescription, doctorInfo) => {
+  console.log("[PrescriptionService] generatePrescriptionPDFAsBase64 started", { platform: Platform.OS });
+
   if (!prescription) {
     throw new Error("Prescription data is required");
   }
   const htmlContent = generatePrescriptionHTML(prescription, doctorInfo);
+  console.log("[PrescriptionService] HTML generated", { htmlLength: htmlContent?.length });
 
   if (Platform.OS === "web") {
+    console.log("[PrescriptionService] Loading html2pdf.js...");
     const html2pdf = (await import("html2pdf.js")).default;
+    console.log("[PrescriptionService] Converting to PDF...");
     const dataUrl = await html2pdf()
       .set({
         margin: 10,
@@ -208,9 +213,11 @@ export const generatePrescriptionPDFAsBase64 = async (prescription, doctorInfo) 
       .from(htmlContent, "string")
       .outputPdf("datauristring");
     const base64 = dataUrl.split(",")[1] || dataUrl;
+    console.log("[PrescriptionService] PDF generated (web)", { base64Length: base64?.length });
     return base64;
   }
 
+  console.log("[PrescriptionService] Using expo-print...");
   const { uri } = await Print.printToFileAsync({ html: htmlContent });
   const base64 = await FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
@@ -218,6 +225,7 @@ export const generatePrescriptionPDFAsBase64 = async (prescription, doctorInfo) 
   try {
     await FileSystem.deleteAsync(uri, { idempotent: true });
   } catch (_) {}
+  console.log("[PrescriptionService] PDF generated (native)", { base64Length: base64?.length });
   return base64;
 };
 
