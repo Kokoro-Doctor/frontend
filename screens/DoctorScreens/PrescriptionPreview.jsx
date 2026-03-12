@@ -16,17 +16,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 
-/** Web-safe alert: Alert.alert doesn't work on web, so use window.alert */
-const showAlert = (title, message, buttons) => {
-  if (Platform.OS === "web") {
-    window.alert([title, message].filter(Boolean).join("\n\n"));
-    const okBtn = buttons?.find((b) => b.style !== "cancel");
-    okBtn?.onPress?.();
-  } else {
-    Alert.alert(title, message, buttons);
-  }
-};
-
 import { AuthContext } from "../../contexts/AuthContext";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -37,6 +26,17 @@ import {
   generatePrescriptionPDFAsBase64,
 } from "../../utils/PrescriptionService";
 import { savePrescriptionToMedilocker } from "../../utils/MedilockerService";
+
+/** Web-safe alert: Alert.alert doesn't work on web, so use window.alert */
+const showAlert = (title, message, buttons) => {
+  if (Platform.OS === "web") {
+    window.alert([title, message].filter(Boolean).join("\n\n"));
+    const okBtn = buttons?.find((b) => b.style !== "cancel");
+    okBtn?.onPress?.();
+  } else {
+    Alert.alert(title, message, buttons);
+  }
+};
 
 const { width, height } = Dimensions.get("window");
 

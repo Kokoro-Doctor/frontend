@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -13,6 +13,7 @@ import {
   ImageBackground,
   Animated,
   Alert,
+  Modal,
 } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -21,7 +22,10 @@ import BackButton from "../../components/PatientScreenComponents/BackButton";
 import FormattedMessageText from "../../components/PatientScreenComponents/ChatbotComponents/FormattedMessageText";
 import { API_URL } from "../../env-vars";
 import { useAuth } from "../../contexts/AuthContext";
-//import * as ImagePicker from "expo-image-picker";
+import { BlurView } from "expo-blur";
+import ConfettiCannon from "react-native-confetti-cannon";
+import * as WebBrowser from "expo-web-browser";
+import { download, remove } from "../../utils/MedilockerService";
 
 const documents = [1, 2, 3, 4, 5, 6];
 const { width, height } = Dimensions.get("window");
@@ -44,6 +48,16 @@ export default function FullCaseAnalysis({ navigation, route }) {
   const [patient, setPatient] = useState(null);
   const [loadingSteps, setLoadingSteps] = useState("");
   const scrollRef = React.useRef();
+  const [showIntroModal, setShowIntroModal] = useState(false);
+  const popupY = useRef(new Animated.Value(0)).current;
+  const confettiRef = useRef(null);
+  const confettiInterval = useRef(null);
+  const [selectedFilePreview, setSelectedFilePreview] = useState(null);
+  const [previewModalVisible, setPreviewModalVisible] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [fileMenuVisible, setFileMenuVisible] = useState(false);
+  const [selectedFileForMenu, setSelectedFileForMenu] = useState(null);
 
   const CATEGORY_MAP = {
     All: "ALL",
@@ -143,6 +157,29 @@ export default function FullCaseAnalysis({ navigation, route }) {
 
     fetchFiles(activeTab); // files depend on tab
   }, [activeTab, userId]);
+
+  useEffect(() => {
+    if (route?.params?.showIntro) {
+      setShowIntroModal(true);
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(popupY, {
+            toValue: -20,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+          Animated.timing(popupY, {
+            toValue: 0,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+
+      startConfettiLoop();
+    }
+  }, [route?.params?.showIntro]);
 
   const fetchPatient = async () => {
     try {
@@ -258,6 +295,48 @@ export default function FullCaseAnalysis({ navigation, route }) {
     }
   };
 
+  const openQuickPreview = async (file) => {
+    try {
+      const data = await download(userId, file.file_id);
+
+      setSelectedFilePreview(file);
+      setPreviewUrl(data.download_url);
+      setPreviewModalVisible(true);
+    } catch (error) {
+      console.log("Preview error:", error);
+      Alert.alert("Preview Error", "Unable to load file preview");
+    }
+  };
+
+  const downloadFile = async (file) => {
+    try {
+      const data = await download(userId, file.file_id);
+      const downloadUrl = data.download_url;
+
+      if (Platform.OS === "web") {
+        window.open(downloadUrl, "_blank");
+      } else {
+        await WebBrowser.openBrowserAsync(downloadUrl);
+      }
+    } catch (error) {
+      Alert.alert("Download Error", error.message);
+    }
+  };
+
+  const removeFile = async (file) => {
+    try {
+      await remove(userId, file.file_id);
+
+      setFiles(files.filter((f) => f.file_id !== file.file_id));
+      Alert.alert(
+        "Deleted",
+        `${file.file_name || file.filename || file.name} has been removed`,
+      );
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    }
+  };
+
   const sendMessage = async () => {
     if (!question.trim()) return;
 
@@ -333,6 +412,21 @@ export default function FullCaseAnalysis({ navigation, route }) {
       duration: 250,
       useNativeDriver: false,
     }).start(() => setChatOpen(false));
+  };
+
+  const startConfettiLoop = () => {
+    confettiRef.current?.start();
+
+    confettiInterval.current = setInterval(() => {
+      confettiRef.current?.start();
+    }, 1500);
+  };
+  const stopIntroAnimation = () => {
+    setShowIntroModal(false);
+
+    if (confettiInterval.current) {
+      clearInterval(confettiInterval.current);
+    }
   };
   return (
     <>
@@ -455,7 +549,11 @@ export default function FullCaseAnalysis({ navigation, route }) {
                               </Text>
                             ) : (
                               files.map((file, index) => (
-                                <View key={index} style={styles.webFileCard}>
+                                <TouchableOpacity
+                                  key={index}
+                                  style={styles.webFileCard}
+                                  onPress={() => openQuickPreview(file)}
+                                >
                                   <Feather
                                     name="file-text"
                                     size={18}
@@ -496,7 +594,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
                                       )}
                                     </Text>
                                   </View>
-                                </View>
+                                </TouchableOpacity>
                               ))
                             )}
                           </ScrollView>
@@ -678,8 +776,8 @@ export default function FullCaseAnalysis({ navigation, route }) {
               <Text style={styles.title}>Full case analysis</Text>
             </View>
 
-          {/* ALERT */}
-          {/* <View style={styles.alertBox}>
+            {/* ALERT */}
+            {/* <View style={styles.alertBox}>
             <Image source={require("../../assets/Images/heartFullCase.png")} />
             <Text style={styles.alertText}>
               2 New Reports added since last review
@@ -693,152 +791,156 @@ export default function FullCaseAnalysis({ navigation, route }) {
               style={styles.tabsWrapper}
               contentContainerStyle={styles.tabs}
             >
-            {/* ALL */}
-            <TouchableOpacity
-              onPress={() => setActiveTab("All")}
-              style={[
-                styles.tabCommon,
-                activeTab === "All" ? styles.activeTab : styles.inactiveTab,
-              ]}
-            >
-              <Image
-                source={require("../../assets/DoctorsPortal/Icons/Allfullcase.png")}
-                style={{ width: 16, height: 20 }}
-                resizeMode="contain"
-              />
-
-              <Text
-                style={
-                  activeTab === "All" ? styles.activeTabText : styles.tabText
-                }
+              {/* ALL */}
+              <TouchableOpacity
+                onPress={() => setActiveTab("All")}
+                style={[
+                  styles.tabCommon,
+                  activeTab === "All" ? styles.activeTab : styles.inactiveTab,
+                ]}
               >
-                All
-              </Text>
-            </TouchableOpacity>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/Allfullcase.png")}
+                  style={{ width: 16, height: 20 }}
+                  resizeMode="contain"
+                />
 
-            {/* PRESCRIPTION */}
-            <TouchableOpacity
-              onPress={() => setActiveTab("Prescription")}
-              style={[
-                styles.tabCommon,
-                activeTab === "Prescription"
-                  ? styles.activeTab
-                  : styles.inactiveTab,
-              ]}
-            >
-              <Image
-                source={require("../../assets/DoctorsPortal/Icons/myPrescription.png")}
-                style={{ width: 16, height: 20 }}
-                resizeMode="contain"
-              />
+                <Text
+                  style={
+                    activeTab === "All" ? styles.activeTabText : styles.tabText
+                  }
+                >
+                  All
+                </Text>
+              </TouchableOpacity>
 
-              <Text
-                style={
+              {/* PRESCRIPTION */}
+              <TouchableOpacity
+                onPress={() => setActiveTab("Prescription")}
+                style={[
+                  styles.tabCommon,
                   activeTab === "Prescription"
-                    ? styles.activeTabText
-                    : styles.tabText
-                }
+                    ? styles.activeTab
+                    : styles.inactiveTab,
+                ]}
               >
-                Prescriptions
-              </Text>
-            </TouchableOpacity>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/myPrescription.png")}
+                  style={{ width: 16, height: 20 }}
+                  resizeMode="contain"
+                />
 
-            {/* SCAN REPORT */}
-            <TouchableOpacity
-              onPress={() => setActiveTab("Scan")}
-              style={[
-                styles.tabCommon,
-                activeTab === "Scan" ? styles.activeTab : styles.inactiveTab,
-              ]}
-            >
-              <Image
-                source={require("../../assets/DoctorsPortal/Icons/scanReports.png")}
-                style={{ width: 16, height: 20 }}
-                resizeMode="contain"
-              />
+                <Text
+                  style={
+                    activeTab === "Prescription"
+                      ? styles.activeTabText
+                      : styles.tabText
+                  }
+                >
+                  Prescriptions
+                </Text>
+              </TouchableOpacity>
 
-              <Text
-                style={
-                  activeTab === "Scan" ? styles.activeTabText : styles.tabText
-                }
+              {/* SCAN REPORT */}
+              <TouchableOpacity
+                onPress={() => setActiveTab("Scan")}
+                style={[
+                  styles.tabCommon,
+                  activeTab === "Scan" ? styles.activeTab : styles.inactiveTab,
+                ]}
               >
-                Scan Reports
-              </Text>
-            </TouchableOpacity>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/scanReports.png")}
+                  style={{ width: 16, height: 20 }}
+                  resizeMode="contain"
+                />
 
-            <TouchableOpacity
-              onPress={() => setActiveTab("Lab")}
-              style={[
-                styles.tabCommon,
-                activeTab === "Lab" ? styles.activeTab : styles.inactiveTab,
-              ]}
-            >
-              <Image
-                source={require("../../assets/DoctorsPortal/Icons/tubechemical.png")}
-                style={{ width: 16, height: 20 }}
-                resizeMode="contain"
-              />
+                <Text
+                  style={
+                    activeTab === "Scan" ? styles.activeTabText : styles.tabText
+                  }
+                >
+                  Scan Reports
+                </Text>
+              </TouchableOpacity>
 
-              <Text
-                style={
-                  activeTab === "Lab" ? styles.activeTabText : styles.tabText
-                }
+              <TouchableOpacity
+                onPress={() => setActiveTab("Lab")}
+                style={[
+                  styles.tabCommon,
+                  activeTab === "Lab" ? styles.activeTab : styles.inactiveTab,
+                ]}
               >
-                Lab Reports
-              </Text>
-            </TouchableOpacity>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/tubechemical.png")}
+                  style={{ width: 16, height: 20 }}
+                  resizeMode="contain"
+                />
 
-            <TouchableOpacity
-              onPress={() => setActiveTab("Hospital")}
-              style={[
-                styles.tabCommon,
-                activeTab === "Hospital"
-                  ? styles.activeTab
-                  : styles.inactiveTab,
-              ]}
-            >
-              <Image
-                source={require("../../assets/DoctorsPortal/Icons/hospitalFullcase.png")}
-                style={{ width: 16, height: 20 }}
-                resizeMode="contain"
-              />
+                <Text
+                  style={
+                    activeTab === "Lab" ? styles.activeTabText : styles.tabText
+                  }
+                >
+                  Lab Reports
+                </Text>
+              </TouchableOpacity>
 
-              <Text
-                style={
+              <TouchableOpacity
+                onPress={() => setActiveTab("Hospital")}
+                style={[
+                  styles.tabCommon,
                   activeTab === "Hospital"
-                    ? styles.activeTabText
-                    : styles.tabText
-                }
+                    ? styles.activeTab
+                    : styles.inactiveTab,
+                ]}
               >
-                Hospital History
-              </Text>
-            </TouchableOpacity>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/hospitalFullcase.png")}
+                  style={{ width: 16, height: 20 }}
+                  resizeMode="contain"
+                />
 
-            <TouchableOpacity
-              onPress={() => setActiveTab("Health")}
-              style={[
-                styles.tabCommon,
-                activeTab === "Health" ? styles.activeTab : styles.inactiveTab,
-              ]}
-            >
-              <Image
-                source={require("../../assets/DoctorsPortal/Icons/heartShield.png")}
-                style={{ width: 16, height: 20 }}
-                resizeMode="contain"
-              />
+                <Text
+                  style={
+                    activeTab === "Hospital"
+                      ? styles.activeTabText
+                      : styles.tabText
+                  }
+                >
+                  Hospital History
+                </Text>
+              </TouchableOpacity>
 
-              <Text
-                style={
-                  activeTab === "Health" ? styles.activeTabText : styles.tabText
-                }
+              <TouchableOpacity
+                onPress={() => setActiveTab("Health")}
+                style={[
+                  styles.tabCommon,
+                  activeTab === "Health"
+                    ? styles.activeTab
+                    : styles.inactiveTab,
+                ]}
               >
-                Health Insurance & ID
-              </Text>
-            </TouchableOpacity>
+                <Image
+                  source={require("../../assets/DoctorsPortal/Icons/heartShield.png")}
+                  style={{ width: 16, height: 20 }}
+                  resizeMode="contain"
+                />
+
+                <Text
+                  style={
+                    activeTab === "Health"
+                      ? styles.activeTabText
+                      : styles.tabText
+                  }
+                >
+                  Health Insurance & ID
+                </Text>
+              </TouchableOpacity>
             </ScrollView>
 
             {/* DOCUMENT LIST */}
-          {/* <View style={styles.docsCard}>
+            {/* <View style={styles.docsCard}>
             <ScrollView showsVerticalScrollIndicator={false}>
               {documents.map((item, index) => (
                 <View key={index} style={styles.card}>
@@ -872,52 +974,55 @@ export default function FullCaseAnalysis({ navigation, route }) {
             </ScrollView>
           </View> */}
             <View style={styles.docsCard}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {loading ? (
-                <Text style={styles.fileListEmpty}>Loading...</Text>
-              ) : files.length === 0 ? (
-                <Text style={styles.fileListEmpty}>No documents</Text>
-              ) : (
-                files.map((file, index) => (
-                  <View key={index} style={styles.card}>
-                    <View style={styles.fileIcon}>
-                      <Feather name="file-text" size={20} color="#FF7072" />
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text
-                        style={styles.fileTitle}
-                        numberOfLines={2}
-                      >
-                        {file.file_name ||
-                          file.filename ||
-                          file.name ||
-                          "Unknown File"}
-                      </Text>
-                      <Text style={styles.meta}>
-                        {file.uploaded_at || file.created_at
-                          ? new Date(
-                              file.uploaded_at || file.created_at,
-                            ).toLocaleDateString("en-GB", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })
-                          : "—"}
-                        {(file.file_type ||
-                          file.fileType ||
-                          file.type) && (
-                          <Text style={styles.metaType}>
-                            {" · "}
-                            {(file.file_type || file.fileType || file.type).toUpperCase()}
-                          </Text>
-                        )}
-                      </Text>
-                    </View>
-                  </View>
-                ))
-              )}
-            </ScrollView>
-          </View>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {loading ? (
+                  <Text style={styles.fileListEmpty}>Loading...</Text>
+                ) : files.length === 0 ? (
+                  <Text style={styles.fileListEmpty}>No documents</Text>
+                ) : (
+                  files.map((file, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.card}
+                      onPress={() => openQuickPreview(file)}
+                    >
+                      <View style={styles.fileIcon}>
+                        <Feather name="file-text" size={20} color="#FF7072" />
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={styles.fileTitle} numberOfLines={2}>
+                          {file.file_name ||
+                            file.filename ||
+                            file.name ||
+                            "Unknown File"}
+                        </Text>
+                        <Text style={styles.meta}>
+                          {file.uploaded_at || file.created_at
+                            ? new Date(
+                                file.uploaded_at || file.created_at,
+                              ).toLocaleDateString("en-GB", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "—"}
+                          {(file.file_type || file.fileType || file.type) && (
+                            <Text style={styles.metaType}>
+                              {" · "}
+                              {(
+                                file.file_type ||
+                                file.fileType ||
+                                file.type
+                              ).toUpperCase()}
+                            </Text>
+                          )}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            </View>
             {/* AI BUTTON */}
             <View style={styles.aiButton}>
               <Text style={styles.aiText}>Clinical AI Assistant</Text>
@@ -1105,6 +1210,153 @@ export default function FullCaseAnalysis({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </Animated.View>
+      )}
+      <Modal visible={showIntroModal} transparent animationType="fade">
+        <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill}>
+          {/* <View style={styles.popupContainer}> */}
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.popupContainer}
+            onPress={stopIntroAnimation}
+          >
+            <Animated.View
+              style={[
+                styles.popupCard,
+                {
+                  transform: [{ translateY: popupY }],
+                },
+              ]}
+            >
+              <Image
+                source={require("../../assets/DoctorsPortal/Images/unlockIntelligencepopup.png")}
+                style={styles.popupImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
+
+            <ConfettiCannon
+              ref={confettiRef}
+              count={120}
+              origin={{ x: width / 2, y: -10 }}
+              autoStart={false}
+              fadeOut={true}
+              explosionSpeed={350}
+              fallSpeed={3000}
+            />
+          </TouchableOpacity>
+        </BlurView>
+      </Modal>
+      {previewModalVisible && selectedFilePreview && (
+        <View
+          style={{
+            position: Platform.OS === "web" ? "fixed" : "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.9)",
+            zIndex: 999999,
+            alignItems: "center",
+            padding: Platform.OS === "web" ? "2%" : 0,
+          }}
+        >
+          {/* HEADER */}
+          <View
+            style={{
+              backgroundColor: "#FF7072",
+              padding: 14,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              width: Platform.OS === "web" ? "95%" : "100%",
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "600", color: "#000" }}>
+              {selectedFilePreview.file_name || selectedFilePreview.name}
+            </Text>
+
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              {/* DOWNLOAD */}
+              <TouchableOpacity
+                onPress={() => downloadFile(selectedFilePreview)}
+              >
+                <Ionicons name="download-outline" size={22} color="#000" />
+              </TouchableOpacity>
+
+              {/* DELETE */}
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert(
+                    "Remove File",
+                    "Are you sure you want to delete this file?",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: () => removeFile(selectedFilePreview),
+                      },
+                    ],
+                  )
+                }
+              >
+                <Ionicons name="trash-outline" size={22} color="#000" />
+              </TouchableOpacity>
+
+              {/* CLOSE */}
+              <TouchableOpacity
+                onPress={() => {
+                  setPreviewModalVisible(false);
+                  setPreviewUrl(null);
+                  setZoomLevel(1);
+                }}
+              >
+                <Ionicons name="close" size={22} color="#000" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* CONTENT */}
+          {Platform.OS === "web" ? (
+            <View
+              style={{
+                backgroundColor: "#f5f5f5",
+                width: "95%",
+                height: "90%",
+                overflow: "auto",
+              }}
+            >
+              {(
+                selectedFilePreview?.file_name ||
+                selectedFilePreview?.filename ||
+                selectedFilePreview?.name ||
+                ""
+              )
+                .toLowerCase()
+                .endsWith(".pdf") ? (
+                <iframe
+                  src={previewUrl}
+                  title="PDF Preview"
+                  style={{ width: "100%", height: "100%", border: "none" }}
+                />
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  style={{ width: "100%", height: "auto" }}
+                />
+              )}
+            </View>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <Image
+                source={{ uri: previewUrl }}
+                style={{ width: "100%", height: "100%" }}
+                resizeMode="contain"
+              />
+            </View>
+          )}
+        </View>
       )}
     </>
   );
@@ -1665,5 +1917,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#F1F1F1",
     alignItems: "center", // ← ADD THIS
+  },
+
+  popupContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  popupCard: {
+    width: Platform.OS === "web" ? 420 : 320,
+    height: Platform.OS === "web" ? 320 : 240,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+
+  popupImage: {
+    width: "100%",
+    height: "100%",
   },
 });
