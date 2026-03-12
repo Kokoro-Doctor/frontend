@@ -363,9 +363,12 @@ export default function KokoroDoctorScreen() {
                 </View>
               </View>
 
-              <Text style={webStyles.heroTitle}>
-                If something feels off or your medicines confuse you
-              </Text>
+              <View style={{ width: 800 }}>
+                <Text style={webStyles.heroTitle}>
+                  Recovering after surgery? Kokoro helps you heal with
+                  confidence
+                </Text>
+              </View>
 
               <TouchableOpacity
                 style={webStyles.heroBtn}
@@ -702,7 +705,8 @@ export default function KokoroDoctorScreen() {
             {/* TEXT + BUTTON */}
             <View style={styles.heroContent}>
               <Text style={styles.heroTitle}>
-                If something feels off or {"\n"}your medicines confuse you
+                Recovering after surgery? {"\n"}Kokoro helps you heal with
+                confidence
               </Text>
 
               <TouchableOpacity
@@ -1216,7 +1220,7 @@ const webStyles = StyleSheet.create({
   featureCard: {
     width: "48%",
     // aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
-    aspectRatio: 2.25,
+    aspectRatio: 2.35,
     // height: 180, // ⭐ fixed height for consistency
     borderRadius: 20,
     overflow: "hidden",
@@ -1251,9 +1255,10 @@ const webStyles = StyleSheet.create({
 
   featureContent: {
     position: "absolute",
-    bottom: 25,
-    left: 30,
-    right: 30,
+
+    bottom: 12,
+    left: 36,
+    right: 36,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -1262,7 +1267,7 @@ const webStyles = StyleSheet.create({
 
   featureTitle: {
     color: "#ffffff",
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "600",
   },
 
@@ -1366,7 +1371,7 @@ const webStyles = StyleSheet.create({
     width: "auto",
     height: 150,
     paddingLeft: 50,
-    paddingRight: 50,
+    paddingRight: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
