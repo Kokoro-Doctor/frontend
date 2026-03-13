@@ -276,28 +276,44 @@ export default function KokoroDoctorScreen() {
 
             <View style={webStyles.navLinks}>
               <TouchableOpacity
-                onPress={() => navigation.navigate("LandingPage")}
+                onPress={() => {
+                  mixpanel.track("Web Navbar - Home Clicked", {
+                    source: "web-navbar",
+                  });
+
+                  navigation.navigate("LandingPage");
+                }}
               >
                 <Text style={webStyles.navText}>Home</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() =>
+                onPress={() => {
+                  mixpanel.track("Web Navbar - Our Doctors Clicked", {
+                    source: "web-navbar",
+                    destination: "DoctorResultShow",
+                  });
+
                   navigation.navigate("PatientAppNavigation", {
                     screen: "Doctors",
                     params: { screen: "DoctorResultShow" },
-                  })
-                }
+                  });
+                }}
               >
                 <Text style={webStyles.navText}>Our Doctor</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() =>
+                onPress={() => {
+                  mixpanel.track("Web Navbar - Doctor Login Clicked", {
+                    source: "web-navbar",
+                    destination: "DoctorPortalLandingPage",
+                  });
+
                   navigation.navigate("DoctorAppNavigation", {
                     screen: "DoctorPortalLandingPage",
-                  })
-                }
+                  });
+                }}
               >
                 <Text style={webStyles.navText}>Doctor login</Text>
               </TouchableOpacity>
@@ -305,12 +321,17 @@ export default function KokoroDoctorScreen() {
 
             <TouchableOpacity
               style={webStyles.navBtn}
-              onPress={() =>
+              onPress={() => {
+                mixpanel.track("Web Get Help Now Clicked", {
+                  source: "web-navbar",
+                  destination: "DoctorResultShow",
+                });
+
                 navigation.navigate("PatientAppNavigation", {
                   screen: "Doctors",
                   params: { screen: "DoctorResultShow" },
-                })
-              }
+                });
+              }}
             >
               <Text style={webStyles.navBtnText}>Get Help Now</Text>
               <Ionicons
@@ -365,19 +386,24 @@ export default function KokoroDoctorScreen() {
 
               <View style={{ width: 800 }}>
                 <Text style={webStyles.heroTitle}>
-                  Post-Surgery Is Where Cardiac Care Fails. We&apos;re Here to Fix
-                  That.
+                  Post-Surgery Is Where Cardiac Care Fails. We&apos;re Here to
+                  Fix That.
                 </Text>
               </View>
 
               <TouchableOpacity
                 style={webStyles.heroBtn}
-                onPress={() =>
+                onPress={() => {
+                  mixpanel.track("Web Hero CTA Clicked", {
+                    source: "web-hero",
+                    destination: "DoctorResultShow",
+                  });
+
                   navigation.navigate("PatientAppNavigation", {
                     screen: "Doctors",
                     params: { screen: "DoctorResultShow" },
-                  })
-                }
+                  });
+                }}
               >
                 <Text style={webStyles.heroBtnText}>Get Help Now</Text>
                 <Ionicons
@@ -469,6 +495,11 @@ export default function KokoroDoctorScreen() {
                 const textToSend = searchText.trim();
                 if (!textToSend) return;
 
+                mixpanel.track("Web Search Submitted", {
+                  query: textToSend,
+                  source: "web-search-bar",
+                });
+
                 navigation.navigate("PatientAppNavigation", {
                   screen: "MobileChatbot",
                   params: {
@@ -497,8 +528,12 @@ export default function KokoroDoctorScreen() {
               style={styles.searchBtn}
               onPress={() => {
                 const textToSend = searchText.trim();
+                if (!textToSend) return;
 
-                if (!textToSend) return; // prevent empty search
+                mixpanel.track("Web Search Button Clicked", {
+                  query: textToSend,
+                  source: "web-search-bar",
+                });
 
                 navigation.navigate("PatientAppNavigation", {
                   screen: "MobileChatbot",
@@ -530,6 +565,11 @@ export default function KokoroDoctorScreen() {
                     style={webStyles.tryChip}
                     activeOpacity={0.8}
                     onPress={() => {
+                      mixpanel.track("Web Try Pill Clicked", {
+                        pill_name: item,
+                        source: "web-try-section",
+                      });
+
                       navigation.navigate("PatientAppNavigation", {
                         screen: "MobileChatbot",
                         params: {
@@ -575,6 +615,10 @@ export default function KokoroDoctorScreen() {
                 key={i}
                 style={[webStyles.serviceCard, { backgroundColor: item.bg }]}
                 onPress={() => {
+                  mixpanel.track("Web Service Card Clicked", {
+                    service_name: title,
+                    source: "web-services",
+                  });
                   const title = item.title.replace("\n", " ").trim();
 
                   if (title === "Talk to Doctor") {
@@ -622,12 +666,18 @@ export default function KokoroDoctorScreen() {
           <View style={webStyles.featureRow}>
             <TouchableOpacity
               style={webStyles.featureCard}
-              onPress={() =>
+              onPress={() => {
+                mixpanel.track("Web Featured CTA Clicked", {
+                  banner: "start_health_check",
+                  source: "web-featured-section",
+                  destination: "DoctorResultShow",
+                });
+
                 navigation.navigate("PatientAppNavigation", {
                   screen: "Doctors",
                   params: { screen: "DoctorResultShow" },
-                })
-              }
+                });
+              }}
             >
               <ImageBackground
                 source={require("../../assets/Images/newbottomcta2.png")}
@@ -650,12 +700,18 @@ export default function KokoroDoctorScreen() {
 
                   <TouchableOpacity
                     style={webStyles.arrowBtn}
-                    onPress={() =>
+                    onPress={() => {
+                      mixpanel.track("Web Featured CTA Clicked", {
+                        banner: "start_health_check",
+                        source: "web-featured-arrow",
+                        destination: "DoctorResultShow",
+                      });
+
                       navigation.navigate("PatientAppNavigation", {
                         screen: "Doctors",
                         params: { screen: "DoctorResultShow" },
-                      })
-                    }
+                      });
+                    }}
                   >
                     <Ionicons name="arrow-forward" size={20} color="#FF5A5F" />
                   </TouchableOpacity>
@@ -686,9 +742,15 @@ export default function KokoroDoctorScreen() {
 
                   <TouchableOpacity
                     style={webStyles.arrowBtn}
-                    onPress={() =>
-                      navigation.navigate("NewMedicineLandingPage")
-                    }
+                    onPress={() => {
+                      mixpanel.track("Web Featured CTA Clicked", {
+                        banner: "medicine_explainer",
+                        source: "web-featured-section",
+                        destination: "NewMedicineLandingPage",
+                      });
+
+                      navigation.navigate("NewMedicineLandingPage");
+                    }}
                   >
                     <Ionicons name="arrow-forward" size={20} color="#FF5A5F" />
                   </TouchableOpacity>
@@ -740,8 +802,8 @@ export default function KokoroDoctorScreen() {
             {/* TEXT + BUTTON */}
             <View style={styles.heroContent}>
               <Text style={styles.heroTitle}>
-                Post-Surgery Is Where {"\n"}Cardiac Care Fails. {"\n"}We&apos;re Here
-                to Fix That.
+                Post-Surgery Is Where {"\n"}Cardiac Care Fails. {"\n"}We&apos;re
+                Here to Fix That.
               </Text>
 
               <TouchableOpacity
