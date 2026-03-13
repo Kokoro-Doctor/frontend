@@ -799,7 +799,6 @@
 
 // export default MobileChatbot;
 
-
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   useNavigation,
@@ -898,20 +897,20 @@ const MobileChatbot = () => {
       try {
         // Extract user_id from user object
         const userId = user?.id || user?.user_id || null;
-        
+
         // Get chat count for anonymous users to pass to backend
         let chatCountToSend = null;
         if (!user) {
           chatCountToSend = await getChatCount();
         }
-        
+
         const botReply = await askBot(
           user,
           role,
           presetPrompt,
           selectedLanguage.value,
           userId,
-          chatCountToSend // chat_count
+          chatCountToSend, // chat_count
         );
 
         if (botReply) {
@@ -972,16 +971,15 @@ const MobileChatbot = () => {
         Speech.stop();
         setPlayingMessage(null);
       };
-    }, [])
+    }, []),
   );
-
 
   //Loading animation
   useEffect(() => {
     if (isLoading) {
       const interval = setInterval(() => {
         setTypingText((prev) =>
-          prev === "." ? ".." : prev === ".." ? "..." : "."
+          prev === "." ? ".." : prev === ".." ? "..." : ".",
         );
       }, 500); // Change every 500ms
 
@@ -1007,7 +1005,7 @@ const MobileChatbot = () => {
       // Check if stay logged out limit exceeded - block completely
       const hasExceededLimit = await hasExceededStayLoggedOutLimit(sessionId);
       const currentCount = await getChatCount();
-      
+
       if (hasExceededLimit && currentCount >= CHAT_LIMIT) {
         // User has exceeded stay logged out limit and reached chat limit
         // Show popup without "Stay logged out" option and block sending
@@ -1028,7 +1026,7 @@ const MobileChatbot = () => {
       // Increment chat count for non-signed-in users (session-based)
       newCount = await incrementChatCount();
       chatCountToSend = newCount;
-      console.log('MobileChatbot - Incremented chat count to:', newCount);
+      console.log("MobileChatbot - Incremented chat count to:", newCount);
 
       // Check if we just reached the limit
       if (newCount >= CHAT_LIMIT) {
@@ -1054,7 +1052,7 @@ const MobileChatbot = () => {
             messageToSend,
             selectedLanguage.value,
             userId,
-            chatCountToSend // chat_count
+            chatCountToSend, // chat_count
           );
           if (botReply) {
             const botMessage = {
@@ -1128,21 +1126,27 @@ const MobileChatbot = () => {
       if (!user) {
         if (chatCountToSend === null || chatCountToSend === undefined) {
           chatCountToSend = await getChatCount();
-          console.log('MobileChatbot - Got chat count from storage:', chatCountToSend);
+          console.log(
+            "MobileChatbot - Got chat count from storage:",
+            chatCountToSend,
+          );
         }
         // Ensure chatCountToSend is a number
-        chatCountToSend = typeof chatCountToSend === 'number' ? chatCountToSend : parseInt(chatCountToSend, 10) || 0;
+        chatCountToSend =
+          typeof chatCountToSend === "number"
+            ? chatCountToSend
+            : parseInt(chatCountToSend, 10) || 0;
       }
-      
+
       const botReply = await askBot(
         user,
         role,
         messageToSend,
         selectedLanguage.value,
         userId,
-        chatCountToSend // chat_count (for tracking, but backend ignores it for preview logic)
+        chatCountToSend, // chat_count (for tracking, but backend ignores it for preview logic)
       );
-      
+
       if (botReply) {
         const botMessage = {
           id: Date.now().toString(),
@@ -1363,7 +1367,7 @@ const MobileChatbot = () => {
             <MaterialIcons name="camera-alt" size={24} color="#333" />
           </Pressable>
         </View>
-        <TextInput
+        {/* <TextInput
           value={userMessage}
           onChangeText={setUserMessage}
           style={styles.input}
@@ -1371,6 +1375,23 @@ const MobileChatbot = () => {
           placeholderTextColor="#aaa"
           onSubmitEditing={sendMessageToBot}
           enterKeyHint="send"
+        /> */}
+        <TextInput
+          value={userMessage}
+          onChangeText={setUserMessage}
+          style={styles.input}
+          placeholder="Type message"
+          placeholderTextColor="#aaa"
+          returnKeyType="send"
+          blurOnSubmit={false}
+          multiline={false}
+          onSubmitEditing={sendMessageToBot}
+          onKeyPress={(e) => {
+            if (e.nativeEvent.key === "Enter") {
+              e.preventDefault?.();
+              sendMessageToBot();
+            }
+          }}
         />
         <Pressable onPress={sendMessageToBot}>
           <MaterialIcons
@@ -1393,7 +1414,8 @@ const MobileChatbot = () => {
             await incrementStayLoggedOutCount(sessionId);
             await resetChatCount(sessionId);
             // Update the option visibility for next time
-            const newStayLoggedOutCount = await getStayLoggedOutCount(sessionId);
+            const newStayLoggedOutCount =
+              await getStayLoggedOutCount(sessionId);
             setShowStayLoggedOutOption(newStayLoggedOutCount < 2);
           }
         }}
@@ -1565,8 +1587,3 @@ const styles = StyleSheet.create({
 });
 
 export default MobileChatbot;
-
-
-
-
-

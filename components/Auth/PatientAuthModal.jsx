@@ -1039,6 +1039,14 @@ const PatientAuthModal = ({
                         value={loginIdentifier}
                         onChangeText={handleLoginIdentifierChange}
                         maxLength={getCountryByCode(loginCountryCode).maxLength}
+                        returnKeyType="done"
+                        blurOnSubmit={false}
+                        onSubmitEditing={handleNext}
+                        onKeyPress={(e) => {
+                          if (e.nativeEvent.key === "Enter") {
+                            handleNext();
+                          }
+                        }}
                       />
                     </View>
                     {showLoginPhoneError ? (
@@ -1110,6 +1118,7 @@ const PatientAuthModal = ({
                       value={fullName}
                       onChangeText={setFullName}
                       autoCapitalize="words"
+                      returnKeyType="next"
                     />
 
                     <Text style={styles.inputLabel}>
@@ -1185,6 +1194,14 @@ const PatientAuthModal = ({
                         maxLength={
                           getCountryByCode(signupCountryCode).maxLength
                         }
+                        returnKeyType="done"
+                        blurOnSubmit={false}
+                        onSubmitEditing={handleNext}
+                        onKeyPress={(e) => {
+                          if (e.nativeEvent.key === "Enter") {
+                            handleNext();
+                          }
+                        }}
                       />
                     </View>
                     {showSignupPhoneError ? (
