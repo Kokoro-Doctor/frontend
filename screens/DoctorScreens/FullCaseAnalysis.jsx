@@ -178,6 +178,13 @@ export default function FullCaseAnalysis({ navigation, route }) {
       ).start();
 
       startConfettiLoop();
+
+      // ⏱️ Auto stop after 2 seconds
+      const timer = setTimeout(() => {
+        stopIntroAnimation();
+      }, 3000);
+
+      return () => clearTimeout(timer);
     }
   }, [route?.params?.showIntro]);
 
@@ -426,6 +433,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
 
     if (confettiInterval.current) {
       clearInterval(confettiInterval.current);
+      confettiInterval.current = null;
     }
   };
   return (
@@ -741,6 +749,16 @@ export default function FullCaseAnalysis({ navigation, route }) {
                             style={styles.chatInput}
                             value={question}
                             onChangeText={setQuestion}
+                            returnKeyType="send"
+                            blurOnSubmit={false}
+                            multiline={false}
+                            onSubmitEditing={sendMessage}
+                            onKeyPress={(e) => {
+                              if (e.nativeEvent.key === "Enter") {
+                                e.preventDefault?.();
+                                sendMessage();
+                              }
+                            }}
                           />
 
                           <TouchableOpacity
@@ -1203,6 +1221,16 @@ export default function FullCaseAnalysis({ navigation, route }) {
               style={styles.chatInput}
               value={question}
               onChangeText={setQuestion}
+              returnKeyType="send"
+              blurOnSubmit={false}
+              multiline={false}
+              onSubmitEditing={sendMessage}
+              onKeyPress={(e) => {
+                if (e.nativeEvent.key === "Enter") {
+                  e.preventDefault?.();
+                  sendMessage();
+                }
+              }}
             />
 
             <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>

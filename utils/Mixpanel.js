@@ -400,8 +400,9 @@ if (Platform.OS === "web") {
         ...properties,
         token: MIXPANEL_TOKEN,
         distinct_id: currentDistinctId,
-        time: Date.now(),
-        $insert_id: `${Date.now()}-${Math.random()}`,
+        time: Math.floor(Date.now() / 1000),
+        // $insert_id: `${Date.now()}-${Math.random()}`,
+        $insert_id: `event-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
 
         // System properties for OS and Browser detection
         $os: os,
@@ -424,24 +425,27 @@ if (Platform.OS === "web") {
     };
 
     // Encode data as base64
-    const encodedData = btoa(JSON.stringify(eventData));
+    //const encodedData = btoa(JSON.stringify(eventData));
 
     // Try XHR
+    // const xhr = new XMLHttpRequest();
+    // xhr.open("POST", `${MIXPANEL_API_URL}/track`);
+    // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${MIXPANEL_API_URL}/track`);
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.open("POST", `${MIXPANEL_API_URL}/track?verbose=1`);
+    xhr.setRequestHeader("Content-Type", "application/json");
 
     xhr.onload = () => {
       if (xhr.status === 200) {
         console.log(
           `✅ Event "${eventName}" sent successfully:`,
-          xhr.responseText
+          xhr.responseText,
         );
       } else {
         console.error(
           `❌ Failed to send event "${eventName}":`,
           xhr.status,
-          xhr.responseText
+          xhr.responseText,
         );
       }
     };
@@ -452,8 +456,11 @@ if (Platform.OS === "web") {
       // Fallback: Try using img beacon
       console.log("🔄 Trying img beacon fallback...");
       const img = new Image();
+      // img.src = `${MIXPANEL_API_URL}/track?data=${encodeURIComponent(
+      //   encodedData,
+      // )}&ip=1`;
       img.src = `${MIXPANEL_API_URL}/track?data=${encodeURIComponent(
-        encodedData
+        btoa(JSON.stringify(eventData)),
       )}&ip=1`;
       img.onload = () =>
         console.log(`✅ Event "${eventName}" sent via img beacon`);
@@ -462,7 +469,8 @@ if (Platform.OS === "web") {
     };
 
     // CRITICAL: Add ip=1 parameter to capture IP for geolocation
-    xhr.send(`data=${encodedData}&ip=1&verbose=1`);
+    //xhr.send(`data=${encodedData}&ip=1&verbose=1`);
+    xhr.send(JSON.stringify([eventData]));
   };
 
   // 🔥 People.set function
@@ -480,11 +488,14 @@ if (Platform.OS === "web") {
       $ip: 1, // Capture IP for user profile geolocation
     };
 
-    const encodedData = btoa(JSON.stringify(eventData));
+    //const encodedData = btoa(JSON.stringify(eventData));
 
+    // const xhr = new XMLHttpRequest();
+    // xhr.open("POST", `${MIXPANEL_API_URL}/engage`);
+    // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${MIXPANEL_API_URL}/engage`);
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.open("POST", `${MIXPANEL_API_URL}/track?verbose=1`);
+    xhr.setRequestHeader("Content-Type", "application/json");
 
     xhr.onload = () => {
       if (xhr.status === 200) {
@@ -498,7 +509,8 @@ if (Platform.OS === "web") {
       console.error("❌ Network error setting user properties");
     };
 
-    xhr.send(`data=${encodedData}&ip=1&verbose=1`);
+    // xhr.send(`data=${encodedData}&ip=1&verbose=1`);
+    xhr.send(JSON.stringify([eventData]));
   };
 
   // 🔥 Identify function
@@ -557,7 +569,7 @@ if (Platform.OS === "web") {
 
     console.log(
       "✅ Mixpanel reset complete. New anonymous ID:",
-      newAnonymousId
+      newAnonymousId,
     );
   };
 

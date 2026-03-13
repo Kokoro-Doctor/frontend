@@ -71,13 +71,12 @@ const ChatBot = () => {
     }
   }, [user]);
 
-
   // Loading Typing animation
   useEffect(() => {
     if (isLoading) {
       const interval = setInterval(() => {
         setTypingText((prev) =>
-          prev === "." ? ".." : prev === ".." ? "..." : "."
+          prev === "." ? ".." : prev === ".." ? "..." : ".",
         );
       }, 500); // Change every 500ms
 
@@ -100,7 +99,7 @@ const ChatBot = () => {
       // Check if stay logged out limit exceeded - block completely
       const hasExceededLimit = await hasExceededStayLoggedOutLimit(sessionId);
       const currentCount = await getChatCount();
-      
+
       if (hasExceededLimit && currentCount >= CHAT_LIMIT) {
         // User has exceeded stay logged out limit and reached chat limit
         // Show popup without "Stay logged out" option and block sending
@@ -121,7 +120,7 @@ const ChatBot = () => {
       // Increment chat count for non-signed-in users (session-based)
       newCount = await incrementChatCount();
       chatCountToSend = newCount;
-      console.log('ChatBot - Incremented chat count to:', newCount);
+      console.log("ChatBot - Incremented chat count to:", newCount);
 
       // Check if we just reached the limit
       if (newCount >= CHAT_LIMIT) {
@@ -141,7 +140,7 @@ const ChatBot = () => {
             messageToSend,
             selectedLanguage,
             null, // userId
-            chatCountToSend // chat_count
+            chatCountToSend, // chat_count
           );
           if (botReply) {
             setMessages((prevMessages) => {
@@ -150,11 +149,11 @@ const ChatBot = () => {
                 text: botReply.text,
                 is_preview: false,
               };
-              
+
               const updatedMessages = [...prevMessages, messageData];
               const newMessageIndex = updatedMessages.length - 1;
               setPlayingMessage(newMessageIndex);
-              
+
               Speech.speak(botReply.text, {
                 language: selectedLanguage,
                 onDone: () => setPlayingMessage(null),
@@ -197,19 +196,25 @@ const ChatBot = () => {
       if (!user) {
         if (chatCountToSend === null || chatCountToSend === undefined) {
           chatCountToSend = await getChatCount();
-          console.log('ChatBot - Got chat count from storage:', chatCountToSend);
+          console.log(
+            "ChatBot - Got chat count from storage:",
+            chatCountToSend,
+          );
         }
         // Ensure chatCountToSend is a number
-        chatCountToSend = typeof chatCountToSend === 'number' ? chatCountToSend : parseInt(chatCountToSend, 10) || 0;
+        chatCountToSend =
+          typeof chatCountToSend === "number"
+            ? chatCountToSend
+            : parseInt(chatCountToSend, 10) || 0;
       }
-      
+
       const botReply = await askBot(
         user,
         role,
         messageToSend,
         selectedLanguage,
         null, // userId
-        chatCountToSend // chat_count (for tracking, but backend ignores it for preview logic)
+        chatCountToSend, // chat_count (for tracking, but backend ignores it for preview logic)
       );
 
       if (botReply) {
@@ -219,11 +224,11 @@ const ChatBot = () => {
             text: botReply.text,
             is_preview: false,
           };
-          
+
           const updatedMessages = [...prevMessages, messageData];
           const newMessageIndex = updatedMessages.length - 1;
           setPlayingMessage(newMessageIndex);
-          
+
           Speech.speak(botReply.text, {
             language: selectedLanguage,
             onDone: () => setPlayingMessage(null),
@@ -431,8 +436,15 @@ const ChatBot = () => {
           onFocus={handleFocus}
           placeholderTextColor={"#aaa"}
           placeholder="Type your message..."
-          onSubmitEditing={sendMessageToBot}
+          onSubmitEditing={sendMessageToBot} // mobile enter key
           enterKeyHint="send"
+          blurOnSubmit={false}
+          onKeyPress={(e) => {
+            if (Platform.OS === "web" && e.nativeEvent.key === "Enter") {
+              e.preventDefault();
+              sendMessageToBot();
+            }
+          }}
         />
         <TouchableOpacity onPress={sendMessageToBot}>
           <Image
@@ -453,7 +465,8 @@ const ChatBot = () => {
             await incrementStayLoggedOutCount(sessionId);
             await resetChatCount(sessionId);
             // Update the option visibility for next time
-            const newStayLoggedOutCount = await getStayLoggedOutCount(sessionId);
+            const newStayLoggedOutCount =
+              await getStayLoggedOutCount(sessionId);
             setShowStayLoggedOutOption(newStayLoggedOutCount < 2);
           }
         }}

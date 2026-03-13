@@ -365,7 +365,7 @@ export default function KokoroDoctorScreen() {
 
               <View style={{ width: 800 }}>
                 <Text style={webStyles.heroTitle}>
-                  Post-Surgery Is Where Cardiac Care Fails. We're Here to Fix
+                  Post-Surgery Is Where Cardiac Care Fails. We&apos;re Here to Fix
                   That.
                 </Text>
               </View>
@@ -451,11 +451,46 @@ export default function KokoroDoctorScreen() {
               />
             </Animated.View>
 
+            {/* <TextInput
+              placeholder="Type your medicine name or symptoms..."
+              value={searchText}
+              onChangeText={setSearchText}
+              style={styles.newText}
+            /> */}
             <TextInput
               placeholder="Type your medicine name or symptoms..."
               value={searchText}
               onChangeText={setSearchText}
               style={styles.newText}
+              returnKeyType="search"
+              blurOnSubmit={false}
+              multiline={false}
+              onSubmitEditing={() => {
+                const textToSend = searchText.trim();
+                if (!textToSend) return;
+
+                navigation.navigate("PatientAppNavigation", {
+                  screen: "MobileChatbot",
+                  params: {
+                    presetPrompt: textToSend,
+                    source: "medicine-input",
+                  },
+                });
+              }}
+              onKeyPress={(e) => {
+                if (e.nativeEvent.key === "Enter") {
+                  const textToSend = searchText.trim();
+                  if (!textToSend) return;
+
+                  navigation.navigate("PatientAppNavigation", {
+                    screen: "MobileChatbot",
+                    params: {
+                      presetPrompt: textToSend,
+                      source: "medicine-input",
+                    },
+                  });
+                }
+              }}
             />
 
             <TouchableOpacity
@@ -705,7 +740,7 @@ export default function KokoroDoctorScreen() {
             {/* TEXT + BUTTON */}
             <View style={styles.heroContent}>
               <Text style={styles.heroTitle}>
-                Post-Surgery Is Where {"\n"}Cardiac Care Fails. {"\n"}We're Here
+                Post-Surgery Is Where {"\n"}Cardiac Care Fails. {"\n"}We&apos;re Here
                 to Fix That.
               </Text>
 
