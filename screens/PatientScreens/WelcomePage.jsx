@@ -365,8 +365,8 @@ export default function KokoroDoctorScreen() {
 
               <View style={{ width: 800 }}>
                 <Text style={webStyles.heroTitle}>
-                  Recovering after surgery? Kokoro helps you heal with
-                  confidence
+                  Post-Surgery Is Where Cardiac Care Fails. We're Here to Fix
+                  That.
                 </Text>
               </View>
 
@@ -705,8 +705,8 @@ export default function KokoroDoctorScreen() {
             {/* TEXT + BUTTON */}
             <View style={styles.heroContent}>
               <Text style={styles.heroTitle}>
-                Recovering after surgery? {"\n"}Kokoro helps you heal with
-                confidence
+                Post-Surgery Is Where {"\n"}Cardiac Care Fails. {"\n"}We're Here
+                to Fix That.
               </Text>
 
               <TouchableOpacity
@@ -1425,7 +1425,7 @@ const webStyles = StyleSheet.create({
   },
 
   heroTitle: {
-    marginTop: "2%",
+    marginTop: "1%",
     fontSize: 22,
     color: "#fff",
     fontWeight: "700",

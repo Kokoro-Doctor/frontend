@@ -36,6 +36,13 @@ const AboutUsMain = ({ navigation, route }) => {
     }
   };
 
+  const stats = [
+    { value: "50K+", label: "Patients Treated", icon: "heart" },
+    { value: "100+", label: "Specialist Doctors", icon: "people" },
+    { value: "200+", label: "Patient Reviews", icon: "star" },
+    { value: "30", label: "Medical Awards", icon: "trophy" },
+  ];
+
   return (
     <>
       {Platform.OS === "web" && width > 1000 && (
@@ -44,670 +51,370 @@ const AboutUsMain = ({ navigation, route }) => {
             <View style={styles.Left}>
               <SideBarNavigation navigation={navigation} />
             </View>
+
             <View style={styles.Right}>
               <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <View style={styles.title}>
-                  <Text style={styles.brandName}>
-                    Kokoro.
-                    <Text style={styles.doctorText}>Doctor</Text>
-                  </Text>
-                  <Text style={styles.tagline}>
-                    Your AI-Powered Heart Health Companion
-                  </Text>
-                  <BackButton />
+                {/* HERO */}
+                <View style={styles.hero}>
+                  {/* LEFT TEXT */}
+                  <View style={styles.heroLeft}>
+                    <View style={{ flexDirection: "row", gap: 5 }}>
+                      <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <Text style={styles.breadcrumb}>BACK /</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity>
+                        <Text style={styles.bold}>ABOUT</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.heroTitle}>
+                      Caring for{"\n"}
+                      <Text style={styles.primary}>Your Heart</Text>
+                      {"\n"}& Wellness
+                    </Text>
+
+                    <Text style={styles.heroText}>
+                      Kokoro.Doctor is dedicated to making AI-powered {"\n"}
+                      healthcare accessible to everyone — specializing in {"\n"}
+                      cardiology and gynecology with compassion, precision,{" "}
+                      {"\n"}
+                      and innovation.
+                    </Text>
+
+                    <View style={styles.featureRow}>
+                      <View style={styles.iconCircle}>
+                        <Ionicons name="heart-outline" size={24} color="#fff" />
+                      </View>
+
+                      <Text style={styles.featureText}>
+                        AI-Powered Heart Health Companion
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* RIGHT IMAGE */}
+                  <View style={styles.heroRight}>
+                    <Image
+                      source={require("../../../assets/Images/aboutus_doctor.jpg")}
+                      style={styles.heroImage}
+                      resizeMode="cover"
+                    />
+                  </View>
                 </View>
 
-                <View style={styles.AboutSection}>
-                  <View style={styles.textBox}>
-                    <View style={styles.delayedBorder} />
-                    <Text style={styles.aboutTitle}>About Us</Text>
-                    <Text style={styles.text}>
+                {/* STATS BAR */}
+                <View style={styles.statsBar}>
+                  {stats.map((item, index) => (
+                    <View key={index} style={styles.statBox}>
+                      <Ionicons name={item.icon} size={30} color="#fff" />
+                      <Text style={styles.statValue}>{item.value}</Text>
+                      <Text style={styles.statLabel}>{item.label}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* MISSION / VISION */}
+                <View style={styles.missionContainer}>
+                  {/* LEFT - MISSION */}
+                  <View style={styles.missionColumn}>
+                    <Text style={styles.missionTitle}>
+                      Our Mission — Cardiology
+                    </Text>
+
+                    <Text style={styles.missionText}>
+                      Heart disease remains the leading cause of death globally.
+                      We're on a mission to change that through early detection
+                      and AI-driven insights.
+                    </Text>
+
+                    <View style={styles.bulletRow}>
+                      <View style={styles.dot} />
+                      <Text style={styles.bulletText}>
+                        AI-powered cardiac risk assessment and early detection
+                        tools
+                      </Text>
+                    </View>
+
+                    <View style={styles.bulletRow}>
+                      <View style={styles.dot} />
+                      <Text style={styles.bulletText}>
+                        24/7 heart health monitoring and personalized insights
+                      </Text>
+                    </View>
+
+                    <View style={styles.bulletRow}>
+                      <View style={styles.dot} />
+                      <Text style={styles.bulletText}>
+                        Connecting patients with top cardiologists for timely
+                        consultations
+                      </Text>
+                    </View>
+
+                    <Image
+                      source={require("../../../assets/Images/aboutus_second.jpg")}
+                      style={styles.missionImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+
+                  {/* RIGHT - VISION */}
+                  <View style={styles.missionColumn}>
+                    <Text style={styles.missionTitle}>
+                      Our Vision — Gynecology
+                    </Text>
+
+                    <Text style={styles.missionText}>
+                      Millions of women struggle with timely access to
+                      gynecological care. We envision a world where every woman
+                      receives the support she deserves.
+                    </Text>
+
+                    <View style={styles.bulletRow}>
+                      <View style={styles.dot} />
+                      <Text style={styles.bulletText}>
+                        Accessible women's health screenings and preventive care
+                      </Text>
+                    </View>
+
+                    <View style={styles.bulletRow}>
+                      <View style={styles.dot} />
+                      <Text style={styles.bulletText}>
+                        AI-assisted diagnostics for early gynecological
+                        conditions
+                      </Text>
+                    </View>
+
+                    <View style={styles.bulletRow}>
+                      <View style={styles.dot} />
+                      <Text style={styles.bulletText}>
+                        Compassionate, private, and affordable care for all
+                        women
+                      </Text>
+                    </View>
+
+                    <Image
+                      source={require("../../../assets/Images/aboutUs_third.jpg")}
+                      style={styles.missionImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                </View>
+
+                {/* OUR JOURNEY */}
+                <View style={styles.journeySection}>
+                  {/* LEFT IMAGE COLLAGE */}
+                  <View style={styles.journeyImages}>
+                    <Image
+                      source={require("../../../assets/Images/AboutUS_Journey2.jpg")}
+                      style={styles.journeyImg1}
+                    />
+
+                    <Image
+                      source={require("../../../assets/Images/AboutUS_journey1.jpg")}
+                      style={styles.journeyImg2}
+                    />
+
+                    <Image
+                      source={require("../../../assets/Images/AboutUs_journey.jpg")}
+                      style={styles.journeyImg3}
+                    />
+                  </View>
+
+                  {/* RIGHT TEXT */}
+                  <View style={styles.journeyText}>
+                    <Text style={styles.journeyTitle}>Our Journey</Text>
+
+                    <Text style={styles.journeyParagraph}>
                       Kokoro.Doctor was founded with a mission to make
                       AI-powered healthcare accessible to everyone, starting
-                      with heart health and now extending into womens health and
-                      gynecology. As an i-Lab Member at Harvard Innovation Labs,
-                      our team of experts in AI, healthcare, and business is
-                      dedicated to bridging the gap between early detection and
-                      timely medical action.With extensive research and
-                      cutting-edge technology, Kokoro.Doctor provides patients,
-                      doctors, and caregivers with supportive tools for both
-                      cardiac and gynecological care. While our platform raises
-                      awareness and helps with early insights, we always
-                      encourage users to consult qualified doctors—especially in
-                      case of serious concerns or emergencies.Our commitment to
-                      affordable, data-driven healthcare makes us a leader in
-                      shaping the future of digital health solutions. We
-                      envision a world where no one suffers due to lack of
-                      timely care. By leveraging AI, medical expertise, and
-                      innovation, Kokoro.Doctor is at the forefront of the next
-                      healthcare revolution—bringing better access, inclusivity,
-                      and impact across multiple specialties.
+                      with heart health and now extending into women's health
+                      and gynecology. As an i-Lab Member at Harvard Innovation
+                      Labs, our team bridges the gap between early detection and
+                      timely medical action.
                     </Text>
-                  </View>
 
-                  <View style={styles.rightSection}>
-                    <Text style={styles.urgentNeedTitle}>
-                      THE URGENT NEED FOR BETTER HEART CARE
-                    </Text>
-                    <Text style={styles.urgentNeedText}>
-                      Heart disease remains the leading cause of death globally,
-                      while millions also struggle with timely access to
-                      gynecological and women’s health services. Quick,
-                      reliable, and affordable healthcare solutions are still
-                      out of reach for many—highlighting the need for supportive
-                      tools that guide individuals toward timely medical
-                      attention.
+                    <Text style={styles.journeyParagraph}>
+                      With extensive research and cutting-edge technology, we
+                      provide patients, doctors, and caregivers with supportive
+                      tools for both cardiac and gynecological care — raising
+                      awareness and delivering early insights when they matter
+                      most.
                     </Text>
                   </View>
                 </View>
-                <View style={styles.Need}>
-                  <View style={styles.headerNeed}>
-                    <Text style={styles.headerTextNeed}>
-                      The Urgent Need for Better Heart Care
-                    </Text>
-                    <Text style={styles.description}>
-                      The Urgent Need for Better Healthcare Heart disease
-                      remains the leading cause of death worldwide, and millions
-                      of women continue to face challenges in accessing timely
-                      gynecological care. Quick, reliable, and affordable
-                      healthcare solutions are still not available to everyone.
-                    </Text>
+
+                {/* OUR EXPERT TEAM */}
+                <View style={styles.teamSection}>
+                  <Text style={styles.teamTitle}>Our Expert Team</Text>
+
+                  <Text style={styles.teamSubtitle}>
+                    Meet the dedicated specialists committed to your heart and
+                    wellness.
+                  </Text>
+
+                  <View style={styles.teamRow}>
+                    {/* CARD 1 */}
+                    <View style={styles.teamCard}>
+                      <View style={styles.roleRow}>
+                        <View style={styles.roleIndicator} />
+                        <Text style={styles.roleText}>Co-Founder and CEO</Text>
+                      </View>
+
+                      <Text style={styles.memberName}>
+                        Dr. Kislay Shrivastava
+                      </Text>
+
+                      <Text style={styles.memberRole}>
+                        (Senior Cardiologist (MBBS, MD, DM Cardiology, AIIMS))
+                      </Text>
+
+                      <Text style={styles.memberExperience}>
+                        22+ Years of Experience
+                      </Text>
+                    </View>
+
+                    {/* CARD 2 */}
+                    <View style={styles.teamCard}>
+                      <View style={styles.roleRow}>
+                        <View style={styles.roleIndicator} />
+                        <Text style={styles.roleText}>Co-Founder and CTO</Text>
+                      </View>
+
+                      <Text style={styles.memberName}>
+                        Mr. Ghanendra Shrivastava
+                      </Text>
+
+                      <Text style={styles.memberRole}>
+                        (IIT R, Harvard HES, Director of AI and Engg)
+                      </Text>
+
+                      <Text style={styles.memberExperience}>
+                        8+ Years of Experience
+                      </Text>
+                    </View>
+                  </View>
+                  {/* MENTORS */}
+                </View>
+
+                <View style={styles.mentorsSection}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionIndicator} />
+                    <Text style={styles.sectionHeaderText}>Mentors</Text>
                   </View>
 
-                  {/* Background Design */}
-                  <View style={styles.circle1} />
-                  <View style={styles.circle2} />
-
-                  {/* Problem Section */}
-                  <Text style={styles.problemTitle}>The Problem:</Text>
-                  <View style={styles.problemContainer}>
-                    <View style={styles.problemBox}>
-                      <Text style={styles.problemText}>
-                        Limited specialist availability — shortage of
-                        cardiologists and gynecologists in many towns and
-                        cities.
-                      </Text>
-                    </View>
-                    <View style={styles.problemBox}>
-                      <Text style={styles.problemText}>
-                        Long waiting times — delays in getting appointments,
-                        checkups, and diagnostic tests.
-                      </Text>
-                    </View>
-                    <View style={styles.problemBox}>
-                      <Text style={styles.problemText}>
-                        High costs — advanced treatments and procedures often
-                        remain unaffordable.
-                      </Text>
-                    </View>
-                    <View style={styles.problemBox}>
-                      <Text style={styles.problemText}>
-                        Delayed action — early warning signs are frequently
-                        ignored or go undetected.
-                      </Text>
-                    </View>
+                  <View style={styles.mentorsRow}>
+                    <Text style={styles.mentorName}>Srinivas Babu</Text>
+                    <Text style={styles.mentorName}>DJ Das</Text>
+                    <Text style={styles.mentorName}>Prof. Jeremy Wei</Text>
+                    <Text style={styles.mentorName}>
+                      Prof. Mike Grandinneti
+                    </Text>
+                    <Text style={styles.mentorName}>Dr Arpita</Text>
                   </View>
                 </View>
 
-                <View style={styles.access}>
-                  <Text style={styles.head}>
-                    What if you could assess your heart & reproductive health
-                    instantly?
-                  </Text>
-                  <Text style={styles.subhead}>
-                    That’s why we created Kokoro.Doctor.
-                  </Text>
-
-                  <TouchableOpacity
-                    style={styles.option}
-                    onPress={() => {
-                      navigation.navigate("AboutUsWhat");
-                    }}
-                  >
-                    <Text style={styles.optionText}>
-                      What is Kokoro.Doctor?
-                    </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={22}
-                      color="#FFFFFF"
-                    />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.option}
-                    onPress={() => {
-                      navigation.navigate("AboutUsHow");
-                    }}
-                  >
-                    <Text style={styles.optionText}>
-                      How Kokoro.Doctor Works?
-                    </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={22}
-                      color="#FFFFFF"
-                    />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.option}
-                    onPress={() => {
-                      navigation.navigate("AboutUsWhy");
-                    }}
-                  >
-                    <Text style={styles.optionText}>
-                      Why Kokoro.Doctor Stands Out?
-                    </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={22}
-                      color="#FFFFFF"
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.GlobleMission}>
-                  <View style={styles.missionBox}>
-                    <Text style={styles.missionHeader}>
-                      The Bold Vision A Global Mission
-                    </Text>
-                    {/* <View  style={styles.backColor}> */}
-                    <Text style={styles.missionSubText}>
-                      <Text style={{ fontStyle: "italic" }}>
-                        Health should never be out of reach—whether it’s your
-                        heart or your reproductive health.Heart disease has
-                        quietly taken too many lives—particularly in communities
-                        with limited healthcare access.
-                      </Text>
-                    </Text>
-
-                    {/* Benefits Boxes */}
-                    <View style={styles.benefitsContainer}>
-                      <View style={styles.benefitBox}>
-                        <Text style={styles.benefitText}>
-                          No more delayed heart care
-                        </Text>
-                      </View>
-                      <View style={styles.benefitBox}>
-                        <Text style={styles.benefitText}>
-                          No more preventable heart attacks.
-                        </Text>
-                      </View>
-                      <View style={styles.benefitBox}>
-                        <Text style={styles.benefitText}>
-                          No family suffering because they couldn’t get help in
-                          time
-                        </Text>
-                      </View>
-                    </View>
-                    {/* </View> */}
-                    <Text style={styles.womenHealthHeader}>
-                      And for womens health:
-                    </Text>
-                    <View style={styles.womenBenefitsContainer}>
-                      <View style={styles.womenBenefitBox}>
-                        <Text style={styles.womenBenefitText}>
-                          Access expert gynecological care for pregnancy,
-                          reproductive health, and confidential support.
-                        </Text>
-                      </View>
-                      <View style={styles.womenBenefitBox}>
-                        <Text style={styles.womenBenefitText}>
-                          Safe, timely, and personalized care for every stage of
-                          life.
-                        </Text>
-                      </View>
-                    </View>
+                {/* FOUNDING TEAM */}
+                <View style={styles.foundingSection}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionIndicator} />
+                    <Text style={styles.sectionHeaderText}>Founding Team</Text>
                   </View>
 
-                  {/* Pricing Section */}
-                  {/* <Text style={styles.pricingHeader}>PRICING</Text> */}
-                  {/* <Text style={styles.pricingSubText}>
-                    We believe affordable healthcare should be a reality for
-                    everyone.
-                  </Text> */}
-
-                  {/* Monthly Plan */}
-                  {/* <View style={styles.pricingBox}>
-                    <Text style={styles.priceText}>₹1,999</Text>
-                    <Text style={styles.priceLabel}>per Month</Text>
-                  </View> */}
-
-                  {/* Yearly Plan with Discount */}
-                  {/* <View style={styles.discountContainer}>
-                    <TouchableOpacity style={styles.discountBadge}>
-                      <Text style={styles.discountText}>SAVE 15 %</Text>
-                    </TouchableOpacity>
-                    <View style={styles.pricingBox}>
-                      <Text style={styles.priceText}>₹9,999</Text>
-                      <Text style={styles.priceLabel}>per Year</Text>
+                  <View style={styles.foundingGrid}>
+                    <View style={styles.memberItem}>
+                      <Text style={styles.foundingName}>
+                        Harsh Vardhan Khati
+                      </Text>
+                      <Text style={styles.foundingRole}>Product Manager</Text>
                     </View>
-                  </View> */}
 
-                  {/* Terms Note */}
-                  {/* <Text style={styles.note}>
-                    *This includes unlimited AI heart health assessments,
-                    emergency alerts, priority doctor consultations, and secure
-                    MediLocker.
-                  </Text> */}
-                </View>
-
-                {/* <View style={styles.resolution}>
-                  <Text style={styles.Resheader}>
-                    Join the Revolution in Heart Health
-                  </Text>
-                  <Text style={styles.Resdescription}>
-                    Over 100,000 users have already taken their first AI-powered
-                    heart checkup, and we are just getting started.
-                  </Text>
-
-                
-                  <View style={styles.textContainer}>
-                    <Text style={styles.boldText}>
-                      Patients :{" "}
-                      <Text style={styles.normalText}>
-                        Take charge of your heart health today
+                    <View style={styles.memberItem}>
+                      <Text style={styles.foundingName}>Shobhit Bhatnagar</Text>
+                      <Text style={styles.foundingRole}>
+                        Front end Developer
                       </Text>
-                    </Text>
-                    <View style={styles.line} />
+                    </View>
 
-                    <Text style={styles.boldText}>
-                      Healthcare Providers :{" "}
-                      <Text style={styles.normalText}>
-                        Partner with us for better patient outcomes
+                    <View style={styles.memberItem}>
+                      <Text style={styles.foundingName}>Abhishek Tiwari</Text>
+                      <Text style={styles.foundingRole}>
+                        Front end Developer
                       </Text>
-                    </Text>
-                    <View style={styles.line} />
+                    </View>
 
-                    <Text style={styles.boldText}>
-                      Investors & Innovators:{" "}
-                      <Text style={styles.normalText}>
-                        Be part of the future of AI-driven healthcare
+                    <View style={styles.memberItem}>
+                      <Text style={styles.foundingName}>Purva Agashe</Text>
+                      <Text style={styles.foundingRole}>Designer</Text>
+                    </View>
+
+                    <View style={styles.memberItem}>
+                      <Text style={styles.foundingName}>Nitesh Kothari</Text>
+                      <Text style={styles.foundingRole}>Backend Engineer</Text>
+                    </View>
+
+                    <View style={styles.memberItem}>
+                      <Text style={styles.foundingName}>
+                        Karnika Shrivastava
                       </Text>
-                    </Text>
-                    <View style={styles.line} />
+                      <Text style={styles.foundingRole}>Marketing</Text>
+                    </View>
+
+                    <View style={styles.memberItem}>
+                      <Text style={styles.foundingName}>Ashutosh Swarnkar</Text>
+                      <Text style={styles.foundingRole}>
+                        Associate Product Manager (APM)
+                      </Text>
+                    </View>
+
+                    <View style={styles.memberItem}>
+                      <Text style={styles.foundingName}>
+                        Manjesh Kummar Mishra
+                      </Text>
+                      <Text style={styles.foundingRole}>Data Scientist</Text>
+                    </View>
+
+                    <View style={styles.memberItem}>
+                      <Text style={styles.foundingName}>Anmol Verma</Text>
+                      <Text style={styles.foundingRole}>Operations</Text>
+                    </View>
                   </View>
-
-                  <View style={styles.ctaBox}>
-                    <Text style={styles.ctaText}>
-                      Your heart deserves the best care
-                    </Text>
-
-                    <TouchableOpacity style={styles.ctaButton}>
-                      <Text style={styles.ctaButtonText}>
-                        Check your heart now
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View> */}
-                <View style={styles.FinalThought}>
-                  <Text style={styles.Heading}>Final Thought</Text>
-                  <Text style={styles.SubTitle}>
-                    This is not just another health app—{" "}
-                    <Text style={styles.TextRed}>
-                      It’s a step forward in heart care and sexual health.{" "}
-                    </Text>
-                  </Text>
-                  <Text style={styles.content}>
-                    With insights from{" "}
-                    <Text style={styles.TextRed}>Harvard Innovation Labs </Text>
-                    , AI innovation, and a{" "}
-                    <Text style={styles.TextRed}>patient-first design</Text>,
-                    Kokoro.Doctor is bridging the gap between{" "}
-                    <Text style={styles.TextRed}>
-                      early detection and life-saving action.
-                    </Text>
-                  </Text>
-                  <Text style={styles.lastPara}>
-                    Join Us in redefining heart health-
-                    <Text style={styles.TextRed}>one heartbeat at a time </Text>
-                  </Text>
-                  <Text style={styles.kokoro}>Kokoro</Text>
-                  <Text style={styles.doctor}>Doctor</Text>
                 </View>
               </ScrollView>
             </View>
           </View>
         </View>
       )}
-      ;
-      {(Platform.OS !== "web" || width < 1000) && (
-        <ScrollView style={styles.appContainer} ref={scrollViewRef}>
+
+      {/* {(Platform.OS !== "web" || width < 1000) && (
+        <ScrollView style={styles.mobileContainer} ref={scrollViewRef}>
           <StatusBar barStyle="light-content" backgroundColor="#f96166" />
-          {/* Header Section */}
-          <View style={styles.appHeader}>
-            <View style={styles.appContentWrapper}>
-              {/* Menu and Profile Icons */}
-              <View style={[styles.header, { height: "15%" }]}>
-                <Header navigation={navigation} />
-              </View>
 
-              {/* Main Title */}
-              <View style={styles.appTitleContainer}>
-                <Text style={styles.appTitle}>Kokoro.Doctor</Text>
-                <Text style={styles.appSubtitle}>
-                  Your AI-Powered Heart Health Companion
-                </Text>
-              </View>
-            </View>
+          <Header navigation={navigation} />
+
+          <View style={styles.hero}>
+            <Text style={styles.heroTitle}>
+              Caring for{"\n"}
+              <Text style={styles.primary}>Your Heart</Text>
+              {"\n"}& Wellness
+            </Text>
+
+            <Image
+              source={require("../../../assets/Images/doctorwithtablet.png")}
+              style={styles.heroImage}
+            />
           </View>
 
-          {/* About Us Section */}
-          <View style={styles.appSection}>
-            <Text style={styles.appSectionTitle}>About Us</Text>
-            <Text style={styles.appParagraph}>
-              <Text style={styles.appBold}>Kokoro.Doctor</Text> was founded with
-              a mission to make AI-powered heart health accessible to everyone.
-              As an I Member at Harvard Innovation Labs, our team of experts in
-              AI, healthcare, and business is dedicated to bridging the gap
-              between early detection and life-saving action.
-            </Text>
-
-            {/* Two Vertical Sections */}
-            <View style={styles.appRow}>
-              {/* Left Side */}
-              <View style={[styles.appColumn]}>
-                <Image
-                  source={require("../../../assets/Images/heartfail.png")} // Replace with your actual image path
-                  style={[styles.appAboutImage, styles.appLeftImage]}
-                  resizeMode="cover"
-                />
-                <Text style={styles.appParagraph}>
-                  With extensive research and cutting-edge technology,
-                  <Text style={styles.appBold}> Kokoro.Doctor</Text> ensures
-                  that patients, doctors, and caregivers receive the best
-                  possible tools for cardiac care. Our commitment to affordable,
-                  data-driven healthcare makes us a leader in the field of heart
-                  health solutions.
-                </Text>
+          <View style={styles.statsBar}>
+            {stats.map((item, index) => (
+              <View key={index} style={styles.statBox}>
+                <Ionicons name={item.icon} size={22} color="#fff" />
+                <Text style={styles.statValue}>{item.value}</Text>
+                <Text style={styles.statLabel}>{item.label}</Text>
               </View>
-
-              {/* Right Side */}
-              <View style={[styles.appColumn]}>
-                <Image
-                  source={require("../../../assets/Images/doctorwithtablet.png")} // Replace with your actual image path
-                  style={[styles.appAboutImage, styles.appRightImage]}
-                  resizeMode="cover"
-                />
-                <Text style={styles.appParagraph}>
-                  We envision a world where no one suffers due to lack of timely
-                  heart care. By leveraging AI, medical expertise, and
-                  innovation, <Text style={styles.appBold}> Kokoro.Doctor</Text>{" "}
-                  is at the forefront of the next healthcare revolution.
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Urgent Need Section */}
-          <View style={styles.appUrgentNeedSection}>
-            <Text style={styles.appUrgentNeedTitle}>
-              The Urgent Need for Better
-            </Text>
-            <Text style={styles.appUrgentNeedTitle}>Heart Care</Text>
-            <Text style={styles.appUrgentNeedDescription}>
-              Heart disease is the leading cause of death globally, yet millions
-              still lack quick, reliable, and affordable access to cardiac care.
-            </Text>
-
-            {/* Problem Section */}
-            <View style={styles.appProblemcontainer}>
-              {/* Main Problem Box */}
-              <View style={styles.appProblemBox}>
-                <Text style={styles.appProblemTitle}>The Problem</Text>
-
-                {/* Problem Statements */}
-                <View style={styles.appProblemContent}>
-                  <Text style={styles.appProblemText}>
-                    Lack of cardiologists in many cities and towns.
-                  </Text>
-                  <View style={styles.appSeparator} />
-                  <Text style={styles.appProblemText}>
-                    Long waiting times for checkups and tests.
-                  </Text>
-                  <View style={styles.appSeparator} />
-                  <Text style={styles.appProblemText}>
-                    Expensive treatments that many cannot afford.
-                  </Text>
-                  <View style={styles.appSeparator} />
-                  <Text style={styles.appProblemText}>
-                    Delayed action - many people ignore early warning signs.
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* What If Section */}
-          <View style={styles.appWhatIfSection}>
-            <Text style={styles.appWhatIfTitle}>
-              What if you could assess your heart health instantly?
-            </Text>
-            <Text style={styles.appWhatIfSubtitle}>
-              Thats why we created Kokoro.Doctor.
-            </Text>
-
-            {/* Expandable Options */}
-            <TouchableOpacity
-              style={styles.appExpandableOption}
-              onPress={() => {
-                navigation.navigate("AboutUsWhat");
-              }}
-            >
-              <Text style={styles.appExpandableText}>
-                What is Kokoro.Doctor?
-              </Text>
-              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.appExpandableOption}
-              onPress={() => {
-                navigation.navigate("AboutUsHow");
-              }}
-            >
-              <Text style={styles.appExpandableText}>
-                How Kokoro.Doctor Works?
-              </Text>
-              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.appExpandableOption}
-              onPress={() => {
-                navigation.navigate("AboutUsWhy");
-              }}
-            >
-              <Text style={styles.appExpandableText}>
-                Why Kokoro.Doctor Stands Out?
-              </Text>
-              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Vision Section */}
-          <View style={styles.appVisionSection}>
-            <Text style={styles.appVisionTitle}>The Bigger Vision</Text>
-            <Text style={styles.appVisionSubtitle}>A Global Mission</Text>
-            <Text style={styles.appVisionDescription}>
-              For too long, heart disease has been a silent killer—especially in
-              communities with poor healthcare access.
-            </Text>
-
-            {/* Benefits Boxes */}
-            <ImageBackground
-              source={require("../../../assets/Images/heart_background.png")}
-              style={styles.appBenefitsContainer}
-              imageStyle={{ opacity: 1.0 }}
-            >
-              <Text style={styles.appBeliefText}>
-                At Kokoro.Doctor, we believe in:
-              </Text>
-              <View style={[styles.appBenefitBox, styles.appFirstBenefitBox]}>
-                <Text style={styles.appBenefitText}>
-                  No more delayed heart care
-                </Text>
-              </View>
-              <View style={[styles.appBenefitBox, styles.appSecondBenefitBox]}>
-                <Text style={styles.appBenefitText}>
-                  No more preventable heart attacks
-                </Text>
-              </View>
-              <View style={[styles.appBenefitBox, styles.appThirdBenefitBox]}>
-                <Text style={styles.appBenefitText}>
-                  No family suffering because they couldnt get help in time
-                </Text>
-              </View>
-            </ImageBackground>
-          </View>
-
-          {/* Pricing Section */}
-          <View style={styles.appPricingSection}>
-            <Text style={styles.appPricingTitle}>Pricing</Text>
-            <Text style={styles.appPricingDescription}>
-              We believe affordable healthcare should be a reality for everyone.
-            </Text>
-
-            {/* Monthly Plan */}
-            <View style={styles.appPricingPlan}>
-              <Text style={styles.appPriceAmount}>₹999</Text>
-              <Text style={styles.appPricePeriod}>per month</Text>
-            </View>
-
-            {/* Yearly Plan */}
-            <View style={styles.appYearlyPlanContainer}>
-              <View style={styles.appSaveBadge}>
-                <Text style={styles.appSaveText}>SAVE 15%</Text>
-              </View>
-              <View
-                style={[styles.appPricingPlan, styles.appSecondPricingPlan]}
-              >
-                <Text style={styles.appPriceAmount}>₹4999</Text>
-                <Text style={styles.appPricePeriod}>per year</Text>
-              </View>
-            </View>
-
-            {/* Pricing Note */}
-            <Text style={styles.appPricingNote}>
-              *This includes unlimited AI heart health assessments, emergency
-              alerts, priority doctor consultations, and secure MediLocker.
-            </Text>
-          </View>
-
-          {/* Join Revolution Section */}
-          <View style={styles.appJoinSection}>
-            <Text style={styles.appJoinTitle}>Join the Revolution in</Text>
-            <Text style={styles.appJoinTitle}>Heart Health</Text>
-            <Text style={styles.appJoinDescription}>
-              Over 100,000 users have already taken
-            </Text>
-            <Text style={styles.appJoinDescription}>
-              their first AI-powered heart checkup,
-            </Text>
-            <Text style={styles.appJoinDescription}>
-              and we are just getting started.
-            </Text>
-
-            {/* Categories */}
-            <View style={styles.appCategoriesContainer}>
-              {/* Patients Section */}
-              <View style={styles.appCategoryItem}>
-                <Text style={styles.appBoldLeft}>Patients:</Text>
-                <View style={styles.appFullWidthDivider} />
-                <Text style={styles.appBoldBelow}>
-                  Take charge of your heart health
-                </Text>
-              </View>
-
-              {/* Healthcare Providers Section */}
-              <View style={styles.appCategoryItem}>
-                <Text style={styles.appBoldLeft}>Healthcare Providers:</Text>
-                <View style={styles.appFullWidthDivider} />
-                <Text style={styles.appBoldBelow}>
-                  Partner with us for better patient outcomes
-                </Text>
-              </View>
-
-              {/* Investors & Innovators Section */}
-              <View style={styles.appCategoryItem}>
-                <Text style={styles.appBoldLeft}>Investors & Innovators:</Text>
-                <View style={styles.appFullWidthDivider} />
-                <Text style={styles.appBoldBelow}>
-                  Be part of the future of AI-driven healthcare
-                </Text>
-              </View>
-            </View>
-
-            {/* CTA Box */}
-            <View style={styles.appCtaContainer}>
-              <Text style={styles.appCtaText}>Your heart deserves the</Text>
-              <Text style={styles.appCtaText}> best care</Text>
-              <TouchableOpacity
-                style={styles.appCtaButton}
-                onPress={() => {
-                  /* Scroll to top function here */
-                }}
-              >
-                <Text style={styles.appButtonText}>Check Your Heart Now</Text>
-                <View style={styles.appIconctaContainer}>
-                  <Ionicons
-                    name="arrow-up"
-                    size={20}
-                    color="#fff"
-                    style={styles.appCtaArrowIcon}
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Final Thoughts Section */}
-          <View style={styles.appFinalSection}>
-            <Text style={styles.appFinalTitle}>Final Thoughts</Text>
-            <Text style={styles.appFinalText}>
-              This is not just another health app-{" "}
-              <Text style={styles.appRedText}>
-                This is a revolution in heart care.
-              </Text>
-            </Text>
-            <Text style={styles.appFinalText}>
-              With insights from{" "}
-              <Text style={styles.appRedText}>Harvard Innovation Labs</Text>, AI
-              innovation, and a patient-centered approach,{" "}
-              <Text style={styles.appRedText}>
-                Kokoro.Doctor is bridging the gap between early detection and
-                life-saving action.
-              </Text>
-            </Text>
-            <Text style={styles.appFinalText}>
-              Join us in redefining heart health-{" "}
-              <Text style={styles.appRedText}>one heartbeat at a time</Text>
-            </Text>
-            <TouchableOpacity
-              style={styles.appAtTopButton}
-              onPress={scrollToTop}
-            >
-              <Text style={styles.appButtonText}>At top</Text>
-              <View style={styles.appIconctaContainer}>
-                <Ionicons
-                  name="arrow-up"
-                  size={20}
-                  color="#fff"
-                  style={styles.appArrowIcon}
-                />
-              </View>
-            </TouchableOpacity>
-
-            {/* Brand Footer */}
-            <View style={styles.appBrandFooter}>
-              <Text style={styles.appFooterKokoro}>Kokoro</Text>
-              <Text style={styles.appFooterDoctor}>Doctor</Text>
-            </View>
+            ))}
           </View>
         </ScrollView>
-      )}
-      ;
+      )} */}
     </>
   );
 };
@@ -715,1051 +422,464 @@ const AboutUsMain = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    height: "100%",
-    width: "100%",
-    backgroundColor: "#fff",
     flexDirection: "row",
+    backgroundColor: "#fff",
   },
-  imageContainer: {
-    //borderWidth: 2,
-    borderColor: "#00ffff",
-    height: "100%",
-    width: "100%",
-  },
+
   parent: {
     flexDirection: "row",
-    height: "100%",
     width: "100%",
   },
+
   Left: {
-    height: "100%",
     width: "15%",
   },
+
   Right: {
-    height: "100%",
     width: "85%",
-  },
-  imageBackground: {
-    width: "100%",
-    height: "100%",
-    //transform:[{scale:0.8}],
-    opacity: 80,
-    //marginVertical:"-5%"
-    alignSelf: "center",
-    flexDirection: "column",
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  header: {
-    zIndex: 2,
-    ...Platform.select({
-      web: {
-        width: "100%",
-      },
-    }),
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    backgroundColor: "white",
-    paddingBottom: 20,
-  },
-  title: {
-    padding: 30,
-    minHeight: 200,
-    flexDirection: "column",
-    backgroundColor: "#f96166",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  brandName: {
-    fontWeight: "bold",
-    fontSize: 52,
-    color: "#FFFFFF",
-    letterSpacing: -1,
-  },
-  doctorText: {
-    color: "#FFE5E8",
-  },
-  tagline: {
-    fontSize: 22,
-    color: "#FFFFFF",
-    marginTop: 8,
-    fontWeight: "500",
-    opacity: 0.95,
-  },
-
-  AboutSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    marginTop: 30,
-    paddingHorizontal: 20,
-    gap: 20,
-  },
-  textBox: {
-    backgroundColor: "#FFFFFF",
-    padding: 28,
-    borderRadius: 12,
-    width: "66%",
-    position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
-  },
-  delayedBorder: {
-    position: "absolute",
-    right: 0,
-    top: "15%",
-    height: "50%",
-    width: 3,
-    backgroundColor: "#f96166",
-    borderRadius: 2,
-  },
-  aboutTitle: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 16,
-    letterSpacing: -0.5,
-  },
-  text: {
-    fontSize: 16,
-    color: "#555",
-    lineHeight: 26,
-    letterSpacing: 0.2,
-  },
-  bold: {
-    fontWeight: "bold",
-  },
-  rightSection: {
-    width: "30%",
-    padding: 24,
-    flexShrink: 1,
-    maxWidth: "100%",
-    backgroundColor: "#FFF5F7",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#FFE5E8",
-  },
-  urgentNeedTitle: {
-    marginTop: 0,
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-  },
-  highlight: {
-    color: "#f96166",
-  },
-  urgentNeedText: {
-    fontSize: 15,
-    color: "#f96166",
-    marginTop: 8,
-    lineHeight: 22,
-    fontWeight: "600",
-  },
-
-  //---
-  Need: {
-    padding: 30,
-    backgroundColor: "#FFF5F7",
-    marginTop: 30,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#FFE5E8",
-  },
-  headerNeed: {
-    marginBottom: 24,
-  },
-  headerTextNeed: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#333",
-    letterSpacing: -0.5,
-  },
-  description: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 8,
-    lineHeight: 24,
-  },
-  problemTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  problemContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginTop: 20,
-    gap: 16,
-  },
-  problemBox: {
-    width: "48%",
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#FFE5E8",
-  },
-  problemText: {
-    fontSize: 15,
-    color: "#f96166",
-    fontWeight: "600",
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  circle1: {
-    position: "absolute",
-    top: 80,
-    right: 40,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#F4CFA5",
-    opacity: 0.6,
-  },
-  circle2: {
-    position: "absolute",
-    bottom: 50,
-    right: -20,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "#B7A2E9",
-    opacity: 0.4,
-  },
-  //----
-  access: {
-    padding: 30,
-    backgroundColor: "#FFFFFF",
-    marginTop: 30,
-  },
-  head: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-    letterSpacing: -0.5,
-  },
-  subhead: {
-    fontSize: 18,
-    color: "#666",
-    marginBottom: 28,
-    lineHeight: 26,
-  },
-  option: {
-    backgroundColor: "#f96166",
-    padding: 18,
-    paddingLeft: 24,
-    borderRadius: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  optionText: {
-    fontSize: 16,
     color: "#fff",
-    fontWeight: "600",
-  },
-  //-------
-  GlobleMission: {
-    padding: 30,
-  },
-  missionBox: {
-    backgroundColor: "#FFF",
-    padding: 30,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#FFE5E8",
-    width: "100%",
-    marginBottom: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  missionHeader: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-    letterSpacing: -0.5,
   },
 
-  missionSubText: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 8,
-    marginBottom: 20,
-    lineHeight: 24,
-    fontStyle: "italic",
-  },
-  benefitsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    gap: 16,
-    marginTop: 20,
-  },
-  benefitBox: {
-    backgroundColor: "#f96166",
-    padding: 24,
-    borderRadius: 12,
-    width: "31%",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 140,
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  benefitText: {
-    color: "#FFF",
-    fontSize: 16,
-    textAlign: "center",
-    fontWeight: "600",
-    lineHeight: 22,
-  },
-  womenHealthHeader: {
-    marginTop: 30,
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 16,
-  },
-  womenBenefitsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    gap: 16,
-    marginTop: 16,
-  },
-  womenBenefitBox: {
-    backgroundColor: "#f96166",
-    padding: 24,
-    borderRadius: 12,
-    width: "48%",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 140,
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  womenBenefitText: {
-    color: "#FFF",
-    fontSize: 15,
-    textAlign: "center",
-    fontWeight: "600",
-    lineHeight: 22,
-  },
-  pricingHeader: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-    letterSpacing: -0.5,
-  },
-  pricingSubText: {
-    fontSize: 18,
-    color: "#666",
-    marginBottom: 30,
-    lineHeight: 26,
-  },
-  pricingBox: {
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#f96166",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-    backgroundColor: "#FFF5F7",
-    width: "fit-content",
-  },
-  priceText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#f96166",
-  },
-  priceLabel: {
-    fontSize: 16,
-    color: "#666",
-    marginLeft: 8,
-  },
-  discountContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 20,
-  },
-  discountBadge: {
-    backgroundColor: "#f96166",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginRight: 16,
-  },
-  discountText: {
-    color: "#FFF",
-    fontSize: 13,
-    fontWeight: "bold",
-  },
-  note: {
-    fontSize: 13,
-    color: "#666",
-    textAlign: "left",
-    marginTop: 20,
-    lineHeight: 20,
-    maxWidth: "80%",
-  },
-  //----
-  resolution: {
-    padding: 15,
-    marginRight: "1%",
-    marginHorizontal: "2%",
-    backgroundColor: "#FFECC4",
-    borderRadius: "2%",
-  },
-  Resheader: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-    color: "#000",
-  },
-  Resdescription: {
-    fontSize: 16,
-    textAlign: "center",
-    color: "#555", // Grey Text
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  textContainer: {
-    width: "100%",
-    alignItems: "center",
-  },
-  boldText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 5,
-  },
-  normalText: {
-    fontWeight: "normal",
-  },
-  line: {
-    width: "80%",
-    height: 1,
-    backgroundColor: "#000",
-    marginVertical: 5,
-  },
-  ctaBox: {
-    backgroundColor: "#FFF",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 20,
-    marginLeft: "35%",
-    marginRight: "35%",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 2, height: 2 },
-    shadowRadius: 5,
-    elevation: 5, // Shadow for Android
-  },
-  ctaText: {
-    fontWeight: "bold",
-    fontSize: 16,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  ctaButton: {
-    backgroundColor: "#FF6B6B", // Soft Red Button
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-  },
-  ctaButtonText: {
-    color: "#FFF",
-    fontSize: 14,
-    fontWeight: "bold",
+  scrollContainer: {
+    paddingBottom: 40,
   },
 
-  //--------- final page
-  FinalThought: {
-    backgroundColor: "white",
-    paddingHorizontal: 70,
-    marginTop: "1%",
-  },
-  Heading: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 20,
-    letterSpacing: -0.5,
-  },
-  SubTitle: {
-    paddingTop: 8,
-    fontSize: 20,
-    color: "#555",
-    lineHeight: 30,
-    marginBottom: 16,
-  },
-  TextRed: {
-    color: "#f96166",
-    fontWeight: "600",
-  },
-  content: {
-    paddingTop: 8,
-    fontSize: 20,
-    color: "#555",
-    lineHeight: 30,
-    marginBottom: 16,
-  },
-  lastPara: {
-    paddingTop: 8,
-    paddingLeft: "10%",
-    paddingRight: "10%",
-    fontSize: 20,
-    color: "#555",
-    lineHeight: 30,
-    textAlign: "center",
-    marginTop: 20,
-  },
-  kokoro: {
-    fontSize: 140,
-    fontWeight: "bold",
-    color: "#FFE5E8",
-    marginTop: 40,
-    letterSpacing: -2,
-  },
-  doctor: {
-    marginLeft: "25%",
-    fontSize: 140,
-    fontWeight: "bold",
-    color: "#FFE5E8",
-    letterSpacing: -2,
-  },
-
-  //APP design starts
-  appContainer: {
+  mobileContainer: {
     flex: 1,
     backgroundColor: "#fff",
   },
-  // Header Styles
-  appHeader: {
-    width: "100%",
+
+  title: {
+    padding: 30,
     backgroundColor: "#f96166",
-    flex: 1,
   },
-  appContentWrapper: {
-    marginTop: "10%",
-    ...Platform.select({
-      web: {
-        marginTop: "0%",
-      },
-    }),
-  },
-  appTitleContainer: {
-    width: "100%",
-    marginTop: "20%",
-    paddingHorizontal: "5%",
-  },
-  appTitle: {
+
+  brandName: {
     fontSize: 50,
     fontWeight: "bold",
     color: "#fff",
   },
-  appSubtitle: {
-    fontSize: 26,
-    color: "#fff",
-    marginTop: "1%",
+
+  doctorText: {
+    color: "#FFE5E8",
   },
 
-  // About Us Section
-  appSection: {
-    width: "100%",
-    padding: "5%",
-    backgroundColor: "#fff",
-  },
-  appSectionTitle: {
+  tagline: {
     fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: "3%",
+    color: "#fff",
   },
-  appParagraph: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#333",
-    width: "100%",
-    textAlign: "left",
-  },
-  appBold: {
-    fontWeight: "bold",
-    fontColor: "#000000",
-  },
-  appRow: {
+
+  hero: {
+    flex: 1,
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-    width: "100%",
+    paddingHorizontal: 60,
+    paddingTop: "8.8%",
+    paddingBottom: "8.8%",
   },
-  appColumn: {
+  heroLeft: {
     width: "50%",
-    padding: 10,
-  },
-  appAboutImage: {
-    width: 160,
-    height: 160,
-    resizeMode: "contain",
-  },
-  appLeftImage: {
-    // marginLeft: "-10%",
-  },
-  appRightImage: {
-    // marginRight: "-10%",
-  },
-  // Urgent Need Section
-  appUrgentNeedSection: {
-    width: "90%",
-    padding: "5%",
-    backgroundColor: "#FFF5F7",
-    borderRadius: 12,
-    marginHorizontal: "auto",
-    borderWidth: 1,
-    borderColor: "#FFE5E8",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  appUrgentNeedTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: "2%",
-  },
-  appUrgentNeedDescription: {
-    fontSize: 16,
-    color: "#333",
-    marginBottom: "5%",
-  },
-  appProblemcontainer: {
-    width: "100%",
-    flexDirection: "column",
-    flexWrap: "wrap",
-  },
-  appProblemBox: {
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-    borderRadius: 12,
-    overflow: "hidden",
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-    width: "100%",
-    alignSelf: "stretch",
-    borderWidth: 1,
-    borderColor: "#FFE5E8",
-  },
-  appProblemBlock: {
-    backgroundColor: "#B0B6FF",
-    padding: 10,
-    borderRadius: 8,
-  },
-  appProblemText: {
-    fontSize: 16,
-    textAlign: "center",
-    marginVertical: 5,
-  },
-  appProblemContent: {
-    width: "100%",
-    alignItems: "center",
-  },
-  appSeparator: {
-    height: 1,
-    backgroundColor: "#B0B6FF",
-    width: "100%",
-    marginVertical: 5,
-    alignSelf: "stretch",
-  },
-  // What If Section
-  appWhatIfSection: {
-    width: "100%",
-    padding: "5%",
-    backgroundColor: "#fff",
-  },
-  appWhatIfTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: "2%",
-  },
-  appWhatIfSubtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: "5%",
-  },
-  appExpandableOption: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#f96166",
-    padding: "4%",
-    borderRadius: 10,
-    marginBottom: "3%",
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  appExpandableText: {
-    fontSize: 16,
-    color: "#fff",
-    fontWeight: "500",
+    paddingRight: 40,
   },
 
-  // Vision Section
-  appVisionSection: {
-    width: "100%",
-    padding: "5%",
-    backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: "#FFE5E8",
-    borderRadius: 12,
-    margin: "5%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  appVisionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  appVisionSubtitle: {
-    fontSize: 18,
-    marginBottom: "3%",
-  },
-  appVisionDescription: {
-    fontSize: 16,
-    color: "#666",
-    fontStyle: "italic",
-    marginBottom: "5%",
-  },
-  appBenefitsContainer: {
-    width: "100%",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-  },
-  appBenefitBox: {
+  heroRight: {
     width: "45%",
-    aspectRatio: 1,
-    backgroundColor: "#f96166",
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 15,
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  appBenefitText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
-  },
-  appFirstBenefitBox: {
-    alignSelf: "flex-start",
-    marginRight: 20,
-  },
-  appSecondBenefitBox: {
-    alignSelf: "flex-end",
-  },
-  appThirdBenefitBox: {
-    alignSelf: "flex-end",
-    marginTop: 15,
-    marginLeft: "auto",
-  },
-  appBeliefText: {
-    fontSize: 16,
-    fontWeight: " Extra Bold",
-    color: "#000000",
-    textAlign: "center",
-    marginBottom: 25,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    fontFamily: "Montserrat",
+    alignItems: "flex-end",
   },
 
-  // Pricing Section
-  appPricingSection: {
-    width: "100%",
-    padding: "5%",
-    backgroundColor: "#fff",
-  },
-  appPricingTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: "2%",
-  },
-  appPricingDescription: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: "3%",
-  },
-  appPricingPlan: {
-    width: "60%",
+  featureRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 25,
+  },
+
+  iconCircle: {
+    backgroundColor: "#f96166",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
-    padding: "3%",
-    borderWidth: 2,
-    borderColor: "#f96166",
-    borderRadius: 12,
-    marginBottom: "4%",
-    flexWrap: "wrap",
-    backgroundColor: "#FFF5F7",
+    alignItems: "center",
+    marginRight: 10,
   },
-  appPriceAmount: {
+
+  breadcrumb: {
+    fontSize: 18,
+    color: "#777",
+  },
+
+  heroTitle: {
+    fontSize: 70,
+    fontWeight: "800",
+    lineHeight: 80,
+  },
+
+  heroText: {
+    marginTop: 20,
     fontSize: 20,
-    fontWeight: "bold",
-    lineHeight: 24,
-    marginBottom: 5,
-  },
-  appPricePeriod: {
-    fontSize: 16,
     color: "#666",
-    marginLeft: "2%",
+    lineHeight: 32,
+    maxWidth: 500,
+  },
+
+  primary: {
+    color: "#f96166",
+    fontSize: 70,
+    fontWeight: "800",
+  },
+
+  featureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 15,
+  },
+
+  iconCircle: {
+    backgroundColor: "#f96166",
+    padding: 8,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+
+  featureText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  heroImage: {
+    width: "100%",
+    height: 460,
+    borderRadius: 24,
+  },
+
+  statsBar: {
+    backgroundColor: "#f96166",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    paddingVertical: 30,
+  },
+
+  statBox: {
+    alignItems: "center",
+    width: "25%",
+  },
+
+  statValue: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+  },
+
+  statLabel: {
+    color: "#fff",
+    fontSize: 16,
+  },
+
+  section: {
+    padding: 30,
+  },
+
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+  },
+
+  sectionText: {
+    marginTop: 10,
+    color: "#666",
+  },
+
+  sectionImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 15,
+    marginTop: 15,
+  },
+
+  card: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 15,
+    elevation: 3,
+    marginTop: 15,
+  },
+
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+
+  cardSubtitle: {
+    color: "#f96166",
+    marginTop: 4,
+  },
+
+  cardText: {
+    color: "#666",
     marginTop: 3,
   },
-  appYearlyPlanContainer: {
-    width: "100%",
+
+  bold: {
+    fontSize: 18,
+  },
+  missionContainer: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: "3%",
-  },
-  appSaveBadge: {
-    backgroundColor: "#f96166",
-    padding: "2%",
-    borderRadius: 8,
-    marginRight: "3%",
-  },
-  appSaveText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  appPricingNote: {
-    fontSize: 12,
-    color: "#666",
-    width: "90%",
-  },
-  appSecondPricingPlan: {
-    marginLeft: "auto",
+    padding: 60,
+    gap: 40,
   },
 
-  // Join Revolution Section
-  appJoinSection: {
+  missionColumn: {
+    width: "48%",
+    minHeight: 520,
+    justifyContent: "space-between",
+  },
+
+  missionTitle: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 15,
+  },
+
+  missionText: {
+    fontSize: 18,
+    color: "#666",
+    lineHeight: 28,
+    marginBottom: 20,
+  },
+
+  bulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#f96166",
+    marginTop: 8,
+    marginRight: 12,
+  },
+
+  bulletText: {
+    fontSize: 18,
+    color: "#555",
+    flex: 1,
+  },
+
+  missionImage: {
     width: "100%",
-    padding: "7%",
-    backgroundColor: "#FFECC4",
-    borderRadius: 10,
-    margin: "5%",
-    //width: "90%",
+    height: 260,
+    borderRadius: 24,
+    marginTop: 20,
+    alignSelf: "flex-end",
   },
-  appJoinTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: "3%",
+  journeySection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 60,
+    backgroundColor: "#f5f2f2",
   },
-  appJoinDescription: {
+
+  journeyImages: {
+    width: "45%",
+    height: 400,
+    position: "relative",
+  },
+
+  journeyImg1: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "60%",
+    height: 250,
+    borderRadius: 25,
+  },
+
+  journeyImg2: {
+    position: "absolute",
+
+    top: 30,
+    left: 260,
+    width: "55%",
+    height: 220,
+    borderRadius: 25,
+  },
+
+  journeyImg3: {
+    position: "absolute",
+    bottom: 0,
+    left: 80,
+    width: "60%",
+    height: 200,
+    borderRadius: 25,
+  },
+
+  journeyText: {
+    width: "45%",
+    justifyContent: "center",
+  },
+
+  journeyTitle: {
+    fontSize: 38,
+    fontWeight: "700",
+    marginBottom: 20,
+    color: "#333",
+  },
+
+  journeyParagraph: {
+    fontSize: 18,
+    color: "#666",
+    lineHeight: 30,
+    marginBottom: 20,
+  },
+  teamSection: {
+    paddingVertical: 80,
+    paddingHorizontal: 60,
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+  },
+
+  teamTitle: {
+    fontSize: 40,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 10,
+  },
+
+  teamSubtitle: {
     fontSize: 18,
     color: "#666",
     textAlign: "center",
-    marginBottom: "5%",
+    maxWidth: 600,
+    marginBottom: 50,
+    lineHeight: 28,
   },
-  appCategoriesContainer: {
+
+  teamRow: {
+    flexDirection: "row",
+    gap: 40,
     width: "100%",
+    justifyContent: "center",
   },
-  appCategoryItem: {
-    width: "100%",
-    marginBottom: "4%",
-    paddingHorizontal: "5%",
-  },
-  appBoldLeft: {
-    fontWeight: "bold",
-    fontSize: 18,
-    textAlign: "left",
-  },
-  appBoldBelow: {
-    fontWeight: "bold",
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: "4%",
-  },
-  appFullWidthDivider: {
-    width: "100%",
-    height: 2,
-    backgroundColor: "#000000",
-    marginVertical: "2%",
-  },
-  appCtaContainer: {
-    width: "90%",
-    backgroundColor: "#fff",
-    padding: "7%",
-    borderRadius: 12,
-    alignItems: "center",
-    alignSelf: "center",
-    marginTop: "7%",
+
+  teamCard: {
+    width: "40%",
+    backgroundColor: "#ffffff",
+    borderRadius: 25,
+    padding: 35,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    shadowOpacity: 0.09,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 5,
   },
-  appCtaText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: "5%",
-    textAlign: "center",
-    paddingBottom: 5,
-    borderBottomWidth: 2,
-    borderBottomColor: "#000",
-    display: "flex",
-  },
-  appCtaButton: {
+
+  roleRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f96166",
-    paddingVertical: "5%",
-    paddingHorizontal: "12%",
-    borderRadius: 30,
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    marginBottom: 15,
   },
-  appButtonText: {
-    color: "#fff",
+
+  roleIndicator: {
+    width: 4,
+    height: 20,
+    backgroundColor: "#f96166",
+    borderRadius: 2,
+    marginRight: 10,
+  },
+
+  roleText: {
     fontSize: 16,
-    marginRight: 5,
-    lineHeight: 24,
+    color: "#666",
   },
-  appIconctaContainer: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    borderColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  appCtaArrowIcon: {
-    position: "absolute",
-    transform: [{ rotate: "30deg" }],
-  },
-  // Final Thoughts Section
-  appFinalSection: {
-    width: "100%",
-    padding: "5%",
-    backgroundColor: "#fff",
-  },
-  appFinalTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: "3%",
-  },
-  appFinalText: {
-    fontSize: 18,
-    marginBottom: "3%",
-  },
-  appRedText: {
+
+  memberName: {
+    fontSize: 28,
+    fontWeight: "700",
     color: "#f96166",
-    fontWeight: "600",
+    marginBottom: 6,
   },
-  appAtTopButton: {
+
+  memberRole: {
+    fontSize: 18,
+    color: "#333",
+    marginBottom: 12,
+  },
+
+  memberExperience: {
+    fontSize: 16,
+    color: "#777",
+  },
+  mentorsSection: {
+    paddingHorizontal: 60,
+  },
+
+  mentorsRow: {
+    flexDirection: "row",
+    gap: 30,
+    marginTop: 15,
+  },
+
+  mentorName: {
+    fontSize: 18,
+    color: "#555",
+  },
+
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-end",
+    marginBottom: 10,
+  },
+
+  sectionIndicator: {
+    width: 4,
+    height: 22,
     backgroundColor: "#f96166",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
+    borderRadius: 2,
+    marginRight: 10,
+  },
+
+  sectionHeaderText: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  foundingSection: {
+    paddingHorizontal: 60,
+    paddingTop: 40,
+    paddingBottom: 40,
+  },
+
+  foundingGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     marginTop: 20,
-    shadowColor: "#f96166",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  appArrowIcon: {
-    position: "absolute",
+
+  memberItem: {
+    width: "30%",
+    marginBottom: 30,
   },
-  appBrandFooter: {
-    width: "100%",
-    marginTop: "5%",
+
+  foundingName: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#f96166",
+    marginBottom: 5,
   },
-  appFooterKokoro: {
-    fontSize: 96,
-    color: "#ccc",
-    fontWeight: "bold",
-    fontFamily: "Poppins",
-  },
-  appFooterDoctor: {
-    fontSize: 96,
-    color: "#ccc",
-    fontWeight: "bold",
-    marginLeft: "10%",
-    fontFamily: "Poppins",
-    alignSelf: "flex-end",
+
+  foundingRole: {
+    fontSize: 16,
+    color: "#666",
   },
 });
 
