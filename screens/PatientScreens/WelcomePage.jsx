@@ -615,11 +615,12 @@ export default function KokoroDoctorScreen() {
                 key={i}
                 style={[webStyles.serviceCard, { backgroundColor: item.bg }]}
                 onPress={() => {
+                  const title = item.title.replace("\n", " ").trim();
+
                   mixpanel.track("Web Service Card Clicked", {
                     service_name: title,
                     source: "web-services",
                   });
-                  const title = item.title.replace("\n", " ").trim();
 
                   if (title === "Talk to Doctor") {
                     navigation.navigate("PatientAppNavigation", {
