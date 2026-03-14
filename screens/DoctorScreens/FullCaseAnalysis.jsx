@@ -41,7 +41,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
   const { userId, doctorId } = route.params || {};
   const [messages, setMessages] = useState([]);
   const [question, setQuestion] = useState("");
-  const [sending, setSending] = useState(false);
+  //const [sending, setSending] = useState(false);
   const [botTyping, setBotTyping] = useState(false);
   const [isGeneratingPrescription, setIsGeneratingPrescription] =
     useState(false);
@@ -56,30 +56,11 @@ export default function FullCaseAnalysis({ navigation, route }) {
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [fileMenuVisible, setFileMenuVisible] = useState(false);
-  const [selectedFileForMenu, setSelectedFileForMenu] = useState(null);
-
-  const CATEGORY_MAP = {
-    All: "ALL",
-    Prescriptions: "PRESCRIPTION",
-    "Scan Reports": "SCAN_REPORT",
-    "Lab Reports": "LAB_REPORT",
-    "Hospital History": "HOSPITAL_RECORD",
-    "Health Insurance & ID": "HEALTH_INSURANCE",
-
-    // Mobile keys
-    Prescription: "PRESCRIPTION",
-    Scan: "SCAN_REPORT",
-    Lab: "LAB_REPORT",
-    Hospital: "HOSPITAL_RECORD",
-    Health: "HEALTH_INSURANCE",
-  };
-
-  useEffect(() => {
-    if (!userId) return;
-
-    fetchPatient(); // load patient first
-  }, [userId]);
+  // const [fileMenuVisible, setFileMenuVisible] = useState(false);
+  // const [selectedFileForMenu, setSelectedFileForMenu] = useState(null);
+  const isWebDesktop = Platform.OS === "web" && width > 1000;
+  const initialSummaryLoaded = useRef(false);
+  const summaryLoading = useRef(false);
 
   const startStreamingSteps = () => {
     const steps = [
@@ -103,54 +84,85 @@ export default function FullCaseAnalysis({ navigation, route }) {
     return interval;
   };
 
-  useEffect(() => {
-    const loadInitialSummary = async () => {
-      if (!userId) return;
+  const CATEGORY_MAP = {
+    All: "ALL",
+    Prescriptions: "PRESCRIPTION",
+    "Scan Reports": "SCAN_REPORT",
+    "Lab Reports": "LAB_REPORT",
+    "Hospital History": "HOSPITAL_RECORD",
+    "Health Insurance & ID": "HEALTH_INSURANCE",
 
-      try {
-        setBotTyping(true);
+    // Mobile keys
+    Prescription: "PRESCRIPTION",
+    Scan: "SCAN_REPORT",
+    Lab: "LAB_REPORT",
+    Hospital: "HOSPITAL_RECORD",
+    Health: "HEALTH_INSURANCE",
+  };
 
-        const streamInterval = startStreamingSteps();
+  const loadInitialSummary = async () => {
+    if (summaryLoading.current) return; // 🚫 prevent duplicate calls
+    summaryLoading.current = true;
 
-        const response = await fetch(
-          `${API_URL}/medilocker/users/${userId}/clinical-query`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+    try {
+      setBotTyping(true);
+
+      const streamInterval = startStreamingSteps();
+
+      const response = await fetch(
+        `${API_URL}/medilocker/users/${userId}/clinical-query`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            question: "",
+            context: {
+              patient_id: userId,
+              doctor_id: doctorId,
+              documents: [],
             },
-            body: JSON.stringify({
-              question: "",
-              context: {
-                patient_id: userId,
-                doctor_id: doctorId,
-                documents: [],
-              },
-            }),
-          },
-        );
+          }),
+        },
+      );
 
-        clearInterval(streamInterval);
+      clearInterval(streamInterval);
 
-        const data = await response.json();
+      const data = await response.json();
 
-        setLoadingSteps([]); // clear fake messages
+      setLoadingSteps("");
 
-        setMessages([
-          {
-            type: "bot",
-            text: data.answer || "No response received",
-          },
-        ]);
-      } catch (error) {
-        console.log("Clinical query error:", error);
-      } finally {
-        setBotTyping(false);
-      }
-    };
+      setMessages([
+        {
+          type: "bot",
+          text: data.answer || "No response received",
+        },
+      ]);
+    } catch (error) {
+      console.log("Clinical query error:", error);
+    } finally {
+      setBotTyping(false);
+      summaryLoading.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (!userId) return;
+
+    fetchPatient(); // load patient first
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || initialSummaryLoaded.current) return;
+
+    // Only auto-load on Web desktop
+    if (!isWebDesktop) return;
+
+    initialSummaryLoaded.current = true;
 
     loadInitialSummary();
-  }, [userId]);
+  }, [userId, isWebDesktop]);
 
   useEffect(() => {
     if (!userId) return;
@@ -186,7 +198,7 @@ export default function FullCaseAnalysis({ navigation, route }) {
 
       return () => clearTimeout(timer);
     }
-  }, [route?.params?.showIntro]);
+  }, [popupY, route?.params?.showIntro]);
 
   const fetchPatient = async () => {
     try {
@@ -406,11 +418,18 @@ export default function FullCaseAnalysis({ navigation, route }) {
 
   const openChat = () => {
     setChatOpen(true);
+
     Animated.timing(slideAnim, {
-      toValue: 130, // 👈 adjust to match title bottom position
+      toValue: 130,
       duration: 200,
       useNativeDriver: false,
     }).start();
+
+    // Mobile: load summary when chatbot opens
+    if (!initialSummaryLoaded.current && !isWebDesktop && userId) {
+      initialSummaryLoaded.current = true;
+      loadInitialSummary();
+    }
   };
 
   const closeChat = () => {
