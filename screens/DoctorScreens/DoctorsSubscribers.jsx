@@ -338,7 +338,7 @@
 
 // export default DoctorsSubscribers;
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   Image,
   ImageBackground,
@@ -352,9 +352,12 @@ import {
   TextInput,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 
-import { MaterialIcons , Ionicons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { API_URL } from "../../env-vars";
@@ -363,6 +366,7 @@ import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSideba
 import SubscriberCard from "../../components/DoctorsPortalComponents/SubscriberCard";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import BackButton from "../../components/PatientScreenComponents/BackButton";
+import { importPatientsFromExcel } from "../../utils/PatientImportService";
 
 
 const DoctorsSubscribers = ({ navigation }) => {
@@ -374,7 +378,9 @@ const DoctorsSubscribers = ({ navigation }) => {
   const [subscribers, setSubscribers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [error, setError] = useState(null); // NEW: Track errors
+  const [error, setError] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -526,6 +532,70 @@ const DoctorsSubscribers = ({ navigation }) => {
     }
   };
 
+  const showAlert = (title, message) => {
+    if (Platform.OS === "web") {
+      alert(`${title}\n${message || ""}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  const handleImportPress = () => {
+    if (Platform.OS === "web") {
+      fileInputRef.current?.click();
+    } else {
+      handleSelectFile();
+    }
+  };
+
+  const handleWebFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    await doImport(file);
+  };
+
+  const handleSelectFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "application/vnd.ms-excel",
+        ],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      await doImport({
+        uri: asset.uri,
+        name: asset.name,
+        mimeType: asset.mimeType || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+    } catch (err) {
+      showAlert("Import Failed", err.message || "Failed to select file");
+    }
+  };
+
+  const doImport = async (file) => {
+    if (!doctorId) {
+      showAlert("Error", "Doctor ID not available");
+      return;
+    }
+    setImporting(true);
+    try {
+      const result = await importPatientsFromExcel(doctorId, file);
+      showAlert(
+        "Import Complete",
+        `Total: ${result.total_rows}\nUsers created: ${result.users_created}\nExisting: ${result.existing_users}\nSubscriptions: ${result.subscriptions_created}\nSkipped: ${result.skipped}`
+      );
+      fetchSubscribers();
+    } catch (err) {
+      showAlert("Import Failed", err.message || "Failed to import patients");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   // Filter subscribers based on search
   const filteredSubscribers = subscribers.filter(
     (sub) =>
@@ -553,8 +623,32 @@ const DoctorsSubscribers = ({ navigation }) => {
                   <BackButton />
                   <View style={styles.contentContainer}>
                     <View style={styles.upperPart}>
-                      <Text style={styles.containerText}>Your Subscribers</Text>
-
+                      <View style={styles.headingRow}>
+                        <Text style={styles.containerText}>Your Subscribers</Text>
+                        <TouchableOpacity
+                          style={[styles.importButton, importing && styles.importButtonDisabled]}
+                          onPress={handleImportPress}
+                          disabled={importing}
+                        >
+                          {importing ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <>
+                              <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
+                              <Text style={styles.importButtonText}>Import</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                      {Platform.OS === "web" && (
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          style={{ display: "none" }}
+                          onChange={handleWebFileChange}
+                        />
+                      )}
                       <View style={styles.upperBox}>
                         <View style={styles.SearchBox}>
                           <MaterialIcons
@@ -633,7 +727,23 @@ const DoctorsSubscribers = ({ navigation }) => {
           <View style={[styles.header, { height: "15%" }]}>
             <HeaderLoginSignUp navigation={navigation} isDoctorPortal={true} />
           </View>
-          <Text style={styles.appContainerText}>Your Subscribers</Text>
+          <View style={styles.appHeadingRow}>
+            <Text style={styles.appContainerText}>Your Subscribers</Text>
+            <TouchableOpacity
+              style={[styles.importButton, importing && styles.importButtonDisabled]}
+              onPress={handleImportPress}
+              disabled={importing}
+            >
+              {importing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
+                  <Text style={styles.importButtonText}>Import</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
           <View style={{ flexDirection: "row" }}>
             <View
               style={{
@@ -817,19 +927,48 @@ const styles = StyleSheet.create({
     width: "100%",
     borderWidth: 1,
   },
+  headingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: "2%",
+    marginLeft: "3%",
+    marginRight: "3%",
+  },
+  appHeadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginLeft: "3%",
+    marginRight: "3%",
+    marginTop: 8,
+  },
+  importButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#007bff",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  importButtonDisabled: {
+    opacity: 0.7,
+  },
+  importButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   containerText: {
     fontSize: 34,
     fontWeight: "600",
     color: "#000000",
-    paddingTop: "2%",
-    marginLeft: "3%",
   },
   appContainerText: {
     fontSize: 26,
     fontWeight: "600",
     color: "#000000",
-    //paddingTop: "2%",
-    marginLeft: "3%",
   },
   upperBox: {
     marginLeft: "3%",
