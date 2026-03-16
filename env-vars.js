@@ -1,3 +1,12 @@
-export const API_URL = "https://j26e2xwzm1.execute-api.ap-south-1.amazonaws.com/prod"
+export const API_URL = "https://j26e2xwzm1.execute-api.ap-south-1.amazonaws.com/prod";
 
-export const webClientId = "569847732356-rl6pnkut18s91cvsfipcuhlkptpoj8fh.apps.googleusercontent.com";
+export const webClientId =
+  "569847732356-rl6pnkut18s91cvsfipcuhlkptpoj8fh.apps.googleusercontent.com";
+
+/**
+ * Hospital API key for /hospital/* endpoints.
+ * Set via EXPO_PUBLIC_HOSPITAL_API_KEY in .env or hardcode for deployment.
+ */
+export const HOSPITAL_API_KEY =
+  (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_HOSPITAL_API_KEY) || "";
+
