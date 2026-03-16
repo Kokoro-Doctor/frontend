@@ -789,7 +789,16 @@ export default function KokoroDoctorScreen() {
               <Text style={styles.logoText}>Kokoro.Doctor</Text>
             </View>
 
-            <TouchableOpacity onPress={() => setMenuVisible(true)}>
+            {/* <TouchableOpacity onPress={() => setMenuVisible(true)}> */}
+            <TouchableOpacity
+              onPress={() => {
+                mixpanel.track("Mobile Menu Opened", {
+                  source: "mobile-header",
+                });
+
+                setMenuVisible(true);
+              }}
+            >
               <Ionicons name="menu" size={26} />
             </TouchableOpacity>
           </View>

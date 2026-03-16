@@ -929,7 +929,7 @@ const GeneratePrescription = ({ navigation, route }) => {
                           </Text>
                         </View>
                         <View style={styles.lowerSectionContainer}>
-                          <View style={{ marginLeft: "1%"}}>
+                          <View style={{ marginLeft: "1%" }}>
                             <Text style={styles.middleText}>
                               Patients Uploaded Documents
                             </Text>
@@ -1530,6 +1530,8 @@ const styles = StyleSheet.create({
   Right: {
     height: "100%",
     width: "85%",
+    zIndex: 100,
+    overflow: "visible",
   },
   headerTop: {
     //borderWidth: 1,
@@ -1538,6 +1540,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     flexDirection: "column",
     //justifyContent:"space-around"
+    zIndex: 9999,
   },
   header: {
     //borderWidth: 1,
@@ -1574,7 +1577,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     marginBottom: "1%",
     borderRadius: 5,
-    overflow: Platform.OS === "web" ? "visible" : "hidden",
+    // overflow: Platform.OS === "web" ? "visible" : "hidden",
+    overflow: "visible",
     width: "92%",
     marginHorizontal: "4%",
   },
@@ -1792,7 +1796,7 @@ const styles = StyleSheet.create({
     borderColor: "#c0bdbdff",
     paddingVertical: 8,
     paddingHorizontal: 20,
-    width:"100%"
+    width: "100%",
   },
 
   aiRowWeb: {
