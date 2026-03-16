@@ -27,7 +27,6 @@ export default function KokoroDoctorScreen() {
   const isMobile = width < 768;
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
-
   const scrollRef = useRef(null);
   const scrollX = useRef(0);
   const intervalRef = useRef(null);
@@ -789,7 +788,16 @@ export default function KokoroDoctorScreen() {
               <Text style={styles.logoText}>Kokoro.Doctor</Text>
             </View>
 
-            <TouchableOpacity onPress={() => setMenuVisible(true)}>
+            {/* <TouchableOpacity onPress={() => setMenuVisible(true)}> */}
+            <TouchableOpacity
+              onPress={() => {
+                mixpanel.track("Mobile Menu Opened", {
+                  source: "mobile-header",
+                });
+
+                setMenuVisible(true);
+              }}
+            >
               <Ionicons name="menu" size={26} />
             </TouchableOpacity>
           </View>
