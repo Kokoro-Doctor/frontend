@@ -27,7 +27,6 @@ export default function KokoroDoctorScreen() {
   const isMobile = width < 768;
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
-
   const scrollRef = useRef(null);
   const scrollX = useRef(0);
   const intervalRef = useRef(null);

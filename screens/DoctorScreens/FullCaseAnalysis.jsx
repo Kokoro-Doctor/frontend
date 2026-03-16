@@ -470,7 +470,11 @@ export default function FullCaseAnalysis({ navigation, route }) {
                   <NewestSidebar navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
-                  <HeaderLoginSignUp navigation={navigation} />
+                  {/* <HeaderLoginSignUp navigation={navigation} /> */}
+                  <View style={{ zIndex: 1000, position: "relative" }}>
+                    <HeaderLoginSignUp navigation={navigation} />
+                  </View>
+
                   <View style={styles.fullCaseDetailSection}>
                     <View style={styles.titleBox}>
                       <BackButton />
