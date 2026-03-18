@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import mixpanel, { trackButton } from "../../utils/Mixpanel";
 
 const SideBarNavigation = ({ navigation, closeSidebar }) => {
   const { width } = useWindowDimensions();
@@ -49,6 +50,17 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
 
   const handleSidebarClick = (menu) => {
     // setSelectedItem(menu);  //used for the red color color but is not working as intended
+
+    const eventName = `${menu
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "_")}_sidebar_click`;
+
+    trackButton(eventName, {
+      menu_name: menu,
+      screen: "Sidebar",
+      platform: Platform.OS,
+    });
+
     if (menu === "Home") {
       navigation.navigate("LandingPage");
     } else if (menu === "Dashboard") {
