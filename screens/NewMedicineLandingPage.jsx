@@ -211,7 +211,7 @@ export default function NewMedicineLandingPagey() {
 
                         // Set new timer (fires only after user stops typing)
                         typingTimeoutRef.current = setTimeout(() => {
-                          trackButton("medicine_input_typing", {
+                          trackButton("medicine_input_section_typing", {
                             value_length: text.length,
                             screen: "MedicineLanding",
                             platform: Platform.OS,
@@ -286,7 +286,7 @@ export default function NewMedicineLandingPagey() {
                     //   });
                     // }}
                     onPress={() => {
-                      trackButton("upload_prescription_click", {
+                      trackButton("NewMedicinePage_upload_prescription_Button_click", {
                         source: "medicine_landing",
                         screen: "MedicineLanding",
                         platform: Platform.OS,
@@ -344,7 +344,7 @@ export default function NewMedicineLandingPagey() {
                     //   });
                     // }}
                     onPress={() => {
-                      trackButton("generate_prescription_click", {
+                      trackButton("NewMedicinePage_generate_prescription_button_click", {
                         screen: "MedicineLanding",
                         platform: Platform.OS,
                       });
@@ -545,7 +545,7 @@ export default function NewMedicineLandingPagey() {
 
                   // Set new timer (fires only after user stops typing)
                   typingTimeoutRef.current = setTimeout(() => {
-                    trackButton("medicine_input_typing", {
+                    trackButton("NewMedicinePage_medicine_input_typing", {
                       value_length: text.length,
                       screen: "MedicineLanding",
                       platform: Platform.OS,
@@ -579,7 +579,7 @@ export default function NewMedicineLandingPagey() {
                 //   });
                 // }}
                 onPress={() => {
-                  trackButton("mobile_search_button_click", {
+                  trackButton("NewMedicinePage_mobile_search_button_click", {
                     input_value: medicine,
                     screen: "MedicineLanding",
                     platform: Platform.OS,
@@ -632,7 +632,7 @@ export default function NewMedicineLandingPagey() {
                 //   });
                 // }}
                 onPress={() => {
-                  trackButton("mobile_analyze_prescription_click", {
+                  trackButton("NewMedicinePage_mobile_uploadPrescription_button_click", {
                     screen: "MedicineLanding",
                     platform: Platform.OS,
                   });
@@ -676,7 +676,7 @@ export default function NewMedicineLandingPagey() {
               //   });
               // }}
               onPress={() => {
-                trackButton("mobile_analyze_prescription_click", {
+                trackButton("NewMedicinePage_mobile_analyzePrescription_Button_click", {
                   screen: "MedicineLanding",
                   platform: Platform.OS,
                 });
