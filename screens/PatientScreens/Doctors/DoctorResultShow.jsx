@@ -22,6 +22,7 @@ import HeaderLoginSignUp from "../../../components/PatientScreenComponents/Heade
 import DoctorAppointmentData from "../../../components/PatientScreenComponents/DoctorComponents/DoctorsAppointmentData";
 import PromoModal from "../../../components/PatientScreenComponents/PromoModal";
 import BackButton from "../../../components/PatientScreenComponents/BackButton";
+import mixpanel, { trackButton } from "../../../utils/Mixpanel";
 
 // Create a platform-specific location implementation
 // const GetLocationPolyfill = {
@@ -230,7 +231,13 @@ const DoctorResultShow = ({ navigation, route }) => {
                       <View style={styles.categoryBox}>
                         <TouchableOpacity
                           style={styles.filterButton}
-                          onPress={() => setShowDropdown(!showDropdown)}
+                          onPress={() => {
+                            trackButton("category_dropdown_toggle", {
+                              action: showDropdown ? "close" : "open",
+                            });
+
+                            setShowDropdown(!showDropdown);
+                          }}
                         >
                           <Text style={styles.filterButtonText}>
                             {selectedCategory.label}
@@ -269,7 +276,11 @@ const DoctorResultShow = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.modalBackdrop}
                         activeOpacity={1}
-                        onPress={() => setShowDropdown(false)}
+                        onPress={() => {
+                          trackButton("category_dropdown_backdrop_click");
+
+                          setShowDropdown(false);
+                        }}
                       >
                         <View style={styles.dropdownOverlayWrapper}>
                           <ScrollView style={styles.dropdownScrollView}>
@@ -278,6 +289,11 @@ const DoctorResultShow = ({ navigation, route }) => {
                                 key={idx}
                                 style={styles.dropdownItems}
                                 onPress={() => {
+                                  trackButton("category_selected", {
+                                    category_name: cat.label,
+                                    category_value: cat.value,
+                                  });
+
                                   setSelectedCategory(cat);
                                   setShowDropdown(false);
                                 }}
@@ -316,7 +332,13 @@ const DoctorResultShow = ({ navigation, route }) => {
             <View style={styles.categoryBox}>
               <TouchableOpacity
                 style={styles.filterButton}
-                onPress={() => setShowDropdown(!showDropdown)}
+                onPress={() => {
+                  trackButton("category_dropdown_toggle_Clicked", {
+                    action: showDropdown ? "close" : "open",
+                  });
+
+                  setShowDropdown(!showDropdown);
+                }}
               >
                 <Text style={styles.filterButtonText}>
                   {selectedCategory.label}
@@ -351,7 +373,11 @@ const DoctorResultShow = ({ navigation, route }) => {
             <TouchableOpacity
               style={styles.modalBackdrop}
               activeOpacity={1}
-              onPress={() => setShowDropdown(false)}
+              onPress={() => {
+                trackButton("category_dropdown_backdrop_click");
+
+                setShowDropdown(false);
+              }}
             >
               <View style={styles.dropdownOverlayWrapper}>
                 <ScrollView style={styles.dropdownScrollView}>
@@ -360,6 +386,11 @@ const DoctorResultShow = ({ navigation, route }) => {
                       key={idx}
                       style={styles.dropdownItems}
                       onPress={() => {
+                        trackButton("category_selected_Clicked", {
+                          category_name: cat.label,
+                          category_value: cat.value,
+                        });
+
                         setSelectedCategory(cat);
                         setShowDropdown(false);
                       }}

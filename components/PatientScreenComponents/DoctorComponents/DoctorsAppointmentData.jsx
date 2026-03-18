@@ -1378,7 +1378,7 @@ import {
 import { API_URL } from "../../../env-vars";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
-import mixpanel from "../../../utils/Mixpanel";
+import mixpanel, { trackButton } from "../../../utils/Mixpanel";
 
 const DoctorAppointmentScreen = ({
   navigation,
@@ -1419,10 +1419,10 @@ const DoctorAppointmentScreen = ({
 
         const sortedDoctors = [
           ...fetchedDoctors.filter((doc) =>
-            priorityDoctors.includes(doc.doctorname)
+            priorityDoctors.includes(doc.doctorname),
           ),
           ...fetchedDoctors.filter(
-            (doc) => !priorityDoctors.includes(doc.doctorname)
+            (doc) => !priorityDoctors.includes(doc.doctorname),
           ),
         ];
         //console.log("🔝 Sorted doctors count:", sortedDoctors.length);
@@ -1519,7 +1519,7 @@ const DoctorAppointmentScreen = ({
 
     try {
       const res = await fetch(
-        `${API_URL}/booking/users/${user.user_id}/subscriptions`
+        `${API_URL}/booking/users/${user.user_id}/subscriptions`,
       );
       const data = await res.json();
 
@@ -1539,10 +1539,10 @@ const DoctorAppointmentScreen = ({
       if (activeSub) {
         // ✅ FIXED: Use correct field names from backend
         const totalConsultations = Number(
-          activeSub.appointments_total || activeSub.consultations_total || 0
+          activeSub.appointments_total || activeSub.consultations_total || 0,
         );
         const usedConsultations = Number(
-          activeSub.appointments_used || activeSub.consultations_used || 0
+          activeSub.appointments_used || activeSub.consultations_used || 0,
         );
 
         console.log("✅ Active subscription found:", {
@@ -1609,7 +1609,7 @@ const DoctorAppointmentScreen = ({
 
     try {
       const res = await fetch(
-        `${API_URL}/booking/users/${user.user_id}/bookings?type=upcoming`
+        `${API_URL}/booking/users/${user.user_id}/bookings?type=upcoming`,
       );
 
       const data = await res.json();
@@ -1618,8 +1618,8 @@ const DoctorAppointmentScreen = ({
       const appointmentsArray = Array.isArray(data)
         ? data
         : Array.isArray(data.appointments)
-        ? data.appointments
-        : [];
+          ? data.appointments
+          : [];
 
       const countMap = {};
 
@@ -1648,7 +1648,7 @@ const DoctorAppointmentScreen = ({
         fetchUserSubscription();
         fetchUserAppointments(); // ✅ ADD THIS
       }
-    }, [user?.user_id])
+    }, [user?.user_id]),
   );
 
   const getDoctorEventProps = (doctor) => ({
@@ -1785,7 +1785,7 @@ const DoctorAppointmentScreen = ({
                       > */}
                       <TouchableOpacity
                         onPress={() => {
-                          mixpanel.track("Doctor_Image_Clicked", {
+                          trackButton("doctor_image_clicked", {
                             ...getDoctorEventProps(item),
                             destination: "DoctorsInfoWithSubscription",
                           });
@@ -1874,27 +1874,11 @@ const DoctorAppointmentScreen = ({
                           isDisabled && { backgroundColor: "#B0B0B0" },
                         ]}
                         disabled={isDisabled}
-                        // onPress={() => {
-                        //   if (canBookMore) {
-                        //     // navigation.navigate("DoctorsInfoWithBooking", {
-                        //     //   doctors: item,
-                        //     // });
-                        //     navigation.navigate("DoctorsInfoWithBooking", {
-                        //       doctorId: normalizeDoctorId(item),
-                        //     });
-                        //     return;
-                        //   }
-
-                        //   if (!hasActiveSubscription) {
-                        //     navigation.navigate("DoctorsInfoWithSubscription", {
-                        //       doctorId: normalizeDoctorId(item),
-                        //     });
-                        //   }
-                        // }}
+                        
                         onPress={() => {
                           // 🟢 BOOK SLOT
                           if (canBookMore) {
-                            mixpanel.track("Doctor_Book_Slot_Clicked", {
+                            trackButton("Doctor_BookSlot_Button_Clicked", {
                               ...getDoctorEventProps(item),
                               remaining_slots: remainingSlots,
                               total_allowed: totalAllowed,
@@ -1910,7 +1894,7 @@ const DoctorAppointmentScreen = ({
 
                           // 🔵 SUBSCRIBE
                           if (!hasActiveSubscription) {
-                            mixpanel.track("Doctor_Subscribe_Clicked", {
+                            trackButton("Doctor_Subscribe_Button_Clicked", {
                               ...getDoctorEventProps(item),
                               button_text: buttonText,
                               has_active_subscription: hasActiveSubscription,
@@ -2050,7 +2034,7 @@ const DoctorAppointmentScreen = ({
                         <TouchableOpacity
                           style={styles.imageContainer}
                           onPress={() => {
-                            mixpanel.track("Doctor_Image_Clicked", {
+                            trackButton("doctor_image_clicked", {
                               ...getDoctorEventProps(item),
                               destination: "DoctorsInfoWithSubscription",
                             });
@@ -2155,10 +2139,9 @@ const DoctorAppointmentScreen = ({
                           ]}
                           disabled={isDisabled}
                           // onPress={() => {
-                          //   // 1️⃣ User has active subscription for this doctor and can book
                           //   if (canBookMore) {
                           //     navigation.navigate("DoctorsInfoWithBooking", {
-                          //       doctors: item,
+                          //       doctorId: normalizeDoctorId(item),
                           //     });
                           //     return;
                           //   }
@@ -2167,13 +2150,21 @@ const DoctorAppointmentScreen = ({
                           //     navigation.navigate(
                           //       "DoctorsInfoWithSubscription",
                           //       {
-                          //         doctors: item,
-                          //       }
+                          //         doctorId: normalizeDoctorId(item), // ✅ Make sure this is "doctorId" not "doctors"
+                          //       },
                           //     );
                           //   }
                           // }}
                           onPress={() => {
                             if (canBookMore) {
+                              trackButton("doctor_book_slot_click", {
+                                ...getDoctorEventProps(item),
+                                remaining_slots: remainingSlots,
+                                total_allowed: totalAllowed,
+                                used_slots: actualUsed,
+                                button_text: buttonText,
+                              });
+
                               navigation.navigate("DoctorsInfoWithBooking", {
                                 doctorId: normalizeDoctorId(item),
                               });
@@ -2181,17 +2172,17 @@ const DoctorAppointmentScreen = ({
                             }
 
                             if (!hasActiveSubscription) {
-                              // navigation.navigate(
-                              //   "DoctorsInfoWithSubscription",
-                              //   {
-                              //     doctorId: normalizeDoctorId(item),
-                              //   }
-                              // );
+                              trackButton("doctor_subscribe_click", {
+                                ...getDoctorEventProps(item),
+                                button_text: buttonText,
+                                has_active_subscription: hasActiveSubscription,
+                              });
+
                               navigation.navigate(
                                 "DoctorsInfoWithSubscription",
                                 {
-                                  doctorId: normalizeDoctorId(item), // ✅ Make sure this is "doctorId" not "doctors"
-                                }
+                                  doctorId: normalizeDoctorId(item),
+                                },
                               );
                             }
                           }}
