@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     top: 45,
     right: 0,
     //left:0,
-    backgroundColor: "#fff",
+    backgroundColor: "#e6e4e4ff",
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#E5E7EB",
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   headerBtnText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
   },
   hospitalSignInBtn: {

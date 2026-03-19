@@ -18,8 +18,9 @@ import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import Title from "../../components/PatientScreenComponents/Title";
-import SearchBar from "../../components/PatientScreenComponents/SearchBar";
-import { TrackEvent } from "../../utils/TrackEvent";
+//import SearchBar from "../../components/PatientScreenComponents/SearchBar";
+//import { TrackEvent } from "../../utils/TrackEvent";
+import mixpanel, { trackButton } from "../../utils/Mixpanel";
 import { useAuth } from "../../contexts/AuthContext";
 
 const { width, height } = Dimensions.get("window");
@@ -29,10 +30,10 @@ const LandingPage = ({ navigation, route }) => {
   const borderAnim = useRef(new Animated.Value(0)).current;
   //const [showBorder, setShowBorder] = useState(false);
   const [showLabel, setShowLabel] = useState(false);
-  const handlePress = (eventName, params, navigateTo) => {
-    TrackEvent(eventName, params);
-    navigation.navigate("PatientAppNavigation", { screen: navigateTo });
-  };
+  // const handlePress = (eventName, params, navigateTo) => {
+  //   TrackEvent(eventName, params);
+  //   navigation.navigate("PatientAppNavigation", { screen: navigateTo });
+  // };
   // const [showPatientAuth, setShowPatientAuth] = useState(false);
   // const [showDoctorAuth, setShowDoctorAuth] = useState(false);
   const { user, role, isLoading } = useAuth();
@@ -60,12 +61,12 @@ const LandingPage = ({ navigation, route }) => {
               tension: 100,
               useNativeDriver: true,
             }),
-          ])
+          ]),
         ).start();
       }, 1000);
 
       return () => clearTimeout(timer);
-    }, [borderAnim, setChatbotConfig])
+    }, [borderAnim, setChatbotConfig]),
   );
 
   const [webPaymentHandled, setWebPaymentHandled] = useState(false);
@@ -107,7 +108,7 @@ const LandingPage = ({ navigation, route }) => {
       // WEB
       if (Platform.OS === "web") {
         alert(
-          "You have successfully subscribed to doctor. Now book your slot."
+          "You have successfully subscribed to doctor. Now book your slot.",
         );
 
         navigation.navigate("PatientAppNavigation", {
@@ -131,7 +132,7 @@ const LandingPage = ({ navigation, route }) => {
                 params: { highlightDoctorId: doctorId },
               }),
           },
-        ]
+        ],
       );
     }
   }, [doctorId, navigation, paymentSuccess]);
@@ -190,21 +191,17 @@ const LandingPage = ({ navigation, route }) => {
                     <View style={styles.centerMiddlePart}>
                       <TouchableOpacity
                         style={styles.cardStyle}
-                        // onPress={() => {
-                        //   navigation.navigate("PatientAppNavigation", {
-                        //     screen: "Doctors",
-                        //   });
-                        // }}
-                        onPress={() =>
-                          handlePress(
-                            "consultation_card_click",
-                            {
-                              clickText: "Consultation",
-                              clickID: "consultation-card",
-                            },
-                            "Doctors"
-                          )
-                        }
+                        onPress={() => {
+                          trackButton("consultation_card_click", {
+                            clickText: "Consultation",
+                            clickID: "consultation-card",
+                            screen: "LandingPage",
+                          });
+
+                          navigation.navigate("PatientAppNavigation", {
+                            screen: "Doctors",
+                          });
+                        }}
                       >
                         <Image
                           source={require("../../assets/Images/Consultation.png")}
@@ -214,6 +211,12 @@ const LandingPage = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
+                          trackButton("medilocker_card_click", {
+                            clickText: "Medilocker",
+                            clickID: "medilocker-card",
+                            screen: "LandingPage",
+                          });
+
                           navigation.navigate("PatientAppNavigation", {
                             screen: "NewMedilockerScreen",
                           });
@@ -253,6 +256,12 @@ const LandingPage = ({ navigation, route }) => {
                         >
                           <TouchableOpacity
                             onPress={() => {
+                              trackButton("AI_chatbot_card_click", {
+                                clickText: "AI Support",
+                                clickID: "ai-chatbot-card",
+                                screen: "LandingPage",
+                              });
+
                               navigation.navigate("PatientAppNavigation", {
                                 screen: "MobileChatbot",
                               });
@@ -317,6 +326,12 @@ const LandingPage = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
+                          trackButton("dashboard_card_click", {
+                            clickText: "Dashboard",
+                            clickID: "dashboard-card",
+                            screen: "LandingPage",
+                          });
+
                           navigation.navigate("PatientAppNavigation", {
                             screen: "UserDashboard",
                           });
@@ -352,6 +367,12 @@ const LandingPage = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.cardStyle}
                 onPress={() => {
+                  trackButton("consultation_card_click", {
+                    clickText: "Consultation",
+                    clickID: "consultation-card",
+                    screen: "LandingPage",
+                  });
+
                   navigation.navigate("PatientAppNavigation", {
                     screen: "Doctors",
                   });
@@ -365,6 +386,12 @@ const LandingPage = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.cardStyle}
                 onPress={() => {
+                  trackButton("medilocker_card_click", {
+                    clickText: "Medilocker",
+                    clickID: "medilocker-card",
+                    screen: "LandingPage",
+                  });
+
                   navigation.navigate("PatientAppNavigation", {
                     screen: "NewMedilockerScreen",
                   });
@@ -377,20 +404,6 @@ const LandingPage = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
             <View style={styles.cardsRow}>
-              {/* <TouchableOpacity
-                style={styles.cardStyle}
-                onPress={() => {
-                  navigation.navigate("PatientAppNavigation", {
-                    screen: "MobileChatbot",
-                  });
-                }}
-                // onPress={() => setShowChatbot(true)}
-              >
-                <Image
-                  source={require("../../assets/Images/twenty-four_Support.png")}
-                  style={styles.image}
-                />
-              </TouchableOpacity> */}
               <View
                 style={{
                   alignItems: "center",
@@ -423,11 +436,17 @@ const LandingPage = ({ navigation, route }) => {
                   ]}
                 >
                   <TouchableOpacity
-                    onPress={() =>
+                    onPress={() => {
+                      trackButton("AI_chatbot_card_click", {
+                        clickText: "AI Support",
+                        clickID: "ai-chatbot-card",
+                        screen: "LandingPage",
+                      });
+
                       navigation.navigate("PatientAppNavigation", {
                         screen: "MobileChatbot",
-                      })
-                    }
+                      });
+                    }}
                     activeOpacity={0.9}
                     style={{ width: "100%", height: "100%" }}
                   >
@@ -490,6 +509,12 @@ const LandingPage = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.cardStyle}
                 onPress={() => {
+                  trackButton("dashboard_card_click", {
+                    clickText: "Dashboard",
+                    clickID: "dashboard-card",
+                    screen: "LandingPage",
+                  });
+
                   navigation.navigate("PatientAppNavigation", {
                     screen: "UserDashboard",
                   });
@@ -505,7 +530,6 @@ const LandingPage = ({ navigation, route }) => {
         </View>
       )}
       {/* <ChatBot/> */}
-      
     </>
   );
 };
@@ -559,7 +583,7 @@ const styles = StyleSheet.create({
   header: {
     //borderWidth: 3,
     // borderColor: "black",
-    paddingHorizontal:"1%",
+    paddingHorizontal: "1%",
     zIndex: 2,
     ...Platform.select({
       web: {

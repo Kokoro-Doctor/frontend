@@ -19,7 +19,7 @@ import {
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
-import mixpanel from "../../utils/Mixpanel";
+import mixpanel, { trackButton } from "../../utils/Mixpanel";
 
 export default function KokoroDoctorScreen() {
   const [searchText, setSearchText] = useState("");
@@ -27,7 +27,6 @@ export default function KokoroDoctorScreen() {
   const isMobile = width < 768;
   const navigation = useNavigation();
   const [menuVisible, setMenuVisible] = useState(false);
-
   const scrollRef = useRef(null);
   const scrollX = useRef(0);
   const intervalRef = useRef(null);
@@ -277,7 +276,10 @@ export default function KokoroDoctorScreen() {
             <View style={webStyles.navLinks}>
               <TouchableOpacity
                 onPress={() => {
-                  mixpanel.track("Web Navbar - Home Clicked", {
+                  // mixpanel.track("Web Navbar - Home Clicked", {
+                  //   source: "web-navbar",
+                  // });
+                  trackButton("navbar_home_button_clicked", {
                     source: "web-navbar",
                   });
 
@@ -289,7 +291,7 @@ export default function KokoroDoctorScreen() {
 
               <TouchableOpacity
                 onPress={() => {
-                  mixpanel.track("Web Navbar - Our Doctors Clicked", {
+                  trackButton("navbar_OurDoctor_button_clicked", {
                     source: "web-navbar",
                     destination: "DoctorResultShow",
                   });
@@ -305,9 +307,8 @@ export default function KokoroDoctorScreen() {
 
               <TouchableOpacity
                 onPress={() => {
-                  mixpanel.track("Web Navbar - Doctor Login Clicked", {
+                  trackButton("navbar_doctorLogin_button_clicked", {
                     source: "web-navbar",
-                    destination: "DoctorPortalLandingPage",
                   });
 
                   navigation.navigate("DoctorAppNavigation", {
@@ -322,8 +323,8 @@ export default function KokoroDoctorScreen() {
             <TouchableOpacity
               style={webStyles.navBtn}
               onPress={() => {
-                mixpanel.track("Web Get Help Now Clicked", {
-                  source: "web-navbar",
+                trackButton("helpNow_button_clicked", {
+                  source: "web-hero",
                   destination: "DoctorResultShow",
                 });
 
@@ -394,7 +395,7 @@ export default function KokoroDoctorScreen() {
               <TouchableOpacity
                 style={webStyles.heroBtn}
                 onPress={() => {
-                  mixpanel.track("Web Hero CTA Clicked", {
+                  trackButton("GetHelpNow_button_clicked", {
                     source: "web-hero",
                     destination: "DoctorResultShow",
                   });
@@ -495,7 +496,11 @@ export default function KokoroDoctorScreen() {
                 const textToSend = searchText.trim();
                 if (!textToSend) return;
 
-                mixpanel.track("Web Search Submitted", {
+                // mixpanel.track("Web Search Submitted", {
+                //   query: textToSend,
+                //   source: "web-search-bar",
+                // });
+                trackButton("search_submitted", {
                   query: textToSend,
                   source: "web-search-bar",
                 });
@@ -530,7 +535,11 @@ export default function KokoroDoctorScreen() {
                 const textToSend = searchText.trim();
                 if (!textToSend) return;
 
-                mixpanel.track("Web Search Button Clicked", {
+                // mixpanel.track("Web Search Button Clicked", {
+                //   query: textToSend,
+                //   source: "web-search-bar",
+                // });
+                trackButton("search_button_clicked", {
                   query: textToSend,
                   source: "web-search-bar",
                 });
@@ -565,7 +574,11 @@ export default function KokoroDoctorScreen() {
                     style={webStyles.tryChip}
                     activeOpacity={0.8}
                     onPress={() => {
-                      mixpanel.track("Web Try Pill Clicked", {
+                      // mixpanel.track("Web Try Pill Clicked", {
+                      //   pill_name: item,
+                      //   source: "web-try-section",
+                      // });
+                      trackButton("try_pill_clicked", {
                         pill_name: item,
                         source: "web-try-section",
                       });
@@ -617,7 +630,11 @@ export default function KokoroDoctorScreen() {
                 onPress={() => {
                   const title = item.title.replace("\n", " ").trim();
 
-                  mixpanel.track("Web Service Card Clicked", {
+                  // mixpanel.track("Web Service Card Clicked", {
+                  //   service_name: title,
+                  //   source: "web-services",
+                  // });
+                  trackButton("service_card_clicked", {
                     service_name: title,
                     source: "web-services",
                   });
@@ -668,10 +685,14 @@ export default function KokoroDoctorScreen() {
             <TouchableOpacity
               style={webStyles.featureCard}
               onPress={() => {
-                mixpanel.track("Web Featured CTA Clicked", {
+                // mixpanel.track("Web Featured CTA Clicked", {
+                //   banner: "start_health_check",
+                //   source: "web-featured-section",
+                //   destination: "DoctorResultShow",
+                // });
+                trackButton("featured_card_health_clicked", {
                   banner: "start_health_check",
                   source: "web-featured-section",
-                  destination: "DoctorResultShow",
                 });
 
                 navigation.navigate("PatientAppNavigation", {
@@ -702,10 +723,14 @@ export default function KokoroDoctorScreen() {
                   <TouchableOpacity
                     style={webStyles.arrowBtn}
                     onPress={() => {
-                      mixpanel.track("Web Featured CTA Clicked", {
+                      // mixpanel.track("Web Featured CTA Clicked", {
+                      //   banner: "start_health_check",
+                      //   source: "web-featured-arrow",
+                      //   destination: "DoctorResultShow",
+                      // });
+                      trackButton("featured_card_health_clicked", {
                         banner: "start_health_check",
-                        source: "web-featured-arrow",
-                        destination: "DoctorResultShow",
+                        source: "web-featured-section",
                       });
 
                       navigation.navigate("PatientAppNavigation", {
@@ -744,10 +769,14 @@ export default function KokoroDoctorScreen() {
                   <TouchableOpacity
                     style={webStyles.arrowBtn}
                     onPress={() => {
-                      mixpanel.track("Web Featured CTA Clicked", {
+                      // mixpanel.track("Web Featured CTA Clicked", {
+                      //   banner: "medicine_explainer",
+                      //   source: "web-featured-section",
+                      //   destination: "NewMedicineLandingPage",
+                      // });
+                      trackButton("featured_card_Medicine_clicked", {
                         banner: "medicine_explainer",
                         source: "web-featured-section",
-                        destination: "NewMedicineLandingPage",
                       });
 
                       navigation.navigate("NewMedicineLandingPage");
@@ -789,7 +818,19 @@ export default function KokoroDoctorScreen() {
               <Text style={styles.logoText}>Kokoro.Doctor</Text>
             </View>
 
-            <TouchableOpacity onPress={() => setMenuVisible(true)}>
+            {/* <TouchableOpacity onPress={() => setMenuVisible(true)}> */}
+            <TouchableOpacity
+              onPress={() => {
+                // mixpanel.track("Mobile Menu Opened", {
+                //   source: "mobile-header",
+                // });
+                trackButton("Mobile_Menu_clicked", {
+                  source: "mobile-header",
+                });
+
+                setMenuVisible(true);
+              }}
+            >
               <Ionicons name="menu" size={26} />
             </TouchableOpacity>
           </View>
@@ -810,8 +851,12 @@ export default function KokoroDoctorScreen() {
               <TouchableOpacity
                 style={styles.helpBtn}
                 onPress={() => {
-                  mixpanel.track("Get Help Now Clicked", {
-                    source: "hero-card",
+                  // mixpanel.track("Get Help Now Clicked", {
+                  //   source: "hero-card",
+                  //   destination: "DoctorResultShow",
+                  // });
+                  trackButton("GetHelpNow_button_clicked", {
+                    source: "web-hero",
                     destination: "DoctorResultShow",
                   });
 
@@ -947,6 +992,11 @@ export default function KokoroDoctorScreen() {
 
                 if (!textToSend) return; // prevent empty search
 
+                trackButton("search_button_clicked", {
+                  query: textToSend,
+                  source: "web-search-bar",
+                });
+
                 navigation.navigate("PatientAppNavigation", {
                   screen: "MobileChatbot",
                   params: {
@@ -984,9 +1034,9 @@ export default function KokoroDoctorScreen() {
 
                     if (!textToSend) return;
 
-                    mixpanel.track("Try Pill Clicked", {
+                    trackButton("try_pill_clicked", {
                       pill_name: item,
-                      source: "landing-try-section",
+                      source: "web-try-section",
                     });
 
                     navigation.navigate("PatientAppNavigation", {
@@ -1048,9 +1098,9 @@ export default function KokoroDoctorScreen() {
                   const title = item.title.replace("\n", " ").trim();
 
                   // Analytics
-                  mixpanel.track("Service Card Clicked", {
+                  trackButton("service_card_clicked", {
                     service_name: title,
-                    source: "landing-services",
+                    source: "web-services",
                   });
 
                   // 👉 Talk to Doctor → DoctorResultShow
@@ -1106,10 +1156,14 @@ export default function KokoroDoctorScreen() {
             <View>
               <TouchableOpacity
                 onPress={() => {
-                  mixpanel.track("Featured CTA Clicked", {
-                    banner: "bottomcta1",
-                    source: "landing-featured",
-                    destination: "DoctorResultShow",
+                  // mixpanel.track("Featured CTA Clicked", {
+                  //   banner: "bottomcta1",
+                  //   source: "landing-featured",
+                  //   destination: "DoctorResultShow",
+                  // });
+                  trackButton("featured_card_health_clicked", {
+                    banner: "start_health_check",
+                    source: "web-featured-section",
                   });
 
                   navigation.navigate("PatientAppNavigation", {
@@ -1130,10 +1184,14 @@ export default function KokoroDoctorScreen() {
             <View>
               <TouchableOpacity
                 onPress={() => {
-                  mixpanel.track("Featured CTA Clicked", {
-                    banner: "bottomcta-know-medicine",
-                    source: "landing-featured",
-                    destination: "NewMedicineLandingPage",
+                  // mixpanel.track("Featured CTA Clicked", {
+                  //   banner: "bottomcta-know-medicine",
+                  //   source: "landing-featured",
+                  //   destination: "NewMedicineLandingPage",
+                  // });
+                  trackButton("featured_card_Medicine_clicked", {
+                    banner: "medicine_explainer",
+                    source: "web-featured-section",
                   });
 
                   navigation.navigate("NewMedicineLandingPage");

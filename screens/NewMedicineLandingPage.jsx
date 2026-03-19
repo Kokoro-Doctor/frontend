@@ -18,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 //import { MaterialCommunityIcons } from "@expo/vector-icons";
+import mixpanel, { trackButton } from "../utils/Mixpanel";
 
 export default function NewMedicineLandingPagey() {
   const [hovered, setHovered] = useState(false);
@@ -25,6 +26,28 @@ export default function NewMedicineLandingPagey() {
   const [uploadHovered, setUploadHovered] = useState(false);
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
+  const typingTimeoutRef = useRef(null);
+
+  const handleMedicineSearch = () => {
+    const textToSend = medicine.trim();
+
+    if (!textToSend) return;
+
+    // 🔥 Track enter/search click
+    trackButton("medicine_search_submit", {
+      input_value: textToSend,
+      screen: "MedicineLanding",
+      platform: Platform.OS,
+    });
+
+    navigation.navigate("PatientAppNavigation", {
+      screen: "MobileChatbot",
+      params: {
+        presetPrompt: textToSend,
+        source: "medicine-input",
+      },
+    });
+  };
 
   return (
     <>
@@ -166,28 +189,61 @@ export default function NewMedicineLandingPagey() {
                   <View style={styles.searchBox}>
                     <Ionicons name="search-outline" size={18} color="#9CA3AF" />
 
-                    <TextInput
+                    {/* <TextInput
                       placeholder="Type your medicine name..."
                       placeholderTextColor="#9CA3AF"
                       style={styles.searchInput}
                       value={medicine}
                       onChangeText={setMedicine}
+                    /> */}
+                    <TextInput
+                      placeholder="Type your medicine name..."
+                      placeholderTextColor="#9CA3AF"
+                      style={styles.searchInput}
+                      value={medicine}
+                      onChangeText={(text) => {
+                        setMedicine(text);
+
+                        // Clear previous timer
+                        if (typingTimeoutRef.current) {
+                          clearTimeout(typingTimeoutRef.current);
+                        }
+
+                        // Set new timer (fires only after user stops typing)
+                        typingTimeoutRef.current = setTimeout(() => {
+                          trackButton("medicine_input_section_typing", {
+                            value_length: text.length,
+                            screen: "MedicineLanding",
+                            platform: Platform.OS,
+                          });
+                        }, 800); // ⏱️ fires after 800ms pause
+                      }}
+                      onSubmitEditing={handleMedicineSearch}
                     />
 
                     {/* Check button appears ONLY when text exists */}
                     {medicine.trim().length > 0 && (
                       <TouchableOpacity
                         activeOpacity={0.85}
-                        onPress={() => {
-                          const textToSend = medicine.trim();
+                        // onPress={() => {
+                        //   const textToSend = medicine.trim();
 
-                          navigation.navigate("PatientAppNavigation", {
-                            screen: "MobileChatbot",
-                            params: {
-                              presetPrompt: textToSend || null,
-                              source: "medicine-input",
-                            },
+                        //   navigation.navigate("PatientAppNavigation", {
+                        //     screen: "MobileChatbot",
+                        //     params: {
+                        //       presetPrompt: textToSend || null,
+                        //       source: "medicine-input",
+                        //     },
+                        //   });
+                        // }}
+                        onPress={() => {
+                          trackButton("check_medicine_button_click", {
+                            input_value: medicine,
+                            screen: "MedicineLanding",
+                            platform: Platform.OS,
                           });
+
+                          handleMedicineSearch();
                         }}
                         style={styles.checkBtn}
                       >
@@ -224,7 +280,18 @@ export default function NewMedicineLandingPagey() {
                   {/* Upload Card */}
                   <TouchableOpacity
                     activeOpacity={0.9}
+                    // onPress={() => {
+                    //   navigation.navigate("DoctorAppNavigation", {
+                    //     screen: "Prescription",
+                    //   });
+                    // }}
                     onPress={() => {
+                      trackButton("NewMedicinePage_upload_prescription_Button_click", {
+                        source: "medicine_landing",
+                        screen: "MedicineLanding",
+                        platform: Platform.OS,
+                      });
+
                       navigation.navigate("DoctorAppNavigation", {
                         screen: "Prescription",
                       });
@@ -271,7 +338,17 @@ export default function NewMedicineLandingPagey() {
                   {/* CTA */}
                   <TouchableOpacity
                     activeOpacity={0.9}
+                    // onPress={() => {
+                    //   navigation.navigate("DoctorAppNavigation", {
+                    //     screen: "Prescription",
+                    //   });
+                    // }}
                     onPress={() => {
+                      trackButton("NewMedicinePage_generate_prescription_button_click", {
+                        screen: "MedicineLanding",
+                        platform: Platform.OS,
+                      });
+
                       navigation.navigate("DoctorAppNavigation", {
                         screen: "Prescription",
                       });
@@ -438,7 +515,7 @@ export default function NewMedicineLandingPagey() {
                 height: 52,
               }}
             >
-              <TextInput
+              {/* <TextInput
                 placeholder="Type your medicine name..."
                 placeholderTextColor="#9CA3AF"
                 value={medicine}
@@ -453,20 +530,62 @@ export default function NewMedicineLandingPagey() {
                   outlineStyle: "none", // removes browser focus ring
                   boxShadow: "none", // removes chrome focus glow
                 }}
+              /> */}
+              <TextInput
+                placeholder="Type your medicine name..."
+                placeholderTextColor="#9CA3AF"
+                value={medicine}
+                onChangeText={(text) => {
+                  setMedicine(text);
+
+                  // Clear previous timer
+                  if (typingTimeoutRef.current) {
+                    clearTimeout(typingTimeoutRef.current);
+                  }
+
+                  // Set new timer (fires only after user stops typing)
+                  typingTimeoutRef.current = setTimeout(() => {
+                    trackButton("NewMedicinePage_medicine_input_typing", {
+                      value_length: text.length,
+                      screen: "MedicineLanding",
+                      platform: Platform.OS,
+                    });
+                  }, 800); // ⏱️ fires after 800ms pause
+                }}
+                onSubmitEditing={handleMedicineSearch}
+                style={{
+                  flex: 1,
+                  fontSize: 18,
+                  color: "#111827",
+                  fontWeight: 500,
+                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  outlineStyle: "none",
+                  boxShadow: "none",
+                }}
               />
 
               {/* Search button */}
               <TouchableOpacity
-                onPress={() => {
-                  const textToSend = medicine.trim();
+                // onPress={() => {
+                //   const textToSend = medicine.trim();
 
-                  navigation.navigate("PatientAppNavigation", {
-                    screen: "MobileChatbot",
-                    params: {
-                      presetPrompt: textToSend || null,
-                      source: "medicine-input",
-                    },
+                //   navigation.navigate("PatientAppNavigation", {
+                //     screen: "MobileChatbot",
+                //     params: {
+                //       presetPrompt: textToSend || null,
+                //       source: "medicine-input",
+                //     },
+                //   });
+                // }}
+                onPress={() => {
+                  trackButton("NewMedicinePage_mobile_search_button_click", {
+                    input_value: medicine,
+                    screen: "MedicineLanding",
+                    platform: Platform.OS,
                   });
+
+                  handleMedicineSearch();
                 }}
                 style={{
                   width: 40,
@@ -507,7 +626,17 @@ export default function NewMedicineLandingPagey() {
               <TouchableOpacity
                 activeOpacity={0.9}
                 style={styles.uploadCard}
+                // onPress={() => {
+                //   navigation.navigate("DoctorAppNavigation", {
+                //     screen: "Prescription",
+                //   });
+                // }}
                 onPress={() => {
+                  trackButton("NewMedicinePage_mobile_uploadPrescription_button_click", {
+                    screen: "MedicineLanding",
+                    platform: Platform.OS,
+                  });
+
                   navigation.navigate("DoctorAppNavigation", {
                     screen: "Prescription",
                   });
@@ -541,7 +670,17 @@ export default function NewMedicineLandingPagey() {
                 styles.analyzeBtn,
                 { marginTop: "4%", marginLeft: "4%", marginRight: "4%" },
               ]}
+              // onPress={() => {
+              //   navigation.navigate("DoctorAppNavigation", {
+              //     screen: "Prescription",
+              //   });
+              // }}
               onPress={() => {
+                trackButton("NewMedicinePage_mobile_analyzePrescription_Button_click", {
+                  screen: "MedicineLanding",
+                  platform: Platform.OS,
+                });
+
                 navigation.navigate("DoctorAppNavigation", {
                   screen: "Prescription",
                 });
