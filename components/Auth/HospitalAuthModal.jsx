@@ -82,7 +82,7 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
             autoCorrect={false}
           />
 
-          <Text style={styles.label}>API Key</TextInput>
+          <Text style={styles.label}>API Key</Text>
           <TextInput
             style={styles.input}
             value={apiKey}
