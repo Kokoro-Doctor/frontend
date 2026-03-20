@@ -16,6 +16,16 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
   const { width } = useWindowDimensions();
   const [selectedItem, setSelectedItem] = useState(null);
 
+  const getCurrentRouteScreen = () => {
+    // Get the current route state from the navigation
+    const state = navigation.getState();
+    if (state && state.routes && state.routes.length > 0) {
+      const currentRoute = state.routes[state.index];
+      return currentRoute.params?.screen || currentRoute.name;
+    }
+    return null;
+  };
+
   const menuItems = [
     { name: "Home", icon: require("../../assets/Icons/HomeProfile.png") },
     {
@@ -41,6 +51,9 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
 
     { name: "About Us", icon: require("../../assets/Icons/CirclesFour.png") },
     // { name: "Pricing", icon: require("../../assets/Icons/pricing.png") },
+
+    { name: "Abha", icon: require("../../assets/Icons/Abha_sidebar.png") },
+    // { name: "Pricing", icon: require("../../assets/Icons/Abha_sidebar.png") },
   ];
   const lowerMenuItems = [
     // { name: "Settings", icon: require("../../assets/Icons/GearSix.png") },
@@ -49,6 +62,23 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
   ];
 
   const handleSidebarClick = (menu) => {
+    // Prevent navigation if already on the target screen
+    const currentRoute = getCurrentRouteScreen();
+
+    if (
+      menu === "Abha" &&
+      (currentRoute === "Abha" ||
+        (navigation.getState()?.routes?.[navigation.getState().index]?.name ===
+          "PatientAppNavigation" &&
+          currentRoute === "Abha"))
+    ) {
+      // Already on Abha screen, just close sidebar if needed
+      if (closeSidebar) {
+        closeSidebar();
+      }
+      return;
+    }
+
     // setSelectedItem(menu);  //used for the red color color but is not working as intended
 
     const eventName = `${menu
@@ -91,6 +121,10 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
       navigation.navigate("PatientAppNavigation", {
         screen: "AboutUs",
       });
+    } else if (menu === "Abha") {
+      navigation.navigate("PatientAppNavigation", {
+        screen: "Abha",
+      });
     } else if (menu === "Settings") {
       navigation.navigate("PatientAppNavigation", {
         screen: "Settings",
@@ -101,6 +135,13 @@ const SideBarNavigation = ({ navigation, closeSidebar }) => {
       });
     } else {
       navigation.navigate(menu);
+    }
+
+    // Close sidebar after navigation
+    if (closeSidebar) {
+      setTimeout(() => {
+        closeSidebar();
+      }, 100);
     }
   };
 

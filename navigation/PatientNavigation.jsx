@@ -55,6 +55,7 @@ import Help from "../screens/PatientScreens/Help";
 import ContactUs from "../screens/PatientScreens/ContactUs";
 import MobileChatbot from "../components/PatientScreenComponents/ChatbotComponents/MobileChatbot";
 import DoctorReviewScreen from "../screens/PatientScreens/Doctors/App/DoctorReviewScreen";
+import Abha from "../screens/Abha";
 
 const Stack = createNativeStackNavigator();
 
@@ -299,7 +300,7 @@ const AppNavigation = ({ navigation }) => {
           });
         }
       }
-    }, [user, role, isLoading, navigation])
+    }, [user, role, isLoading, navigation]),
   );
 
   return (
@@ -381,6 +382,11 @@ const AppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="Help"
           component={Help}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Abha"
+          component={Abha}
           options={{ headerShown: false }}
         />
         <Stack.Screen name="Error" component={Error} />

@@ -300,7 +300,6 @@
 
 // export default RootNavigation;
 
-
 import { useFocusEffect } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { Suspense } from "react";
@@ -319,7 +318,7 @@ import DoctorResultShow from "../screens/PatientScreens/Doctors/DoctorResultShow
 import DoctorPortalLandingPage from "../screens/DoctorScreens/DoctorPortalLandingPage";
 import NewMedicineLandingPage from "../screens/NewMedicineLandingPage";
 import HospitalUploadPage from "../screens/HospitalUploadPage";
-
+import AbhaLandingScreen from "../screens/Abha";
 
 // Lazy-loaded navigators
 let DoctorAppNavigation;
@@ -347,6 +346,7 @@ export const linking = {
     screens: {
       HospitalUploadPage: "hospital-upload",
       NewMedicineLandingPage: "NewMedicinelLandingPage",
+      Abha: "Abha",
       WelcomePage: "WelcomePage",
       LandingPage: "Home",
       DoctorAppNavigation: {
@@ -392,12 +392,22 @@ const LandingPageWithAuth = ({ navigation, route }) => {
       if (role === "doctor") {
         navigation.reset({
           index: 0,
-          routes: [{ name: "DoctorAppNavigation", params: { screen: "DoctorPortalLandingPage" } }],
+          routes: [
+            {
+              name: "DoctorAppNavigation",
+              params: { screen: "DoctorPortalLandingPage" },
+            },
+          ],
         });
       } else if (role === "user") {
         navigation.reset({
           index: 0,
-          routes: [{ name: "PatientAppNavigation", params: { screen: "UserDashboard" } }],
+          routes: [
+            {
+              name: "PatientAppNavigation",
+              params: { screen: "UserDashboard" },
+            },
+          ],
         });
       }
     }
@@ -413,16 +423,26 @@ const LandingPageWithAuth = ({ navigation, route }) => {
         if (role === "doctor") {
           navigation.reset({
             index: 0,
-            routes: [{ name: "DoctorAppNavigation", params: { screen: "DoctorPortalLandingPage" } }],
+            routes: [
+              {
+                name: "DoctorAppNavigation",
+                params: { screen: "DoctorPortalLandingPage" },
+              },
+            ],
           });
         } else if (role === "user") {
           navigation.reset({
             index: 0,
-            routes: [{ name: "PatientAppNavigation", params: { screen: "UserDashboard" } }],
+            routes: [
+              {
+                name: "PatientAppNavigation",
+                params: { screen: "UserDashboard" },
+              },
+            ],
           });
         }
       }
-    }, [user, role, isLoading, navigation])
+    }, [user, role, isLoading, navigation]),
   );
 
   return <LandingPage navigation={navigation} route={route} />;
@@ -438,7 +458,8 @@ const RootNavigation = () => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
       const pathname = window.location.pathname;
       if (!user && pathname.startsWith("/doctor")) return "DoctorAppNavigation";
-      if (!user && pathname.startsWith("/patient")) return "PatientAppNavigation";
+      if (!user && pathname.startsWith("/patient"))
+        return "PatientAppNavigation";
       if (pathname === "/" || pathname === "/Home") return null;
     }
     return null;
@@ -473,13 +494,29 @@ const RootNavigation = () => {
           <Stack.Screen name="DoctorResultShow" component={DoctorResultShow} />
           <Stack.Screen name="LandingPage" component={LandingPageWithAuth} />
           <Stack.Screen name="AuthGate" component={AuthGate} />
-          <Stack.Screen name="DoctorAppNavigation" component={DoctorAppNavigation} />
+          <Stack.Screen
+            name="DoctorAppNavigation"
+            component={DoctorAppNavigation}
+          />
           <Stack.Screen name="PatientAppNavigation" component={AppNavigation} />
           <Stack.Screen name="MobileChatbot" component={MobileChatbot} />
           <Stack.Screen name="DoctorsSignUp" component={DoctorsSignUp} />
-          <Stack.Screen name="DoctorPortalLandingPage" component={DoctorPortalLandingPage}></Stack.Screen>
-          <Stack.Screen name="NewMedicineLandingPage" component={NewMedicineLandingPage}></Stack.Screen>
-          <Stack.Screen name="HospitalUploadPage" component={HospitalUploadPage} />
+          <Stack.Screen
+            name="DoctorPortalLandingPage"
+            component={DoctorPortalLandingPage}
+          ></Stack.Screen>
+          <Stack.Screen
+            name="NewMedicineLandingPage"
+            component={NewMedicineLandingPage}
+          ></Stack.Screen>
+          <Stack.Screen
+            name="Abha"
+            component={AbhaLandingScreen}
+          ></Stack.Screen>
+          <Stack.Screen
+            name="HospitalUploadPage"
+            component={HospitalUploadPage}
+          />
         </Stack.Navigator>
       </Suspense>
     </RegistrationProvider>
@@ -487,4 +524,3 @@ const RootNavigation = () => {
 };
 
 export default RootNavigation;
-

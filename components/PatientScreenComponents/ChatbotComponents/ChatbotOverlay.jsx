@@ -35,6 +35,7 @@ const ChatBotOverlay = ({ navigationRef }) => {
   // Screens where chatbot SHOULD be visible
   // Define screens where the chatbot should be hidden
   const hiddenScreensWeb = [
+    "Abha",
     "AboutUsMain",
     "AboutUsWhat",
     "AboutUsHow",
@@ -75,7 +76,7 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "NewMedicineLandingPage",
     "FullCaseAnalysis",
     "NewMedilockerScreen",
-    "HospitalUploadPage"
+    "HospitalUploadPage",
   ];
   const shownScreensMobile = ["LandingPage"];
 
