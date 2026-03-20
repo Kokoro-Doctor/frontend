@@ -21,13 +21,13 @@ import {
 } from "../utils/HospitalUploadService";
 import { HOSPITAL_API_KEY } from "../env-vars";
 
-const HospitalUploadPage = ({ navigation }) => {
+const HospitalUploadPage = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === "web";
   const isWide = isWeb && width >= 768;
 
-  const [apiKey, setApiKey] = useState("");
-  const [hospitalId, setHospitalId] = useState("");
+  const [apiKey, setApiKey] = useState(route?.params?.apiKey ?? "");
+  const [hospitalId, setHospitalId] = useState(route?.params?.hospitalId ?? "");
   const [patientId, setPatientId] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
