@@ -742,39 +742,6 @@ export default function KokoroDoctorScreen() {
               </ImageBackground>
             </TouchableOpacity>
 
-            <View style={{ flexDirection: "column", marginTop: "0.5%" }}>
-              <Image
-                source={require("../../assets/Images/line_Abha.png")}
-                style={webStyles.waveImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={require("../../assets/Images/line_Abha.png")}
-                style={webStyles.waveImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={require("../../assets/Images/line_Abha.png")}
-                style={webStyles.waveImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={require("../../assets/Images/line_Abha.png")}
-                style={webStyles.waveImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={require("../../assets/Images/line_Abha.png")}
-                style={webStyles.waveImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={require("../../assets/Images/line_Abha.png")}
-                style={webStyles.waveImage}
-                resizeMode="contain"
-              />
-            </View>
-
             <TouchableOpacity
               style={webStyles.featureCard}
               onPress={() => navigation.navigate("NewMedicineLandingPage")}
