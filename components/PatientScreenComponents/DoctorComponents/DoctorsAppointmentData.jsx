@@ -1785,7 +1785,7 @@ const DoctorAppointmentScreen = ({
                       > */}
                       <TouchableOpacity
                         onPress={() => {
-                          trackButton("doctor_image_clicked", {
+                          trackButton("web_doctor_image_clicked", {
                             ...getDoctorEventProps(item),
                             destination: "DoctorsInfoWithSubscription",
                           });
@@ -1878,7 +1878,7 @@ const DoctorAppointmentScreen = ({
                         onPress={() => {
                           // 🟢 BOOK SLOT
                           if (canBookMore) {
-                            trackButton("Doctor_BookSlot_Button_Clicked", {
+                            trackButton("web_Doctor_BookSlot_Button_Clicked", {
                               ...getDoctorEventProps(item),
                               remaining_slots: remainingSlots,
                               total_allowed: totalAllowed,
@@ -1894,7 +1894,7 @@ const DoctorAppointmentScreen = ({
 
                           // 🔵 SUBSCRIBE
                           if (!hasActiveSubscription) {
-                            trackButton("Doctor_Subscribe_Button_Clicked", {
+                            trackButton("web_Doctor_Subscribe_Button_Clicked", {
                               ...getDoctorEventProps(item),
                               button_text: buttonText,
                               has_active_subscription: hasActiveSubscription,
@@ -2034,7 +2034,7 @@ const DoctorAppointmentScreen = ({
                         <TouchableOpacity
                           style={styles.imageContainer}
                           onPress={() => {
-                            trackButton("doctor_image_clicked", {
+                            trackButton("mobile_doctor_image_clicked", {
                               ...getDoctorEventProps(item),
                               destination: "DoctorsInfoWithSubscription",
                             });
@@ -2157,7 +2157,7 @@ const DoctorAppointmentScreen = ({
                           // }}
                           onPress={() => {
                             if (canBookMore) {
-                              trackButton("doctor_book_slot_click", {
+                              trackButton("mobile_doctor_book_slot_click", {
                                 ...getDoctorEventProps(item),
                                 remaining_slots: remainingSlots,
                                 total_allowed: totalAllowed,
@@ -2172,7 +2172,7 @@ const DoctorAppointmentScreen = ({
                             }
 
                             if (!hasActiveSubscription) {
-                              trackButton("doctor_subscribe_click", {
+                              trackButton("mobile_doctor_subscribe_click", {
                                 ...getDoctorEventProps(item),
                                 button_text: buttonText,
                                 has_active_subscription: hasActiveSubscription,

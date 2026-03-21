@@ -545,7 +545,7 @@ export default function NewMedicineLandingPagey() {
 
                   // Set new timer (fires only after user stops typing)
                   typingTimeoutRef.current = setTimeout(() => {
-                    trackButton("NewMedicinePage_medicine_input_typing", {
+                    trackButton("Mobile_NewMedicinePage_medicine_input_typing", {
                       value_length: text.length,
                       screen: "MedicineLanding",
                       platform: Platform.OS,

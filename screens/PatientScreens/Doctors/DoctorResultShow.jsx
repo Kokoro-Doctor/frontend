@@ -333,7 +333,7 @@ const DoctorResultShow = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.filterButton}
                 onPress={() => {
-                  trackButton("category_dropdown_toggle_Clicked", {
+                  trackButton("mobile_category_dropdown_toggle_Clicked", {
                     action: showDropdown ? "close" : "open",
                   });
 
@@ -374,7 +374,7 @@ const DoctorResultShow = ({ navigation, route }) => {
               style={styles.modalBackdrop}
               activeOpacity={1}
               onPress={() => {
-                trackButton("category_dropdown_backdrop_click");
+                trackButton("mobile_category_dropdown_backdrop_click");
 
                 setShowDropdown(false);
               }}
@@ -386,7 +386,7 @@ const DoctorResultShow = ({ navigation, route }) => {
                       key={idx}
                       style={styles.dropdownItems}
                       onPress={() => {
-                        trackButton("category_selected_Clicked", {
+                        trackButton("mobile_category_selected_Clicked", {
                           category_name: cat.label,
                           category_value: cat.value,
                         });

@@ -1223,13 +1223,35 @@ export default function KokoroDoctorScreen() {
           <View style={styles.menuDropdown}>
             <Text style={styles.menuTitle}>Menu</Text>
 
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+
+                // mixpanel.track("Mobile Menu - Know your medicine Clicked", {
+                //   source: "mobile-menu",
+                // });
+                trackButton("navbar_home_button_clicked", {
+                  source: "mobile-menu",
+                });
+
+                navigation.navigate("LandingPage");
+              }}
+            >
+              <Text style={styles.menuText}>Home</Text>
+            </Pressable>
+
             {/* Know Your Medicine */}
             <Pressable
               style={styles.menuItem}
               onPress={() => {
                 setMenuVisible(false);
 
-                mixpanel.track("Mobile Menu - Know your medicine Clicked", {
+                // mixpanel.track("Mobile Menu - Know your medicine Clicked", {
+                //   source: "mobile-menu",
+                // });
+                trackButton("MobileMenu_KnowYourMedicine_Button_clicked", {
+                  banner: "medicine_explainer",
                   source: "mobile-menu",
                 });
 
@@ -1245,8 +1267,9 @@ export default function KokoroDoctorScreen() {
               onPress={() => {
                 setMenuVisible(false);
 
-                mixpanel.track("Mobile Menu - Our Doctors Clicked", {
+                trackButton("MobileMenu_OurDoctor_button_clicked", {
                   source: "mobile-menu",
+                  destination: "DoctorResultShow",
                 });
 
                 navigation.navigate("PatientAppNavigation", {
@@ -1266,7 +1289,7 @@ export default function KokoroDoctorScreen() {
               onPress={() => {
                 setMenuVisible(false);
 
-                mixpanel.track("Mobile Menu - Doctor Login Clicked", {
+                trackButton("MobileMenu_doctorLogin_button_clicked", {
                   source: "mobile-menu",
                 });
 

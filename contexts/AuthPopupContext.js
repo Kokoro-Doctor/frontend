@@ -154,7 +154,7 @@ export const AuthPopupProvider = ({ children, appType, currentRoute }) => {
         setShowPatientAuth(true);
       }
       shownOnceRef.current = true;
-    }, 60000); // 60s auto-popup
+    }, 20000); // 20s auto-popup
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);

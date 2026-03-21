@@ -225,46 +225,89 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
     });
   };
 
-  const handleLoginSignupPress = () => {
-    console.log("Login/Signup pressed:", {
-      currentNavigator,
-      resolvedIsDoctorPortal,
-      role,
-      modalToShow: resolvedIsDoctorPortal
-        ? "DoctorAuthModal"
-        : "PatientAuthModal",
-    });
+  // const handleLoginSignupPress = () => {
+  //   console.log("Login/Signup pressed:", {
+  //     currentNavigator,
+  //     resolvedIsDoctorPortal,
+  //     role,
+  //     modalToShow: resolvedIsDoctorPortal
+  //       ? "DoctorAuthModal"
+  //       : "PatientAuthModal",
+  //   });
 
-    mixpanel.track("Auth CTA Clicked", {
-      source: "Header",
-      platform: Platform.OS,
-      cta_text: "Login / Signup",
-      user_state: user ? "logged_in" : "anonymous",
-      portal: resolvedIsDoctorPortal ? "doctor" : "patient",
-    });
+  //   mixpanel.track("Auth CTA Clicked", {
+  //     source: "Header",
+  //     platform: Platform.OS,
+  //     cta_text: "Login / Signup",
+  //     user_state: user ? "logged_in" : "anonymous",
+  //     portal: resolvedIsDoctorPortal ? "doctor" : "patient",
+  //   });
 
-    // Cancel auto-popup timer since user manually clicked
+  //   // Cancel auto-popup timer since user manually clicked
+  //   if (clearAutoPopupTimer) {
+  //     clearAutoPopupTimer();
+  //   }
+
+  //   // Show appropriate modal based on current navigator
+  //   if (resolvedIsDoctorPortal) {
+  //     console.log("Opening DoctorAuthModal");
+  //     // Use AuthPopup context if available, otherwise local state
+  //     if (openDoctorAuth) {
+  //       openDoctorAuth();
+  //     } else {
+  //       setDoctorModalVisible(true);
+  //     }
+  //   } else {
+  //     console.log("Opening PatientAuthModal");
+  //     // Use AuthPopup context if available, otherwise local state
+  //     if (openPatientAuth) {
+  //       openPatientAuth();
+  //     } else {
+  //       openAuthModal("signup");
+  //     }
+  //   }
+  // };
+
+  const handleAuthSelection = (type) => {
+    setDropdownVisible(false);
+
+    // Cancel auto-popup timer
     if (clearAutoPopupTimer) {
       clearAutoPopupTimer();
     }
 
-    // Show appropriate modal based on current navigator
-    if (resolvedIsDoctorPortal) {
-      console.log("Opening DoctorAuthModal");
-      // Use AuthPopup context if available, otherwise local state
-      if (openDoctorAuth) {
-        openDoctorAuth();
-      } else {
-        setDoctorModalVisible(true);
-      }
-    } else {
-      console.log("Opening PatientAuthModal");
-      // Use AuthPopup context if available, otherwise local state
-      if (openPatientAuth) {
-        openPatientAuth();
-      } else {
-        openAuthModal("signup");
-      }
+    mixpanel.track("Auth Type Selected", {
+      type,
+      platform: Platform.OS,
+      source: "Header Dropdown",
+    });
+
+    switch (type) {
+      case "patient":
+        setDropdownVisible(false);
+
+        setTimeout(() => {
+          openAuthModal("signup");
+        }, 100);
+
+        break;
+
+      case "doctor":
+        setDropdownVisible(false);
+
+        // ALWAYS use local state (stable)
+        setTimeout(() => {
+          setDoctorModalVisible(true);
+        }, 100);
+
+        break;
+
+      case "hospital":
+        setHospitalModalVisible(true);
+        break;
+
+      default:
+        break;
     }
   };
 
@@ -347,7 +390,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                       </>
                     ) : (
                       <>
-                        <Pressable
+                        {/* <Pressable
                           onPress={() => {
                             setDropdownVisible(false);
                             handleLoginSignupPress();
@@ -357,7 +400,9 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                             pressed && { backgroundColor: "#F3F4F6" },
                           ]}
                         >
-                          <Text style={styles.dropdownText}>Login / Signup</Text>
+                          <Text style={styles.dropdownText}>
+                            Login / Signup
+                          </Text>
                         </Pressable>
                         <Pressable
                           onPress={() => {
@@ -369,8 +414,38 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                             pressed && { backgroundColor: "#F3F4F6" },
                           ]}
                         >
-                          <Text style={styles.dropdownText}>Hospital Sign In</Text>
-                        </Pressable>
+                          <Text style={styles.dropdownText}>
+                            Hospital Sign In
+                          </Text>
+                        </Pressable> */}
+                        <>
+                          <Pressable
+                            onPress={() => handleAuthSelection("patient")}
+                            style={styles.dropdownItem}
+                          >
+                            <Text style={styles.dropdownText}>
+                              Patient Login / Signup
+                            </Text>
+                          </Pressable>
+
+                          <Pressable
+                            onPress={() => handleAuthSelection("doctor")}
+                            style={styles.dropdownItem}
+                          >
+                            <Text style={styles.dropdownText}>
+                              Doctor Login / Signup
+                            </Text>
+                          </Pressable>
+
+                          <Pressable
+                            onPress={() => handleAuthSelection("hospital")}
+                            style={styles.dropdownItem}
+                          >
+                            <Text style={styles.dropdownText}>
+                              Hospital Login / Signup
+                            </Text>
+                          </Pressable>
+                        </>
                       </>
                     )}
                   </View>
@@ -475,7 +550,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
             </Pressable>
           )}
 
-          <View style={styles.webAuthButtonsRow}>
+          {/* <View style={styles.webAuthButtonsRow}>
             <Animated.View
               style={[
                 styles.headerBtn,
@@ -507,6 +582,71 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
             >
               <Text style={styles.hospitalSignInText}>Hospital Sign In</Text>
             </TouchableOpacity>
+          </View> */}
+          <View style={{ position: "relative" }}>
+            <Animated.View
+              style={[
+                styles.headerBtn,
+                {
+                  backgroundColor: isHovered ? "#f96166" : "#fff",
+                  borderColor: isHovered ? "#f96166" : "#DDD",
+                  transform: [{ scale: scaleAnim }],
+                },
+              ]}
+              onMouseEnter={onHoverIn}
+              onMouseLeave={onHoverOut}
+            >
+              <TouchableOpacity
+                onPress={() => setDropdownVisible(!dropdownVisible)}
+              >
+                <Text
+                  style={[
+                    styles.headerBtnText,
+                    { color: isHovered ? "#fff" : "#333" },
+                  ]}
+                >
+                  Login / Signup
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {dropdownVisible && (
+              <>
+                <Pressable
+                  style={styles.dropdownOverlay}
+                  onPress={() => setDropdownVisible(false)}
+                />
+
+                <View style={styles.webDropdownMenu}>
+                  <TouchableOpacity
+                    onPress={() => handleAuthSelection("patient")}
+                    style={styles.dropdownAction}
+                  >
+                    <Text style={styles.dropdownActionText}>
+                      Patient Login / Signup
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleAuthSelection("doctor")}
+                    style={styles.dropdownAction}
+                  >
+                    <Text style={styles.dropdownActionText}>
+                      Doctor Login / Signup
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleAuthSelection("hospital")}
+                    style={styles.dropdownAction}
+                  >
+                    <Text style={styles.dropdownActionText}>
+                      Hospital Login / Signup
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
         </View>
       )}
@@ -545,10 +685,10 @@ const styles = StyleSheet.create({
   appHeaderContainer: {
     backgroundColor: "#transparent",
     paddingVertical: 12,
-    //paddingHorizontal: 6,
-    // borderBottomWidth: 1,
     borderBottomColor: "#transparent",
     borderColor: "#transparent",
+    zIndex: 100,
+    elevation: 100, 
   },
   modalContainer: {
     flex: 1,
@@ -571,6 +711,8 @@ const styles = StyleSheet.create({
     //borderWidth:1,
     width: "100%",
     borderColor: "#fff",
+    zIndex: 200, 
+    elevation: 200,
   },
   logo: {
     flexDirection: "row",
@@ -605,7 +747,7 @@ const styles = StyleSheet.create({
     top: 45,
     right: 0,
     //left:0,
-    backgroundColor: "#e6e4e4ff",
+    backgroundColor: "#fff",
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#E5E7EB",
@@ -613,22 +755,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 6,
-    minWidth: 130,
-    zIndex: 1000,
+    minWidth: 200,
+    zIndex: 9999,    
+    elevation: 9999,
+    boxShadow: "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
   },
   dropdownItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 22,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
   dropdownText: {
     fontSize: 14,
-    color: "#111827",
-    fontWeight: "500",
+    color: "#0b0b0bff",
+    fontWeight: "600",
   },
   logoutButton: {
     paddingVertical: 12,
@@ -658,6 +801,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    zIndex: 1, 
+    elevation: 1,
   },
   webHeaderShell: {
     flexDirection: "row",
