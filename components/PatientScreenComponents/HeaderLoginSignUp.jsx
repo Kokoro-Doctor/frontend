@@ -20,6 +20,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useAuthPopup } from "../../contexts/AuthPopupContext";
 import PatientAuthModal from "../Auth/PatientAuthModal";
 import DoctorAuthModal from "../Auth/DoctorAuthModal";
+import HospitalAuthModal from "../Auth/HospitalAuthModal";
 import mixpanel from "../../utils/Mixpanel";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -35,6 +36,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [authModalMode, setAuthModalMode] = useState("signup");
   const [doctorModalVisible, setDoctorModalVisible] = useState(false);
+  const [hospitalModalVisible, setHospitalModalVisible] = useState(false);
   const { registerOpenModal } = useLoginModal();
   const { user: contextUser, role, logout } = useAuth();
   const user = userOverride ?? contextUser;
@@ -344,18 +346,32 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
                         </TouchableOpacity>
                       </>
                     ) : (
-                      <Pressable
-                        onPress={() => {
-                          setDropdownVisible(false);
-                          handleLoginSignupPress();
-                        }}
-                        style={({ pressed }) => [
-                          styles.dropdownItem,
-                          pressed && { backgroundColor: "#F3F4F6" },
-                        ]}
-                      >
-                        <Text style={styles.dropdownText}>Login / Signup</Text>
-                      </Pressable>
+                      <>
+                        <Pressable
+                          onPress={() => {
+                            setDropdownVisible(false);
+                            handleLoginSignupPress();
+                          }}
+                          style={({ pressed }) => [
+                            styles.dropdownItem,
+                            pressed && { backgroundColor: "#F3F4F6" },
+                          ]}
+                        >
+                          <Text style={styles.dropdownText}>Login / Signup</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => {
+                            setDropdownVisible(false);
+                            setHospitalModalVisible(true);
+                          }}
+                          style={({ pressed }) => [
+                            styles.dropdownItem,
+                            pressed && { backgroundColor: "#F3F4F6" },
+                          ]}
+                        >
+                          <Text style={styles.dropdownText}>Hospital Sign In</Text>
+                        </Pressable>
+                      </>
                     )}
                   </View>
                 )}
@@ -459,31 +475,39 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
             </Pressable>
           )}
 
-          <Animated.View
-            style={[
-              styles.headerBtn,
-              {
-                backgroundColor: isHovered ? "#f96166" : "#fff",
-                borderColor: isHovered ? "#f96166" : "#DDD",
-                transform: [{ scale: scaleAnim }],
-              },
-            ]}
-            onMouseEnter={onHoverIn}
-            onMouseLeave={onHoverOut}
-          >
-            <TouchableOpacity onPress={handleLoginSignupPress}>
-              <Text
-                style={[
-                  styles.headerBtnText,
-                  {
-                    color: isHovered ? "#fff" : "#333",
-                  },
-                ]}
-              >
-                Login / Signup
-              </Text>
+          <View style={styles.webAuthButtonsRow}>
+            <Animated.View
+              style={[
+                styles.headerBtn,
+                {
+                  backgroundColor: isHovered ? "#f96166" : "#fff",
+                  borderColor: isHovered ? "#f96166" : "#DDD",
+                  transform: [{ scale: scaleAnim }],
+                },
+              ]}
+              onMouseEnter={onHoverIn}
+              onMouseLeave={onHoverOut}
+            >
+              <TouchableOpacity onPress={handleLoginSignupPress}>
+                <Text
+                  style={[
+                    styles.headerBtnText,
+                    {
+                      color: isHovered ? "#fff" : "#333",
+                    },
+                  ]}
+                >
+                  Login / Signup
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+            <TouchableOpacity
+              style={styles.hospitalSignInBtn}
+              onPress={() => setHospitalModalVisible(true)}
+            >
+              <Text style={styles.hospitalSignInText}>Hospital Sign In</Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         </View>
       )}
 
@@ -500,6 +524,18 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
         visible={doctorModalVisible}
         onRequestClose={() => setDoctorModalVisible(false)}
         initialMode="signup"
+      />
+
+      {/* Hospital Auth Modal */}
+      <HospitalAuthModal
+        visible={hospitalModalVisible}
+        onRequestClose={() => setHospitalModalVisible(false)}
+        onSuccess={(session) => {
+          navigation.navigate("HospitalUploadPage", {
+            hospitalId: session.hospital_id,
+            apiKey: session.api_key,
+          });
+        }}
       />
     </>
   );
@@ -726,6 +762,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  webAuthButtonsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   headerBtn: {
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -735,6 +776,19 @@ const styles = StyleSheet.create({
   headerBtnText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  hospitalSignInBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DDD",
+    backgroundColor: "#fff",
+  },
+  hospitalSignInText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
   },
 });
 
