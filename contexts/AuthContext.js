@@ -359,7 +359,7 @@ export const AuthProvider = ({ children }) => {
             } catch (mixpanelError) {
               console.error(
                 "Failed to identify user in Mixpanel:",
-                mixpanelError
+                mixpanelError,
               );
             }
           }
@@ -511,10 +511,13 @@ export const AuthProvider = ({ children }) => {
 
       // 🔥 Track successful signup
       // Detect experimental flow: mobile-only (no email, otp, name)
-      const isExperimentalFlow = !payload.email && !payload.otp && !payload.name;
+      const isExperimentalFlow =
+        !payload.email && !payload.otp && !payload.name;
       mixpanel.track("User Signed Up", {
         role: "user",
-        signup_method: isExperimentalFlow ? "mobile_only" : (payload.signup_method || "otp"),
+        signup_method: isExperimentalFlow
+          ? "mobile_only"
+          : payload.signup_method || "otp",
         is_experimental: isExperimentalFlow,
       });
 
@@ -523,7 +526,8 @@ export const AuthProvider = ({ children }) => {
       const message = getErrorMessage(error);
       console.error("Patient signup error:", message, error);
       // 🔥 Track failed signup
-      const isExperimentalFlow = !payload.email && !payload.otp && !payload.name;
+      const isExperimentalFlow =
+        !payload.email && !payload.otp && !payload.name;
       mixpanel.track("Signup Failed", {
         error_message: message,
         role: "user",
@@ -647,12 +651,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginHandler = (userData, userRole) => {
+    setUser(userData);
+    setRole(userRole);
+    AsyncStorage.setItem("userRole", userRole);
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
         role,
         isLoading,
+        login: loginHandler,
         loginWithGoogle,
         doctorsSignup: doctorSignupHandler,
         signup: completePatientSignup,

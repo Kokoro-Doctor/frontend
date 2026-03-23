@@ -15,6 +15,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import SideBarNavigation from "../../components/PatientScreenComponents/SideBarNavigation";
 import NewestSidebar from "../../components/DoctorsPortalComponents/NewestSidebar";
+import HospitalSideBarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { useLoginModal } from "../../contexts/LoginModalContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAuthPopup } from "../../contexts/AuthPopupContext";
@@ -38,7 +39,7 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
   const [doctorModalVisible, setDoctorModalVisible] = useState(false);
   const [hospitalModalVisible, setHospitalModalVisible] = useState(false);
   const { registerOpenModal } = useLoginModal();
-  const { user: contextUser, role, logout } = useAuth();
+  const { user: contextUser, role, logout, login } = useAuth();
   const user = userOverride ?? contextUser;
 
   // Get auth popup functions to cancel auto-popup timer
@@ -48,34 +49,39 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
 
   // Determine if we're in doctor portal based on prop OR current route
   const getCurrentNavigator = () => {
-    // First check the prop
     if (isDoctorPortal) return "doctor";
 
-    // Then check the navigation state to determine which navigator we're in
     try {
       const state = navigation.getState();
 
-      // Check root level routes
       if (state?.routes) {
-        // Find the current active route
         const currentRoute = state.routes[state.index];
 
-        // Direct check for DoctorAppNavigation
+        // ✅ ADD THIS
+        if (currentRoute?.name === "HospitalAppNavigation") {
+          return "hospital";
+        }
+
         if (currentRoute?.name === "DoctorAppNavigation") {
           return "doctor";
         }
 
-        // Direct check for PatientAppNavigation
         if (currentRoute?.name === "PatientAppNavigation") {
           return "patient";
         }
 
-        // Check nested routes
         if (currentRoute?.state?.routes) {
           const nestedRoute =
             currentRoute.state.routes[currentRoute.state.index];
 
-          // Check for doctor-specific screens
+          // ✅ ADD THIS
+          if (
+            nestedRoute?.name === "HospitalPortalLandingPage" ||
+            nestedRoute?.name === "HospitalDashboard"
+          ) {
+            return "hospital";
+          }
+
           if (
             nestedRoute?.name === "DoctorPortalLandingPage" ||
             nestedRoute?.name === "Dashboard" ||
@@ -85,7 +91,6 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
             return "doctor";
           }
 
-          // Check for patient-specific screens
           if (
             nestedRoute?.name === "UserDashboard" ||
             nestedRoute?.name === "Medilocker" ||
@@ -95,27 +100,14 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
           }
         }
       }
-
-      // Check if we're on a doctor route by URL (web only)
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        const pathname = window.location.pathname;
-        if (pathname.startsWith("/doctor")) {
-          return "doctor";
-        }
-        if (pathname.startsWith("/patient")) {
-          return "patient";
-        }
-      }
     } catch (error) {
       console.log("Error getting navigator:", error);
     }
 
-    // Check role as final fallback
-    if (role === "doctor") {
-      return "doctor";
-    }
+    // ✅ fallback using role
+    if (role === "hospital") return "hospital";
+    if (role === "doctor") return "doctor";
 
-    // Default to patient portal
     return "patient";
   };
 
@@ -322,8 +314,24 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
           >
             <View style={styles.modalContainer}>
               <View style={styles.mobileSidebar}>
-                {resolvedIsDoctorPortal ? (
+                {/* {resolvedIsDoctorPortal ? (
                   <NewestSidebar
+                    navigation={navigation}
+                    closeSidebar={() => setIsSideBarVisible(false)}
+                  />
+                ) : (
+                  <SideBarNavigation
+                    navigation={navigation}
+                    closeSidebar={() => setIsSideBarVisible(false)}
+                  />
+                )} */}
+                {currentNavigator === "doctor" ? (
+                  <NewestSidebar
+                    navigation={navigation}
+                    closeSidebar={() => setIsSideBarVisible(false)}
+                  />
+                ) : currentNavigator === "hospital" ? (
+                  <HospitalSideBarNavigation
                     navigation={navigation}
                     closeSidebar={() => setIsSideBarVisible(false)}
                   />
@@ -666,14 +674,60 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
         initialMode="signup"
       />
 
-      {/* Hospital Auth Modal */}
+      {/* <HospitalAuthModal
+        visible={hospitalModalVisible}
+        onRequestClose={() => setHospitalModalVisible(false)}
+        onSuccess={(session) => {
+          setHospitalModalVisible(false); // ✅ close modal first
+
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: "HospitalAppNavigation", // ✅ go to the navigator
+                params: {
+                  screen: "HospitalPortalLandingPage", // ✅ then the screen inside it
+                  params: {
+                    hospitalId: session.hospital_id,
+                    apiKey: session.api_key,
+                  },
+                },
+              },
+            ],
+          });
+        }}
+      /> */}
       <HospitalAuthModal
         visible={hospitalModalVisible}
         onRequestClose={() => setHospitalModalVisible(false)}
         onSuccess={(session) => {
-          navigation.navigate("HospitalUploadPage", {
-            hospitalId: session.hospital_id,
-            apiKey: session.api_key,
+          console.log("Hospital login success:", session);
+
+          setHospitalModalVisible(false);
+
+          login(
+            {
+              name: session.name,
+              hospitalId: session.hospital_id,
+            },
+            "hospital",
+          );
+
+          // ✅ FIX: Use params instead of state
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: "HospitalAppNavigation",
+                params: {
+                  screen: "HospitalPortalLandingPage",
+                  params: {
+                    hospitalId: session.hospital_id,
+                    apiKey: session.api_key,
+                  },
+                },
+              },
+            ],
           });
         }}
       />
@@ -688,7 +742,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#transparent",
     borderColor: "#transparent",
     zIndex: 100,
-    elevation: 100, 
+    elevation: 100,
   },
   modalContainer: {
     flex: 1,
@@ -711,7 +765,7 @@ const styles = StyleSheet.create({
     //borderWidth:1,
     width: "100%",
     borderColor: "#fff",
-    zIndex: 200, 
+    zIndex: 200,
     elevation: 200,
   },
   logo: {
@@ -756,9 +810,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     minWidth: 200,
-    zIndex: 9999,    
+    zIndex: 9999,
     elevation: 9999,
-    boxShadow: "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
+    boxShadow:
+      "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
   },
   dropdownItem: {
     flexDirection: "row",
@@ -801,7 +856,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    zIndex: 1, 
+    zIndex: 1,
     elevation: 1,
   },
   webHeaderShell: {
