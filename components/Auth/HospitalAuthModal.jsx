@@ -40,10 +40,14 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
         api_key: apiKey,
         name: hospital.name,
       };
+      // await AsyncStorage.setItem(HOSPITAL_SESSION_KEY, JSON.stringify(session));
+      // onRequestClose();
+      // if (onSuccess) {
+      //   onSuccess(session);
+      // }
       await AsyncStorage.setItem(HOSPITAL_SESSION_KEY, JSON.stringify(session));
-      onRequestClose();
       if (onSuccess) {
-        onSuccess(session);
+        onSuccess(session); // onSuccess in HeaderLoginSignUp already closes modal first
       }
     } catch (err) {
       setError(err?.message || "Sign in failed");
