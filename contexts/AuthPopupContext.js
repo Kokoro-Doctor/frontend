@@ -114,14 +114,18 @@ export const AuthPopupProvider = ({ children, appType, currentRoute }) => {
 
   const timerRef = useRef(null);
   const shownOnceRef = useRef(false);
+  const manuallyDismissedRef = useRef(false);
 
-  // 🔹 Reset popup when entering app flow
+  // Reset effect — but respect manual dismissal
   useEffect(() => {
     if (
       (currentRoute === "PatientAppNavigation" && appType === "patient") ||
       (currentRoute === "DoctorAppNavigation" && appType === "doctor")
     ) {
-      shownOnceRef.current = false;
+      if (!manuallyDismissedRef.current) {
+        // ✅ Only reset if user didn't manually interact
+        shownOnceRef.current = false;
+      }
     }
   }, [currentRoute, appType]);
 
@@ -131,8 +135,8 @@ export const AuthPopupProvider = ({ children, appType, currentRoute }) => {
       timerRef.current = null;
     }
     shownOnceRef.current = true;
+    manuallyDismissedRef.current = true; // ✅ Mark as manually handled
   };
-
   const openPatientAuth = () => {
     clearAutoPopupTimer();
     setShowPatientAuth(true);
@@ -176,6 +180,7 @@ export const AuthPopupProvider = ({ children, appType, currentRoute }) => {
         setShowDoctorAuth,
         openPatientAuth,
         openDoctorAuth,
+        clearAutoPopupTimer
       }}
     >
       {children}

@@ -77,6 +77,7 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "FullCaseAnalysis",
     "NewMedilockerScreen",
     "HospitalUploadPage",
+    "HospitalInsuranceClaim"
   ];
   const shownScreensMobile = ["LandingPage"];
 
