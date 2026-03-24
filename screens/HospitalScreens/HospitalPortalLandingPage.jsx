@@ -10,7 +10,6 @@ import {
   useWindowDimensions,
   StatusBar,
   Animated,
-  Text,
 } from "react-native";
 import { useChatbot } from "../../contexts/ChatbotContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -191,7 +190,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                         style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("HospitalAppNavigation", {
-                            screen: "",
+                            screen: "HospitalInsuranceClaim",
                           });
                         }}
                       >
@@ -267,7 +266,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                 style={styles.cardStyle}
                 onPress={() => {
                   navigation.navigate("HospitalAppNavigation", {
-                    screen: "",
+                    screen: "HospitalInsuranceClaim",
                   });
                 }}
               >
@@ -405,7 +404,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                 style={styles.cardStyle}
                 onPress={() => {
                   navigation.navigate("HospitalAppNavigation", {
-                    screen: "DrCalendarView",
+                    screen: "",
                   });
                 }}
               >
