@@ -10,19 +10,120 @@ import {
   useWindowDimensions,
   Image,
   Animated,
+  StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
+import { Feather } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
+
+import { ActivityIndicator } from "react-native";
 import { API_URL } from "../../env-vars";
 
 const HospitalInsuranceClaim = ({ navigation }) => {
   const [claimFiles, setClaimFiles] = useState([]);
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const [currentStep, setCurrentStep] = useState(0); // 0 = upload, 1 = review
   const slideAnim = useState(new Animated.Value(0))[0];
   const cardWidth = width * 0.95;
   const [analysisData, setAnalysisData] = useState(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [claimDocs, setClaimDocs] = useState([]);
+  const [policyDocs, setPolicyDocs] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiAnalysisModalOpen, setAiAnalysisModalOpen] = useState(false);
+  const aiAnalysisSideAnim = useState(new Animated.Value(height))[0];
+  const analyzeMobileInsurance = async () => {
+    if (claimDocs.length === 0) return;
+
+    try {
+      setIsGenerating(true);
+
+      const file = claimDocs[0];
+      const userId = localStorage.getItem("user_id");
+      const token = localStorage.getItem("token");
+
+      // Convert URI to Blob to match web File format
+      const fileResponse = await fetch(file.uri);
+      const fileBlob = await fileResponse.blob();
+
+      const formData = new FormData();
+      formData.append("file", fileBlob, file.name);
+
+      const response = await fetch(
+        `${API_URL}/medilocker/users/${userId}/insurance/analyze`,
+        {
+          method: "POST",
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: formData,
+        },
+      );
+
+      const data = await response.json();
+      console.log("API RESPONSE:", data);
+
+      setAnalysisData(data);
+      setCurrentStep(1);
+    } catch (error) {
+      console.error("Analysis error:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (claimDocs.length === 0 || isGenerating) return;
+    await analyzeMobileInsurance();
+  };
+
+  const openAiAnalysisModal = () => {
+    setAiAnalysisModalOpen(true);
+    Animated.timing(aiAnalysisSideAnim, {
+      toValue: 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeAiAnalysisModal = () => {
+    Animated.timing(aiAnalysisSideAnim, {
+      toValue: height,
+      duration: 400,
+      useNativeDriver: true,
+    }).start(() => {
+      setAiAnalysisModalOpen(false);
+    });
+  };
+  const pickDocument = async (type) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        multiple: true, // ✅ IMPORTANT
+      });
+
+      if (result.canceled) return;
+
+      const files = result.assets;
+
+      if (type === "claim") {
+        setClaimDocs((prev) => [...prev, ...files]);
+      } else {
+        setPolicyDocs((prev) => [...prev, ...files]);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const removeFile = (type, index) => {
+    if (type === "claim") {
+      setClaimDocs((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      setPolicyDocs((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
 
   // Step 1 completed only if claim upload exists
   const isUploadComplete = claimFiles.length > 0;
@@ -592,6 +693,11 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                           </View>
                           <TouchableOpacity
                             style={styles.generateUpdatedButton}
+                            onPress={() =>
+                              navigation.navigate("HospitalInsuranceDownload", {
+                                analysisData,
+                              })
+                            }
                           >
                             <Text style={styles.generateBtnText}>
                               Generate updated files
@@ -606,6 +712,405 @@ const HospitalInsuranceClaim = ({ navigation }) => {
             </View>
           </ImageBackground>
         </View>
+      )}
+      {(Platform.OS !== "web" || width < 1000) && (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+          <ScrollView
+            contentContainerStyle={stylesMobile.container}
+            showsVerticalScrollIndicator={false}
+          >
+            <StatusBar barStyle="light-content" backgroundColor="#fff" />
+            <View style={stylesMobile.header}>
+              <HeaderLoginSignUp navigation={navigation} />
+            </View>
+            <Text style={stylesMobile.title}>Insurance claim analysis AI</Text>
+
+            <TouchableOpacity style={stylesMobile.selectBtn}>
+              <Text style={stylesMobile.selectText}>Select Patient</Text>
+            </TouchableOpacity>
+
+            {/* Stepper */}
+            <View style={stylesMobile.stepContainer}>
+              <View style={stylesMobile.line} />
+
+              {[1, 2, 3].map((item, index) => {
+                const active = index === currentStep;
+                const completed = index < currentStep;
+                return (
+                  <View key={index} style={stylesMobile.stepWrapper}>
+                    <View
+                      style={[
+                        stylesMobile.circle,
+                        active && stylesMobile.activeCircle,
+                        completed && stylesMobile.completedCircle, // ✅ NEW
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          stylesMobile.circleText,
+                          active && stylesMobile.activeCircleText,
+                          completed && stylesMobile.completedText,
+                        ]}
+                      >
+                        {completed ? "✓" : item}
+                      </Text>
+                    </View>
+
+                    <Text style={stylesMobile.stepText}>
+                      {item === 1 && "Upload\nDocuments"}
+                      {item === 2 && "AI Analysis & Review\nSuggestions"}
+                      {item === 3 && "Download\nUpdated File"}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+            {currentStep === 0 ? (
+              <View style={stylesMobile.card}>
+                <Image
+                  source={require("../../assets/HospitalPortal/Icon/medicalIcon.png")}
+                  style={{ width: "100%", marginBottom: 12 }}
+                  resizeMode="contain"
+                />
+                <Text style={stylesMobile.cardTitle}>
+                  Upload your insurance {"\n"}claim and save money
+                </Text>
+
+                <Text style={stylesMobile.subText}>
+                  kokoro.doctor AI will auto-extract all codes {"\n"}from these
+                  document
+                </Text>
+
+                <View style={stylesMobile.bulletWrapper}>
+                  <Text style={stylesMobile.bullet}>
+                    • Both documents are mandatory
+                  </Text>
+                  <Text style={stylesMobile.bullet}>
+                    • Analysis cannot begin without the claim document
+                  </Text>
+                  <Text style={stylesMobile.bullet}>
+                    • Kokoro AI analyzes your claim directly
+                  </Text>
+                </View>
+
+                <Text style={stylesMobile.label}>Insurance Claim Document</Text>
+                <TouchableOpacity
+                  style={stylesMobile.uploadBox}
+                  onPress={() => pickDocument("claim")}
+                >
+                  <Feather name="upload" size={20} color="#2563EB" />
+
+                  <Text style={stylesMobile.uploadText}>
+                    Upload Photo{" "}
+                    <Text style={stylesMobile.link}>Click here</Text>
+                  </Text>
+                </TouchableOpacity>
+
+                {/* ✅ Uploaded text */}
+                {claimDocs.length > 0 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={stylesMobile.fileScroll}
+                    style={{ marginTop: -10, marginBottom: 10 }}
+                  >
+                    {claimDocs.map((doc, index) => (
+                      <View key={index} style={stylesMobile.fileChip}>
+                        <Feather
+                          name="check-circle"
+                          size={14}
+                          color="#16A34A"
+                        />
+
+                        <Text style={stylesMobile.fileText} numberOfLines={1}>
+                          {doc.name}
+                        </Text>
+
+                        <TouchableOpacity
+                          onPress={() => removeFile("claim", index)}
+                        >
+                          <Feather name="x" size={14} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    stylesMobile.button,
+                    (isGenerating || claimDocs.length === 0) && {
+                      opacity: 0.5,
+                    },
+                  ]}
+                  onPress={handleGenerate}
+                  disabled={isGenerating || claimDocs.length === 0}
+                >
+                  <Text style={stylesMobile.buttonText}>
+                    {isGenerating ? (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <ActivityIndicator color="#fff" size="small" />
+                        <Text style={stylesMobile.buttonText}>
+                          Generating...
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={stylesMobile.buttonText}>
+                        Generate with AI
+                      </Text>
+                    )}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // 🔵 STEP 2 → AI RESULT UI
+              <View style={stylesMobile.resultCard}>
+                <Text style={stylesMobile.resultTitle}>Kokoro AI Analysis</Text>
+
+                <Text style={stylesMobile.resultSub}>
+                  review all sections, then accept suggestions you approve
+                </Text>
+
+                {analysisData?.structured_data ? (
+                  <>
+                    <Text style={stylesMobile.blueLabel}>
+                      📄{" "}
+                      {analysisData?.structured_data?.source_filename ||
+                        "Insurance_Claim.pdf"}
+                    </Text>
+
+                    <View style={stylesMobile.resultBox}>
+                      <ScrollView
+                        showsVerticalScrollIndicator={true}
+                        contentContainerStyle={{ paddingBottom: 10 }}
+                      >
+                        {/* Patient Details */}
+                        <Text style={stylesMobile.sectionTitle}>
+                          Patient Details
+                        </Text>
+                        <Text style={stylesMobile.text}>
+                          Patient Name:{" "}
+                          {analysisData.structured_data.patient_details?.name ||
+                            "N/A"}
+                        </Text>
+                        <Text style={stylesMobile.text}>
+                          Age:{" "}
+                          {analysisData.structured_data.patient_details?.age ||
+                            "N/A"}
+                        </Text>
+                        <Text style={stylesMobile.text}>
+                          Gender:{" "}
+                          {analysisData.structured_data.patient_details
+                            ?.gender || "N/A"}
+                        </Text>
+
+                        {/* Insurance Details */}
+                        <Text style={stylesMobile.sectionTitle}>
+                          Insurance Details
+                        </Text>
+                        <Text style={stylesMobile.text}>
+                          Company:{" "}
+                          {analysisData.structured_data.insurance_details
+                            ?.insurance_company || "N/A"}
+                        </Text>
+                        <Text style={stylesMobile.text}>
+                          Policy:{" "}
+                          {analysisData.structured_data.insurance_details
+                            ?.policy_name || "N/A"}
+                        </Text>
+                        <Text style={stylesMobile.text}>
+                          Policy No:{" "}
+                          {analysisData.structured_data.insurance_details
+                            ?.policy_number || "N/A"}
+                        </Text>
+
+                        {/* Claim Details */}
+                        <Text style={stylesMobile.sectionTitle}>
+                          Claim Details
+                        </Text>
+                        <Text style={stylesMobile.text}>
+                          Treatment:{" "}
+                          {analysisData.structured_data.claim_details
+                            ?.treatment || "N/A"}
+                        </Text>
+                        <Text style={stylesMobile.text}>
+                          Bill: ₹
+                          {analysisData.structured_data.claim_details
+                            ?.bill_amount || "0"}
+                        </Text>
+                        <Text style={stylesMobile.text}>
+                          Claimed: ₹
+                          {analysisData.structured_data.claim_details
+                            ?.claimed_amount || "0"}
+                        </Text>
+
+                        {/* Summary */}
+                        <Text style={stylesMobile.sectionTitle}>Summary</Text>
+                        <Text style={stylesMobile.text}>
+                          {analysisData.structured_data.document_summary ||
+                            "No summary available"}
+                        </Text>
+                      </ScrollView>
+                      <View style={stylesMobile.aiAssistantBox}>
+                        <Text style={stylesMobile.aiAssistantText}>
+                          Clinical AI Assistant
+                        </Text>
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  <View style={stylesMobile.resultBox}>
+                    <Text style={stylesMobile.text}>No data available</Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={stylesMobile.acceptBtn}
+                  onPress={() =>
+                    navigation.navigate("HospitalInsuranceDownload", {
+                      analysisData,
+                    })
+                  }
+                >
+                  <Text style={stylesMobile.acceptText}>Accept All</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* 🎯 Floating Button for AI Analysis Modal */}
+          {currentStep === 1 && analysisData && (
+            <TouchableOpacity
+              style={stylesMobile.floatingBtn}
+              onPress={openAiAnalysisModal}
+            >
+              <Image
+                source={require("../../assets/HospitalPortal/Icon/blue_heart.png")}
+                style={{
+                  width: 65,
+                  height: 65,
+                  resizeMode: "cover",
+                }}
+              />
+            </TouchableOpacity>
+          )}
+        </SafeAreaView>
+      )}
+
+      {/* 🎯 AI ANALYSIS MODAL - Mobile */}
+      {aiAnalysisModalOpen && (
+        <Animated.View
+          style={[
+            stylesMobile.aiAnalysisModal,
+            { transform: [{ translateY: aiAnalysisSideAnim }] },
+          ]}
+        >
+          {/* Header */}
+          <View style={stylesMobile.aiAnalysisHeader}>
+            <View style={{ flexDirection: "column" }}>
+              <Text style={stylesMobile.aiAnalysisTitle}>
+                Kokoro AI Analysis
+              </Text>
+              <Text
+                style={{ color: "#999999", fontSize: 14, fontWeight: "400" }}
+              >
+                You're not alone in this case, we're here to assist.
+              </Text>
+            </View>
+            <TouchableOpacity onPress={closeAiAnalysisModal}>
+              <Feather name="x" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Content */}
+          <ScrollView
+            style={stylesMobile.aiAnalysisContent}
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          >
+            {analysisData?.analysis ? (
+              <>
+                {/* Status */}
+                <View style={stylesMobile.analysisSection}>
+                  <Text style={stylesMobile.statusText}>
+                    Status:{" "}
+                    {analysisData?.analysis?.is_complete
+                      ? "✅ Complete"
+                      : "❌ Incomplete"}
+                  </Text>
+                </View>
+
+                {/* Missing Fields */}
+                <View style={stylesMobile.analysisSection}>
+                  <Text style={stylesMobile.analysisSubtitle}>
+                    Missing Fields:
+                  </Text>
+                  {analysisData?.analysis?.missing_fields?.length > 0 ? (
+                    analysisData?.analysis?.missing_fields.map((item, i) => (
+                      <Text key={i} style={stylesMobile.analysisItem}>
+                        • {item}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text style={stylesMobile.analysisItem}>None</Text>
+                  )}
+                </View>
+
+                {/* Issues */}
+                <View style={stylesMobile.analysisSection}>
+                  <Text style={stylesMobile.analysisSubtitle}>Issues:</Text>
+                  {analysisData?.analysis?.issues?.length > 0 ? (
+                    analysisData?.analysis?.issues.map((item, i) => (
+                      <Text key={i} style={stylesMobile.analysisItem}>
+                        ⚠️ {item}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text style={stylesMobile.analysisItem}>No issues</Text>
+                  )}
+                </View>
+
+                {/* Suggestions */}
+                <View style={stylesMobile.analysisSection}>
+                  <Text style={stylesMobile.analysisSubtitle}>
+                    Suggestions:
+                  </Text>
+                  {analysisData?.analysis?.suggestions?.length > 0 ? (
+                    analysisData?.analysis?.suggestions.map((item, i) => (
+                      <Text key={i} style={stylesMobile.analysisItem}>
+                        💡 {item}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text style={stylesMobile.analysisItem}>
+                      No suggestions
+                    </Text>
+                  )}
+                </View>
+
+                {/* Claim Opportunity */}
+                <View style={stylesMobile.analysisSection}>
+                  <Text style={stylesMobile.analysisSubtitle}>
+                    Claim Opportunity:
+                  </Text>
+                  <Text style={stylesMobile.analysisItem}>
+                    {analysisData?.analysis?.claim_opportunity || "N/A"}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <Text style={stylesMobile.analysisItem}>
+                Analysis data not available
+              </Text>
+            )}
+          </ScrollView>
+        </Animated.View>
       )}
     </>
   );
@@ -990,6 +1495,360 @@ const styles = StyleSheet.create({
   generateBtnText: {
     marginTop: "4%",
     color: "#025AE0",
+  },
+});
+const stylesMobile = StyleSheet.create({
+  container: {
+    backgroundColor: "#FFFFFF",
+  },
+  header: {
+    zIndex: 2,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 12,
+    paddingLeft: "2% ",
+  },
+
+  selectBtn: {
+    marginLeft: "2%",
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 16,
+  },
+
+  selectText: {
+    fontSize: 14,
+    color: "#333",
+  },
+
+  stepContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+
+  stepWrapper: {
+    alignItems: "center",
+    flex: 1,
+  },
+
+  circle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#E6F0FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+
+  circleText: {
+    fontSize: 12,
+    color: "#3B82F6",
+    fontWeight: "600",
+  },
+
+  stepText: {
+    fontSize: 10,
+    textAlign: "center",
+    color: "#3B82F6",
+  },
+
+  card: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    padding: 16,
+  },
+
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+
+  subText: {
+    fontSize: 12,
+    textAlign: "center",
+    color: "#6B7280",
+    marginBottom: 10,
+  },
+
+  bulletWrapper: {
+    marginBottom: 16,
+  },
+
+  bullet: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 4,
+  },
+
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 6,
+    color: "#2563EB",
+  },
+
+  uploadBox: {
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#3B82F6",
+    borderRadius: 10,
+    paddingVertical: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    gap: 6, // 🔥 important
+  },
+
+  uploadText: {
+    fontSize: 13,
+    color: "#6B7280",
+  },
+
+  link: {
+    color: "#2563EB",
+    fontWeight: "600",
+  },
+
+  button: {
+    backgroundColor: "#6B9CFF",
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  buttonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  line: {
+    position: "absolute",
+    top: 13,
+    left: 20,
+    right: 20,
+    height: 2,
+    backgroundColor: "#D1D5DB",
+    zIndex: 0,
+  },
+
+  activeCircle: {
+    backgroundColor: "#2563EB",
+  },
+
+  activeCircleText: {
+    color: "#fff",
+  },
+  uploadedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: -10,
+    marginBottom: 10,
+    gap: 6,
+  },
+
+  uploadedText: {
+    fontSize: 11,
+    color: "#6B7280",
+  },
+  fileChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E5E7EB",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 8,
+    maxWidth: 200,
+    gap: 6,
+  },
+
+  fileText: {
+    fontSize: 11,
+    color: "#374151",
+  },
+  fileScroll: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  resultCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+  },
+
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2563EB",
+  },
+
+  resultSub: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 10,
+  },
+
+  resultBox: {
+    backgroundColor: "#F9FAFB",
+    padding: 12,
+    borderRadius: 8,
+    maxHeight: 300, // ✅ IMPORTANT (adjust as needed)
+  },
+
+  blueLabel: {
+    backgroundColor: "#E0EDFF",
+    color: "#2563EB",
+    padding: 6,
+    marginBottom: 10,
+    fontSize: 12,
+  },
+
+  text: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 8,
+  },
+
+  acceptBtn: {
+    backgroundColor: "#2563EB",
+    padding: 14,
+    borderRadius: 10,
+    marginTop: 16,
+    alignItems: "center",
+  },
+
+  acceptText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  completedCircle: {
+    backgroundColor: "#2563EB", // same blue
+  },
+
+  completedText: {
+    color: "#fff",
+  },
+
+  /* ── FLOATING BUTTON ── */
+  floatingBtn: {
+    position: "absolute",
+    right: 20,
+    bottom: 100,
+    height: 65,
+    width: 65,
+    borderRadius: 30,
+
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  /* ── AI ANALYSIS MODAL ── */
+  aiAnalysisModal: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 100,
+    backgroundColor: "#fff",
+    flexDirection: "column",
+    zIndex: 1000,
+    elevation: 50,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+
+  aiAnalysisHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    backgroundColor: "#E7F3FFBF",
+  },
+
+  aiAnalysisTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#2563EB",
+  },
+
+  aiAnalysisContent: {
+    flex: 1,
+    padding: 16,
+  },
+
+  analysisSection: {
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+
+  analysisSubtitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+
+  analysisItem: {
+    fontSize: 13,
+    color: "#555",
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+
+  statusText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  resultWrapper: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 10,
+    maxHeight: 320,
+    overflow: "hidden",
+    position: "relative",
+  },
+
+  aiAssistantBox: {
+    position: "absolute",
+    bottom: -18, // 🔥 overlaps like your UI
+    alignSelf: "center",
+    backgroundColor: "#F1F5F9",
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+
+  aiAssistantText: {
+    fontSize: 13,
+    color: "#6366F1",
+    fontWeight: "500",
   },
 });
 

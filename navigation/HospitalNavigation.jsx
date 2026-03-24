@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useRole } from "../contexts/RoleContext";
 import HospitalPortalLandingPage from "../screens/HospitalScreens/HospitalPortalLandingPage";
 import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsuranceClaim";
+import HospitalInsuranceDownload from "../screens/HospitalScreens/HospitalInsuranceDownload";
 
 const Stack = createNativeStackNavigator();
 
@@ -62,6 +63,11 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="HospitalInsuranceClaim"
           component={HospitalInsuranceClaim}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="HospitalInsuranceDownload"
+          component={HospitalInsuranceDownload}
           options={{ headerShown: false }}
         />
         
