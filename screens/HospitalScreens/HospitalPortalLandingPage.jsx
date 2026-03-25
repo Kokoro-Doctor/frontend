@@ -520,15 +520,15 @@ const MobileStyles = StyleSheet.create({
     justifyContent: "space-evenly",
     width: "100%",
   },
-  gradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: "55%",
-    borderBottomLeftRadius: 17,
-    borderBottomRightRadius: 17,
-  },
+  // gradient: {
+  //   position: "absolute",
+  //   bottom: 0,
+  //   left: 0,
+  //   right: 0,
+  //   height: "55%",
+  //   borderBottomLeftRadius: 17,
+  //   borderBottomRightRadius: 17,
+  // },
 
   blur: {
     position: "absolute",

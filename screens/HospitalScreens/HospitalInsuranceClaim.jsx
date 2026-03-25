@@ -226,8 +226,27 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                     <Text style={styles.title}>
                       Insurance claim analysis AI
                     </Text>
-                    <TouchableOpacity style={styles.patientButton}>
-                      <Text style={styles.btnText}>Select Patient</Text>
+                    <TouchableOpacity
+                      style={styles.patientButton}
+                      onPress={() => {
+                        if (currentStep === 1) {
+                          // 🔙 Go back to upload
+                          setCurrentStep(0);
+
+                          Animated.timing(slideAnim, {
+                            toValue: 0,
+                            duration: 500,
+                            useNativeDriver: true,
+                          }).start();
+                        } else {
+                          // 👉 Your existing select patient logic
+                          console.log("Open patient selector");
+                        }
+                      }}
+                    >
+                      <Text style={styles.btnText}>
+                        {currentStep === 1 ? "Back" : "Select Patient"}
+                      </Text>
                     </TouchableOpacity>
                   </View>
 
@@ -249,7 +268,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                     ].map((item, index, arr) => (
                       <React.Fragment key={index}>
                         <View style={styles.stepItem}>
-                          <View
+                          {/* <View
                             style={[
                               styles.stepCircle,
                               index === currentStep && styles.stepCircleActive,
@@ -260,6 +279,25 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                           >
                             <Text style={styles.stepNumber}>
                               {index === 0 && isUploadComplete
+                                ? "✓"
+                                : index + 1}
+                            </Text>
+                          </View> */}
+                          <View
+                            style={[
+                              styles.stepCircle,
+                              index === currentStep && styles.stepCircleActive,
+
+                              // ✅ STEP COMPLETE LOGIC
+                              (index === 0 && isUploadComplete) ||
+                              (index === 1 && currentStep >= 1)
+                                ? styles.stepCircleComplete
+                                : null,
+                            ]}
+                          >
+                            <Text style={styles.stepNumber}>
+                              {(index === 0 && isUploadComplete) ||
+                              (index === 1 && currentStep >= 1)
                                 ? "✓"
                                 : index + 1}
                             </Text>
@@ -1020,7 +1058,8 @@ const HospitalInsuranceClaim = ({ navigation }) => {
               <Text
                 style={{ color: "#999999", fontSize: 14, fontWeight: "400" }}
               >
-                You're not alone in this case, we're here to assist.
+                You`&apos;`re not alone in this case, we`&apos;`re here to
+                assist.
               </Text>
             </View>
             <TouchableOpacity onPress={closeAiAnalysisModal}>
