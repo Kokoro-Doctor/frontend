@@ -8,6 +8,7 @@ import { useRole } from "../contexts/RoleContext";
 import HospitalPortalLandingPage from "../screens/HospitalScreens/HospitalPortalLandingPage";
 import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsuranceClaim";
 import HospitalInsuranceDownload from "../screens/HospitalScreens/HospitalInsuranceDownload";
+import HospitalPostOpCare from "../screens/HospitalScreens/HospitalPostOpCare";
 
 const Stack = createNativeStackNavigator();
 
@@ -70,7 +71,11 @@ const HospitalAppNavigation = ({ navigation }) => {
           component={HospitalInsuranceDownload}
           options={{ headerShown: false }}
         />
-        
+        <Stack.Screen
+          name="HospitalPostOpCare"
+          component={HospitalPostOpCare}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </HeaderButtonsProvider>
   );

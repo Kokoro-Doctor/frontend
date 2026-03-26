@@ -11,7 +11,7 @@ import {
   Image,
   Animated,
   StatusBar,
-  ActivityIndicator,
+  ActivityIndicator
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -19,9 +19,8 @@ import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { API_URL } from "../../env-vars";
-import FormattedMessageText from "../../components/PatientScreenComponents/ChatbotComponents/FormattedMessageText"; // adjust path
 
-const HospitalInsuranceClaim = ({ navigation }) => {
+const HospitalPostOpCare = ({ navigation }) => {
   const [claimFiles, setClaimFiles] = useState([]);
   const { width, height } = useWindowDimensions();
   const [currentStep, setCurrentStep] = useState(0); // 0 = upload, 1 = review
@@ -34,7 +33,6 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiAnalysisModalOpen, setAiAnalysisModalOpen] = useState(false);
   const aiAnalysisSideAnim = useState(new Animated.Value(height))[0];
-  const [backendPrompt, setBackendPrompt] = useState("");
   const analyzeMobileInsurance = async () => {
     if (claimDocs.length === 0) return;
 
@@ -67,11 +65,6 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       console.log("API RESPONSE:", data);
 
       setAnalysisData(data);
-      const botMsg = data.analysis?.bot_message;
-
-      setBackendPrompt(
-        typeof botMsg === "string" ? botMsg : JSON.stringify(botMsg, null, 2),
-      );
       setCurrentStep(1);
     } catch (error) {
       console.error("Analysis error:", error);
@@ -193,51 +186,11 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       console.log("API RESPONSE:", data);
 
       setAnalysisData(data);
-      // setBackendPrompt(data.analysis?.bot_message || "");
-      const botMsg = data.analysis?.bot_message;
-
-      setBackendPrompt(
-        typeof botMsg === "string" ? botMsg : JSON.stringify(botMsg, null, 2),
-      );
       goToReview();
     } catch (error) {
       console.error("Analysis error:", error);
     } finally {
       setLoadingAnalysis(false);
-    }
-  };
-
-  const formatBackendPromptToMarkdown = (rawText) => {
-    if (!rawText) return "";
-
-    // If already string → return directly
-    if (typeof rawText === "string") {
-      return rawText;
-    }
-
-    // If object → convert nicely
-    try {
-      let md = "";
-
-      Object.entries(rawText).forEach(([key, value]) => {
-        md += `## ${key}\n\n`;
-
-        if (Array.isArray(value)) {
-          value.forEach((item) => {
-            md += `- ${item}\n`;
-          });
-        } else if (typeof value === "object") {
-          md += `${JSON.stringify(value, null, 2)}\n`;
-        } else {
-          md += `${value}\n`;
-        }
-
-        md += `\n`;
-      });
-
-      return md;
-    } catch (e) {
-      return String(rawText);
     }
   };
 
@@ -270,7 +223,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                   {/* TITLE ROW */}
                   <View style={styles.titleTopSection}>
                     <Text style={styles.title}>
-                      Insurance claim analysis AI
+                      Post OP Care
                     </Text>
                     <TouchableOpacity
                       style={styles.patientButton}
@@ -304,12 +257,12 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                         subtitle: "Claim document required",
                       },
                       {
-                        title: "Review Suggestions",
-                        subtitle: "Accept or reject changes",
+                        title: "Full Case Analysis",
+                        subtitle: "Analyze Reports",
                       },
                       {
-                        title: "Download Updated File",
-                        subtitle: "Editable & ready",
+                        title: "Generate Prescription",
+                        subtitle: "Analyze Reports",
                       },
                     ].map((item, index, arr) => (
                       <React.Fragment key={index}>
@@ -677,7 +630,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                   { width: "60%", padding: 10 },
                                 ]}
                               >
-                                {/* {analysisData ? (
+                                {analysisData ? (
                                   <ScrollView>
                                     <Text
                                       style={{
@@ -771,23 +724,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                   </ScrollView>
                                 ) : (
                                   <Text>AI analysis will appear here</Text>
-                                )} */}
-                                {backendPrompt ? (
-                                  <View style={{ marginTop: 5, flex: 1 }}>
-                                    <ScrollView
-                                      style={{ flex: 1 }}
-                                      showsVerticalScrollIndicator={true}
-                                    >
-                                      <FormattedMessageText
-                                        sender="bot"
-                                        text={formatBackendPromptToMarkdown(
-                                          backendPrompt,
-                                        )}
-                                        textColor="#0c0c0cff"
-                                      />
-                                    </ScrollView>
-                                  </View>
-                                ) : null}
+                                )}
                               </View>
                             </View>
                           </View>
@@ -823,7 +760,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
             <View style={stylesMobile.header}>
               <HeaderLoginSignUp navigation={navigation} />
             </View>
-            <Text style={stylesMobile.title}>Insurance claim analysis AI</Text>
+            <Text style={stylesMobile.title}>Post OP Care </Text>
 
             <TouchableOpacity style={stylesMobile.selectBtn}>
               <Text style={stylesMobile.selectText}>Select Patient</Text>
@@ -858,8 +795,8 @@ const HospitalInsuranceClaim = ({ navigation }) => {
 
                     <Text style={stylesMobile.stepText}>
                       {item === 1 && "Upload\nDocuments"}
-                      {item === 2 && "AI Analysis & Review\nSuggestions"}
-                      {item === 3 && "Download\nUpdated File"}
+                      {item === 2 && "Full Case\nAnalysis"}
+                      {item === 3 && "Generate\nPrescription"}
                     </Text>
                   </View>
                 );
@@ -1120,7 +1057,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
               <Text
                 style={{ color: "#999999", fontSize: 14, fontWeight: "400" }}
               >
-                You`&apos;`re not alone in this case, we`&apos;`re here to
+                You&apos;re not alone in this case, we&apos;re here to
                 assist.
               </Text>
             </View>
@@ -1135,9 +1072,9 @@ const HospitalInsuranceClaim = ({ navigation }) => {
             showsVerticalScrollIndicator={true}
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            {/* {analysisData?.analysis ? (
+            {analysisData?.analysis ? (
               <>
-              
+                {/* Status */}
                 <View style={stylesMobile.analysisSection}>
                   <Text style={stylesMobile.statusText}>
                     Status:{" "}
@@ -1147,7 +1084,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                   </Text>
                 </View>
 
-            
+                {/* Missing Fields */}
                 <View style={stylesMobile.analysisSection}>
                   <Text style={stylesMobile.analysisSubtitle}>
                     Missing Fields:
@@ -1163,7 +1100,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                   )}
                 </View>
 
-                
+                {/* Issues */}
                 <View style={stylesMobile.analysisSection}>
                   <Text style={stylesMobile.analysisSubtitle}>Issues:</Text>
                   {analysisData?.analysis?.issues?.length > 0 ? (
@@ -1177,7 +1114,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                   )}
                 </View>
 
-          
+                {/* Suggestions */}
                 <View style={stylesMobile.analysisSection}>
                   <Text style={stylesMobile.analysisSubtitle}>
                     Suggestions:
@@ -1195,7 +1132,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                   )}
                 </View>
 
-                
+                {/* Claim Opportunity */}
                 <View style={stylesMobile.analysisSection}>
                   <Text style={stylesMobile.analysisSubtitle}>
                     Claim Opportunity:
@@ -1209,21 +1146,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
               <Text style={stylesMobile.analysisItem}>
                 Analysis data not available
               </Text>
-            )} */}
-            {backendPrompt ? (
-              <View style={{ marginTop: 5, flex: 1 }}>
-                <ScrollView
-                  style={{ flex: 1 }}
-                  showsVerticalScrollIndicator={true}
-                >
-                  <FormattedMessageText
-                    sender="bot"
-                    text={formatBackendPromptToMarkdown(backendPrompt)}
-                    textColor="#0c0c0cff"
-                  />
-                </ScrollView>
-              </View>
-            ) : null}
+            )}
           </ScrollView>
         </Animated.View>
       )}
@@ -1967,4 +1890,4 @@ const stylesMobile = StyleSheet.create({
   },
 });
 
-export default HospitalInsuranceClaim;
+export default HospitalPostOpCare;
