@@ -792,8 +792,6 @@
 
 // export default PostOpCarePrescription;
 
-
-
 import React, { useState, useContext, useEffect } from "react";
 import {
   Image,
@@ -859,7 +857,7 @@ const PostOpCarePrescription = ({ navigation, route }) => {
   const [isSavingPrescription, setIsSavingPrescription] = useState(false);
   const [editedPrescription, setEditedPrescription] = useState(null);
   const [currentPrescription, setCurrentPrescription] = useState(
-    initialPrescription || null
+    initialPrescription || null,
   );
 
   useEffect(() => {
@@ -906,7 +904,7 @@ const PostOpCarePrescription = ({ navigation, route }) => {
       showAlert(
         "Cannot Save",
         "Patient ID is required to save prescription to Medilocker.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       return;
     }
@@ -914,19 +912,19 @@ const PostOpCarePrescription = ({ navigation, route }) => {
       setIsSavingPrescription(true);
       const pdfBase64 = await generatePrescriptionPDFAsBase64(
         currentPrescription,
-        user
+        user,
       );
       await savePrescriptionToMedilocker(userId, pdfBase64);
       showAlert(
         "Success",
         "Prescription PDF has been saved to the patient's Medilocker.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     } catch (error) {
       showAlert(
         "Save Failed",
         error.message || "Failed to save prescription to Medilocker.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     } finally {
       setIsSavingPrescription(false);
@@ -935,7 +933,13 @@ const PostOpCarePrescription = ({ navigation, route }) => {
 
   // ─── WEB EDIT FIELD HELPER ───
   const WebEditableField = ({ label, field, value, multiline }) => (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 6 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        marginBottom: 6,
+      }}
+    >
       <Text style={stylesWeb.fieldLabel}>{label} </Text>
       {isEditMode ? (
         <TextInput
@@ -1251,9 +1255,7 @@ const PostOpCarePrescription = ({ navigation, route }) => {
                           <ActivityIndicator color="#fff" size="small" />
                         ) : (
                           <>
-                            <Text style={stylesWeb.downloadUpdatedIcon}>
-                              ✦
-                            </Text>
+                            <Text style={stylesWeb.downloadUpdatedIcon}>✦</Text>
                             <Text style={stylesWeb.downloadUpdatedText}>
                               Download updated claim
                             </Text>
@@ -1327,13 +1329,17 @@ const PostOpCarePrescription = ({ navigation, route }) => {
                 <View style={stylesMobile.stepCircleActive}>
                   <Text style={stylesMobile.tick}>✓</Text>
                 </View>
-                <Text style={stylesMobile.stepText}>Full case{"\n"}analysis</Text>
+                <Text style={stylesMobile.stepText}>
+                  Full case{"\n"}analysis
+                </Text>
               </View>
               <View style={stylesMobile.stepItem}>
                 <View style={stylesMobile.stepCircleInactive}>
                   <Text style={stylesMobile.stepNumber}>3</Text>
                 </View>
-                <Text style={stylesMobile.stepText}>Generate{"\n"}Prescription</Text>
+                <Text style={stylesMobile.stepText}>
+                  Generate{"\n"}Prescription
+                </Text>
               </View>
             </View>
           </View>
@@ -1341,7 +1347,9 @@ const PostOpCarePrescription = ({ navigation, route }) => {
           {/* PRESCRIPTION VIEW */}
           <View style={stylesMobile.prescriptionWrapper}>
             <View style={stylesMobile.topHeader}>
-              <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }}>
+              <View
+                style={{ flexDirection: "row", gap: 4, alignItems: "center" }}
+              >
                 <Image
                   source={require("../../assets/DoctorsPortal/Icons/kokorologoo.png")}
                   style={stylesMobile.statIcon}
@@ -1357,20 +1365,33 @@ const PostOpCarePrescription = ({ navigation, route }) => {
             </View>
 
             <View style={stylesMobile.rowBetween}>
-              <View style={{ flexDirection: "row", gap: 1, justifyContent: "center", alignItems: "center" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
                 <Text style={stylesMobile.metaText}>Date : </Text>
                 {isEditMode ? (
                   <TextInput
                     style={stylesMobile.mobileEditInputInline}
                     value={editedPrescription?.date || ""}
-                    onChangeText={(value) => updatePrescriptionField("date", value)}
+                    onChangeText={(value) =>
+                      updatePrescriptionField("date", value)
+                    }
                     placeholder="DD MMM YYYY"
                     placeholderTextColor="#999999"
                   />
                 ) : (
                   <Text style={stylesMobile.secondText}>
                     {currentPrescription?.date ||
-                      new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                      new Date().toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
                   </Text>
                 )}
               </View>
@@ -1379,8 +1400,15 @@ const PostOpCarePrescription = ({ navigation, route }) => {
                   <Text style={{ fontWeight: "600" }}>DR :</Text>{" "}
                   {user?.name || user?.doctorname || "Doctor"}{" "}
                 </Text>
-                <Text style={{ color: "#999", alignSelf: "flex-end", marginRight: "1%" }}>
-                  {" "}{user?.specialization || ""}
+                <Text
+                  style={{
+                    color: "#999",
+                    alignSelf: "flex-end",
+                    marginRight: "1%",
+                  }}
+                >
+                  {" "}
+                  {user?.specialization || ""}
                 </Text>
               </View>
             </View>
@@ -1395,12 +1423,16 @@ const PostOpCarePrescription = ({ navigation, route }) => {
                     <TextInput
                       style={stylesMobile.mobileEditInputSmall}
                       value={editedPrescription?.patientName || ""}
-                      onChangeText={(value) => updatePrescriptionField("patientName", value)}
+                      onChangeText={(value) =>
+                        updatePrescriptionField("patientName", value)
+                      }
                       placeholder="Enter patient name"
                       placeholderTextColor="#999999"
                     />
                   ) : (
-                    <Text style={stylesMobile.secondText}>{currentPrescription?.patientName || " "}</Text>
+                    <Text style={stylesMobile.secondText}>
+                      {currentPrescription?.patientName || " "}
+                    </Text>
                   )}
                 </Text>
                 <Text style={stylesMobile.infoText}>
@@ -1409,12 +1441,16 @@ const PostOpCarePrescription = ({ navigation, route }) => {
                     <TextInput
                       style={stylesMobile.mobileEditInputSmall}
                       value={editedPrescription?.age || ""}
-                      onChangeText={(value) => updatePrescriptionField("age", value)}
+                      onChangeText={(value) =>
+                        updatePrescriptionField("age", value)
+                      }
                       placeholder="Enter age"
                       placeholderTextColor="#999999"
                     />
                   ) : (
-                    <Text style={stylesMobile.secondText}>{currentPrescription?.age || " "}</Text>
+                    <Text style={stylesMobile.secondText}>
+                      {currentPrescription?.age || " "}
+                    </Text>
                   )}
                 </Text>
               </View>
@@ -1425,27 +1461,38 @@ const PostOpCarePrescription = ({ navigation, route }) => {
                     <TextInput
                       style={stylesMobile.mobileEditInputSmall}
                       value={editedPrescription?.gender || ""}
-                      onChangeText={(value) => updatePrescriptionField("gender", value)}
+                      onChangeText={(value) =>
+                        updatePrescriptionField("gender", value)
+                      }
                       placeholder="Enter gender"
                       placeholderTextColor="#999999"
                     />
                   ) : (
-                    <Text style={stylesMobile.secondText}>{currentPrescription?.gender || " "}</Text>
+                    <Text style={stylesMobile.secondText}>
+                      {currentPrescription?.gender || " "}
+                    </Text>
                   )}
                 </Text>
                 <Text style={stylesMobile.infoText}>
                   <Text style={stylesMobile.infoLabel}>Diagnosis:</Text>{" "}
                   {isEditMode ? (
                     <TextInput
-                      style={[stylesMobile.mobileEditInputSmall, { minHeight: 60 }]}
+                      style={[
+                        stylesMobile.mobileEditInputSmall,
+                        { minHeight: 60 },
+                      ]}
                       value={editedPrescription?.diagnosis || ""}
-                      onChangeText={(value) => updatePrescriptionField("diagnosis", value)}
+                      onChangeText={(value) =>
+                        updatePrescriptionField("diagnosis", value)
+                      }
                       placeholder="Enter diagnosis"
                       placeholderTextColor="#999999"
                       multiline
                     />
                   ) : (
-                    <Text style={stylesMobile.secondText}>{currentPrescription?.diagnosis || " "}</Text>
+                    <Text style={stylesMobile.secondText}>
+                      {currentPrescription?.diagnosis || " "}
+                    </Text>
                   )}
                 </Text>
               </View>
@@ -1456,14 +1503,17 @@ const PostOpCarePrescription = ({ navigation, route }) => {
                 <TextInput
                   style={stylesMobile.mobileRxInput}
                   value={editedPrescription?.prescriptionReport || ""}
-                  onChangeText={(value) => updatePrescriptionField("prescriptionReport", value)}
+                  onChangeText={(value) =>
+                    updatePrescriptionField("prescriptionReport", value)
+                  }
                   placeholder="Prescription Report"
                   placeholderTextColor="#999999"
                   multiline
                 />
               ) : (
                 <Markdown style={markdownStylesMobile} mergeStyle={true}>
-                  {currentPrescription?.prescriptionReport || "No prescription report generated"}
+                  {currentPrescription?.prescriptionReport ||
+                    "No prescription report generated"}
                 </Markdown>
               )}
             </ScrollView>
@@ -1471,23 +1521,36 @@ const PostOpCarePrescription = ({ navigation, route }) => {
 
           {isEditMode && (
             <View style={stylesMobile.editActions}>
-              <TouchableOpacity style={stylesMobile.cancelButton} onPress={handleCancelEdit}>
+              <TouchableOpacity
+                style={stylesMobile.cancelButton}
+                onPress={handleCancelEdit}
+              >
                 <Text style={stylesMobile.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={stylesMobile.saveButton} onPress={handleSavePrescription}>
+              <TouchableOpacity
+                style={stylesMobile.saveButton}
+                onPress={handleSavePrescription}
+              >
                 <Text style={stylesMobile.saveButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {!isEditMode && (
-            <TouchableOpacity style={stylesMobile.approveBtns} onPress={handleEditPrescription}>
-              <Text style={stylesMobile.approveBtnTexts}>Edit Prescription</Text>
+            <TouchableOpacity
+              style={stylesMobile.approveBtns}
+              onPress={handleEditPrescription}
+            >
+              <Text style={stylesMobile.approveBtnTexts}>
+                Edit Prescription
+              </Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity style={stylesMobile.approveBtn}>
-            <Text style={stylesMobile.approveBtnText}>Download Prescription</Text>
+            <Text style={stylesMobile.approveBtnText}>
+              Download Prescription
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={stylesMobile.analyzeBtn}>
             <Text style={stylesMobile.analyzeText}>Analyze once again</Text>
@@ -1505,15 +1568,28 @@ const PostOpCarePrescription = ({ navigation, route }) => {
 // WEB STYLES
 // ═══════════════════════════════════════════════════
 const stylesWeb = StyleSheet.create({
-  root: { flex: 1, height: "100vh", overflow: "hidden" },
-  background: { flex: 1, height: "100%" },
+  root: {
+    flex: 1,
+    height: "100vh",
+    overflow: "hidden",
+  },
+  background: {
+    flex: 1,
+    height: "100%",
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
     zIndex: 1,
   },
-  mainRow: { flexDirection: "row", height: "100%", zIndex: 2 },
-  sidebar: { width: "15%" },
+  mainRow: {
+    flexDirection: "row",
+    height: "100%",
+    zIndex: 2,
+  },
+  sidebar: {
+    width: "15%",
+  },
   content: {
     width: "85%",
     padding: 20,
@@ -1521,7 +1597,9 @@ const stylesWeb = StyleSheet.create({
     height: "100%",
     overflow: "auto",
   },
-  headerRow: { marginBottom: 16 },
+  headerRow: {
+    marginBottom: 16,
+  },
 
   /* ── CARD ── */
   card: {
@@ -1555,7 +1633,11 @@ const stylesWeb = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: "#fff",
   },
-  backToHomeBtnText: { fontSize: 13, color: "#374151", fontWeight: "500" },
+  backToHomeBtnText: {
+    fontSize: 13,
+    color: "#374151",
+    fontWeight: "500",
+  },
 
   /* ── STEP BAR ── */
   stepBar: {
@@ -1581,7 +1663,11 @@ const stylesWeb = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  stepTick: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  stepTick: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
   stepCircleInactive: {
     width: 28,
     height: 28,
@@ -1595,15 +1681,27 @@ const stylesWeb = StyleSheet.create({
   stepCircleActive: {
     borderColor: "#2563EB",
   },
-  stepNum: { fontSize: 12, fontWeight: "700", color: "#9CA3AF" },
-  stepNumActive: { color: "#2563EB" },
+  stepNum: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#9CA3AF",
+  },
+  stepNumActive: {
+    color: "#2563EB",
+  },
   stepLabel: {
     fontSize: 12,
     fontWeight: "600",
     color: "#9CA3AF",
   },
-  stepLabelActive: { color: "#2563EB" },
-  stepSub: { fontSize: 10, color: "#9CA3AF", marginTop: 1 },
+  stepLabelActive: {
+    color: "#2563EB",
+  },
+  stepSub: {
+    fontSize: 10,
+    color: "#9CA3AF",
+    marginTop: 1,
+  },
   stepConnector: {
     height: 2,
     width: 32,
@@ -1685,9 +1783,21 @@ const stylesWeb = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
   },
-  rxMetaLabel: { fontSize: 13, color: "#111", fontWeight: "600" },
-  rxMetaValue: { fontSize: 13, color: "#555", fontWeight: "400" },
-  rxDrSpecialty: { fontSize: 12, color: "#999", marginTop: 2 },
+  rxMetaLabel: {
+    fontSize: 13,
+    color: "#111",
+    fontWeight: "600",
+  },
+  rxMetaValue: {
+    fontSize: 13,
+    color: "#555",
+    fontWeight: "400",
+  },
+  rxDrSpecialty: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 2,
+  },
   webEditInputInline: {
     fontSize: 13,
     color: "#111",
@@ -1701,7 +1811,11 @@ const stylesWeb = StyleSheet.create({
   },
 
   /* Divider */
-  rxDivider: { height: 1, backgroundColor: "#EAEAEA", marginVertical: 12 },
+  rxDivider: {
+    height: 1,
+    backgroundColor: "#EAEAEA",
+    marginVertical: 12,
+  },
 
   /* Patient info grid */
   rxInfoGrid: {
@@ -1716,7 +1830,11 @@ const stylesWeb = StyleSheet.create({
     minWidth: 80,
     flexShrink: 0,
   },
-  fieldValue: { fontSize: 13, color: "#555", flex: 1 },
+  fieldValue: {
+    fontSize: 13,
+    color: "#555",
+    flex: 1,
+  },
   webEditInput: {
     fontSize: 13,
     color: "#111",
@@ -1763,24 +1881,39 @@ const stylesWeb = StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: "#fff",
   },
-  cancelBtnText: { fontSize: 13, color: "#555", fontWeight: "500" },
+  cancelBtnText: {
+    fontSize: 13,
+    color: "#555",
+    fontWeight: "500",
+  },
   savePrescriptionBtn: {
     borderRadius: 8,
     backgroundColor: "#2563EB",
     paddingHorizontal: 18,
     paddingVertical: 9,
   },
-  savePrescriptionBtnText: { fontSize: 13, color: "#fff", fontWeight: "600" },
+  savePrescriptionBtnText: {
+    fontSize: 13,
+    color: "#fff",
+    fontWeight: "600",
+  },
 
   /* Bottom section */
-  rxBottomSection: { marginTop: 8, gap: 10 },
+  rxBottomSection: {
+    marginTop: 8,
+    gap: 10,
+  },
   downloadBarBtn: {
     backgroundColor: "#2563EB",
     borderRadius: 6,
     paddingVertical: 13,
     alignItems: "center",
   },
-  downloadBarBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  downloadBarBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   approvedBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -1820,7 +1953,10 @@ const stylesWeb = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 12,
   },
-  downloadUpdatedIcon: { color: "#fff", fontSize: 14 },
+  downloadUpdatedIcon: {
+    color: "#fff",
+    fontSize: 14,
+  },
   downloadUpdatedText: {
     color: "#fff",
     fontSize: 13,
@@ -1835,7 +1971,11 @@ const stylesWeb = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
   },
-  openEditorText: { fontSize: 13, color: "#374151", fontWeight: "500" },
+  openEditorText: {
+    fontSize: 13,
+    color: "#374151",
+    fontWeight: "500",
+  },
   analyzeAgainBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1847,23 +1987,39 @@ const stylesWeb = StyleSheet.create({
     paddingVertical: 13,
     backgroundColor: "#F0FFF4",
   },
-  analyzeAgainIcon: { fontSize: 16, color: "#16A34A" },
-  analyzeAgainText: { fontSize: 13, color: "#16A34A", fontWeight: "600" },
+  analyzeAgainIcon: {
+    fontSize: 16,
+    color: "#16A34A",
+  },
+  analyzeAgainText: {
+    fontSize: 13,
+    color: "#16A34A",
+    fontWeight: "600",
+  },
   setupIntegrationBtn: {
     backgroundColor: "#22C55E",
     borderRadius: 8,
     paddingVertical: 13,
     alignItems: "center",
   },
-  setupIntegrationText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  setupIntegrationText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
 });
 
 // ═══════════════════════════════════════════════════
 // MOBILE STYLES — UNTOUCHED
 // ═══════════════════════════════════════════════════
 const stylesMobile = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
-  header: { zIndex: 2 },
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  header: {
+    zIndex: 2,
+  },
   prescriptionWrapper: {
     marginLeft: "2%",
     marginRight: "2%",
@@ -1879,8 +2035,15 @@ const stylesMobile = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  statIcon: { width: 20, height: 20 },
-  logoText: { fontSize: 16, fontWeight: "900", color: "#00000075" },
+  statIcon: {
+    width: 20,
+    height: 20,
+  },
+  logoText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#00000075",
+  },
   summaryBadge: {
     height: 40,
     width: 160,
@@ -1897,23 +2060,45 @@ const stylesMobile = StyleSheet.create({
     alignItems: "center",
     borderColor: "#025AE0",
   },
-  summaryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "400" },
+  summaryText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "400",
+  },
   rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 12,
   },
-  metaText: { fontSize: 12, color: "#000000", fontWeight: "500" },
-  secondText: { color: "#555555", fontSize: 12, fontWeight: "400" },
+  metaText: {
+    fontSize: 12,
+    color: "#000000",
+    fontWeight: "500",
+  },
+  secondText: {
+    color: "#555555",
+    fontSize: 12,
+    fontWeight: "400",
+  },
   divider: {
     height: 1,
     backgroundColor: "#EAE9E9",
     marginVertical: 16,
     marginRight: "4.5%",
   },
-  infoGrid: { flexDirection: "row", justifyContent: "space-between" },
-  infoText: { fontSize: 12, color: "#444", marginBottom: 6 },
-  infoLabel: { fontWeight: "600", color: "#000000" },
+  infoGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  infoText: {
+    fontSize: 12,
+    color: "#444",
+    marginBottom: 6,
+  },
+  infoLabel: {
+    fontWeight: "600",
+    color: "#000000",
+  },
   rxBox: {
     marginTop: "4%",
     borderWidth: 1,
@@ -1933,7 +2118,11 @@ const stylesMobile = StyleSheet.create({
     marginTop: 20,
     alignItems: "center",
   },
-  approveBtnText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  approveBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
   approveBtns: {
     alignSelf: "center",
     width: "70%",
@@ -1945,7 +2134,11 @@ const stylesMobile = StyleSheet.create({
     borderColor: "#94A3B8",
     borderWidth: 2,
   },
-  approveBtnTexts: { color: "#6B6B6B", fontWeight: "600", fontSize: 14 },
+  approveBtnTexts: {
+    color: "#6B6B6B",
+    fontWeight: "600",
+    fontSize: 14,
+  },
   analyzeBtn: {
     borderWidth: 1,
     alignSelf: "center",
@@ -1957,7 +2150,11 @@ const stylesMobile = StyleSheet.create({
     alignItems: "center",
     borderColor: "#25BA58",
   },
-  analyzeText: { color: "#25BA58", fontWeight: "600", fontSize: 14 },
+  analyzeText: {
+    color: "#25BA58",
+    fontWeight: "600",
+    fontSize: 14,
+  },
   setupBtn: {
     borderWidth: 1,
     alignSelf: "center",
@@ -1969,7 +2166,11 @@ const stylesMobile = StyleSheet.create({
     alignItems: "center",
     borderColor: "#25BA58",
   },
-  setupText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  setupText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
   mobileEditInputInline: {
     fontSize: 12,
     fontWeight: "400",
@@ -2021,14 +2222,22 @@ const stylesMobile = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: "#FFFFFF",
   },
-  cancelButtonText: { color: "#666666", fontSize: 13, fontWeight: "500" },
+  cancelButtonText: {
+    color: "#666666",
+    fontSize: 13,
+    fontWeight: "500",
+  },
   saveButton: {
     borderRadius: 8,
     backgroundColor: "#FF7072",
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  saveButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
+  saveButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+  },
   stepContainer: {
     paddingVertical: 16,
     paddingHorizontal: 10,
@@ -2039,7 +2248,10 @@ const stylesMobile = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  stepItem: { alignItems: "center", width: "33%" },
+  stepItem: {
+    alignItems: "center",
+    width: "33%",
+  },
   stepLine: {
     position: "absolute",
     top: 17 + 16,
@@ -2066,8 +2278,15 @@ const stylesMobile = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  tick: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  stepNumber: { color: "#1D4ED8", fontWeight: "600" },
+  tick: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  stepNumber: {
+    color: "#1D4ED8",
+    fontWeight: "600",
+  },
   stepText: {
     fontSize: 11,
     textAlign: "center",
