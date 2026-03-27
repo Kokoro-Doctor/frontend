@@ -91,7 +91,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                         style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("HospitalAppNavigation", {
-                            screen: "HospitalPostOpCare",
+                            screen: "PostOpCare",
                           });
                         }}
                       >
@@ -256,7 +256,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                 style={MobileStyles.cardStyle}
                 onPress={() => {
                   navigation.navigate("HospitalAppNavigation", {
-                    screen: "HospitalPostOpCare",
+                    screen: "PostOpCare",
                   });
                 }}
               >

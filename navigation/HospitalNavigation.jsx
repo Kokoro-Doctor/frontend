@@ -8,7 +8,8 @@ import { useRole } from "../contexts/RoleContext";
 import HospitalPortalLandingPage from "../screens/HospitalScreens/HospitalPortalLandingPage";
 import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsuranceClaim";
 import HospitalInsuranceDownload from "../screens/HospitalScreens/HospitalInsuranceDownload";
-import HospitalPostOpCare from "../screens/HospitalScreens/HospitalPostOpCare";
+import PostOpCare from "../screens/HospitalScreens/PostOpCare";
+import PostOpCarePrescription from "../screens/HospitalScreens/PostOpCarePrescription";
 
 const Stack = createNativeStackNavigator();
 
@@ -21,28 +22,28 @@ const HospitalAppNavigation = ({ navigation }) => {
   const isLoading = authLoading || roleLoading;
 
   // Redirect users away from doctor portal
-//   useFocusEffect(
-//     React.useCallback(() => {
-//       if (isLoading) return;
+  //   useFocusEffect(
+  //     React.useCallback(() => {
+  //       if (isLoading) return;
 
-//       if (user && role === "user") {
-//         // User trying to access doctor portal - redirect to patient portal
-//         // Get root navigator to navigate to root level screens
-//         const rootNav = navigation.getParent();
-//         if (rootNav) {
-//           rootNav.reset({
-//             index: 0,
-//             routes: [
-//               {
-//                 name: "PatientAppNavigation",
-//                 params: { screen: "UserDashboard" },
-//               },
-//             ],
-//           });
-//         }
-//       }
-//     }, [user, role, isLoading, navigation]),
-//   );
+  //       if (user && role === "user") {
+  //         // User trying to access doctor portal - redirect to patient portal
+  //         // Get root navigator to navigate to root level screens
+  //         const rootNav = navigation.getParent();
+  //         if (rootNav) {
+  //           rootNav.reset({
+  //             index: 0,
+  //             routes: [
+  //               {
+  //                 name: "PatientAppNavigation",
+  //                 params: { screen: "UserDashboard" },
+  //               },
+  //             ],
+  //           });
+  //         }
+  //       }
+  //     }, [user, role, isLoading, navigation]),
+  //   );
 
   return (
     <HeaderButtonsProvider stackType={"native"}>
@@ -55,7 +56,6 @@ const HospitalAppNavigation = ({ navigation }) => {
           headerTintColor: theme.text.color,
         }}
       >
-        
         <Stack.Screen
           name="HospitalPortalLandingPage"
           component={HospitalPortalLandingPage}
@@ -72,8 +72,13 @@ const HospitalAppNavigation = ({ navigation }) => {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="HospitalPostOpCare"
-          component={HospitalPostOpCare}
+          name="PostOpCare"
+          component={PostOpCare}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PostOpCarePrescription"
+          component={PostOpCarePrescription}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
