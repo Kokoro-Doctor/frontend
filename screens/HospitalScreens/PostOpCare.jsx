@@ -20,6 +20,7 @@ import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { API_URL } from "../../env-vars";
 import { extractStructuredData } from "../../utils/MedilockerService";
+import FormattedMessageText from "../../components/PatientScreenComponents/ChatbotComponents/FormattedMessageText"; // 👈 apna path sahi karo
 
 const PostOpCare = ({ navigation }) => {
   const [claimFiles, setClaimFiles] = useState([]);
@@ -37,34 +38,153 @@ const PostOpCare = ({ navigation }) => {
   const aiAnalysisSideAnim = useState(new Animated.Value(height))[0];
 
   // ─────────────────────────────────────────────
-  // Mobile analysis
+  // Shared: call insurance analyze API
+  // ─────────────────────────────────────────────
+  const callInsuranceAnalyzeAPI = async (file) => {
+    const token = Platform.OS === "web" ? localStorage.getItem("token") : null;
+
+    const formData = new FormData();
+
+    if (Platform.OS === "web") {
+      // Web pe do cases hain:
+      // 1. claimFiles — native File object (direct append)
+      // 2. claimDocs — DocumentPicker asset with .uri (fetch karke blob banao)
+      if (file instanceof File) {
+        // Native File object — seedha append
+        formData.append("file", file, file.name);
+      } else if (file.uri) {
+        // DocumentPicker asset on web — uri se blob banao
+        const mimeType = file.mimeType || "application/octet-stream";
+        const response = await fetch(file.uri);
+        const blob = await response.blob();
+        const fileObj = new File([blob], file.name, { type: mimeType });
+        formData.append("file", fileObj, file.name);
+      }
+    } else {
+      // Native mobile — uri se blob banao
+      const mimeType = file.mimeType || "application/octet-stream";
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      formData.append("file", {
+        uri: file.uri,
+        name: file.name,
+        type: mimeType,
+      });
+    }
+
+    const response = await fetch(`${API_URL}/medilocker/discharge/analyze`, {
+      method: "POST",
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
+
+    return await response.json();
+  };
+
+  // Backend response se text nikalna
+  const getAnalysisText = () => {
+    if (!analysisData) return "";
+
+    // NEW: backend structure
+    const analysis = analysisData?.analysis;
+
+    if (!analysis) return "No analysis available";
+
+    let text = "";
+
+    // 1. Executive Summary
+    if (analysis.executive_clinical_summary) {
+      text += `🧠 Executive Summary:\n${analysis.executive_clinical_summary}\n\n`;
+    }
+
+    // 2. Key Findings
+    if (analysis.key_clinical_findings) {
+      const k = analysis.key_clinical_findings;
+
+      if (k.laboratory_findings?.length) {
+        text += `🧪 Lab Findings:\n- ${k.laboratory_findings.join("\n- ")}\n\n`;
+      }
+
+      if (k.imaging_findings?.length) {
+        text += `🩻 Imaging Findings:\n- ${k.imaging_findings.join("\n- ")}\n\n`;
+      }
+
+      if (k.vital_clinical_indicators?.length) {
+        text += `❤️ Vitals:\n- ${k.vital_clinical_indicators.join("\n- ")}\n\n`;
+      }
+    }
+
+    // 3. Abnormal Results
+    if (analysis.abnormal_results?.length) {
+      text += `⚠️ Abnormal Results:\n`;
+      analysis.abnormal_results.forEach((item) => {
+        text += `- ${item.test_parameter}: ${item.result} (${item.clinical_significance})\n`;
+      });
+      text += "\n";
+    }
+
+    // 4. Interpretation
+    if (analysis.clinical_interpretation) {
+      text += `📊 Clinical Interpretation:\n${analysis.clinical_interpretation}\n\n`;
+    }
+
+    // 5. Diagnosis
+    if (analysis.differential_diagnosis?.length) {
+      text += `🩺 Differential Diagnosis:\n`;
+      analysis.differential_diagnosis.forEach((d) => {
+        text += `- ${d.diagnosis} (${d.confidence})\n`;
+      });
+      text += "\n";
+    }
+
+    // 6. Missing Info
+    if (analysis.missing_or_unclear_information?.length) {
+      text += `❗ Missing Information:\n- ${analysis.missing_or_unclear_information.join("\n- ")}\n\n`;
+    }
+
+    // 7. Recommendations
+    if (analysis.recommended_diagnostic_follow_up?.length) {
+      text += `📌 Recommended Follow-up:\n- ${analysis.recommended_diagnostic_follow_up.join("\n- ")}\n\n`;
+    }
+
+    return text.trim();
+  };
+
+  // ─────────────────────────────────────────────
+  // WEB: Analyze
+  // ─────────────────────────────────────────────
+  const analyzeWeb = async () => {
+    if (claimFiles.length === 0) return;
+    try {
+      setLoadingAnalysis(true);
+      const data = await callInsuranceAnalyzeAPI(claimFiles[0]);
+      setAnalysisData(data);
+      goToReview();
+    } catch (error) {
+      console.error("[analyzeWeb] Error:", error);
+      alert(
+        `❌ Analysis failed: ${error.message}\n\nPlease check your internet connection and try again.`,
+      );
+    } finally {
+      setLoadingAnalysis(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // MOBILE: Analyze
   // ─────────────────────────────────────────────
   const analyzeMobileInsurance = async () => {
     if (claimDocs.length === 0) return;
     try {
       setIsGenerating(true);
-      const file = claimDocs[0];
-      const userId = localStorage.getItem("user_id");
-      const token = localStorage.getItem("token");
-      const fileResponse = await fetch(file.uri);
-      if (!fileResponse.ok)
-        throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
-      const fileBlob = await fileResponse.blob();
-      const formData = new FormData();
-      formData.append("file", fileBlob, file.name);
-      const response = await fetch(
-        `${API_URL}/medilocker/users/${userId}/insurance/analyze`,
-        {
-          method: "POST",
-          headers: { ...(token && { Authorization: `Bearer ${token}` }) },
-          body: formData,
-        },
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API Error ${response.status}: ${errorText}`);
-      }
-      const data = await response.json();
+      const data = await callInsuranceAnalyzeAPI(claimDocs[0]);
       setAnalysisData(data);
       setCurrentStep(1);
     } catch (error) {
@@ -78,7 +198,7 @@ const PostOpCare = ({ navigation }) => {
   };
 
   // ─────────────────────────────────────────────
-  // Web: slide to Full Case Analysis section
+  // Web: slide helpers
   // ─────────────────────────────────────────────
   const goToReview = () => {
     setCurrentStep(1);
@@ -98,21 +218,8 @@ const PostOpCare = ({ navigation }) => {
     }).start();
   };
 
-  const analyzeWeb = async () => {
-    if (claimFiles.length === 0) return;
-    try {
-      setLoadingAnalysis(true);
-      // Slide to full case analysis panel
-      goToReview();
-    } catch (error) {
-      console.error("Analysis error:", error);
-    } finally {
-      setLoadingAnalysis(false);
-    }
-  };
-
   // ─────────────────────────────────────────────
-  // Generate Prescription (web + mobile)
+  // Generate Prescription
   // ─────────────────────────────────────────────
   const handleGeneratePrescription = async () => {
     const filesToProcess = claimDocs.length > 0 ? claimDocs : claimFiles;
@@ -291,6 +398,36 @@ const PostOpCare = ({ navigation }) => {
     });
   };
 
+  // ─────────────────────────────────────────────
+  // Analysis content — FormattedMessageText use karo
+  // ─────────────────────────────────────────────
+  const renderAnalysisContent = () => {
+    if (!analysisData) {
+      return (
+        <View style={styles.comingSoonContainer}>
+          <View style={styles.comingSoonIconCircle}>
+            <Text style={styles.comingSoonIcon}>✦</Text>
+          </View>
+          <Text style={styles.comingSoonTitle}>No Analysis Yet</Text>
+          <Text style={styles.comingSoonSubtitle}>
+            Upload documents and click &quot;Analyze with Kokoro AI&quot; to begin.
+          </Text>
+        </View>
+      );
+    }
+
+    const text = getAnalysisText();
+
+    return (
+      <ScrollView
+        showsVerticalScrollIndicator={true}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
+        <FormattedMessageText sender="bot" text={text} />
+      </ScrollView>
+    );
+  };
+
   return (
     <>
       {/* ═══════════════════════════════════════════════════
@@ -305,18 +442,15 @@ const PostOpCare = ({ navigation }) => {
           >
             <View style={styles.overlay} />
             <View style={styles.main}>
-              {/* LEFT SIDEBAR */}
               <View style={styles.left}>
                 <HospitalSidebarNavigation navigation={navigation} />
               </View>
 
-              {/* RIGHT CONTENT */}
               <View style={styles.right}>
                 <View style={styles.header}>
                   <HeaderLoginSignUp navigation={navigation} />
                 </View>
 
-                {/* MAIN CARD */}
                 <View style={styles.card}>
                   {/* TITLE ROW */}
                   <View style={styles.titleTopSection}>
@@ -380,7 +514,7 @@ const PostOpCare = ({ navigation }) => {
                     ))}
                   </View>
 
-                  {/* ── SLIDING PANELS ── */}
+                  {/* SLIDING PANELS */}
                   <View style={styles.slidingWrapper}>
                     <Animated.View
                       style={[
@@ -391,7 +525,7 @@ const PostOpCare = ({ navigation }) => {
                         },
                       ]}
                     >
-                      {/* ── PANEL 1: UPLOAD ── */}
+                      {/* PANEL 1: UPLOAD */}
                       <View style={{ width: cardWidth }}>
                         <ScrollView
                           style={{ flex: 1 }}
@@ -498,7 +632,7 @@ const PostOpCare = ({ navigation }) => {
                         </ScrollView>
                       </View>
 
-                      {/* ── PANEL 2: FULL CASE ANALYSIS ── */}
+                      {/* PANEL 2: FULL CASE ANALYSIS */}
                       <View
                         style={{
                           width: cardWidth,
@@ -511,7 +645,7 @@ const PostOpCare = ({ navigation }) => {
                           <View style={styles.analysisTopBarLeft}>
                             <View style={styles.unlockBadge}>
                               <Text style={styles.unlockBadgeText}>
-                                ✦ Unlock Intelligence
+                                ✦ Kokoro AI Analysis
                               </Text>
                             </View>
                             <View style={styles.analysisTitleRow}>
@@ -608,7 +742,8 @@ const PostOpCare = ({ navigation }) => {
                                       </Text>
                                       <Text style={styles.fileCardMeta}>
                                         SIZE : {formatFileSize(file.size)}
-                                        {"    "}Format :{" "}
+                                        {"    "}
+                                        Format :{" "}
                                         {file.name
                                           .split(".")
                                           .pop()
@@ -643,7 +778,7 @@ const PostOpCare = ({ navigation }) => {
                             </ScrollView>
                           </View>
 
-                          {/* RIGHT: Kokoro AI — Coming Soon */}
+                          {/* RIGHT: AI Analysis — FormattedMessageText */}
                           <View style={styles.aiPanel}>
                             <View style={styles.aiPanelHeader}>
                               <Text style={styles.aiPanelHeaderIcon}>✦</Text>
@@ -652,50 +787,14 @@ const PostOpCare = ({ navigation }) => {
                                   Kokoro AI Analysis
                                 </Text>
                                 <Text style={styles.aiPanelSubtitle}>
-                                  You&apos;re not alone in this case, we&apos;re here to
-                                  assist.
+                                  You&apos;re not alone in this case, we&apos;re
+                                  here to assist.
                                 </Text>
                               </View>
                             </View>
 
                             <View style={styles.aiPanelBody}>
-                              <View style={styles.comingSoonContainer}>
-                                <View style={styles.comingSoonIconCircle}>
-                                  <Text style={styles.comingSoonIcon}>✦</Text>
-                                </View>
-                                <Text style={styles.comingSoonTitle}>
-                                  Coming Soon
-                                </Text>
-                                <Text style={styles.comingSoonSubtitle}>
-                                  Kokoro AI will analyze all uploaded reports
-                                  and provide a comprehensive full case
-                                  analysis, timeline of events, key lab changes,
-                                  and clinical insights.
-                                </Text>
-                                <View style={styles.comingSoonFeatures}>
-                                  {[
-                                    "Full case analysis",
-                                    "Timeline of events",
-                                    "Key lab changes",
-                                    "Patient summary",
-                                    "Clinical insights",
-                                  ].map((feat, i) => (
-                                    <View
-                                      key={i}
-                                      style={styles.comingSoonFeatureRow}
-                                    >
-                                      <Text style={styles.comingSoonFeatureDot}>
-                                        ●
-                                      </Text>
-                                      <Text
-                                        style={styles.comingSoonFeatureText}
-                                      >
-                                        {feat}
-                                      </Text>
-                                    </View>
-                                  ))}
-                                </View>
-                              </View>
+                              {renderAnalysisContent()}
                             </View>
                           </View>
                         </View>
@@ -710,7 +809,7 @@ const PostOpCare = ({ navigation }) => {
       )}
 
       {/* ═══════════════════════════════════════════════════
-          MOBILE LAYOUT  — UNTOUCHED
+          MOBILE LAYOUT
       ═══════════════════════════════════════════════════ */}
       {(Platform.OS !== "web" || width < 1000) && (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -908,6 +1007,28 @@ const PostOpCare = ({ navigation }) => {
                     ))}
                   </ScrollView>
                 </View>
+
+                {/* MOBILE: Inline AI Analysis using FormattedMessageText */}
+                {analysisData && (
+                  <View style={stylesMobile.inlineAnalysisBox}>
+                    <View style={stylesMobile.inlineAnalysisHeader}>
+                      <Text style={stylesMobile.inlineAnalysisTitle}>
+                        ✦ Kokoro AI Analysis
+                      </Text>
+                    </View>
+                    <ScrollView
+                      style={{ maxHeight: 300 }}
+                      contentContainerStyle={{ padding: 12, paddingBottom: 20 }}
+                      showsVerticalScrollIndicator={true}
+                    >
+                      <FormattedMessageText
+                        sender="bot"
+                        text={getAnalysisText()}
+                      />
+                    </ScrollView>
+                  </View>
+                )}
+
                 <View style={stylesMobile.aiAssistantBox}>
                   <Text style={stylesMobile.aiAssistantText}>
                     Clinical AI Assistant
@@ -959,6 +1080,7 @@ const PostOpCare = ({ navigation }) => {
         </SafeAreaView>
       )}
 
+      {/* MOBILE: AI Analysis Modal */}
       {aiAnalysisModalOpen && (
         <Animated.View
           style={[
@@ -986,72 +1108,7 @@ const PostOpCare = ({ navigation }) => {
             showsVerticalScrollIndicator={true}
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            {analysisData?.analysis ? (
-              <>
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.statusText}>
-                    Status:{" "}
-                    {analysisData?.analysis?.is_complete
-                      ? "✅ Complete"
-                      : "❌ Incomplete"}
-                  </Text>
-                </View>
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.analysisSubtitle}>
-                    Missing Fields:
-                  </Text>
-                  {analysisData?.analysis?.missing_fields?.length > 0 ? (
-                    analysisData?.analysis?.missing_fields.map((item, i) => (
-                      <Text key={i} style={stylesMobile.analysisItem}>
-                        • {item}
-                      </Text>
-                    ))
-                  ) : (
-                    <Text style={stylesMobile.analysisItem}>None</Text>
-                  )}
-                </View>
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.analysisSubtitle}>Issues:</Text>
-                  {analysisData?.analysis?.issues?.length > 0 ? (
-                    analysisData?.analysis?.issues.map((item, i) => (
-                      <Text key={i} style={stylesMobile.analysisItem}>
-                        ⚠️ {item}
-                      </Text>
-                    ))
-                  ) : (
-                    <Text style={stylesMobile.analysisItem}>No issues</Text>
-                  )}
-                </View>
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.analysisSubtitle}>
-                    Suggestions:
-                  </Text>
-                  {analysisData?.analysis?.suggestions?.length > 0 ? (
-                    analysisData?.analysis?.suggestions.map((item, i) => (
-                      <Text key={i} style={stylesMobile.analysisItem}>
-                        💡 {item}
-                      </Text>
-                    ))
-                  ) : (
-                    <Text style={stylesMobile.analysisItem}>
-                      No suggestions
-                    </Text>
-                  )}
-                </View>
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.analysisSubtitle}>
-                    Claim Opportunity:
-                  </Text>
-                  <Text style={stylesMobile.analysisItem}>
-                    {analysisData?.analysis?.claim_opportunity || "N/A"}
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <Text style={stylesMobile.analysisItem}>
-                Analysis data not available
-              </Text>
-            )}
+            <FormattedMessageText sender="bot" text={getAnalysisText()} />
           </ScrollView>
         </Animated.View>
       )}
@@ -1063,28 +1120,15 @@ const PostOpCare = ({ navigation }) => {
 // WEB STYLES
 // ═══════════════════════════════════════════════════
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    height: "100vh",
-    overflow: "hidden",
-  },
-  background: {
-    flex: 1,
-    height: "100%",
-  },
+  container: { flex: 1, height: "100vh", overflow: "hidden" },
+  background: { flex: 1, height: "100%" },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.6)",
     zIndex: 1,
   },
-  main: {
-    flexDirection: "row",
-    height: "100%",
-    zIndex: 2,
-  },
-  left: {
-    width: "15%",
-  },
+  main: { flexDirection: "row", height: "100%", zIndex: 2 },
+  left: { width: "15%" },
   right: {
     width: "85%",
     padding: 20,
@@ -1093,7 +1137,6 @@ const styles = StyleSheet.create({
     overflow: "auto",
   },
   header: { marginBottom: 16 },
-
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -1103,12 +1146,9 @@ const styles = StyleSheet.create({
     zIndex: 5,
     height: "85vh",
     overflow: "hidden",
-    // flex column so sliding wrapper takes remaining height
     display: "flex",
     flexDirection: "column",
   },
-
-  /* ── TITLE ROW ── */
   titleTopSection: {
     height: 52,
     width: "100%",
@@ -1118,10 +1158,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     flexShrink: 0,
   },
-  title: {
-    fontSize: 19,
-    fontWeight: "600",
-  },
+  title: { fontSize: 19, fontWeight: "600" },
   patientButton: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -1129,13 +1166,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 5,
   },
-  btnText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#555555",
-  },
-
-  /* ── STEP BAR ── */
+  btnText: { fontSize: 15, fontWeight: "500", color: "#555555" },
   stepBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -1147,12 +1178,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     flexShrink: 0,
   },
-  stepItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flex: 1,
-  },
+  stepItem: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
   stepCircle: {
     width: 28,
     height: 28,
@@ -1161,31 +1187,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  stepCircleActive: {
-    borderWidth: 2,
-    borderColor: "#000",
-  },
-  stepCircleComplete: {
-    backgroundColor: "#16a34a",
-  },
-  stepNumber: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  stepTextContainer: {
-    flexDirection: "column",
-  },
-  stepTitle: {
-    color: "#1D6CE0",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  stepSubtitle: {
-    color: "#6b7280",
-    fontSize: 10,
-    marginTop: 1,
-  },
+  stepCircleActive: { borderWidth: 2, borderColor: "#000" },
+  stepCircleComplete: { backgroundColor: "#16a34a" },
+  stepNumber: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  stepTextContainer: { flexDirection: "column" },
+  stepTitle: { color: "#1D6CE0", fontSize: 12, fontWeight: "700" },
+  stepSubtitle: { color: "#6b7280", fontSize: 10, marginTop: 1 },
   stepConnector: {
     height: 2,
     width: 24,
@@ -1193,42 +1200,22 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     alignSelf: "center",
   },
-
-  /* ── SLIDING WRAPPER ── */
-  slidingWrapper: {
-    flex: 1,
-    overflow: "hidden",
-    width: "100%",
-  },
-  slidingTrack: {
-    flexDirection: "row",
-    height: "100%",
-  },
-
-  /* ── UPLOAD PANEL content ── */
+  slidingWrapper: { flex: 1, overflow: "hidden", width: "100%" },
+  slidingTrack: { flexDirection: "row", height: "100%" },
   middleTextBox: {
     marginTop: "1.5%",
     marginBottom: 10,
     width: "50%",
     marginRight: "13%",
   },
-  middleImage: {
-    height: 26,
-    width: 26,
-    marginBottom: 8,
-    alignSelf: "center",
-  },
+  middleImage: { height: 26, width: 26, marginBottom: 8, alignSelf: "center" },
   middleTextBold: {
     fontSize: 17,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 4,
   },
-  middleTextSub: {
-    fontSize: 14,
-    color: "#656464",
-    textAlign: "center",
-  },
+  middleTextSub: { fontSize: 14, color: "#656464", textAlign: "center" },
   uploadDocumentsDetailBox: {
     alignItems: "center",
     marginBottom: 16,
@@ -1249,15 +1236,8 @@ const styles = StyleSheet.create({
     marginRight: "13%",
     marginTop: "2%",
   },
-  uploadContainer: {
-    width: "60%",
-  },
-  label: {
-    fontWeight: "600",
-    marginBottom: 8,
-    color: "#1440d3",
-    fontSize: 16,
-  },
+  uploadContainer: { width: "60%" },
+  label: { fontWeight: "600", marginBottom: 8, color: "#1440d3", fontSize: 16 },
   uploadBox: {
     height: 120,
     borderWidth: 1.5,
@@ -1268,14 +1248,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#f0f6ff",
   },
-  uploadIcon: {
-    fontSize: 22,
-    marginBottom: 6,
-  },
-  uploadText: {
-    color: "#3b82f6",
-    fontSize: 13,
-  },
+  uploadIcon: { fontSize: 22, marginBottom: 6 },
+  uploadText: { color: "#3b82f6", fontSize: 13 },
   fileList: {
     marginTop: 8,
     maxHeight: 80,
@@ -1290,19 +1264,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  fileItem: {
-    fontSize: 12,
-    flex: 1,
-  },
-  deleteBtn: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  deleteText: {
-    color: "red",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
+  fileItem: { fontSize: 12, flex: 1 },
+  deleteBtn: { paddingHorizontal: 6, paddingVertical: 2 },
+  deleteText: { color: "red", fontSize: 14, fontWeight: "bold" },
   button: {
     marginTop: "3%",
     backgroundColor: "#2563eb",
@@ -1311,16 +1275,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: "13%",
   },
-  buttonDisabled: {
-    backgroundColor: "#93c5fd",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-
-  /* ── ANALYSIS TOP BAR (blue gradient) ── */
+  buttonDisabled: { backgroundColor: "#93c5fd" },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
   analysisTopBar: {
     width: "100%",
     flexDirection: "row",
@@ -1328,9 +1284,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    // Web gradient — applied via style prop override below
     backgroundColor: "#0F52BA",
-    borderRadius: 0,
     flexShrink: 0,
     ...(Platform.OS === "web"
       ? {
@@ -1339,11 +1293,7 @@ const styles = StyleSheet.create({
         }
       : {}),
   },
-  analysisTopBarLeft: {
-    flexDirection: "column",
-    gap: 6,
-    //borderWidth:1,
-  },
+  analysisTopBarLeft: { flexDirection: "column", gap: 6 },
   unlockBadge: {
     backgroundColor: "rgba(255,255,255,0.18)",
     borderRadius: 20,
@@ -1351,32 +1301,16 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     alignSelf: "flex-start",
   },
-  unlockBadgeText: {
-    color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  analysisTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  analysisTopTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-  },
+  unlockBadgeText: { color: "#ffffff", fontSize: 11, fontWeight: "500" },
+  analysisTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  analysisTopTitle: { color: "#fff", fontSize: 18, fontWeight: "700" },
   docCountBadge: {
     backgroundColor: "rgba(255,255,255,0.22)",
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
-  docCountText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
-  },
+  docCountText: { color: "#fff", fontSize: 12, fontWeight: "500" },
   generatePrescriptionBtn: {
     flexDirection: "row",
     gap: 7,
@@ -1389,20 +1323,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     marginRight: "22%",
   },
-  generatePrescriptionBtnDisabled: {
-    opacity: 0.7,
-  },
-  generatePrescriptionBtnIcon: {
-    color: "#2563EB",
-    fontSize: 14,
-  },
+  generatePrescriptionBtnDisabled: { opacity: 0.7 },
+  generatePrescriptionBtnIcon: { color: "#2563EB", fontSize: 14 },
   generatePrescriptionBtnText: {
     color: "#2563EB",
     fontWeight: "600",
     fontSize: 14,
   },
-
-  /* ── ANALYSIS BODY (two-col) ── */
   analysisBody: {
     flexDirection: "row",
     flex: 1,
@@ -1411,8 +1338,6 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     overflow: "hidden",
   },
-
-  /* ── FILES PANEL (left 40%) ── */
   filesPanel: {
     width: "33%",
     borderRightWidth: 1,
@@ -1429,14 +1354,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
   },
-  newReportsBadgeHeart: {
-    fontSize: 14,
-  },
-  newReportsBadgeText: {
-    color: "#374151",
-    fontSize: 13,
-    fontWeight: "500",
-  },
+  newReportsBadgeHeart: { fontSize: 14 },
+  newReportsBadgeText: { color: "#374151", fontSize: 13, fontWeight: "500" },
   fileCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1465,23 +1384,15 @@ const styles = StyleSheet.create({
     marginRight: 10,
     flexShrink: 0,
   },
-  fileIconText: {
-    fontSize: 16,
-  },
-  fileCardInfo: {
-    flex: 1,
-  },
+  fileIconText: { fontSize: 16 },
+  fileCardInfo: { flex: 1 },
   fileCardName: {
     fontSize: 12,
     fontWeight: "600",
     color: "#111827",
     marginBottom: 2,
   },
-  fileCardMeta: {
-    fontSize: 10,
-    color: "#9CA3AF",
-    lineHeight: 14,
-  },
+  fileCardMeta: { fontSize: 10, color: "#9CA3AF", lineHeight: 14 },
   fileCardRight: {
     flexDirection: "row",
     alignItems: "center",
@@ -1496,26 +1407,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
-  myPrescriptionBtnText: {
-    color: "#2563EB",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  fileMenuBtn: {
-    padding: 4,
-  },
+  myPrescriptionBtnText: { color: "#2563EB", fontSize: 11, fontWeight: "600" },
+  fileMenuBtn: { padding: 4 },
   fileMenuDots: {
     color: "#9CA3AF",
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 2,
   },
-
-  /* ── AI PANEL (right 60%) ── */
-  aiPanel: {
-    width: "67%",
-    flexDirection: "column",
-  },
+  aiPanel: { width: "67%", flexDirection: "column" },
   aiPanelHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1526,34 +1426,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFEFF",
     flexShrink: 0,
   },
-  aiPanelHeaderIcon: {
-    color: "#0EA5E9",
-    fontSize: 16,
-    marginTop: 2,
-  },
-  aiPanelTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  aiPanelSubtitle: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginTop: 2,
-  },
+  aiPanelHeaderIcon: { color: "#0EA5E9", fontSize: 16, marginTop: 2 },
+  aiPanelTitle: { fontSize: 15, fontWeight: "700", color: "#111827" },
+  aiPanelSubtitle: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
   aiPanelBody: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
+    padding: 20,
     backgroundColor: "#f4f4f4ff",
-    //borderWidth:1,
-    width:"67%"
+    width: "67%",
+    overflow: "auto",
   },
   comingSoonContainer: {
     alignItems: "center",
-    maxWidth: 360,
-    //borderWidth:1,
+    alignSelf: "center",
+    marginTop: 40,
   },
   comingSoonIconCircle: {
     width: 60,
@@ -1566,10 +1452,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  comingSoonIcon: {
-    fontSize: 26,
-    color: "#2563EB",
-  },
+  comingSoonIcon: { fontSize: 26, color: "#2563EB" },
   comingSoonTitle: {
     fontSize: 20,
     fontWeight: "700",
@@ -1581,37 +1464,15 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     textAlign: "center",
     lineHeight: 20,
-    marginBottom: 20,
-  },
-  comingSoonFeatures: {
-    width: "100%",
-    gap: 8,
-  },
-  comingSoonFeatureRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  comingSoonFeatureDot: {
-    color: "#2563EB",
-    fontSize: 8,
-  },
-  comingSoonFeatureText: {
-    fontSize: 13,
-    color: "#374151",
   },
 });
 
 // ═══════════════════════════════════════════════════
-// MOBILE STYLES — UNTOUCHED
+// MOBILE STYLES
 // ═══════════════════════════════════════════════════
 const stylesMobile = StyleSheet.create({
-  container: {
-    backgroundColor: "#FFFFFF",
-  },
-  header: {
-    zIndex: 2,
-  },
+  container: { backgroundColor: "#FFFFFF" },
+  header: { zIndex: 2 },
   title: {
     fontSize: 22,
     fontWeight: "700",
@@ -1628,20 +1489,14 @@ const stylesMobile = StyleSheet.create({
     paddingVertical: 6,
     marginBottom: 16,
   },
-  selectText: {
-    fontSize: 14,
-    color: "#333",
-  },
+  selectText: { fontSize: 14, color: "#333" },
   stepContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 20,
     position: "relative",
   },
-  stepWrapper: {
-    alignItems: "center",
-    flex: 1,
-  },
+  stepWrapper: { alignItems: "center", flex: 1 },
   circle: {
     width: 26,
     height: 26,
@@ -1651,21 +1506,9 @@ const stylesMobile = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  circleText: {
-    fontSize: 12,
-    color: "#3B82F6",
-    fontWeight: "600",
-  },
-  stepText: {
-    fontSize: 10,
-    textAlign: "center",
-    color: "#3B82F6",
-  },
-  card: {
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    padding: 16,
-  },
+  circleText: { fontSize: 12, color: "#3B82F6", fontWeight: "600" },
+  stepText: { fontSize: 10, textAlign: "center", color: "#3B82F6" },
+  card: { backgroundColor: "#F3F4F6", borderRadius: 12, padding: 16 },
   cardTitle: {
     fontSize: 16,
     fontWeight: "600",
@@ -1678,20 +1521,9 @@ const stylesMobile = StyleSheet.create({
     color: "#6B7280",
     marginBottom: 10,
   },
-  bulletWrapper: {
-    marginBottom: 16,
-  },
-  bullet: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 4,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 6,
-    color: "#2563EB",
-  },
+  bulletWrapper: { marginBottom: 16 },
+  bullet: { fontSize: 12, color: "#6B7280", marginBottom: 4 },
+  label: { fontSize: 13, fontWeight: "600", marginBottom: 6, color: "#2563EB" },
   uploadBox: {
     borderWidth: 1,
     borderStyle: "dashed",
@@ -1703,14 +1535,8 @@ const stylesMobile = StyleSheet.create({
     marginBottom: 16,
     gap: 6,
   },
-  uploadText: {
-    fontSize: 13,
-    color: "#6B7280",
-  },
-  link: {
-    color: "#2563EB",
-    fontWeight: "600",
-  },
+  uploadText: { fontSize: 13, color: "#6B7280" },
+  link: { color: "#2563EB", fontWeight: "600" },
   button: {
     backgroundColor: "#6B9CFF",
     paddingVertical: 12,
@@ -1718,11 +1544,7 @@ const stylesMobile = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  buttonText: { color: "#fff", fontSize: 14, fontWeight: "600" },
   line: {
     position: "absolute",
     top: 13,
@@ -1731,12 +1553,8 @@ const stylesMobile = StyleSheet.create({
     height: 2,
     backgroundColor: "#1680ECBF",
   },
-  activeCircle: {
-    backgroundColor: "#2563EB",
-  },
-  activeCircleText: {
-    color: "#fff",
-  },
+  activeCircle: { backgroundColor: "#2563EB" },
+  activeCircleText: { color: "#fff" },
   fileChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -1748,28 +1566,13 @@ const stylesMobile = StyleSheet.create({
     maxWidth: 200,
     gap: 6,
   },
-  fileText: {
-    fontSize: 11,
-    color: "#374151",
-  },
-  fileScroll: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  fileText: { fontSize: 11, color: "#374151" },
+  fileScroll: { flexDirection: "row", alignItems: "center" },
   resultCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
     paddingLeft: "1%",
     paddingRight: "1%",
-  },
-  text: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 8,
   },
   acceptBtn: {
     backgroundColor: "#2563EB",
@@ -1779,16 +1582,9 @@ const stylesMobile = StyleSheet.create({
     alignItems: "center",
     marginBottom: "2%",
   },
-  acceptText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  completedCircle: {
-    backgroundColor: "#2563EB",
-  },
-  completedText: {
-    color: "#fff",
-  },
+  acceptText: { color: "#fff", fontWeight: "600" },
+  completedCircle: { backgroundColor: "#2563EB" },
+  completedText: { color: "#fff" },
   floatingBtn: {
     position: "absolute",
     right: 20,
@@ -1821,38 +1617,8 @@ const stylesMobile = StyleSheet.create({
     borderBottomColor: "#e0e0e0",
     backgroundColor: "#E7F3FFBF",
   },
-  aiAnalysisTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#2563EB",
-  },
-  aiAnalysisContent: {
-    flex: 1,
-    padding: 16,
-  },
-  analysisSection: {
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  analysisSubtitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-  },
-  analysisItem: {
-    fontSize: 13,
-    color: "#555",
-    marginBottom: 6,
-    lineHeight: 18,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-  },
+  aiAnalysisTitle: { fontSize: 18, fontWeight: "700", color: "#2563EB" },
+  aiAnalysisContent: { flex: 1, padding: 16 },
   aiAssistantBox: {
     alignSelf: "center",
     backgroundColor: "#F1F5F9",
@@ -1867,11 +1633,7 @@ const stylesMobile = StyleSheet.create({
     elevation: 3,
     marginTop: 10,
   },
-  aiAssistantText: {
-    fontSize: 13,
-    color: "#6366F1",
-    fontWeight: "500",
-  },
+  aiAssistantText: { fontSize: 13, color: "#6366F1", fontWeight: "500" },
   docCard: {
     backgroundColor: "#fff",
     borderRadius: 10,
@@ -1880,30 +1642,32 @@ const stylesMobile = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
-  fileIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-  },
-  docTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  docMeta: {
-    fontSize: 11,
-    color: "#6B7280",
-  },
+  fileIcon: { width: 40, height: 40, borderRadius: 8 },
+  docTitle: { fontSize: 14, fontWeight: "600" },
+  docMeta: { fontSize: 11, color: "#6B7280" },
   prescriptionBtn: {
     backgroundColor: "#E0EDFF",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
-  prescriptionText: {
-    fontSize: 11,
-    color: "#2563EB",
-    fontWeight: "600",
+  prescriptionText: { fontSize: 11, color: "#2563EB", fontWeight: "600" },
+  inlineAnalysisBox: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    overflow: "hidden",
+    backgroundColor: "#F8FAFF",
   },
+  inlineAnalysisHeader: {
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#BFDBFE",
+  },
+  inlineAnalysisTitle: { fontSize: 14, fontWeight: "700", color: "#2563EB" },
 });
 
 export default PostOpCare;

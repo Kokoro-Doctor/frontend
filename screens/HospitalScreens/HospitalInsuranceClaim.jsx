@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   ImageBackground,
   StyleSheet,
@@ -35,46 +35,62 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   const [aiAnalysisModalOpen, setAiAnalysisModalOpen] = useState(false);
   const aiAnalysisSideAnim = useState(new Animated.Value(height))[0];
   const [backendPrompt, setBackendPrompt] = useState("");
+  
   const analyzeMobileInsurance = async () => {
-    if (claimDocs.length === 0) return;
-
+    if (claimDocs.length === 0 && claimFiles.length === 0) return;
     try {
       setIsGenerating(true);
 
-      const file = claimDocs[0];
-      const userId = localStorage.getItem("user_id");
-      const token = localStorage.getItem("token");
-
-      // Convert URI to Blob to match web File format
-      const fileResponse = await fetch(file.uri);
-      const fileBlob = await fileResponse.blob();
-
       const formData = new FormData();
-      formData.append("file", fileBlob, file.name);
 
-      const response = await fetch(
-        `${API_URL}/medilocker/users/${userId}/insurance/analyze`,
-        {
-          method: "POST",
-          headers: {
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          body: formData,
-        },
-      );
+      if (Platform.OS === "web") {
+        // ✅ WEB (react-native-web on browser): use real File object from claimFiles
+        // claimFiles are set via handleFileUpload (input element) — real browser File objects
+        // BUT on mobile-width web, user uses pickDocument which sets claimDocs (expo assets)
+        // So we need to fetch the blob from the uri and convert it
+        const doc = claimDocs[0];
 
-      const data = await response.json();
-      console.log("API RESPONSE:", data);
+        // Fetch the file as blob from the local uri (works on web)
+        const response = await fetch(doc.uri);
+        const blob = await response.blob();
+        const file = new File([blob], doc.name || "insurance_claim.pdf", {
+          type: doc.mimeType || blob.type || "application/octet-stream",
+        });
+        formData.append("file", file);
+      } else {
+        // ✅ NATIVE (iOS/Android): use { uri, name, type } object
+        const doc = claimDocs[0];
+        formData.append("file", {
+          uri: doc.uri,
+          name: doc.name || "insurance_claim.pdf",
+          type: doc.mimeType || "application/octet-stream",
+        });
+      }
+
+      console.log("📤 Uploading doc:", claimDocs[0]?.name);
+
+      const res = await fetch(`${API_URL}/medilocker/insurance/analyze`, {
+        method: "POST",
+        body: formData,
+        // ✅ No Content-Type header — let fetch set boundary automatically
+      });
+
+      const data = await res.json();
+      console.log("✅ API RESPONSE:", data);
+
+      if (data?.detail) {
+        console.error("❌ Backend error:", data.detail);
+        return;
+      }
 
       setAnalysisData(data);
-      const botMsg = data.analysis?.bot_message;
-
-      setBackendPrompt(
-        typeof botMsg === "string" ? botMsg : JSON.stringify(botMsg, null, 2),
-      );
+      setBackendPrompt({
+        bot_message: data?.analysis?.bot_message,
+        full: data?.analysis,
+      });
       setCurrentStep(1);
     } catch (error) {
-      console.error("Analysis error:", error);
+      console.error("❌ Analysis error:", error);
     } finally {
       setIsGenerating(false);
     }
@@ -132,7 +148,8 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   };
 
   // Step 1 completed only if claim upload exists
-  const isUploadComplete = claimFiles.length > 0;
+  const isUploadComplete =
+    Platform.OS === "web" ? claimFiles.length > 0 : claimDocs.length > 0;
 
   const handleFileUpload = () => {
     if (Platform.OS !== "web") return;
@@ -165,81 +182,119 @@ const HospitalInsuranceClaim = ({ navigation }) => {
 
   const analyzeInsurance = async () => {
     if (claimFiles.length === 0) return;
-
     try {
       setLoadingAnalysis(true);
-
       const file = claimFiles[0];
-
-      const userId = localStorage.getItem("user_id"); // 👈 dynamic
-      const token = localStorage.getItem("token"); // 👈 if needed
-
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(
-        `${API_URL}/medilocker/users/${userId}/insurance/analyze`,
-        {
-          method: "POST",
-          headers: {
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          body: formData,
-        },
-      );
-
+      const response = await fetch(`${API_URL}/medilocker/insurance/analyze`, {
+        method: "POST",
+        body: formData,
+      });
       const data = await response.json();
+      console.log("✅ API RESPONSE:", data);
 
-      console.log("API RESPONSE:", data);
-
+      // ✅ FIX: store full response so structured_data is accessible at top level
       setAnalysisData(data);
-      // setBackendPrompt(data.analysis?.bot_message || "");
-      const botMsg = data.analysis?.bot_message;
 
-      setBackendPrompt(
-        typeof botMsg === "string" ? botMsg : JSON.stringify(botMsg, null, 2),
-      );
+      setBackendPrompt({
+        bot_message: data?.analysis?.bot_message,
+        full: data?.analysis, // ✅ FIX: only analysis goes to AI text formatter
+      });
+
       goToReview();
     } catch (error) {
-      console.error("Analysis error:", error);
+      console.error("❌ Analysis error:", error);
     } finally {
       setLoadingAnalysis(false);
     }
   };
 
-  const formatBackendPromptToMarkdown = (rawText) => {
-    if (!rawText) return "";
+  const formatBackendPromptToMarkdown = (data) => {
+    if (!data) return "";
 
-    // If already string → return directly
-    if (typeof rawText === "string") {
-      return rawText;
+    let parsed;
+    try {
+      parsed = typeof data === "string" ? JSON.parse(data) : data;
+    } catch (e) {
+      return data.replace(/\n/g, "\n\n").replace(/•/g, "\n• ");
     }
 
-    // If object → convert nicely
-    try {
-      let md = "";
+    let md = "";
 
-      Object.entries(rawText).forEach(([key, value]) => {
-        md += `## ${key}\n\n`;
-
+    // ✅ bot_message — it's an OBJECT with numbered keys like {"1. Your Claim Opportunity": "...", "2. Errors to Fix": [...]}
+    if (parsed.bot_message && typeof parsed.bot_message === "object") {
+      md += `## AI Summary\n\n`;
+      Object.entries(parsed.bot_message).forEach(([key, value]) => {
+        md += `### ${key}\n\n`;
         if (Array.isArray(value)) {
           value.forEach((item) => {
-            md += `- ${item}\n`;
+            md += `• ${item}\n`;
           });
-        } else if (typeof value === "object") {
-          md += `${JSON.stringify(value, null, 2)}\n`;
         } else {
           md += `${value}\n`;
         }
-
-        md += `\n`;
+        md += "\n";
       });
-
-      return md;
-    } catch (e) {
-      return String(rawText);
+    } else if (typeof parsed.bot_message === "string") {
+      // fallback if it's a plain string
+      md += `## 🤖 AI Summary\n\n${parsed.bot_message}\n\n`;
     }
+
+    // ✅ Issues
+    if (parsed.issues?.length) {
+      md += `## ⚠️ Issues Found\n\n`;
+      parsed.issues.forEach((item) => {
+        md += `• ${item}\n`;
+      });
+      md += "\n";
+    }
+
+    // ✅ Missing Fields
+    if (parsed.missing_fields?.length) {
+      md += `## ❗ Missing Information\n\n`;
+      parsed.missing_fields.forEach((item) => {
+        md += `• ${item}\n`;
+      });
+      md += "\n";
+    }
+
+    // ✅ Policy Insights — was missing entirely before
+    if (parsed.policy_insights?.length) {
+      md += `## 📋 Policy Insights\n\n`;
+      parsed.policy_insights.forEach((item) => {
+        md += `• ${item}\n`;
+      });
+      md += "\n";
+    }
+
+    // ✅ Suggestions
+    if (parsed.suggestions?.length) {
+      md += `## 💡 Suggestions\n\n`;
+      parsed.suggestions.forEach((item) => {
+        md += `• ${item}\n`;
+      });
+      md += "\n";
+    }
+
+    // ✅ Financial Summary
+    if (parsed.financial_summary) {
+      md += `## 💰 Financial Summary\n\n`;
+      Object.entries(parsed.financial_summary).forEach(([k, v]) => {
+        md += `• **${k.replace(/_/g, " ")}:** ${v}\n`;
+      });
+      md += "\n";
+    }
+
+    return md;
   };
+
+  const structured = useMemo(() => {
+    // ✅ structured_data is at TOP LEVEL of API response
+    // analysisData now holds the full response object
+    return analysisData?.structured_data ?? null;
+  }, [analysisData]);
 
   return (
     <>
@@ -362,79 +417,6 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                     ))}
                   </View>
 
-                  {/* <View style={styles.middleTextBox}>
-                    <Image
-                      source={require("../../assets/HospitalPortal/Icon/medicalIcon.png")}
-                      style={styles.middleImage}
-                    />
-                    <Text style={styles.middleTextBold}>
-                      Upload your insurance claim and save money
-                    </Text>
-                    <Text style={styles.middleTextSub}>
-                      kokoro.doctor AI will auto-extract all codes from this
-                      document
-                    </Text>
-                  </View>
-
-          
-                  <View style={styles.uploadDocumentsDetailBox}>
-                    <Text style={styles.bulletText}>
-                      • Claim document is mandatory
-                    </Text>
-                    <Text style={styles.bulletText}>
-                      • Analysis cannot begin without the claim document
-                    </Text>
-                    <Text style={styles.bulletText}>
-                      • Kokoro AI analyzes your claim directly
-                    </Text>
-                  </View>
-
-            
-                  <View style={styles.uploadRow}>
-                    <View style={styles.uploadContainer}>
-                      <Text style={styles.label}>Insurance Claim Document</Text>
-                      <TouchableOpacity
-                        style={styles.uploadBox}
-                        onPress={handleFileUpload}
-                      >
-                        <Text style={styles.uploadIcon}>☁️</Text>
-                        <Text style={styles.uploadText}>
-                          Upload Document — Click here
-                        </Text>
-                      </TouchableOpacity>
-
-                      {claimFiles.length > 0 && (
-                        <ScrollView style={styles.fileList}>
-                          {claimFiles.map((file, i) => (
-                            <View key={i} style={styles.fileRow}>
-                              <Text style={styles.fileItem}>
-                                📄 {file.name}
-                              </Text>
-                              <TouchableOpacity
-                                onPress={() => handleDeleteFile(i)}
-                                style={styles.deleteBtn}
-                              >
-                                <Text style={styles.deleteText}>✕</Text>
-                              </TouchableOpacity>
-                            </View>
-                          ))}
-                        </ScrollView>
-                      )}
-                    </View>
-                  </View>
-
-                
-                  <TouchableOpacity
-                    style={[
-                      styles.button,
-                      !isUploadComplete && styles.buttonDisabled,
-                    ]}
-                    disabled={!isUploadComplete}
-                  >
-                    <Text style={styles.buttonText}>
-                      Analyze with kokoro AI →
-                    </Text>
-                  </TouchableOpacity> */}
                   <ScrollView
                     style={{ flex: 1 }}
                     contentContainerStyle={{ flexGrow: 1 }}
@@ -571,7 +553,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               <View
                                 style={styles.reviewSectionUploadedInsurance}
                               >
-                                {analysisData?.structured_data ? (
+                                {analysisData ? (
                                   <ScrollView style={{ padding: 10 }}>
                                     <Text
                                       style={{
@@ -583,27 +565,23 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                         fontSize: 15,
                                       }}
                                     >
-                                      📄{" "}
-                                      {
-                                        analysisData?.structured_data
-                                          ?.source_filename
-                                      }
+                                      📄 {structured?.source_filename}
                                     </Text>
 
                                     <Text>
                                       Patient Name:{" "}
-                                      {analysisData.structured_data
-                                        .patient_details?.name || "N/A"}
+                                      {structured?.patient_details?.name ||
+                                        "N/A"}
                                     </Text>
                                     <Text>
                                       Age:{" "}
-                                      {analysisData.structured_data
-                                        .patient_details?.age || "N/A"}
+                                      {structured?.patient_details?.age ||
+                                        "N/A"}
                                     </Text>
                                     <Text>
                                       Gender:{" "}
-                                      {analysisData.structured_data
-                                        .patient_details?.gender || "N/A"}
+                                      {structured?.patient_details?.gender ||
+                                        "N/A"}
                                     </Text>
 
                                     <Text
@@ -616,21 +594,18 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                     </Text>
                                     <Text>
                                       Company:{" "}
-                                      {analysisData.structured_data
-                                        .insurance_details?.insurance_company ||
-                                        "N/A"}
+                                      {structured?.insurance_details
+                                        ?.insurance_company || "N/A"}
                                     </Text>
                                     <Text>
                                       Policy:{" "}
-                                      {analysisData.structured_data
-                                        .insurance_details?.policy_name ||
-                                        "N/A"}
+                                      {structured?.insurance_details
+                                        ?.policy_name || "N/A"}
                                     </Text>
                                     <Text>
                                       Policy No:{" "}
-                                      {analysisData.structured_data
-                                        .insurance_details?.policy_number ||
-                                        "N/A"}
+                                      {structured?.insurance_details
+                                        ?.policy_number || "N/A"}
                                     </Text>
 
                                     <Text
@@ -643,26 +618,26 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                     </Text>
                                     <Text>
                                       Treatment:{" "}
-                                      {analysisData.structured_data
-                                        .claim_details?.treatment || "N/A"}
+                                      {structured?.claim_details?.treatment ||
+                                        "N/A"}
                                     </Text>
                                     <Text>
                                       Bill: ₹
-                                      {analysisData.structured_data
-                                        .claim_details?.bill_amount || "0"}
+                                      {structured?.claim_details?.bill_amount ||
+                                        "0"}
                                     </Text>
                                     <Text>
                                       Claimed: ₹
-                                      {analysisData.structured_data
-                                        .claim_details?.claimed_amount || "0"}
+                                      {structured?.claim_details
+                                        ?.claimed_amount || "0"}
                                     </Text>
 
                                     <Text style={{ marginTop: 10 }}>
                                       Summary:
                                     </Text>
                                     <Text>
-                                      {analysisData.structured_data
-                                        .document_summary || "No summary"}
+                                      {structured?.document_summary ||
+                                        "No summary"}
                                     </Text>
                                   </ScrollView>
                                 ) : (
@@ -677,117 +652,29 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                   { width: "60%", padding: 10 },
                                 ]}
                               >
-                                {/* {analysisData ? (
-                                  <ScrollView>
-                                    <Text
-                                      style={{
-                                        fontWeight: "700",
-                                        marginBottom: 8,
-                                        backgroundColor: "#E7F3FFBF",
-                                        color: "#000",
-                                        padding: 10,
-                                        fontSize: 16,
-                                      }}
-                                    >
-                                      Kokoro AI Analysis
-                                    </Text>
-
-                                    <Text>
-                                      Status:{" "}
-                                      {analysisData?.analysis?.is_complete
-                                        ? "✅ Complete"
-                                        : "❌ Incomplete"}
-                                    </Text>
-
-                                    <Text
-                                      style={{
-                                        marginTop: 10,
-                                        fontWeight: "600",
-                                      }}
-                                    >
-                                      Missing Fields:
-                                    </Text>
-                                    {analysisData?.analysis?.missing_fields
-                                      ?.length > 0 ? (
-                                      analysisData?.analysis?.missing_fields.map(
-                                        (item, i) => (
-                                          <Text key={i}>• {item}</Text>
-                                        ),
-                                      )
-                                    ) : (
-                                      <Text>None</Text>
-                                    )}
-
-                                    <Text
-                                      style={{
-                                        marginTop: 10,
-                                        fontWeight: "600",
-                                      }}
-                                    >
-                                      Issues:
-                                    </Text>
-                                    {analysisData?.analysis?.issues?.length >
-                                    0 ? (
-                                      analysisData?.analysis?.issues.map(
-                                        (item, i) => (
-                                          <Text key={i}>⚠️ {item}</Text>
-                                        ),
-                                      )
-                                    ) : (
-                                      <Text>No issues</Text>
-                                    )}
-
-                                    <Text
-                                      style={{
-                                        marginTop: 10,
-                                        fontWeight: "600",
-                                      }}
-                                    >
-                                      Suggestions:
-                                    </Text>
-                                    {analysisData.analysis.suggestions?.length >
-                                    0 ? (
-                                      analysisData.analysis.suggestions.map(
-                                        (item, i) => (
-                                          <Text key={i}>💡 {item}</Text>
-                                        ),
-                                      )
-                                    ) : (
-                                      <Text>No suggestions</Text>
-                                    )}
-
-                                    <Text
-                                      style={{
-                                        marginTop: 10,
-                                        fontWeight: "600",
-                                      }}
-                                    >
-                                      Claim Opportunity:
-                                    </Text>
-                                    <Text>
-                                      {analysisData.analysis
-                                        .claim_opportunity || "N/A"}
-                                    </Text>
-                                  </ScrollView>
-                                ) : (
-                                  <Text>AI analysis will appear here</Text>
-                                )} */}
                                 {backendPrompt ? (
                                   <View style={{ marginTop: 5, flex: 1 }}>
                                     <ScrollView
                                       style={{ flex: 1 }}
+                                      contentContainerStyle={{
+                                        paddingBottom: 40,
+                                      }}
                                       showsVerticalScrollIndicator={true}
                                     >
                                       <FormattedMessageText
                                         sender="bot"
                                         text={formatBackendPromptToMarkdown(
-                                          backendPrompt,
+                                          backendPrompt.full,
                                         )}
                                         textColor="#0c0c0cff"
                                       />
                                     </ScrollView>
                                   </View>
-                                ) : null}
+                                ) : (
+                                  <Text style={{ padding: 10, color: "gray" }}>
+                                    No AI response received
+                                  </Text>
+                                )}
                               </View>
                             </View>
                           </View>
@@ -977,12 +864,10 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                   review all sections, then accept suggestions you approve
                 </Text>
 
-                {analysisData?.structured_data ? (
+                {analysisData ? (
                   <>
                     <Text style={stylesMobile.blueLabel}>
-                      📄{" "}
-                      {analysisData?.structured_data?.source_filename ||
-                        "Insurance_Claim.pdf"}
+                      📄 {structured?.source_filename || "Insurance_Claim.pdf"}
                     </Text>
 
                     <View style={stylesMobile.resultBox}>
@@ -996,18 +881,13 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                         </Text>
                         <Text style={stylesMobile.text}>
                           Patient Name:{" "}
-                          {analysisData.structured_data.patient_details?.name ||
-                            "N/A"}
+                          {structured?.patient_details?.name || "N/A"}
                         </Text>
                         <Text style={stylesMobile.text}>
-                          Age:{" "}
-                          {analysisData.structured_data.patient_details?.age ||
-                            "N/A"}
+                          Age: {structured?.patient_details?.age || "N/A"}
                         </Text>
                         <Text style={stylesMobile.text}>
-                          Gender:{" "}
-                          {analysisData.structured_data.patient_details
-                            ?.gender || "N/A"}
+                          Gender: {structured?.patient_details?.gender || "N/A"}
                         </Text>
 
                         {/* Insurance Details */}
@@ -1016,18 +896,17 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                         </Text>
                         <Text style={stylesMobile.text}>
                           Company:{" "}
-                          {analysisData.structured_data.insurance_details
-                            ?.insurance_company || "N/A"}
+                          {structured?.insurance_details?.insurance_company ||
+                            "N/A"}
                         </Text>
                         <Text style={stylesMobile.text}>
                           Policy:{" "}
-                          {analysisData.structured_data.insurance_details
-                            ?.policy_name || "N/A"}
+                          {structured?.insurance_details?.policy_name || "N/A"}
                         </Text>
                         <Text style={stylesMobile.text}>
                           Policy No:{" "}
-                          {analysisData.structured_data.insurance_details
-                            ?.policy_number || "N/A"}
+                          {structured?.insurance_details?.policy_number ||
+                            "N/A"}
                         </Text>
 
                         {/* Claim Details */}
@@ -1036,24 +915,20 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                         </Text>
                         <Text style={stylesMobile.text}>
                           Treatment:{" "}
-                          {analysisData.structured_data.claim_details
-                            ?.treatment || "N/A"}
+                          {structured?.claim_details?.treatment || "N/A"}
                         </Text>
                         <Text style={stylesMobile.text}>
-                          Bill: ₹
-                          {analysisData.structured_data.claim_details
-                            ?.bill_amount || "0"}
+                          Bill: ₹{structured?.claim_details?.bill_amount || "0"}
                         </Text>
                         <Text style={stylesMobile.text}>
                           Claimed: ₹
-                          {analysisData.structured_data.claim_details
-                            ?.claimed_amount || "0"}
+                          {structured?.claim_details?.claimed_amount || "0"}
                         </Text>
 
                         {/* Summary */}
                         <Text style={stylesMobile.sectionTitle}>Summary</Text>
                         <Text style={stylesMobile.text}>
-                          {analysisData.structured_data.document_summary ||
+                          {structured?.document_summary ||
                             "No summary available"}
                         </Text>
                       </ScrollView>
@@ -1135,81 +1010,6 @@ const HospitalInsuranceClaim = ({ navigation }) => {
             showsVerticalScrollIndicator={true}
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            {/* {analysisData?.analysis ? (
-              <>
-              
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.statusText}>
-                    Status:{" "}
-                    {analysisData?.analysis?.is_complete
-                      ? "✅ Complete"
-                      : "❌ Incomplete"}
-                  </Text>
-                </View>
-
-            
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.analysisSubtitle}>
-                    Missing Fields:
-                  </Text>
-                  {analysisData?.analysis?.missing_fields?.length > 0 ? (
-                    analysisData?.analysis?.missing_fields.map((item, i) => (
-                      <Text key={i} style={stylesMobile.analysisItem}>
-                        • {item}
-                      </Text>
-                    ))
-                  ) : (
-                    <Text style={stylesMobile.analysisItem}>None</Text>
-                  )}
-                </View>
-
-                
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.analysisSubtitle}>Issues:</Text>
-                  {analysisData?.analysis?.issues?.length > 0 ? (
-                    analysisData?.analysis?.issues.map((item, i) => (
-                      <Text key={i} style={stylesMobile.analysisItem}>
-                        ⚠️ {item}
-                      </Text>
-                    ))
-                  ) : (
-                    <Text style={stylesMobile.analysisItem}>No issues</Text>
-                  )}
-                </View>
-
-          
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.analysisSubtitle}>
-                    Suggestions:
-                  </Text>
-                  {analysisData?.analysis?.suggestions?.length > 0 ? (
-                    analysisData?.analysis?.suggestions.map((item, i) => (
-                      <Text key={i} style={stylesMobile.analysisItem}>
-                        💡 {item}
-                      </Text>
-                    ))
-                  ) : (
-                    <Text style={stylesMobile.analysisItem}>
-                      No suggestions
-                    </Text>
-                  )}
-                </View>
-
-                
-                <View style={stylesMobile.analysisSection}>
-                  <Text style={stylesMobile.analysisSubtitle}>
-                    Claim Opportunity:
-                  </Text>
-                  <Text style={stylesMobile.analysisItem}>
-                    {analysisData?.analysis?.claim_opportunity || "N/A"}
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <Text style={stylesMobile.analysisItem}>
-                Analysis data not available
-              </Text>
-            )} */}
             {backendPrompt ? (
               <View style={{ marginTop: 5, flex: 1 }}>
                 <ScrollView
@@ -1218,12 +1018,16 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                 >
                   <FormattedMessageText
                     sender="bot"
-                    text={formatBackendPromptToMarkdown(backendPrompt)}
+                    text={formatBackendPromptToMarkdown(backendPrompt.full)}
                     textColor="#0c0c0cff"
                   />
                 </ScrollView>
               </View>
-            ) : null}
+            ) : (
+              <Text style={{ padding: 10, color: "gray" }}>
+                No AI response received
+              </Text>
+            )}
           </ScrollView>
         </Animated.View>
       )}
