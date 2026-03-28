@@ -91,7 +91,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                         style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("HospitalAppNavigation", {
-                            screen: "",
+                            screen: "PostOpCare",
                           });
                         }}
                       >

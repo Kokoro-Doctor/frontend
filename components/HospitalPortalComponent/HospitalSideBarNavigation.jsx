@@ -27,14 +27,15 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
     },
     {
+      name: "Insurance Claim",
+      icon: require("../../assets/HospitalPortal/Icon/insurance.png"),
+    },
+    {
       name: "Post OP Patients",
       icon: require("../../assets/HospitalPortal/Icon/post_op_patient.png"),
     },
 
-    {
-      name: "Insurance Claim",
-      icon: require("../../assets/HospitalPortal/Icon/insurance.png"),
-    },
+    
   ];
 
   const handleSidebarClick = (menu) => {
@@ -46,7 +47,7 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
     } else if (menu === "Dashboard") {
       navigation.navigate("");
     } else if (menu === "Post OP Patients") {
-      navigation.navigate("");
+      navigation.navigate("PostOpCare");
     } else if (menu === "Insurance Claim") {
       navigation.navigate("HospitalInsuranceClaim");
     } else {
