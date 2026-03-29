@@ -41,7 +41,6 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       setIsGenerating(true);
 
       const file = claimDocs[0];
-      const userId = localStorage.getItem("user_id");
       const token = localStorage.getItem("token");
 
       // Convert URI to Blob to match web File format
@@ -52,7 +51,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       formData.append("file", fileBlob, file.name);
 
       const response = await fetch(
-        `${API_URL}/medilocker/users/${userId}/insurance/analyze`,
+        `${API_URL}/medilocker/insurance/analyze`,
         {
           method: "POST",
           headers: {
@@ -165,14 +164,13 @@ const HospitalInsuranceClaim = ({ navigation }) => {
 
       const file = claimFiles[0];
 
-      const userId = localStorage.getItem("user_id"); // 👈 dynamic
-      const token = localStorage.getItem("token"); // 👈 if needed
+      const token = localStorage.getItem("token");
 
       const formData = new FormData();
       formData.append("file", file);
 
       const response = await fetch(
-        `${API_URL}/medilocker/users/${userId}/insurance/analyze`,
+        `${API_URL}/medilocker/insurance/analyze`,
         {
           method: "POST",
           headers: {
