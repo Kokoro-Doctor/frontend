@@ -1009,7 +1009,7 @@ const PostOpCare = ({ navigation }) => {
                 </View>
 
                 {/* MOBILE: Inline AI Analysis using FormattedMessageText */}
-                {analysisData && (
+                {/* {analysisData && (
                   <View style={stylesMobile.inlineAnalysisBox}>
                     <View style={stylesMobile.inlineAnalysisHeader}>
                       <Text style={stylesMobile.inlineAnalysisTitle}>
@@ -1027,7 +1027,7 @@ const PostOpCare = ({ navigation }) => {
                       />
                     </ScrollView>
                   </View>
-                )}
+                )} */}
 
                 <View style={stylesMobile.aiAssistantBox}>
                   <Text style={stylesMobile.aiAssistantText}>
