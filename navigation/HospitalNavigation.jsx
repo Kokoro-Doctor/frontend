@@ -10,9 +10,11 @@ import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsurance
 import HospitalInsuranceDownload from "../screens/HospitalScreens/HospitalInsuranceDownload";
 import PostOpCare from "../screens/HospitalScreens/PostOpCare";
 import PostOpCarePrescription from "../screens/HospitalScreens/PostOpCarePrescription";
-import DataIntegration from "../screens/HospitalScreens/DataIntegration";
+import DataIntegrations from "../screens/HospitalScreens/DataIntegrations";
 import ManualDataIntegration from "../screens/HospitalScreens/ManualDataIntegration";
 import AIIntegrationScreen from "../screens/HospitalScreens/AIIntegrationScreen";
+import DataIntegrationValidation from "../screens/HospitalScreens/DataIntegrationValidation";
+import DataIntegrationComplete from "../screens/HospitalScreens/DataIntegrationComplete";
 
 const Stack = createNativeStackNavigator();
 
@@ -85,8 +87,8 @@ const HospitalAppNavigation = ({ navigation }) => {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="DataIntegration"
-          component={DataIntegration}
+          name="DataIntegrations"
+          component={DataIntegrations}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -97,6 +99,16 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="AIIntegrationScreen"
           component={AIIntegrationScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DataIntegrationValidation"
+          component={DataIntegrationValidation}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DataIntegrationComplete"
+          component={DataIntegrationComplete}
           options={{ headerShown: false }}
         />
         
