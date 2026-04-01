@@ -149,12 +149,10 @@ const AIIntegrationScreen = ({ navigation }) => {
 
       const data = await response.json();
 
-      // optional: store message if needed
-      const message = data?.message;
-      const eta = data?.eta_hours;
+      setDoctorCount(data?.total_rows || 0);
+      setErrorCount(data?.errors?.length || 0);
 
       // ✅ Finish remaining 10%
-      // progress to 100% immediately after response
       Animated.timing(progress, {
         toValue: 1,
         duration: 400,
@@ -198,8 +196,6 @@ const AIIntegrationScreen = ({ navigation }) => {
       const formData = new FormData();
       formData.append("hospital_id", "HOSP_8FBF9714");
 
-      formData.append("doctor_id", "dr_1d8eec8a-aa6b-41b9-92cf-5bcbb67f1eab");
-
       const blob = await fetch(file.uri).then((res) => res.blob());
       formData.append("file", blob, file.name || "upload.xlsx");
 
@@ -213,9 +209,8 @@ const AIIntegrationScreen = ({ navigation }) => {
 
       const data = await response.json();
 
-      // optional: store message if needed
-      const message = data?.message;
-      const eta = data?.eta_hours;
+      setDoctorCount(data?.total_rows || 0);
+      setErrorCount(data?.errors?.length || 0);
 
       // ✅ Finish remaining 10%
       Animated.timing(progress, {
@@ -338,11 +333,7 @@ const AIIntegrationScreen = ({ navigation }) => {
                     contentContainerStyle={styles.bodyContent}
                     showsVerticalScrollIndicator={false}
                   >
-                    <Image
-                      source={require("../../assets/HospitalPortal/Icon/medicalIcon.png")}
-                      style={{ width: "100%", marginBottom: 12 }}
-                      resizeMode="contain"
-                    />
+                    <Text style={styles.cloudIcon}>☁️</Text>
 
                     <Text style={styles.bodyTitle}>
                       How would you like to import your hospital data?
@@ -425,13 +416,13 @@ const AIIntegrationScreen = ({ navigation }) => {
                           >
                             <Text style={{ color: "#2563EB", fontSize: 13 }}>
                               Upload a single Excel or CSV file containing your
-                              hospital data — doctors, patients, or both. We'll
+                              hospital data — doctors, patients, or both. We&apos;ll
                               process and map all records automatically.
                             </Text>
                           </View>
 
                           {/* Upload Box */}
-                          {!uploadingDone && !showSuccessScreen && (
+                          {!uploadingDone && (
                             <View
                               style={{
                                 flexDirection: "row",
@@ -455,7 +446,41 @@ const AIIntegrationScreen = ({ navigation }) => {
                                 <Text
                                   style={{ marginTop: 10, color: "#6B7280" }}
                                 >
-                                  Upload Excel list (.xlsx or .csv){" "}
+                                  Upload Doctor list (.xlsx or .csv){" "}
+                                  <Text
+                                    style={{
+                                      color: "#2563EB",
+                                      fontWeight: "600",
+                                    }}
+                                  >
+                                    Click here
+                                  </Text>
+                                </Text>
+
+                                <Text
+                                  style={{ marginTop: 5, color: "#9CA3AF" }}
+                                >
+                                  Drop your file here or click to browse
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                onPress={uploadPatients}
+                                style={{
+                                  flex: 1,
+                                  borderWidth: 1,
+                                  borderColor: "#3B82F6",
+                                  borderRadius: 8,
+                                  padding: 30,
+                                  alignItems: "center",
+                                  backgroundColor: "#fff",
+                                }}
+                              >
+                                <Text style={{ fontSize: 18 }}>⬆️</Text>
+
+                                <Text
+                                  style={{ marginTop: 10, color: "#6B7280" }}
+                                >
+                                  Upload patient list (.xlsx or .csv){" "}
                                   <Text
                                     style={{
                                       color: "#2563EB",
@@ -474,7 +499,7 @@ const AIIntegrationScreen = ({ navigation }) => {
                               </TouchableOpacity>
                             </View>
                           )}
-                          {uploadingDone && !showSuccessScreen && (
+                          {uploadingDone && (
                             <View style={{ marginTop: 20, width: "100%" }}>
                               {/* Upload Done Box */}
                               <View
@@ -532,121 +557,44 @@ const AIIntegrationScreen = ({ navigation }) => {
                               </View>
                             </View>
                           )}
-                          {showSuccessScreen && (
-                            <View
-                              style={{ alignItems: "center", marginTop: 20 }}
-                            >
-                              {/* Big Tick */}
-                              <View style={stylesMobile.successCircle}>
-                                <Ionicons
-                                  name="checkmark"
-                                  size={32}
-                                  color="#16A34A"
-                                />
-                              </View>
-
-                              {/* Title */}
-                              <Text style={stylesMobile.successTitle}>
-                                File uploaded successfully
-                              </Text>
-
-                              <Text style={stylesMobile.successSub}>
-                                Your data is being processed and will be live
-                                within 24 hours.
-                              </Text>
-
-                              {/* Stats */}
-                              {/* <View style={stylesMobile.statsRow}>
-                                <View style={stylesMobile.statBox}>
-                                  <Text style={stylesMobile.statNumber}>
-                                    {doctorCount}
-                                  </Text>
-                                  <Text style={stylesMobile.statLabel}>
-                                    Doctor{"\n"}Imported
-                                  </Text>
-                                </View>
-
-                                <View style={stylesMobile.statBox}>
-                                  <Text style={stylesMobile.statNumber}>
-                                    {patientCount}
-                                  </Text>
-                                  <Text style={stylesMobile.statLabel}>
-                                    patients{"\n"}records
-                                  </Text>
-                                </View>
-
-                                <View style={stylesMobile.statBox}>
-                                  <Text style={stylesMobile.statNumber}>
-                                    {errorCount}
-                                  </Text>
-                                  <Text style={stylesMobile.statLabel}>
-                                    Error{"\n"}detected
-                                  </Text>
-                                </View>
-                              </View> */}
-
-                              {/* Button */}
-                              {/* <TouchableOpacity
-                                style={{
-                                  marginTop: 20,
-                                  backgroundColor: "#2563EB",
-                                  paddingVertical: 12,
-                                  paddingHorizontal: 24,
-                                  borderRadius: 6,
-                                }}
-                                onPress={() =>
-                                  navigation.navigate(
-                                    "DataIntegrationValidation",
-                                    {
-                                      doctorCount,
-                                      patientCount,
-                                    },
-                                  )
-                                }
-                              >
-                                <Text
-                                  style={{ color: "#fff", fontWeight: "600" }}
-                                >
-                                  Upload & Validate →
-                                </Text>
-                              </TouchableOpacity> */}
-                            </View>
-                          )}
 
                           {/* Buttons */}
-                          {!showSuccessScreen && (
-                            <View
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              marginTop: 16,
+                              gap: 10,
+                            }}
+                          >
+                            <TouchableOpacity
                               style={{
-                                flexDirection: "row",
-                                marginTop: 16,
-                                gap: 10,
+                                backgroundColor: "#2563EB",
+                                paddingVertical: 12,
+                                paddingHorizontal: 18,
+                                borderRadius: 6,
                               }}
                             >
-                              <TouchableOpacity
-                                style={{
-                                  borderWidth: 1,
-                                  borderColor: "#D1D5DB",
-                                  paddingVertical: 12,
-                                  paddingHorizontal: 18,
-                                  borderRadius: 6,
-                                }}
-                              >
-                                <Text style={{ color: "#6B7280" }}>
-                                  Download Template
-                                </Text>
-                              </TouchableOpacity>
                               <Text
-                                style={{
-                                  color: "#94A3B8",
-                                  fontSize: 14,
-                                  fontWeight: "500",
-                                  marginTop: "2%",
-                                }}
+                                style={{ color: "#fff", fontWeight: "600" }}
                               >
-                                Not sure of format ? download our template first
+                                Upload & Validate →
                               </Text>
-                            </View>
-                          )}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={{
+                                borderWidth: 1,
+                                borderColor: "#D1D5DB",
+                                paddingVertical: 12,
+                                paddingHorizontal: 18,
+                                borderRadius: 6,
+                              }}
+                            >
+                              <Text style={{ color: "#6B7280" }}>
+                                Download Template
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       )}
 
@@ -765,7 +713,7 @@ const AIIntegrationScreen = ({ navigation }) => {
                     } else if (selected === "excel") {
                       setShowExcelScreen(true);
                     } else if (selected === "manual") {
-                      navigation.navigate("ManualUpload"); // ✅ redirect here
+                      navigation.navigate("ManualDataIntegration"); // ✅ redirect here
                     }
                   }}
                 >
@@ -878,7 +826,7 @@ const AIIntegrationScreen = ({ navigation }) => {
                 <View style={stylesMobile.excelInfoBox}>
                   <Text style={stylesMobile.excelInfoText}>
                     Upload a single Excel or CSV file containing your hospital
-                    data — doctors, patients, or both. We'll process and map all
+                    data — doctors, patients, or both. We&apos;ll process and map all
                     records automatically.
                   </Text>
                 </View>
@@ -898,7 +846,7 @@ const AIIntegrationScreen = ({ navigation }) => {
                       />
 
                       <Text style={stylesMobile.uploadTitle}>
-                        Upload Excel list (.xlsx or .csv){" "}
+                        Upload doctor list (.xlsx or .csv){" "}
                         <Text
                           style={{
                             color: "#025AE0",
@@ -916,6 +864,34 @@ const AIIntegrationScreen = ({ navigation }) => {
                     </TouchableOpacity>
 
                     <Text style={stylesMobile.sectionTitle}>Excel Upload</Text>
+
+                    <TouchableOpacity
+                      style={stylesMobile.uploadCard}
+                      onPress={uploadPatients}
+                    >
+                      <Image
+                        source={require("../../assets/HospitalPortal/Icon/Aiuploadicon.png")}
+                        style={{ width: "100%" }}
+                        resizeMode="contain"
+                      />
+
+                      <Text style={stylesMobile.uploadTitle}>
+                        Upload patient list (.xlsx or .csv){" "}
+                        <Text
+                          style={{
+                            color: "#025AE0",
+                            fontSize: 16,
+                            fontWeight: "600",
+                          }}
+                        >
+                          Click here
+                        </Text>
+                      </Text>
+
+                      <Text style={stylesMobile.uploadSubText}>
+                        Drop your file here or click to browse
+                      </Text>
+                    </TouchableOpacity>
                   </>
                 )}
                 {uploadingDone && (
@@ -951,13 +927,7 @@ const AIIntegrationScreen = ({ navigation }) => {
                 )}
 
                 {showSuccessScreen && (
-                  <View
-                    style={{
-                      alignItems: "center",
-                      marginTop: 20,
-                      marginBottom: 20,
-                    }}
-                  >
+                  <View style={{ alignItems: "center", marginTop: 20 }}>
                     {/* Big Tick */}
                     <View style={stylesMobile.successCircle}>
                       <Ionicons name="checkmark" size={32} color="#16A34A" />
@@ -965,16 +935,44 @@ const AIIntegrationScreen = ({ navigation }) => {
 
                     {/* Title */}
                     <Text style={stylesMobile.successTitle}>
-                      File uploaded successfully
+                      Data imported successfully
                     </Text>
 
+                    {/* Subtitle */}
                     <Text style={stylesMobile.successSub}>
-                      Your data is being processed and will be live within 24
-                      hours.
+                      your hospital data is ready . proceeding to validation...
                     </Text>
+
+                    {/* Stats */}
+                    <View style={stylesMobile.statsRow}>
+                      <View style={stylesMobile.statBox}>
+                        <Text style={stylesMobile.statNumber}>
+                          {doctorCount}
+                        </Text>
+                        <Text style={stylesMobile.statLabel}>
+                          Doctor{"\n"}Imported
+                        </Text>
+                      </View>
+
+                      <View style={stylesMobile.statBox}>
+                        <Text style={stylesMobile.statNumber}>
+                          {patientCount}
+                        </Text>
+                        <Text style={stylesMobile.statLabel}>
+                          patients{"\n"}records
+                        </Text>
+                      </View>
+
+                      {/* <View style={stylesMobile.statBox}>
+                    <Text style={stylesMobile.statNumber}>0</Text>
+                    <Text style={stylesMobile.statLabel}>
+                      Error{"\n"}detected
+                    </Text>
+                  </View> */}
+                    </View>
 
                     {/* Button */}
-                    {/* <TouchableOpacity
+                    <TouchableOpacity
                       style={stylesMobile.primaryBtn}
                       onPress={() =>
                         navigation.navigate("DataIntegrationValidation", {
@@ -986,7 +984,7 @@ const AIIntegrationScreen = ({ navigation }) => {
                       <Text style={{ color: "#fff", fontWeight: "600" }}>
                         Upload & Validate →
                       </Text>
-                    </TouchableOpacity> */}
+                    </TouchableOpacity>
                   </View>
                 )}
                 {!showSuccessScreen && (

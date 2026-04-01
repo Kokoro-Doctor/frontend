@@ -80,7 +80,9 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "HospitalInsuranceClaim",
     "PostOpCare",
     "PostOpCarePrescription",
-    "DataIntegration",
+    "ManualDataIntegration",
+    "AIIntegrationScreen",
+    "DataIntegrations",
     "DataIntegrationValidation",
     "DataIntegrationComplete",
   ];
