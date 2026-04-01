@@ -207,7 +207,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                         style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("HospitalAppNavigation", {
-                            screen: "",
+                            screen: "DataIntegration",
                           });
                         }}
                       >
@@ -287,7 +287,12 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                 />
               </TouchableOpacity>
 
-              <TouchableOpacity style={MobileStyles.cardStyle}>
+              <TouchableOpacity style={MobileStyles.cardStyle}
+              onPress={() => {
+                  navigation.navigate("HospitalAppNavigation", {
+                    screen: "DataIntegration",
+                  });
+                }}>
                 <ImageBackground
                   source={require("../../assets/HospitalPortal/Images/Hospital_card2.png")}
                   style={styles.image}
