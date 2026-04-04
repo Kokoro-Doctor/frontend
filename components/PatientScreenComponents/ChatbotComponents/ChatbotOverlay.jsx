@@ -85,6 +85,7 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "DataIntegrations",
     "DataIntegrationValidation",
     "DataIntegrationComplete",
+    "HospitalInsuranceDownload",
   ];
   const shownScreensMobile = ["LandingPage"];
 
