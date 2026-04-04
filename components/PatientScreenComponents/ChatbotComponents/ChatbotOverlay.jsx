@@ -79,7 +79,13 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "HospitalUploadPage",
     "HospitalInsuranceClaim",
     "PostOpCare",
-    "PostOpCarePrescription"
+    "PostOpCarePrescription",
+    "ManualDataIntegration",
+    "AIIntegrationScreen",
+    "DataIntegrations",
+    "DataIntegrationValidation",
+    "DataIntegrationComplete",
+    "HospitalInsuranceDownload",
   ];
   const shownScreensMobile = ["LandingPage"];
 

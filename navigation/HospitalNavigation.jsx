@@ -10,6 +10,11 @@ import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsurance
 import HospitalInsuranceDownload from "../screens/HospitalScreens/HospitalInsuranceDownload";
 import PostOpCare from "../screens/HospitalScreens/PostOpCare";
 import PostOpCarePrescription from "../screens/HospitalScreens/PostOpCarePrescription";
+import DataIntegrations from "../screens/HospitalScreens/DataIntegrations";
+import ManualDataIntegration from "../screens/HospitalScreens/ManualDataIntegration";
+import AIIntegrationScreen from "../screens/HospitalScreens/AIIntegrationScreen";
+import DataIntegrationValidation from "../screens/HospitalScreens/DataIntegrationValidation";
+import DataIntegrationComplete from "../screens/HospitalScreens/DataIntegrationComplete";
 
 const Stack = createNativeStackNavigator();
 
@@ -81,6 +86,32 @@ const HospitalAppNavigation = ({ navigation }) => {
           component={PostOpCarePrescription}
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+          name="DataIntegrations"
+          component={DataIntegrations}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ManualDataIntegration"
+          component={ManualDataIntegration}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="AIIntegrationScreen"
+          component={AIIntegrationScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DataIntegrationValidation"
+          component={DataIntegrationValidation}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DataIntegrationComplete"
+          component={DataIntegrationComplete}
+          options={{ headerShown: false }}
+        />
+        
       </Stack.Navigator>
     </HeaderButtonsProvider>
   );
