@@ -158,7 +158,7 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                         borderWidth: 1,
                         borderColor: "#E5E7EB",
                         paddingBottom: 12,
-                        height: 350,
+                        flex: 1,
                       }}
                     >
                       <View style={stylesMobile.fileHeader}>
