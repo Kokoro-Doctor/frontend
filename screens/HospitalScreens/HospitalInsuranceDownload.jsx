@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ImageBackground,
   StyleSheet,
@@ -12,15 +12,227 @@ import {
   Animated,
   StatusBar,
   TextInput,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 
+function digitsOnly(s) {
+  return String(s ?? "").replace(/\D/g, "");
+}
+
+function padAmountToLength(raw, len) {
+  const d = digitsOnly(raw);
+  if (!d) return "".padEnd(len, " ");
+  const trimmed = d.length > len ? d.slice(-len) : d;
+  return trimmed.padStart(len, " ").slice(-len);
+}
+
+function parseDateToDDMMYYYY(raw) {
+  if (raw == null || raw === "") return "";
+  const s = String(raw).trim();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[3]}${iso[2]}${iso[1]}`;
+  const dmy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (dmy) {
+    const dd = dmy[1].padStart(2, "0");
+    const mm = dmy[2].padStart(2, "0");
+    return `${dd}${mm}${dmy[3]}`;
+  }
+  const only = digitsOnly(s);
+  if (only.length >= 8) return only.slice(0, 8);
+  return "";
+}
+
+function parseAgeYears(raw) {
+  if (raw == null) return "";
+  const m = String(raw).match(/\d+/);
+  return m ? m[0].padStart(2, "0").slice(-2) : "";
+}
+
+function strUpper(s, maxLen) {
+  const t = String(s ?? "").toUpperCase().replace(/\s+/g, " ").trim();
+  return t.slice(0, maxLen);
+}
+
+function padChars(s, len) {
+  const t = String(s ?? "");
+  return t.padEnd(len, " ").slice(0, len);
+}
+
+function truncateChars(s, len) {
+  return String(s ?? "").slice(0, len);
+}
+
+function tpaOrCompanyId(structured) {
+  const ins = structured.insurance_details || {};
+  const a = (ins.tpa_name || "").trim();
+  const b = (ins.insurance_company || "").trim();
+  if (a && b) return `${a} ${b}`.trim();
+  return a || b || "";
+}
+
+function buildInitialForm(sd) {
+  if (!sd || typeof sd !== "object") sd = {};
+  const patient = sd.patient_details || {};
+  const ins = sd.insurance_details || {};
+  const hosp = sd.hospital_details || {};
+  const diag = sd.diagnosis_and_procedures || {};
+  const claim = sd.claim_details || {};
+  const bank = sd.bank_details || {};
+  const meta = sd.document_metadata || {};
+
+  const name = padChars(strUpper(patient.name, 40), 40);
+  const policy = padChars(
+    truncateChars(String(ins.policy_number ?? "").replace(/\s/g, "").toUpperCase(), 18),
+    18,
+  );
+  const tpa = padChars(strUpper(tpaOrCompanyId(sd), 22), 22);
+  const hospital = padChars(strUpper(hosp.hospital_name, 40), 40);
+  const admission = padChars(parseDateToDDMMYYYY(hosp.admission_date), 8);
+  const discharge = padChars(parseDateToDDMMYYYY(hosp.discharge_date), 8);
+  const diagnosis = String(diag.primary_diagnosis ?? "");
+
+  const pre = padAmountToLength(claim.pre_hospitalization_amount, 8);
+  const hospAmt = padAmountToLength(claim.bill_amount, 8);
+  const post = padAmountToLength(claim.post_hospitalization_amount, 8);
+
+  const genderRaw = String(patient.gender ?? "").toLowerCase();
+  let gender = "";
+  if (genderRaw.includes("female") || genderRaw === "f") gender = "female";
+  else if (genderRaw.includes("male") || genderRaw === "m") gender = "male";
+
+  const ageYears = padChars(parseAgeYears(patient.age), 2);
+  const ageMonths = "  ";
+
+  const accNum = padChars(
+    truncateChars(String(bank.account_number ?? "").replace(/\s/g, ""), 22),
+    22,
+  );
+  const bankName = padChars(strUpper(String(bank.bank_name ?? "").trim(), 40), 40);
+  const ifsc = padChars(truncateChars(String(bank.ifsc_code ?? "").toUpperCase(), 11), 11);
+  const chequeLine = String(bank.account_holder ?? "").trim();
+
+  const docDate = padChars(parseDateToDDMMYYYY(meta.document_date), 8);
+
+  const polCompact = String(ins.policy_number ?? "").replace(/\s/g, "").toUpperCase();
+
+  return {
+    policyNumber: policy,
+    certificateNumber: "".padEnd(14, " "),
+    tpaId: tpa,
+    primaryName: name,
+    primaryAddressRow1: "".padEnd(40, " "),
+    primaryAddressRow2: "".padEnd(35, " "),
+    primaryCity: "".padEnd(18, " "),
+    primaryState: "".padEnd(18, " "),
+    primaryPin: "".padEnd(6, " "),
+    primaryPhone: "".padEnd(10, " "),
+    primaryEmail: "",
+    diagnosis,
+    hospitalizedName: name,
+    gender,
+    ageYears,
+    ageMonths,
+    hospitalName: hospital,
+    admissionDate: admission,
+    dischargeDate: discharge,
+    claimPre: pre,
+    claimHospital: hospAmt,
+    claimPost: post,
+    accountNumber: accNum,
+    bankNameBranch: bankName,
+    ifscCode: ifsc,
+    chequeDetails: chequeLine,
+    declarationDate: docDate,
+    mobileIdRow: padChars(truncateChars(polCompact, 12), 12),
+    mobilePolicy: padChars(truncateChars(polCompact, 16), 16),
+    mobileNameTrunc: padChars(strUpper(patient.name, 20), 20),
+    mobilePhone: "".padEnd(10, " "),
+    mobileEmail: "".padEnd(20, " "),
+    mobileHospital: strUpper(hosp.hospital_name, 200),
+    mobileAdmission:
+      hosp.admission_date != null && hosp.admission_date !== ""
+        ? String(hosp.admission_date)
+        : "",
+    mobileDischarge:
+      hosp.discharge_date != null && hosp.discharge_date !== ""
+        ? String(hosp.discharge_date)
+        : "",
+    mobileAmount:
+      claim.bill_amount != null && claim.bill_amount !== ""
+        ? String(claim.bill_amount)
+        : "",
+    injuryDate: "".padEnd(8, " "),
+    dob: "".padEnd(8, " "),
+    admissionTime: "".padEnd(4, " "),
+    dischargeTime: "".padEnd(4, " "),
+    treatingDoctor: String(hosp.treating_doctor ?? ""),
+    hospAddressRow1: "".padEnd(40, " "),
+    hospAddressRow2: "".padEnd(35, " "),
+    hospCity: "".padEnd(18, " "),
+    hospState: "".padEnd(18, " "),
+    hospPin: "".padEnd(6, " "),
+    hospPhone: "".padEnd(10, " "),
+    hospEmail: "",
+    pan: "".padEnd(10, " "),
+    declarationPlace: "",
+  };
+}
+
+function CharBoxRow({
+  length,
+  value,
+  onChange,
+  boxStyle,
+  rowStyle,
+  keyboardType,
+}) {
+  const padded = padChars(value, length);
+  const chars = padded.split("");
+  const handleCell = (idx, t) => {
+    const last = (t || "").slice(-1);
+    const nextChar = last === "" || last === " " ? " " : last.toUpperCase();
+    const arr = padChars(value, length).split("");
+    arr[idx] = nextChar;
+    onChange(arr.join(""));
+  };
+  return (
+    <View style={rowStyle || stylesWeb.boxRow}>
+      {Array.from({ length }).map((_, i) => (
+        <TextInput
+          key={i}
+          style={boxStyle || stylesWeb.squareBox}
+          maxLength={1}
+          keyboardType={keyboardType}
+          value={chars[i] === " " ? "" : chars[i]}
+          onChangeText={(t) => handleCell(i, t)}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function HospitalInsuranceDownload({ navigation, route }) {
   const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
+
+  const structured = useMemo(
+    () => analysisData?.structured_data ?? null,
+    [analysisData],
+  );
+
+  const [form, setForm] = useState(() => buildInitialForm(structured || {}));
+
+  useEffect(() => {
+    setForm(buildInitialForm(structured || {}));
+  }, [structured]);
+
+  const setField = useCallback((key, v) => {
+    setForm((prev) => ({ ...prev, [key]: v }));
+  }, []);
 
   const handleDownload = () => {
     Alert.alert("Download", "Downloading updated claim file...", [
@@ -231,30 +443,22 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <Text style={stylesWeb.label}>
                                     a) Policy No.:
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 18 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                        maxLength={1}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={18}
+                                    value={form.policyNumber}
+                                    onChange={(v) => setField("policyNumber", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>
                                     b) Sl. No./Certificate no.
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 14 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                        maxLength={1}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={14}
+                                    value={form.certificateNumber}
+                                    onChange={(v) => setField("certificateNumber", v)}
+                                  />
                                 </View>
                               </View>
 
@@ -263,29 +467,21 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 <Text style={stylesWeb.label}>
                                   c) Company / TPA ID (MA ID)No:
                                 </Text>
-                                <View style={stylesWeb.boxRow}>
-                                  {Array.from({ length: 22 }).map((_, i) => (
-                                    <TextInput
-                                      key={i}
-                                      style={stylesWeb.squareBox}
-                                      maxLength={1}
-                                    />
-                                  ))}
-                                </View>
+                                <CharBoxRow
+                                  length={22}
+                                  value={form.tpaId}
+                                  onChange={(v) => setField("tpaId", v)}
+                                />
                               </View>
 
                               {/* ROW 3 */}
                               <View style={stylesWeb.inlineRow}>
                                 <Text style={stylesWeb.label}>d) Name:</Text>
-                                <View style={stylesWeb.boxRow}>
-                                  {Array.from({ length: 40 }).map((_, i) => (
-                                    <TextInput
-                                      key={i}
-                                      style={stylesWeb.squareBox}
-                                      maxLength={1}
-                                    />
-                                  ))}
-                                </View>
+                                <CharBoxRow
+                                  length={40}
+                                  value={form.primaryName}
+                                  onChange={(v) => setField("primaryName", v)}
+                                />
                               </View>
 
                               {/* ROW 4 */}
@@ -296,26 +492,18 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 {/* BOXES */}
                                 <View style={stylesWeb.addressBoxes}>
                                   {/* FIRST ROW */}
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 40 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                        maxLength={1}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={40}
+                                    value={form.primaryAddressRow1}
+                                    onChange={(v) => setField("primaryAddressRow1", v)}
+                                  />
 
                                   {/* SECOND ROW */}
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 35 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                        maxLength={1}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={35}
+                                    value={form.primaryAddressRow2}
+                                    onChange={(v) => setField("primaryAddressRow2", v)}
+                                  />
                                 </View>
                               </View>
 
@@ -323,28 +511,20 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                               <View style={stylesWeb.rowBetweens}>
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>City:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 18 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                        maxLength={1}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={18}
+                                    value={form.primaryCity}
+                                    onChange={(v) => setField("primaryCity", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>State:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 18 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                        maxLength={1}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={18}
+                                    value={form.primaryState}
+                                    onChange={(v) => setField("primaryState", v)}
+                                  />
                                 </View>
                               </View>
 
@@ -352,33 +532,30 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                               <View style={stylesWeb.rowBetweensLast}>
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>Pin Code:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 6 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                        maxLength={1}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={6}
+                                    value={form.primaryPin}
+                                    onChange={(v) => setField("primaryPin", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>Phone No:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 10 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                        maxLength={1}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={10}
+                                    value={form.primaryPhone}
+                                    onChange={(v) => setField("primaryPhone", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>Email ID:</Text>
-                                  <TextInput style={stylesWeb.longInput} />
+                                  <TextInput
+                                    style={stylesWeb.longInput}
+                                    value={form.primaryEmail}
+                                    onChangeText={(t) => setField("primaryEmail", t)}
+                                    placeholder=""
+                                  />
                                 </View>
                               </View>
                             </View>
@@ -537,7 +714,12 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <Text style={stylesWeb.label}>
                                     Diagnosis:
                                   </Text>
-                                  <TextInput style={stylesWeb.longInputWide} />
+                                  <TextInput
+                                    style={stylesWeb.longInputWide}
+                                    value={form.diagnosis}
+                                    onChangeText={(t) => setField("diagnosis", t)}
+                                    placeholder=""
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
@@ -597,14 +779,11 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                               {/* a) NAME */}
                               <View style={stylesWeb.inlineRow}>
                                 <Text style={stylesWeb.label}>a) Name:</Text>
-                                <View style={stylesWeb.boxRow}>
-                                  {Array.from({ length: 40 }).map((_, i) => (
-                                    <TextInput
-                                      key={i}
-                                      style={stylesWeb.squareBox}
-                                    />
-                                  ))}
-                                </View>
+                                <CharBoxRow
+                                  length={40}
+                                  value={form.hospitalizedName}
+                                  onChange={(v) => setField("hospitalizedName", v)}
+                                />
                               </View>
 
                               {/* b + c + d */}
@@ -612,60 +791,68 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>b) Gender</Text>
                                   <Text style={stylesWeb.smallText}>Male</Text>
-                                  <View style={stylesWeb.checkbox} />
+                                  <TouchableOpacity
+                                    onPress={() =>
+                                      setField(
+                                        "gender",
+                                        form.gender === "male" ? "" : "male",
+                                      )
+                                    }
+                                    style={[
+                                      stylesWeb.checkbox,
+                                      form.gender === "male" && {
+                                        backgroundColor: "#1976D2",
+                                      },
+                                    ]}
+                                  />
                                   <Text style={stylesWeb.smallText}>
                                     Female
                                   </Text>
-                                  <View style={stylesWeb.checkbox} />
+                                  <TouchableOpacity
+                                    onPress={() =>
+                                      setField(
+                                        "gender",
+                                        form.gender === "female" ? "" : "female",
+                                      )
+                                    }
+                                    style={[
+                                      stylesWeb.checkbox,
+                                      form.gender === "female" && {
+                                        backgroundColor: "#1976D2",
+                                      },
+                                    ]}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>
                                     c) Age years
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {["Y", "Y"].map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={2}
+                                    value={form.ageYears}
+                                    onChange={(v) => setField("ageYears", v)}
+                                  />
 
                                   <Text style={stylesWeb.smallText}>
                                     Months
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {["M", "M"].map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={2}
+                                    value={form.ageMonths}
+                                    onChange={(v) => setField("ageMonths", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>
                                     d) Date of Birth
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {[
-                                      "D",
-                                      "D",
-                                      "M",
-                                      "M",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                    ].map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={8}
+                                    value={form.dob}
+                                    onChange={(v) => setField("dob", v)}
+                                  />
                                 </View>
                               </View>
 
@@ -732,22 +919,16 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 </Text>
 
                                 <View style={stylesWeb.addressBoxes}>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 40 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 35 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={40}
+                                    value={form.hospAddressRow1}
+                                    onChange={(v) => setField("hospAddressRow1", v)}
+                                  />
+                                  <CharBoxRow
+                                    length={35}
+                                    value={form.hospAddressRow2}
+                                    onChange={(v) => setField("hospAddressRow2", v)}
+                                  />
                                 </View>
                               </View>
 
@@ -755,26 +936,20 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                               <View style={stylesWeb.rowBetweens}>
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>City:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 18 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={18}
+                                    value={form.hospCity}
+                                    onChange={(v) => setField("hospCity", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>State:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 18 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={18}
+                                    value={form.hospState}
+                                    onChange={(v) => setField("hospState", v)}
+                                  />
                                 </View>
                               </View>
 
@@ -782,31 +957,30 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                               <View style={stylesWeb.rowBetweensLast}>
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>Pin Code:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 6 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={6}
+                                    value={form.hospPin}
+                                    onChange={(v) => setField("hospPin", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>Phone No:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 10 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={10}
+                                    value={form.hospPhone}
+                                    onChange={(v) => setField("hospPhone", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>Email ID:</Text>
-                                  <TextInput style={stylesWeb.longInput} />
+                                  <TextInput
+                                    style={stylesWeb.longInput}
+                                    value={form.hospEmail}
+                                    onChangeText={(t) => setField("hospEmail", t)}
+                                    placeholder=""
+                                  />
                                 </View>
                               </View>
                             </View>
@@ -842,14 +1016,11 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 <Text style={stylesWeb.label}>
                                   a) Name of Hospital where Admitted:
                                 </Text>
-                                <View style={stylesWeb.boxRow}>
-                                  {Array.from({ length: 40 }).map((_, i) => (
-                                    <TextInput
-                                      key={i}
-                                      style={stylesWeb.squareBox}
-                                    />
-                                  ))}
-                                </View>
+                                <CharBoxRow
+                                  length={40}
+                                  value={form.hospitalName}
+                                  onChange={(v) => setField("hospitalName", v)}
+                                />
                               </View>
 
                               {/* b) ROOM CATEGORY */}
@@ -897,23 +1068,11 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                     d) Date of injury / Date Disease first
                                     detected /Date of Delivery:
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {[
-                                      "D",
-                                      "D",
-                                      "M",
-                                      "M",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                    ].map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={8}
+                                    value={form.injuryDate}
+                                    onChange={(v) => setField("injuryDate", v)}
+                                  />
                                 </View>
                               </View>
 
@@ -923,70 +1082,40 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <Text style={stylesWeb.label}>
                                     e) Date of Admission:
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {[
-                                      "D",
-                                      "D",
-                                      "M",
-                                      "M",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                    ].map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={8}
+                                    value={form.admissionDate}
+                                    onChange={(v) => setField("admissionDate", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>f) Time:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {["H", "H", "M", "M"].map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={4}
+                                    value={form.admissionTime}
+                                    onChange={(v) => setField("admissionTime", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>
                                     g) Date of Discharge:
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {[
-                                      "D",
-                                      "D",
-                                      "M",
-                                      "M",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                    ].map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={8}
+                                    value={form.dischargeDate}
+                                    onChange={(v) => setField("dischargeDate", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>h) Time:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {["H", "H", "M", "M"].map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={4}
+                                    value={form.dischargeTime}
+                                    onChange={(v) => setField("dischargeTime", v)}
+                                  />
                                 </View>
                               </View>
 
@@ -1034,7 +1163,14 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <Text style={stylesWeb.label}>
                                     j) System of Medicine:
                                   </Text>
-                                  <TextInput style={stylesWeb.longInputWide} />
+                                  <TextInput
+                                    style={stylesWeb.longInputWide}
+                                    value={form.treatingDoctor}
+                                    onChangeText={(t) =>
+                                      setField("treatingDoctor", t)
+                                    }
+                                    placeholder=""
+                                  />
                                 </View>
                               </View>
                             </View>
@@ -1075,40 +1211,31 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 <Text style={stylesWeb.label}>
                                   i. Pre-hospitalization expenses Rs.
                                 </Text>
-                                <View style={stylesWeb.boxRow}>
-                                  {Array.from({ length: 8 }).map((_, i) => (
-                                    <TextInput
-                                      key={i}
-                                      style={stylesWeb.squareBox}
-                                    />
-                                  ))}
-                                </View>
+                                <CharBoxRow
+                                  length={8}
+                                  value={form.claimPre}
+                                  onChange={(v) => setField("claimPre", v)}
+                                />
 
                                 <Text style={stylesWeb.label}>
                                   ii. Hospitalization expenses Rs.
                                 </Text>
-                                <View style={stylesWeb.boxRow}>
-                                  {Array.from({ length: 8 }).map((_, i) => (
-                                    <TextInput
-                                      key={i}
-                                      style={stylesWeb.squareBox}
-                                    />
-                                  ))}
-                                </View>
+                                <CharBoxRow
+                                  length={8}
+                                  value={form.claimHospital}
+                                  onChange={(v) => setField("claimHospital", v)}
+                                />
                               </View>
 
                               <View style={stylesWeb.rowBetween}>
                                 <Text style={stylesWeb.label}>
                                   iii. Post-hospitalization expenses Rs.
                                 </Text>
-                                <View style={stylesWeb.boxRow}>
-                                  {Array.from({ length: 8 }).map((_, i) => (
-                                    <TextInput
-                                      key={i}
-                                      style={stylesWeb.squareBox}
-                                    />
-                                  ))}
-                                </View>
+                                <CharBoxRow
+                                  length={8}
+                                  value={form.claimPost}
+                                  onChange={(v) => setField("claimPost", v)}
+                                />
 
                                 <Text style={stylesWeb.label}>
                                   iv. Health-Check up cost Rs.
@@ -1489,28 +1616,22 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                               <View style={stylesWeb.rowBetween}>
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>a) PAN:</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 10 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={10}
+                                    value={form.pan}
+                                    onChange={(v) => setField("pan", v)}
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>
                                     b) Account Number:
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 22 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={22}
+                                    value={form.accountNumber}
+                                    onChange={(v) => setField("accountNumber", v)}
+                                  />
                                 </View>
                               </View>
 
@@ -1519,14 +1640,11 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 <Text style={stylesWeb.label}>
                                   c) Bank Name and Branch:
                                 </Text>
-                                <View style={stylesWeb.boxRow}>
-                                  {Array.from({ length: 40 }).map((_, i) => (
-                                    <TextInput
-                                      key={i}
-                                      style={stylesWeb.squareBox}
-                                    />
-                                  ))}
-                                </View>
+                                <CharBoxRow
+                                  length={40}
+                                  value={form.bankNameBranch}
+                                  onChange={(v) => setField("bankNameBranch", v)}
+                                />
                               </View>
 
                               {/* ROW 3 */}
@@ -1535,21 +1653,25 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <Text style={stylesWeb.label}>
                                     d) Cheque / DD Payable details:
                                   </Text>
-                                  <TextInput style={stylesWeb.longInputWide} />
+                                  <TextInput
+                                    style={stylesWeb.longInputWide}
+                                    value={form.chequeDetails}
+                                    onChangeText={(t) =>
+                                      setField("chequeDetails", t)
+                                    }
+                                    placeholder=""
+                                  />
                                 </View>
 
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>
                                     e) IFSC Code:
                                   </Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {Array.from({ length: 11 }).map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={11}
+                                    value={form.ifscCode}
+                                    onChange={(v) => setField("ifscCode", v)}
+                                  />
                                 </View>
                               </View>
                             </View>
@@ -1606,29 +1728,26 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 {/* DATE */}
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>Date</Text>
-                                  <View style={stylesWeb.boxRow}>
-                                    {[
-                                      "D",
-                                      "D",
-                                      "M",
-                                      "M",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                      "Y",
-                                    ].map((_, i) => (
-                                      <TextInput
-                                        key={i}
-                                        style={stylesWeb.squareBox}
-                                      />
-                                    ))}
-                                  </View>
+                                  <CharBoxRow
+                                    length={8}
+                                    value={form.declarationDate}
+                                    onChange={(v) =>
+                                      setField("declarationDate", v)
+                                    }
+                                  />
                                 </View>
 
                                 {/* PLACE */}
                                 <View style={stylesWeb.inlineRow}>
                                   <Text style={stylesWeb.label}>Place:</Text>
-                                  <TextInput style={stylesWeb.placeInput} />
+                                  <TextInput
+                                    style={stylesWeb.placeInput}
+                                    value={form.declarationPlace}
+                                    onChangeText={(t) =>
+                                      setField("declarationPlace", t)
+                                    }
+                                    placeholder=""
+                                  />
                                 </View>
 
                                 {/* SIGNATURE */}
@@ -1738,48 +1857,54 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                   Details of Primary Insured
                 </Text>
 
-                <View style={stylesMobile.row}>
-                  {Array.from({ length: 12 }).map((_, i) => (
-                    <TextInput key={i} style={stylesMobile.box} maxLength={1} />
-                  ))}
-                </View>
+                <CharBoxRow
+                  length={12}
+                  value={form.mobileIdRow}
+                  onChange={(v) => setField("mobileIdRow", v)}
+                  boxStyle={stylesMobile.box}
+                  rowStyle={stylesMobile.row}
+                />
 
                 {/* POLICY NO */}
                 <Text style={stylesMobile.label}>Policy No:</Text>
-                <View style={stylesMobile.row}>
-                  {Array.from({ length: 16 }).map((_, i) => (
-                    <TextInput key={i} style={stylesMobile.box} maxLength={1} />
-                  ))}
-                </View>
+                <CharBoxRow
+                  length={16}
+                  value={form.mobilePolicy}
+                  onChange={(v) => setField("mobilePolicy", v)}
+                  boxStyle={stylesMobile.box}
+                  rowStyle={stylesMobile.row}
+                />
 
                 {/* NAME */}
                 <Text style={stylesMobile.label}>Name:</Text>
-                <View style={stylesMobile.row}>
-                  {Array.from({ length: 20 }).map((_, i) => (
-                    <TextInput key={i} style={stylesMobile.box} maxLength={1} />
-                  ))}
-                </View>
+                <CharBoxRow
+                  length={20}
+                  value={form.mobileNameTrunc}
+                  onChange={(v) => setField("mobileNameTrunc", v)}
+                  boxStyle={stylesMobile.box}
+                  rowStyle={stylesMobile.row}
+                />
 
                 {/* PHONE */}
                 <Text style={stylesMobile.label}>Phone:</Text>
-                <View style={stylesMobile.row}>
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <TextInput
-                      key={i}
-                      style={stylesMobile.box}
-                      keyboardType="numeric"
-                      maxLength={1}
-                    />
-                  ))}
-                </View>
+                <CharBoxRow
+                  length={10}
+                  value={form.mobilePhone}
+                  onChange={(v) => setField("mobilePhone", v)}
+                  boxStyle={stylesMobile.box}
+                  rowStyle={stylesMobile.row}
+                  keyboardType="numeric"
+                />
 
                 {/* EMAIL */}
                 <Text style={stylesMobile.label}>Email:</Text>
-                <View style={stylesMobile.row}>
-                  {Array.from({ length: 20 }).map((_, i) => (
-                    <TextInput key={i} style={stylesMobile.box} maxLength={1} />
-                  ))}
-                </View>
+                <CharBoxRow
+                  length={20}
+                  value={form.mobileEmail}
+                  onChange={(v) => setField("mobileEmail", v)}
+                  boxStyle={stylesMobile.box}
+                  rowStyle={stylesMobile.row}
+                />
 
                 {/* HOSPITAL DETAILS */}
                 <Text style={stylesMobile.sectionTitle}>
@@ -1790,18 +1915,24 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                 <TextInput
                   style={stylesMobile.fullInput}
                   placeholder="Enter hospital name"
+                  value={form.mobileHospital}
+                  onChangeText={(t) => setField("mobileHospital", t)}
                 />
 
                 <Text style={stylesMobile.label}>Admission Date:</Text>
                 <TextInput
                   style={stylesMobile.fullInput}
                   placeholder="DD/MM/YYYY"
+                  value={form.mobileAdmission}
+                  onChangeText={(t) => setField("mobileAdmission", t)}
                 />
 
                 <Text style={stylesMobile.label}>Discharge Date:</Text>
                 <TextInput
                   style={stylesMobile.fullInput}
                   placeholder="DD/MM/YYYY"
+                  value={form.mobileDischarge}
+                  onChangeText={(t) => setField("mobileDischarge", t)}
                 />
 
                 {/* CLAIM DETAILS */}
@@ -1811,6 +1942,8 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                 <TextInput
                   style={stylesMobile.fullInput}
                   placeholder="₹ Enter amount"
+                  value={form.mobileAmount}
+                  onChangeText={(t) => setField("mobileAmount", t)}
                 />
               </ScrollView>
             </View>
