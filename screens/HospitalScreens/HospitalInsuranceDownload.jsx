@@ -283,7 +283,7 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                 <View style={stylesWeb.card}>
                   {/* ── CARD TITLE + BACK ── */}
                   <View style={stylesWeb.cardTitleRow}>
-                    <Text style={stylesWeb.cardTitle}>Post Op Care</Text>
+                    <Text style={stylesWeb.cardTitle}>Medi claim agent</Text>
                     <TouchableOpacity
                       style={stylesWeb.backToHomeBtn}
                       onPress={() => navigation.goBack()}
@@ -1874,7 +1874,7 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
           <View style={stylesMobile.header}>
             <HeaderLoginSignUp navigation={navigation} />
           </View>
-          <Text style={stylesMobile.title}>Insurance claim analysis AI</Text>
+          <Text style={stylesMobile.title}>Medi claim agent</Text>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
