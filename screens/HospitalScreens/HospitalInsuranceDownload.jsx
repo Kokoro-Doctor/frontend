@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   ImageBackground,
   StyleSheet,
@@ -13,7 +13,9 @@ import {
   StatusBar,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
+import { downloadInsuranceClaim, generateInsuranceFormHTML } from "../../utils/InsuranceFormService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -241,6 +243,10 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
   );
 
   const [form, setForm] = useState(() => buildInitialForm(structured || {}));
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [previewMode, setPreviewMode] = useState(true);
+  const formRef = useRef(null);
+  const htmlPreview = useMemo(() => generateInsuranceFormHTML(form), [form]);
 
   useEffect(() => {
     setForm(buildInitialForm(structured || {}));
@@ -250,10 +256,19 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
     setForm((prev) => ({ ...prev, [key]: v }));
   }, []);
 
-  const handleDownload = () => {
-    Alert.alert("Download", "Downloading updated claim file...", [
-      { text: "OK" },
-    ]);
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    try {
+      await downloadInsuranceClaim(form);
+    } catch (e) {
+      Alert.alert(
+        "Download Error",
+        "Could not generate the PDF. Please try again.",
+      );
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -389,20 +404,51 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                         flex: 1,
                       }}
                     >
-                      <View style={stylesMobile.fileHeader}>
-                        <Ionicons
-                          name="document-text"
-                          size={18}
-                          color="#1976D2"
-                        />
-                        {/* FILE NAME */}
-                        <Text style={stylesMobile.fileName}>
-                          {analysisData?.structured_data?.source_filename ||
-                            "Insurance_Claim_Sharma_Aug2024.pdf"}
-                        </Text>
+                      <View style={[stylesMobile.fileHeader, { justifyContent: "space-between" }]}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Ionicons
+                            name="document-text"
+                            size={18}
+                            color="#1976D2"
+                          />
+                          {/* FILE NAME */}
+                          <Text style={stylesMobile.fileName}>
+                            {analysisData?.structured_data?.source_filename ||
+                              "Insurance_Claim_Sharma_Aug2024.pdf"}
+                          </Text>
+                        </View>
+                        {/* EDIT / PREVIEW TOGGLE */}
+                        <TouchableOpacity
+                          onPress={() => setPreviewMode((p) => !p)}
+                          style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 4,
+                            borderWidth: 1,
+                            borderColor: "#1976D2",
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, color: "#1976D2", fontWeight: "600" }}>
+                            {previewMode ? "Edit Fields" : "Preview"}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
 
+                      {previewMode ? (
+                        /* ── PREVIEW: compact iframe matching the PDF ── */
+                        <iframe
+                          srcDoc={htmlPreview}
+                          style={{
+                            flex: 1,
+                            width: "100%",
+                            border: "none",
+                            minHeight: 600,
+                          }}
+                          title="Insurance Claim Preview"
+                        />
+                      ) : (
                       <ScrollView>
+                        <View ref={formRef}>
                         <View style={stylesWeb.formHeaderContainer}>
                           {/* TOP ROW */}
                           <View style={stylesWeb.formTopRow}>
@@ -1832,7 +1878,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                             </View>
                           </View>
                         </View>
+                        </View>
                       </ScrollView>
+                      )}
                     </View>
                   </View>
                 </View>
@@ -1842,12 +1890,20 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={stylesWeb.primaryBtnWeb}
+                    style={[
+                      stylesWeb.primaryBtnWeb,
+                      isDownloading && { opacity: 0.6 },
+                    ]}
                     onPress={handleDownload}
+                    disabled={isDownloading}
                   >
-                    <Text style={stylesWeb.primaryTextWeb}>
-                      Download updated claim
-                    </Text>
+                    {isDownloading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={stylesWeb.primaryTextWeb}>
+                        Download updated claim
+                      </Text>
+                    )}
                   </TouchableOpacity>
 
                   <TouchableOpacity style={stylesWeb.greenOutlineBtnWeb}>
@@ -3182,12 +3238,20 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={stylesMobile.primaryBtn}
+              style={[
+                stylesMobile.primaryBtn,
+                isDownloading && { opacity: 0.6 },
+              ]}
               onPress={handleDownload}
+              disabled={isDownloading}
             >
-              <Text style={stylesMobile.primaryText}>
-                Download updated claim
-              </Text>
+              {isDownloading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={stylesMobile.primaryText}>
+                  Download updated claim
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity style={stylesMobile.greenOutlineBtn}>
