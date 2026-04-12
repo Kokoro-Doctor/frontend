@@ -20,8 +20,17 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import mixpanel, { trackButton } from "../../utils/Mixpanel";
+import { extractStructuredData } from "../../utils/MedilockerService";
+import * as DocumentPicker from "expo-document-picker";
+import { ActivityIndicator } from "react-native";
 
 export default function KokoroDoctorScreen() {
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [generatedPrescription, setGeneratedPrescription] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  const fileInputRef = useRef(null);
   const [searchText, setSearchText] = useState("");
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -41,6 +50,7 @@ export default function KokoroDoctorScreen() {
   const animationRef = useRef(null);
   const blinkRef = useRef(null);
   const rotationRef = useRef(null);
+  const bounceAnim = useRef(new Animated.Value(0)).current;
 
   // Cubic bezier curve for smooth path animation
   const calculateCurvePosition = (progress) => {
@@ -64,6 +74,108 @@ export default function KokoroDoctorScreen() {
 
     return { x, y };
   };
+
+  useEffect(() => {
+    const startBounce = () => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceAnim, {
+            toValue: -12,
+            duration: 500,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(bounceAnim, {
+            toValue: 0,
+            duration: 500,
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+    };
+
+    startBounce();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.multiple = true;
+      input.accept = ".pdf,.doc,.docx,.jpg,.jpeg,.png";
+
+      input.addEventListener("change", (e) => {
+        const files = Array.from(e.target.files);
+        setUploadedFiles(files);
+        input.value = "";
+      });
+
+      document.body.appendChild(input);
+      fileInputRef.current = input;
+
+      return () => document.body.removeChild(input);
+    }
+  }, []);
+
+  const extractFromFiles = async (files) => {
+    if (files.length === 0) return;
+
+    setIsGenerating(true);
+    setHasError(false); // ✅ ADD THIS
+    try {
+      const filesWithBase64 = await Promise.all(
+        files.map(async (file) => {
+          const reader = new FileReader();
+          return new Promise((resolve, reject) => {
+            reader.onload = () => {
+              const base64 = reader.result.split(",")[1];
+              resolve({
+                filename: file.name,
+                content: base64,
+              });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        }),
+      );
+
+      const result = await extractStructuredData(filesWithBase64);
+
+      const prescriptionText =
+        result?.prescription || result?.data?.prescription || "";
+
+      // 🔥 ADD THIS CHECK
+      if (!prescriptionText || prescriptionText.trim() === "") {
+        setHasError(true);
+        setGeneratedPrescription(null);
+        return;
+      }
+
+      const prescription = {
+        clinicName: "Kokoro.Doctor",
+        date: new Date().toLocaleDateString(),
+        patientName: result?.patient_details?.name || "",
+        age: result?.patient_details?.age || "",
+        gender: result?.patient_details?.gender || "",
+        diagnosis: result?.patient_details?.diagnosis || "",
+        prescriptionReport: prescriptionText,
+      };
+
+      setGeneratedPrescription(prescription); // 🔥 KEY LINE
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  useEffect(() => {
+    if (uploadedFiles.length > 0) {
+      extractFromFiles(uploadedFiles);
+    }
+  }, [uploadedFiles]);
 
   useEffect(() => {
     // Main animation loop - discrete blink positions
@@ -259,6 +371,50 @@ export default function KokoroDoctorScreen() {
 
   const windowWidth = Dimensions.get("window").width;
 
+  const formatPrescription = (text) => {
+    if (!text) return [];
+
+    const lines = text.split("\n");
+
+    let formatted = [];
+    let currentSection = null;
+
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+
+      if (!trimmed) return;
+
+      // Section heading
+      if (trimmed.endsWith(":")) {
+        currentSection = trimmed;
+        formatted.push({
+          type: "heading",
+          content: trimmed,
+        });
+      }
+      // Bullet points
+      else if (trimmed.startsWith("-")) {
+        formatted.push({
+          type: "bullet",
+          content: trimmed.replace("-", "").trim(),
+        });
+      }
+      // Normal text
+      else {
+        formatted.push({
+          type: "text",
+          content: trimmed,
+        });
+      }
+    });
+
+    return formatted;
+  };
+
+  const formattedData = formatPrescription(
+    generatedPrescription?.prescriptionReport,
+  );
+
   return (
     <>
       {Platform.OS === "web" && width > 1000 && (
@@ -344,83 +500,30 @@ export default function KokoroDoctorScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ===== HERO SECTION ===== */}
-          <ImageBackground
-            source={require("../../assets/Images/TopCardd.png")}
-            style={webStyles.heroCard}
-            imageStyle={webStyles.heroBgImage}
-          >
-            <View style={webStyles.heroLeft}>
-              <View style={webStyles.badgeContainer}>
-                <View style={webStyles.badgeItemWeb}>
-                  <View style={webStyles.iconWhiteBox}>
-                    <Image
-                      source={require("../../assets/Images/stethoscopees.png")}
-                      style={webStyles.badgeIconWeb}
-                    />
-                  </View>
-                  <Text style={webStyles.badgeTextWeb}>Built with doctors</Text>
-                </View>
-
-                <View style={webStyles.badgeItemWeb}>
-                  <View style={webStyles.iconWhiteBox}>
-                    <Image
-                      source={require("../../assets/Images/capharvard.png")}
-                      style={webStyles.badgeIconWeb}
-                    />
-                  </View>
-                  <Text style={webStyles.badgeTextWeb}>
-                    Harvard Innovation Labs
-                  </Text>
-                </View>
-
-                <View style={webStyles.badgeItemWeb}>
-                  <View style={webStyles.iconWhiteBox}>
-                    <Image
-                      source={require("../../assets/Images/checkk.png")}
-                      style={webStyles.badgeIconWeb}
-                    />
-                  </View>
-                  <Text style={webStyles.badgeTextWeb}>Private & Secure</Text>
-                </View>
-              </View>
-
-              <View style={{ width: 800 }}>
-                <Text style={webStyles.heroTitle}>
-                  Post-Surgery Is Where Cardiac Care Fails. We&apos;re Here to
-                  Fix That.
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={webStyles.heroBtn}
-                onPress={() => {
-                  trackButton("GetHelpNow_button_clicked", {
-                    source: "web-hero",
-                    destination: "DoctorResultShow",
-                  });
-
-                  navigation.navigate("PatientAppNavigation", {
-                    screen: "Doctors",
-                    params: { screen: "DoctorResultShow" },
-                  });
-                }}
-              >
-                <Text style={webStyles.heroBtnText}>Get Help Now</Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={18}
-                  color="#FF6B6B"
-                  style={{ marginLeft: 8 }}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <Image
-              source={require("../../assets/Images/drImage.png")}
-              style={webStyles.heroDoctor}
-            />
-          </ImageBackground>
+          <View>
+            <Text
+              style={{
+                color: "#000000",
+                fontSize: 64,
+                fontWeight: "600",
+                fontFamily: "Crimson Text",
+                textAlign: "center",
+              }}
+            >
+              Post-Surgery Care Starts the
+            </Text>
+            <Text
+              style={{
+                color: "#FF7072",
+                fontSize: 64,
+                fontWeight: "600",
+                fontFamily: "Crimson Text",
+                textAlign: "center",
+              }}
+            >
+              Moment you leave the OT
+            </Text>
+          </View>
 
           {/* ===== SEARCH BAR ===== */}
           <View style={styles.searchBoxweb}>
@@ -601,27 +704,247 @@ export default function KokoroDoctorScreen() {
             </View>
           </View>
 
+          <Animated.View
+            style={{
+              alignItems: "center",
+              marginTop: 15,
+              transform: [{ translateY: bounceAnim }],
+            }}
+          >
+            <Text
+              style={{
+                marginTop: "1%",
+                color: "#9CA3AF",
+                fontSize: 18,
+                marginBottom: 4,
+                fontWeight: "600",
+              }}
+            >
+              Try now
+            </Text>
+
+            <Ionicons name="chevron-down" size={28} color="#9CA3AF" />
+          </Animated.View>
+
+          {/* 🔥 UPLOAD BUTTON (ONLY BEFORE UPLOAD) */}
+          {uploadedFiles.length === 0 && (
+            <View style={{ alignItems: "center", marginTop: 10 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  // 🔥 reset state (IMPORTANT)
+                  setUploadedFiles([]);
+                  setGeneratedPrescription(null);
+                  setHasError(false);
+                  setIsGenerating(false);
+
+                  fileInputRef.current?.click();
+                }}
+                style={{
+                  backgroundColor: "#FF4D4D",
+                  paddingHorizontal: 28,
+                  paddingVertical: 14,
+                  borderRadius: 30,
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}
+                >
+                  Upload Prescription
+                </Text>
+
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color="#fff"
+                  style={{ marginLeft: 10 }}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 🔥 AFTER UPLOAD UI */}
+          {uploadedFiles.length > 0 && (
+            <>
+              <View
+                style={{
+                  flexDirection: "row",
+                  marginLeft: "8%",
+                  marginRight: "8%",
+                  borderWidth: 1,
+                  borderColor: "#E5E7EB",
+                  borderBottomWidth: 0,
+                  backgroundColor: "#fff",
+                }}
+              >
+                {/* LEFT */}
+                <View
+                  style={{
+                    width: "45%",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#FEE2E2",
+                    padding: 12,
+                    borderRightWidth: 1,
+                    borderColor: "#E5E7EB",
+                  }}
+                >
+                  <Ionicons name="heart" size={16} color="#EF4444" />
+                  <Text style={{ color: "#EF4444", marginLeft: 8 }}>
+                    Your uploaded prescription
+                  </Text>
+                </View>
+
+                {/* RIGHT */}
+                <View style={{ flex: 1, padding: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Image
+                      source={require("../../assets/Icons/welcome_Rxicon.png")}
+                      style={{ width: 28, height: 28, marginRight: 8 }}
+                    />
+                    <Text style={{ fontWeight: "600" }}>
+                      Clinical AI Assistant
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={{ fontSize: 12, color: "#6B7280", marginLeft: 36 }}
+                  >
+                    You're not alone in this case, we're here to assist.
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={{
+                  marginTop: 0,
+                  marginLeft: "8%",
+                  marginRight: "8%",
+                  flexDirection: "row",
+                  backgroundColor: "#fff",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  borderWidth: 1,
+                  borderColor: "#E5E7EB",
+                }}
+              >
+                {/* LEFT SIDE */}
+                {/* LEFT SIDE */}
+                <View
+                  style={{
+                    width: "45%",
+                    backgroundColor: "#F9FAFB",
+                    borderRightWidth: 1,
+                    borderColor: "#E5E7EB",
+                  }}
+                >
+                  {/* 🔥 IMAGE */}
+                  <View style={{ padding: 20, alignItems: "center" }}>
+                    <Image
+                      source={{ uri: URL.createObjectURL(uploadedFiles[0]) }}
+                      style={{
+                        width: "100%",
+                        height: 420,
+                        resizeMode: "contain",
+                      }}
+                    />
+
+                    {/* 🔥 UPLOAD ANOTHER BUTTON */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        setUploadedFiles([]);
+                        setGeneratedPrescription(null);
+                        setHasError(false);
+                        setIsGenerating(false);
+
+                        fileInputRef.current?.click();
+                      }}
+                      style={{
+                        marginTop: 20,
+                        backgroundColor: "#FF4D4D",
+                        paddingHorizontal: 22,
+                        paddingVertical: 12,
+                        borderRadius: 25,
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ color: "#fff", fontWeight: "600" }}>
+                        Upload Another
+                      </Text>
+
+                      <Ionicons
+                        name="arrow-forward"
+                        size={16}
+                        color="#fff"
+                        style={{ marginLeft: 8 }}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* RIGHT SIDE */}
+                <View style={{ flex: 1, padding: 20 }}>
+                  {/* 🔥 RIGHT HEADER (UPDATED) */}
+
+                  {/* CONTENT */}
+                  <View style={{ height: 420 }}>
+                    {isGenerating ? (
+                      <View style={{ alignItems: "center", marginTop: 100 }}>
+                        <ActivityIndicator size="large" color="#FF5A5F" />
+                        <Text style={{ marginTop: 10 }}>
+                          Generating prescription...
+                        </Text>
+                      </View>
+                    ) : hasError ? (
+                      <Text style={{ textAlign: "center", marginTop: 100 }}>
+                        No prescription report generated
+                      </Text>
+                    ) : (
+                      <ScrollView>
+                        {formattedData.map((item, index) => {
+                          if (item.type === "heading") {
+                            return (
+                              <Text
+                                key={index}
+                                style={{ fontWeight: "700", marginTop: 10 }}
+                              >
+                                {item.content}
+                              </Text>
+                            );
+                          }
+
+                          if (item.type === "bullet") {
+                            return (
+                              <Text key={index} style={{ marginLeft: 10 }}>
+                                • {item.content}
+                              </Text>
+                            );
+                          }
+
+                          return <Text key={index}>{item.content}</Text>;
+                        })}
+                      </ScrollView>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </>
+          )}
+
           {/* ===== SERVICES GRID ===== */}
           <View style={webStyles.servicesGrid}>
             {[
               {
-                title: "Talk to\nDoctor",
+                title: "Talk to Doctor",
                 img: require("../../assets/Images/webtalktodr.png"),
                 bg: "#E9DDB5",
               },
-              {
-                title: "Upload\nPrescription",
-                img: require("../../assets/Images/webpresc.png"),
-                bg: "#CFE9D6",
-              },
+
               {
                 title: "Heart Check",
                 img: require("../../assets/Images/webstetho.png"),
                 bg: "#C9CEF6",
-              },
-              {
-                title: "Women\nHealth",
-                img: require("../../assets/Images/newgirlpregpic2.png"),
               },
             ].map((item, i) => (
               <TouchableOpacity
@@ -657,9 +980,7 @@ export default function KokoroDoctorScreen() {
                   }
 
                   if (title === "Upload Prescription") {
-                    navigation.navigate("DoctorAppNavigation", {
-                      screen: "Prescription",
-                    });
+                    fileInputRef.current?.click();
                   }
                 }}
               >
@@ -801,6 +1122,135 @@ export default function KokoroDoctorScreen() {
               </Text>
             </View>
           </View>
+
+          <View
+            style={{
+              marginTop: 40,
+              marginLeft: "8%",
+              marginRight: "8%",
+              backgroundColor: "#EDE7DF",
+              padding: 40,
+              borderRadius: 20,
+              flexDirection: "row", // ⭐ MAIN FIX
+              justifyContent: "space-between",
+              marginBottom: 40,
+            }}
+          >
+            {/* LEFT SIDE */}
+            <View style={{ width: "48%" }}>
+              <Text
+                style={{
+                  color: "#94A3B8",
+                  fontSize: 20,
+                  fontWeight: "600",
+                  fontFamily: "IBM Plex Mono",
+                  fontStyle: "SemiBold",
+                  marginBottom: 10,
+                }}
+              >
+                The problem we solve
+              </Text>
+
+              <Text
+                style={{
+                  fontSize: 40,
+                  fontWeight: "600",
+                  lineHeight: 52,
+                  color: "#000",
+                  marginBottom: 20,
+                  fontFamily: "serif",
+                }}
+              >
+                Post surgery is where{"\n"}
+                Cardiac care fails{"\n"}
+                We're here to fix that.
+              </Text>
+
+              <Text
+                style={{
+                  fontSize: 15,
+                  color: "#999999",
+                  lineHeight: 24,
+                  fontWeight: "400",
+                  fontFamily: "Inter",
+                }}
+              >
+                Every year, thousands of Indian patients undergo {"\n"}cardiac
+                surgery and go home with a discharge sheet — no explanation,{" "}
+                {"\n"}no follow-up plan, no one to call at 3 AM when the chest
+                tightens.
+                {"\n"}Kokoro was built by doctors who saw this happen too many
+                times.
+              </Text>
+            </View>
+
+            {/* RIGHT SIDE */}
+            <View
+              style={{
+                width: "48%",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+              }}
+            >
+              {[
+                {
+                  value: "30 %",
+                  text: "of cardiac \nreadmissions happen \nwithin 30 days of discharge",
+                },
+                {
+                  value: "72h",
+                  text: "average wait for a \nfollow-up in tier-2 \nIndian cities",
+                },
+                {
+                  value: "67%",
+                  text: "of patients don’t \nfully understand \ntheir post-op \nmedicines",
+                },
+                {
+                  value: "₹0",
+                  text: "cost to get \nstarted on \nKokoro today",
+                },
+              ].map((item, i) => (
+                <View
+                  key={i}
+                  style={{
+                    width: "48%",
+                    backgroundColor: "#F3F4F6",
+                    borderRadius: 16,
+                    paddingVertical: 24,
+                    paddingHorizontal: 18,
+                    marginBottom: 20,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 32,
+                      fontWeight: "700",
+                      color: "#FF6B6B",
+                      marginBottom: 8,
+                      textAlign: "center",
+                    }}
+                  >
+                    {item.value}
+                  </Text>
+
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: "#6B6B6B",
+                      textAlign: "center",
+                      lineHeight: 18,
+                      fontFamily: "Roboto",
+                      fontWeight: "500",
+                    }}
+                  >
+                    {item.text}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
         </ScrollView>
       )}
       {(Platform.OS !== "web" || width < 1000) && (
@@ -832,81 +1282,31 @@ export default function KokoroDoctorScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* HERO CARD */}
-          <ImageBackground
-            source={require("../../assets/Images/TopCardd.png")} // 👈 your 1st image
-            style={styles.heroCard}
-            imageStyle={styles.heroBgImage}
-          >
-            {/* TEXT + BUTTON */}
-            <View style={styles.heroContent}>
-              <Text style={styles.heroTitle}>
-                Post-Surgery Is Where {"\n"}Cardiac Care Fails. {"\n"}We&apos;re
-                Here to Fix That.
-              </Text>
-
-              <TouchableOpacity
-                style={styles.helpBtn}
-                onPress={() => {
-                  // mixpanel.track("Get Help Now Clicked", {
-                  //   source: "hero-card",
-                  //   destination: "DoctorResultShow",
-                  // });
-                  trackButton("GetHelpNow_button_clicked", {
-                    source: "web-hero",
-                    destination: "DoctorResultShow",
-                  });
-
-                  navigation.navigate("PatientAppNavigation", {
-                    screen: "Doctors",
-                    params: {
-                      screen: "DoctorResultShow",
-                    },
-                  });
-                }}
-              >
-                <Text style={styles.helpText}>Get Help Now</Text>
-                <Ionicons name="arrow-forward" size={16} color="#ff4d4d" />
-              </TouchableOpacity>
-            </View>
-
-            {/* DOCTOR CUTOUT */}
-            <Image
-              source={require("../../assets/Images/newtopcarddr.png")}
-              style={styles.heroDoctor}
-            />
-          </ImageBackground>
-
-          {/* TRUST BADGES */}
-          <View style={styles.badgeRow}>
-            <View style={styles.badge}>
-              {/* Built with doctors */}
-              <View style={styles.badgeItem}>
-                <Image
-                  source={require("../../assets/Images/stethoscopees.png")}
-                  style={styles.badgeIcon}
-                />
-                <Text style={styles.badgeText}>built with doctors</Text>
-              </View>
-
-              {/* Harvard */}
-              <View style={styles.badgeItem}>
-                <Image
-                  source={require("../../assets/Images/capharvard.png")}
-                  style={styles.badgeIcon}
-                />
-                <Text style={styles.badgeText}>Harvard Innovation Labs</Text>
-              </View>
-
-              {/* Private & Secure */}
-              <View style={styles.badgeItem}>
-                <Image
-                  source={require("../../assets/Images/checkk.png")}
-                  style={styles.badgeIcon}
-                />
-                <Text style={styles.badgeText}>Private & Secure</Text>
-              </View>
-            </View>
+          <View>
+            <Text
+              style={{
+                color: "#000000",
+                fontSize: 24,
+                fontWeight: "600",
+                fontFamily: "Crimson Text",
+                fontStyle: "SemiBold",
+                textAlign: "center",
+              }}
+            >
+              Post-Surgery Care Starts the
+            </Text>
+            <Text
+              style={{
+                color: "#FF7072",
+                fontSize: 24,
+                fontWeight: "600",
+                fontFamily: "Crimson Text",
+                fontStyle: "SemiBold",
+                textAlign: "center",
+              }}
+            >
+              Moment you leave the OT
+            </Text>
           </View>
 
           {/* SEARCH */}
@@ -1063,28 +1463,230 @@ export default function KokoroDoctorScreen() {
             </ScrollView>
           </View>
 
+          <Animated.View
+            style={{
+              alignItems: "center",
+              marginTop: 15,
+              transform: [{ translateY: bounceAnim }],
+            }}
+          >
+            <Text
+              style={{
+                color: "#9CA3AF",
+                fontSize: 14,
+                marginBottom: 4,
+                fontWeight: "500",
+              }}
+            >
+              Try now
+            </Text>
+
+            <Ionicons name="chevron-down" size={24} color="#9CA3AF" />
+          </Animated.View>
+
+          <TouchableOpacity
+            style={styles.uploadBtn}
+            activeOpacity={0.85}
+            onPress={() => {
+              setUploadedFiles([]); // ✅ clear old files
+              setGeneratedPrescription(null);
+              setHasError(false);
+              setIsGenerating(false);
+              fileInputRef.current?.click();
+            }}
+          >
+            <LinearGradient
+              colors={["#FF5A5F", "#FF2D2D"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.uploadBtnGradient}
+            >
+              <Text style={styles.uploadBtnText}>Upload Prescription</Text>
+
+              <Ionicons
+                name="arrow-forward"
+                size={18}
+                color="#fff"
+                style={{ marginLeft: 10 }}
+              />
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {uploadedFiles.length > 0 && (
+            <View
+              style={{
+                marginTop: 30,
+                backgroundColor: "#fff",
+                borderRadius: 16,
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: "#eee",
+              }}
+            >
+              {/* 🔥 TOP: IMAGE BOX */}
+              <LinearGradient
+                colors={["#D0D0D0", "#FFFFFF"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={{
+                  paddingTop: 20,
+
+                  paddingHorizontal: 20,
+                  alignItems: "center",
+                }}
+              >
+                <Image
+                  source={
+                    Platform.OS === "web"
+                      ? { uri: URL.createObjectURL(uploadedFiles[0]) }
+                      : { uri: uploadedFiles[0]?.uri }
+                  }
+                  style={{
+                    width: "80%",
+                    height: 150,
+
+                    resizeMode: "cover",
+                  }}
+                />
+
+                <Text
+                  style={{
+                    color: "#16A34A",
+                    fontSize: 14,
+                    fontWeight: "500",
+                    alignSelf: "flex-end",
+                  }}
+                >
+                  1 Document uploaded
+                </Text>
+              </LinearGradient>
+
+              {/* 🔥 MIDDLE: HEADER (NOT SCROLLABLE) */}
+              <View
+                style={{
+                  paddingHorizontal: 16,
+                  paddingTop: 16,
+                  paddingBottom: 10,
+                  backgroundColor: "#fff",
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Image
+                    source={require("../../assets/Icons/welcome_Rxicon.png")}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      marginRight: 10,
+                    }}
+                  />
+
+                  <View>
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        fontWeight: "700",
+                        color: "#333",
+                      }}
+                    >
+                      Kokoro Analysis
+                    </Text>
+
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: "#888",
+                        marginTop: 2,
+                      }}
+                    >
+                      AI-powered insights from your prescription
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 🔥 PERFECT DIVIDER */}
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: "#E5E7EB", // ⭐ clean gray (same as your UI)
+                    marginTop: 12,
+                  }}
+                />
+              </View>
+
+              {/* 🔥 BOTTOM: ONLY THIS SCROLLS */}
+              <View style={{ height: 220 }}>
+                {isGenerating ? (
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <ActivityIndicator size="large" color="#FF5A5F" />
+                    <Text style={{ marginTop: 10, color: "#666" }}>
+                      Generating prescription...
+                    </Text>
+                  </View>
+                ) : hasError ? (
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ color: "#777" }}>
+                      No prescription report generated
+                    </Text>
+                  </View>
+                ) : (
+                  <ScrollView contentContainerStyle={{ padding: 14 }}>
+                    {formattedData.map((item, index) => {
+                      if (item.type === "heading") {
+                        return (
+                          <Text
+                            key={index}
+                            style={{ fontWeight: "700", marginTop: 10 }}
+                          >
+                            {item.content}
+                          </Text>
+                        );
+                      }
+
+                      if (item.type === "bullet") {
+                        return (
+                          <Text key={index} style={{ marginLeft: 10 }}>
+                            • {item.content}
+                          </Text>
+                        );
+                      }
+
+                      return <Text key={index}>{item.content}</Text>;
+                    })}
+                  </ScrollView>
+                )}
+              </View>
+            </View>
+          )}
+
           {/* SERVICES */}
           <View style={styles.servicesGrid}>
             {[
               {
-                title: "Talk to\nDoctor",
-                img: require("../../assets/Images/talkdr.png"),
+                title: "Talk to Doctor",
+                img: require("../../assets/Images/talkdrimg.png"),
                 bg: "#E9DDB5",
-              },
-              {
-                title: "Upload\nPrescription",
-                img: require("../../assets/Images/Uploadprescriptionn.png"),
-                bg: "#CFE9D6",
               },
               {
                 title: "Heart Check",
                 img: require("../../assets/Images/heart stethoscope transperent 1.png"),
                 bg: "#C9CEF6",
-              },
-              {
-                title: "Women\nHealth",
-                img: require("../../assets/Images/pregnant girll.png"),
-                bg: "#F6C7D2",
               },
             ].map((item, i) => (
               <TouchableOpacity
@@ -1134,6 +1736,7 @@ export default function KokoroDoctorScreen() {
                   source={item.img}
                   style={[
                     styles.serviceImg,
+                    item.title === "Talk to Doctor" && styles.doctorImg, // ⭐ ONLY doctor
                     item.title.includes("Women") && styles.womenHealthImg,
                   ]}
                 />
@@ -1207,6 +1810,54 @@ export default function KokoroDoctorScreen() {
               <Text style={{ fontSize: 12, color: "#777" }}>
                 Verified doctors available
               </Text>
+            </View>
+          </View>
+
+          <View style={styles.problemSection}>
+            <Text style={styles.problemSubtitle}>The problem we solve</Text>
+
+            <Text style={styles.problemTitle}>
+              Post surgery is where{"\n"}
+              Cardiac care fails{"\n"}
+              We’re here to fix that.
+            </Text>
+
+            <Text style={styles.problemDesc}>
+              Every year, thousands of Indian patients undergo {"\n"}cardiac
+              surgery and go home with a discharge sheet — {"\n"}no explanation,
+              no follow-up plan, no one to call at 3 AM {"\n"}when the chest
+              tightens. Kokoro was built by doctors {"\n"}who saw this happen
+              too many times.
+            </Text>
+
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>30%</Text>
+                <Text style={styles.statText}>
+                  of cardiac readmissions happen within 30 days of discharge
+                </Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>72h</Text>
+                <Text style={styles.statText}>
+                  average wait for a follow-up in tier-2 Indian cities
+                </Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>67%</Text>
+                <Text style={styles.statText}>
+                  of patients don’t fully understand their post-op medicines
+                </Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>₹0</Text>
+                <Text style={styles.statText}>
+                  cost to get started on Kokoro today
+                </Text>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -1497,7 +2148,7 @@ const webStyles = StyleSheet.create({
   trustBox: {
     marginLeft: "8%",
     marginRight: "8%",
-    marginBottom: "4%",
+
     marginTop: 40,
     backgroundColor: "#FFEAEA",
     borderRadius: 40,
@@ -1695,8 +2346,8 @@ const webStyles = StyleSheet.create({
   },
 
   serviceCard: {
-    width: "23%",
-    height: 185,
+    width: "48%",
+    height: 240, // ⭐ increase height
     borderRadius: 16,
     overflow: "hidden",
     justifyContent: "flex-end",
@@ -1845,13 +2496,13 @@ const styles = StyleSheet.create({
   newText: {
     flex: 1,
     color: "#9B9A9A",
-
+    fontWeight: "700",
     borderWidth: 1,
     borderColor: "#AAAAAA",
     paddingVertical: 16,
     paddingLeft: 12,
     borderRadius: 14,
-    fontSize: 15,
+    fontSize: 20,
   },
 
   helpBtn: {
@@ -1954,7 +2605,7 @@ const styles = StyleSheet.create({
     marginTop: "4%",
     flexDirection: "row",
     alignItems: "center", // vertical center
-    height: 40, // same row height
+    height: 45, // same row height
   },
 
   tryLabel: {
@@ -1967,6 +2618,7 @@ const styles = StyleSheet.create({
   tryScroll: {
     alignItems: "center", // center chips vertically
     paddingRight: 10,
+    paddingVertical: 6,
   },
 
   /* CHIP */
@@ -1985,6 +2637,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
+  uploadBtn: {
+    alignSelf: "center",
+  },
+
+  uploadBtnGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 30,
+    shadowColor: "#FF4D4D",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+
+  uploadBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 
   /* SERVICES GRID */
   /* GRID */
@@ -1992,11 +2666,12 @@ const styles = StyleSheet.create({
     marginTop: 24,
     flexDirection: "row",
     justifyContent: "space-between",
+    gap: 10, // ⭐ add this (if supported)
   },
 
   /* CARD */
   serviceCard: {
-    width: "23%",
+    width: "48%",
     height: 120,
     borderRadius: 16,
     overflow: "hidden",
@@ -2015,6 +2690,13 @@ const styles = StyleSheet.create({
     resizeMode: "cover", // fill portrait image
     height: "100%",
   },
+  doctorImg: {
+    position: "absolute",
+    bottom: 0, // stick to bottom
+    height: "100%", // fill entire card height
+
+    resizeMode: "contain", // fill nicely
+  },
 
   /* BOTTOM LABEL BG */
   serviceLabel: {
@@ -2027,11 +2709,11 @@ const styles = StyleSheet.create({
 
   /* TITLE */
   serviceText: {
-    fontSize: windowWidth > 400 ? 14 : 11, // ⭐ big text
+    fontSize: windowWidth > 400 ? 14 : 14, // ⭐ big text
     fontWeight: "600",
     textAlign: "center",
     color: "#000",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", // serif look
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "Crimson Text", // serif look
     lineHeight: 20,
   },
   sectionTitle: {
@@ -2108,5 +2790,82 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
     color: "#111827",
+  },
+  problemSection: {
+    marginTop: 20,
+
+    // 👇 THIS is the key fix
+    marginLeft: -16,
+    marginRight: -16,
+    marginBottom: -16,
+
+    // keep internal spacing
+    paddingHorizontal: 16,
+
+    paddingBottom: 30,
+
+    backgroundColor: "#FFFAF4",
+  },
+
+  problemSubtitle: {
+    paddingTop: 20,
+    textAlign: "center",
+    fontSize: 14,
+    color: "#94A3B8",
+    marginBottom: 6,
+    fontFamily: "IBM Plex Mono",
+    fontWeight: "600",
+  },
+
+  problemTitle: {
+    textAlign: "center",
+    fontSize: 22,
+    fontWeight: "500",
+    color: "#000000",
+    lineHeight: 28,
+    fontFamily: "Playfair Display",
+  },
+
+  problemDesc: {
+    fontFamily: "Inter",
+    textAlign: "center",
+    fontSize: 14,
+    color: "#999999",
+    marginTop: 12,
+    lineHeight: 18,
+    fontWeight: "400",
+  },
+
+  statsGrid: {
+    marginTop: 20,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+
+  statCard: {
+    width: "48%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+
+  statNumber: {
+    color: "#FF6B6B",
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+
+  statText: {
+    fontFamily: "Roboto",
+    fontSize: 12,
+    color: "#6B6B6B",
+    lineHeight: 16,
+    textAlign: "center",
+    fontStyle: "Medium",
+    fontWeight: "500",
   },
 });
