@@ -15,6 +15,7 @@ import ManualDataIntegration from "../screens/HospitalScreens/ManualDataIntegrat
 import AIIntegrationScreen from "../screens/HospitalScreens/AIIntegrationScreen";
 import DataIntegrationValidation from "../screens/HospitalScreens/DataIntegrationValidation";
 import DataIntegrationComplete from "../screens/HospitalScreens/DataIntegrationComplete";
+import SignatureScreen from "../screens/HospitalScreens/SignatureScreen";
 import HospitalDashboard from "../screens/HospitalScreens/HospitalDashboard";
 
 const Stack = createNativeStackNavigator();
@@ -117,7 +118,11 @@ const HospitalAppNavigation = ({ navigation }) => {
           component={HospitalDashboard}
           options={{ headerShown: false }}
         />
-        
+        <Stack.Screen
+          name="SignatureScreen"
+          component={SignatureScreen}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </HeaderButtonsProvider>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   ImageBackground,
   StyleSheet,
@@ -13,7 +13,9 @@ import {
   StatusBar,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
+import { downloadInsuranceClaim, generateInsuranceFormHTML } from "../../utils/InsuranceFormService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -53,7 +55,10 @@ function parseAgeYears(raw) {
 }
 
 function strUpper(s, maxLen) {
-  const t = String(s ?? "").toUpperCase().replace(/\s+/g, " ").trim();
+  const t = String(s ?? "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
   return t.slice(0, maxLen);
 }
 
@@ -86,7 +91,12 @@ function buildInitialForm(sd) {
 
   const name = padChars(strUpper(patient.name, 40), 40);
   const policy = padChars(
-    truncateChars(String(ins.policy_number ?? "").replace(/\s/g, "").toUpperCase(), 18),
+    truncateChars(
+      String(ins.policy_number ?? "")
+        .replace(/\s/g, "")
+        .toUpperCase(),
+      18,
+    ),
     18,
   );
   const tpa = padChars(strUpper(tpaOrCompanyId(sd), 22), 22);
@@ -111,13 +121,21 @@ function buildInitialForm(sd) {
     truncateChars(String(bank.account_number ?? "").replace(/\s/g, ""), 22),
     22,
   );
-  const bankName = padChars(strUpper(String(bank.bank_name ?? "").trim(), 40), 40);
-  const ifsc = padChars(truncateChars(String(bank.ifsc_code ?? "").toUpperCase(), 11), 11);
+  const bankName = padChars(
+    strUpper(String(bank.bank_name ?? "").trim(), 40),
+    40,
+  );
+  const ifsc = padChars(
+    truncateChars(String(bank.ifsc_code ?? "").toUpperCase(), 11),
+    11,
+  );
   const chequeLine = String(bank.account_holder ?? "").trim();
 
   const docDate = padChars(parseDateToDDMMYYYY(meta.document_date), 8);
 
-  const polCompact = String(ins.policy_number ?? "").replace(/\s/g, "").toUpperCase();
+  const polCompact = String(ins.policy_number ?? "")
+    .replace(/\s/g, "")
+    .toUpperCase();
 
   return {
     policyNumber: policy,
@@ -225,6 +243,14 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
   );
 
   const [form, setForm] = useState(() => buildInitialForm(structured || {}));
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [previewMode, setPreviewMode] = useState(true);
+  const [signatureImage, setSignatureImage] = useState(null);
+  const formRef = useRef(null);
+  const htmlPreview = useMemo(
+    () => generateInsuranceFormHTML(form, signatureImage),
+    [form, signatureImage],
+  );
 
   useEffect(() => {
     setForm(buildInitialForm(structured || {}));
@@ -234,10 +260,19 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
     setForm((prev) => ({ ...prev, [key]: v }));
   }, []);
 
-  const handleDownload = () => {
-    Alert.alert("Download", "Downloading updated claim file...", [
-      { text: "OK" },
-    ]);
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    try {
+      await downloadInsuranceClaim(form, signatureImage);
+    } catch (e) {
+      Alert.alert(
+        "Download Error",
+        "Could not generate the PDF. Please try again.",
+      );
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -267,7 +302,7 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                 <View style={stylesWeb.card}>
                   {/* ── CARD TITLE + BACK ── */}
                   <View style={stylesWeb.cardTitleRow}>
-                    <Text style={stylesWeb.cardTitle}>Post Op Care</Text>
+                    <Text style={stylesWeb.cardTitle}>Medi claim agent</Text>
                     <TouchableOpacity
                       style={stylesWeb.backToHomeBtn}
                       onPress={() => navigation.goBack()}
@@ -373,20 +408,51 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                         flex: 1,
                       }}
                     >
-                      <View style={stylesMobile.fileHeader}>
-                        <Ionicons
-                          name="document-text"
-                          size={18}
-                          color="#1976D2"
-                        />
-                        {/* FILE NAME */}
-                        <Text style={stylesMobile.fileName}>
-                          {analysisData?.structured_data?.source_filename ||
-                            "Insurance_Claim_Sharma_Aug2024.pdf"}
-                        </Text>
+                      <View style={[stylesMobile.fileHeader, { justifyContent: "space-between" }]}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Ionicons
+                            name="document-text"
+                            size={18}
+                            color="#1976D2"
+                          />
+                          {/* FILE NAME */}
+                          <Text style={stylesMobile.fileName}>
+                            {analysisData?.structured_data?.source_filename ||
+                              "Insurance_Claim_Sharma_Aug2024.pdf"}
+                          </Text>
+                        </View>
+                        {/* EDIT / PREVIEW TOGGLE */}
+                        <TouchableOpacity
+                          onPress={() => setPreviewMode((p) => !p)}
+                          style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 4,
+                            borderWidth: 1,
+                            borderColor: "#1976D2",
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, color: "#1976D2", fontWeight: "600" }}>
+                            {previewMode ? "Edit Fields" : "Preview"}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
 
+                      {previewMode ? (
+                        /* ── PREVIEW: compact iframe matching the PDF ── */
+                        <iframe
+                          srcDoc={htmlPreview}
+                          style={{
+                            flex: 1,
+                            width: "100%",
+                            border: "none",
+                            minHeight: 600,
+                          }}
+                          title="Insurance Claim Preview"
+                        />
+                      ) : (
                       <ScrollView>
+                        <View ref={formRef}>
                         <View style={stylesWeb.formHeaderContainer}>
                           {/* TOP ROW */}
                           <View style={stylesWeb.formTopRow}>
@@ -446,7 +512,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={18}
                                     value={form.policyNumber}
-                                    onChange={(v) => setField("policyNumber", v)}
+                                    onChange={(v) =>
+                                      setField("policyNumber", v)
+                                    }
                                   />
                                 </View>
 
@@ -457,7 +525,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={14}
                                     value={form.certificateNumber}
-                                    onChange={(v) => setField("certificateNumber", v)}
+                                    onChange={(v) =>
+                                      setField("certificateNumber", v)
+                                    }
                                   />
                                 </View>
                               </View>
@@ -495,14 +565,18 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={40}
                                     value={form.primaryAddressRow1}
-                                    onChange={(v) => setField("primaryAddressRow1", v)}
+                                    onChange={(v) =>
+                                      setField("primaryAddressRow1", v)
+                                    }
                                   />
 
                                   {/* SECOND ROW */}
                                   <CharBoxRow
                                     length={35}
                                     value={form.primaryAddressRow2}
-                                    onChange={(v) => setField("primaryAddressRow2", v)}
+                                    onChange={(v) =>
+                                      setField("primaryAddressRow2", v)
+                                    }
                                   />
                                 </View>
                               </View>
@@ -523,7 +597,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={18}
                                     value={form.primaryState}
-                                    onChange={(v) => setField("primaryState", v)}
+                                    onChange={(v) =>
+                                      setField("primaryState", v)
+                                    }
                                   />
                                 </View>
                               </View>
@@ -544,7 +620,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={10}
                                     value={form.primaryPhone}
-                                    onChange={(v) => setField("primaryPhone", v)}
+                                    onChange={(v) =>
+                                      setField("primaryPhone", v)
+                                    }
                                   />
                                 </View>
 
@@ -553,7 +631,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <TextInput
                                     style={stylesWeb.longInput}
                                     value={form.primaryEmail}
-                                    onChangeText={(t) => setField("primaryEmail", t)}
+                                    onChangeText={(t) =>
+                                      setField("primaryEmail", t)
+                                    }
                                     placeholder=""
                                   />
                                 </View>
@@ -717,7 +797,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <TextInput
                                     style={stylesWeb.longInputWide}
                                     value={form.diagnosis}
-                                    onChangeText={(t) => setField("diagnosis", t)}
+                                    onChangeText={(t) =>
+                                      setField("diagnosis", t)
+                                    }
                                     placeholder=""
                                   />
                                 </View>
@@ -782,7 +864,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 <CharBoxRow
                                   length={40}
                                   value={form.hospitalizedName}
-                                  onChange={(v) => setField("hospitalizedName", v)}
+                                  onChange={(v) =>
+                                    setField("hospitalizedName", v)
+                                  }
                                 />
                               </View>
 
@@ -812,7 +896,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                     onPress={() =>
                                       setField(
                                         "gender",
-                                        form.gender === "female" ? "" : "female",
+                                        form.gender === "female"
+                                          ? ""
+                                          : "female",
                                       )
                                     }
                                     style={[
@@ -922,12 +1008,16 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={40}
                                     value={form.hospAddressRow1}
-                                    onChange={(v) => setField("hospAddressRow1", v)}
+                                    onChange={(v) =>
+                                      setField("hospAddressRow1", v)
+                                    }
                                   />
                                   <CharBoxRow
                                     length={35}
                                     value={form.hospAddressRow2}
-                                    onChange={(v) => setField("hospAddressRow2", v)}
+                                    onChange={(v) =>
+                                      setField("hospAddressRow2", v)
+                                    }
                                   />
                                 </View>
                               </View>
@@ -978,7 +1068,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <TextInput
                                     style={stylesWeb.longInput}
                                     value={form.hospEmail}
-                                    onChangeText={(t) => setField("hospEmail", t)}
+                                    onChangeText={(t) =>
+                                      setField("hospEmail", t)
+                                    }
                                     placeholder=""
                                   />
                                 </View>
@@ -1085,7 +1177,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={8}
                                     value={form.admissionDate}
-                                    onChange={(v) => setField("admissionDate", v)}
+                                    onChange={(v) =>
+                                      setField("admissionDate", v)
+                                    }
                                   />
                                 </View>
 
@@ -1094,7 +1188,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={4}
                                     value={form.admissionTime}
-                                    onChange={(v) => setField("admissionTime", v)}
+                                    onChange={(v) =>
+                                      setField("admissionTime", v)
+                                    }
                                   />
                                 </View>
 
@@ -1105,7 +1201,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={8}
                                     value={form.dischargeDate}
-                                    onChange={(v) => setField("dischargeDate", v)}
+                                    onChange={(v) =>
+                                      setField("dischargeDate", v)
+                                    }
                                   />
                                 </View>
 
@@ -1114,7 +1212,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={4}
                                     value={form.dischargeTime}
-                                    onChange={(v) => setField("dischargeTime", v)}
+                                    onChange={(v) =>
+                                      setField("dischargeTime", v)
+                                    }
                                   />
                                 </View>
                               </View>
@@ -1630,7 +1730,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <CharBoxRow
                                     length={22}
                                     value={form.accountNumber}
-                                    onChange={(v) => setField("accountNumber", v)}
+                                    onChange={(v) =>
+                                      setField("accountNumber", v)
+                                    }
                                   />
                                 </View>
                               </View>
@@ -1643,7 +1745,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                 <CharBoxRow
                                   length={40}
                                   value={form.bankNameBranch}
-                                  onChange={(v) => setField("bankNameBranch", v)}
+                                  onChange={(v) =>
+                                    setField("bankNameBranch", v)
+                                  }
                                 />
                               </View>
 
@@ -1755,7 +1859,27 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <Text style={stylesWeb.label}>
                                     Signature of the Insured
                                   </Text>
-                                  <View style={stylesWeb.signatureBox} />
+                                  <TouchableOpacity
+                                    style={stylesWeb.signatureBox}
+                                    onPress={() =>
+                                      navigation.navigate("SignatureScreen", {
+                                        onSave: (uri) => setSignatureImage(uri),
+                                      })
+                                    }
+                                    activeOpacity={0.7}
+                                  >
+                                    {signatureImage ? (
+                                      <Image
+                                        source={{ uri: signatureImage }}
+                                        style={stylesWeb.signatureImage}
+                                        resizeMode="contain"
+                                      />
+                                    ) : (
+                                      <Text style={stylesWeb.signaturePlaceholder}>
+                                        Tap to sign
+                                      </Text>
+                                    )}
+                                  </TouchableOpacity>
                                 </View>
                               </View>
 
@@ -1778,7 +1902,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                             </View>
                           </View>
                         </View>
+                        </View>
                       </ScrollView>
+                      )}
                     </View>
                   </View>
                 </View>
@@ -1788,12 +1914,20 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={stylesWeb.primaryBtnWeb}
+                    style={[
+                      stylesWeb.primaryBtnWeb,
+                      isDownloading && { opacity: 0.6 },
+                    ]}
                     onPress={handleDownload}
+                    disabled={isDownloading}
                   >
-                    <Text style={stylesWeb.primaryTextWeb}>
-                      Download updated claim
-                    </Text>
+                    {isDownloading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={stylesWeb.primaryTextWeb}>
+                        Download updated claim
+                      </Text>
+                    )}
                   </TouchableOpacity>
 
                   <TouchableOpacity style={stylesWeb.greenOutlineBtnWeb}>
@@ -1820,7 +1954,7 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
           <View style={stylesMobile.header}>
             <HeaderLoginSignUp navigation={navigation} />
           </View>
-          <Text style={stylesMobile.title}>Insurance claim analysis AI</Text>
+          <Text style={stylesMobile.title}>Medi claim agent</Text>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -1844,107 +1978,1301 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                 </Text>
               </View>
               <ScrollView
-                style={stylesMobile.cardScroll}
-                showsVerticalScrollIndicator={true}
+                horizontal
+                showsHorizontalScrollIndicator={true}
+                scrollEventThrottle={16}
               >
-                {/* FORM TITLE */}
-                <Text style={stylesMobile.formTitle}>
-                  REIMBURSEMENT CLAIM FORM
-                </Text>
+                <View style={{ minWidth: 1300 }}>
+                  <View style={stylesWeb.formHeaderContainer}>
+                    {/* TOP ROW */}
+                    <View style={stylesWeb.formTopRow}>
+                      {/* LEFT LOGO */}
+                      <View style={stylesWeb.logoRow}>
+                        <Image
+                          source={require("../../assets/HospitalPortal/Icon/mediassit.png")}
+                          style={stylesWeb.logo}
+                          resizeMode="contain"
+                        />
+                        <Text style={stylesWeb.logoText}>Medi Assist</Text>
+                      </View>
 
-                {/* SECTION: PRIMARY INSURED */}
-                <Text style={stylesMobile.sectionTitle}>
-                  Details of Primary Insured
-                </Text>
+                      {/* CENTER TITLE */}
+                      <View style={stylesWeb.centerTitleBlock}>
+                        <Text style={stylesWeb.formMainTitle}>
+                          REIMBURSEMENT CLAIM FORM
+                        </Text>
+                        <Text style={stylesWeb.formSubTitle}>
+                          TO BE FILLED BY THE INSURED
+                        </Text>
+                        <Text style={stylesWeb.formNoteCenter}>
+                          The issue of this Form is not to be taken as an
+                          admission of liability
+                        </Text>
+                      </View>
 
-                <CharBoxRow
-                  length={12}
-                  value={form.mobileIdRow}
-                  onChange={(v) => setField("mobileIdRow", v)}
-                  boxStyle={stylesMobile.box}
-                  rowStyle={stylesMobile.row}
-                />
+                      {/* RIGHT TEXT */}
+                      <Text style={stylesWeb.formNoteRight}>
+                        (To be Filled in block letters)
+                      </Text>
+                    </View>
+                  </View>
 
-                {/* POLICY NO */}
-                <Text style={stylesMobile.label}>Policy No:</Text>
-                <CharBoxRow
-                  length={16}
-                  value={form.mobilePolicy}
-                  onChange={(v) => setField("mobilePolicy", v)}
-                  boxStyle={stylesMobile.box}
-                  rowStyle={stylesMobile.row}
-                />
+                  <View style={stylesWeb.sectionContainer}>
+                    {/* DIVIDER WITH CENTER TEXT */}
+                    <View style={stylesWeb.dividerRow}>
+                      <View style={stylesWeb.line} />
+                      <Text style={stylesWeb.dividerText}>
+                        DETAILS OF PRIMARY INSURED:
+                      </Text>
+                      <View style={stylesWeb.line} />
+                    </View>
 
-                {/* NAME */}
-                <Text style={stylesMobile.label}>Name:</Text>
-                <CharBoxRow
-                  length={20}
-                  value={form.mobileNameTrunc}
-                  onChange={(v) => setField("mobileNameTrunc", v)}
-                  boxStyle={stylesMobile.box}
-                  rowStyle={stylesMobile.row}
-                />
+                    {/* MAIN CONTENT + RIGHT SECTION BAR */}
+                    <View style={stylesWeb.sectionContentRow}>
+                      {/* LEFT FORM */}
+                      <View style={{ flex: 1 }}>
+                        {/* ROW 1: POLICY + SL NO */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>a) Policy No.:</Text>
+                            <CharBoxRow
+                              length={18}
+                              value={form.policyNumber}
+                              onChange={(v) => setField("policyNumber", v)}
+                            />
+                          </View>
 
-                {/* PHONE */}
-                <Text style={stylesMobile.label}>Phone:</Text>
-                <CharBoxRow
-                  length={10}
-                  value={form.mobilePhone}
-                  onChange={(v) => setField("mobilePhone", v)}
-                  boxStyle={stylesMobile.box}
-                  rowStyle={stylesMobile.row}
-                  keyboardType="numeric"
-                />
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              b) Sl. No./Certificate no.
+                            </Text>
+                            <CharBoxRow
+                              length={14}
+                              value={form.certificateNumber}
+                              onChange={(v) => setField("certificateNumber", v)}
+                            />
+                          </View>
+                        </View>
 
-                {/* EMAIL */}
-                <Text style={stylesMobile.label}>Email:</Text>
-                <CharBoxRow
-                  length={20}
-                  value={form.mobileEmail}
-                  onChange={(v) => setField("mobileEmail", v)}
-                  boxStyle={stylesMobile.box}
-                  rowStyle={stylesMobile.row}
-                />
+                        {/* ROW 2 */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>
+                            c) Company / TPA ID (MA ID)No:
+                          </Text>
+                          <CharBoxRow
+                            length={22}
+                            value={form.tpaId}
+                            onChange={(v) => setField("tpaId", v)}
+                          />
+                        </View>
 
-                {/* HOSPITAL DETAILS */}
-                <Text style={stylesMobile.sectionTitle}>
-                  Details of Hospitalization
-                </Text>
+                        {/* ROW 3 */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>d) Name:</Text>
+                          <CharBoxRow
+                            length={40}
+                            value={form.primaryName}
+                            onChange={(v) => setField("primaryName", v)}
+                          />
+                        </View>
 
-                <Text style={stylesMobile.label}>Hospital Name:</Text>
-                <TextInput
-                  style={stylesMobile.fullInput}
-                  placeholder="Enter hospital name"
-                  value={form.mobileHospital}
-                  onChangeText={(t) => setField("mobileHospital", t)}
-                />
+                        {/* ROW 4 */}
+                        <View style={stylesWeb.addressRow}>
+                          {/* LABEL aligned with first row */}
+                          <Text style={stylesWeb.label}>e) Address:</Text>
 
-                <Text style={stylesMobile.label}>Admission Date:</Text>
-                <TextInput
-                  style={stylesMobile.fullInput}
-                  placeholder="DD/MM/YYYY"
-                  value={form.mobileAdmission}
-                  onChangeText={(t) => setField("mobileAdmission", t)}
-                />
+                          {/* BOXES */}
+                          <View style={stylesWeb.addressBoxes}>
+                            {/* FIRST ROW */}
+                            <CharBoxRow
+                              length={40}
+                              value={form.primaryAddressRow1}
+                              onChange={(v) =>
+                                setField("primaryAddressRow1", v)
+                              }
+                            />
 
-                <Text style={stylesMobile.label}>Discharge Date:</Text>
-                <TextInput
-                  style={stylesMobile.fullInput}
-                  placeholder="DD/MM/YYYY"
-                  value={form.mobileDischarge}
-                  onChangeText={(t) => setField("mobileDischarge", t)}
-                />
+                            {/* SECOND ROW */}
+                            <CharBoxRow
+                              length={35}
+                              value={form.primaryAddressRow2}
+                              onChange={(v) =>
+                                setField("primaryAddressRow2", v)
+                              }
+                            />
+                          </View>
+                        </View>
 
-                {/* CLAIM DETAILS */}
-                <Text style={stylesMobile.sectionTitle}>Claim Details</Text>
+                        {/* CITY + STATE */}
+                        <View style={stylesWeb.rowBetweens}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>City:</Text>
+                            <CharBoxRow
+                              length={18}
+                              value={form.primaryCity}
+                              onChange={(v) => setField("primaryCity", v)}
+                            />
+                          </View>
 
-                <Text style={stylesMobile.label}>Total Amount:</Text>
-                <TextInput
-                  style={stylesMobile.fullInput}
-                  placeholder="₹ Enter amount"
-                  value={form.mobileAmount}
-                  onChangeText={(t) => setField("mobileAmount", t)}
-                />
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>State:</Text>
+                            <CharBoxRow
+                              length={18}
+                              value={form.primaryState}
+                              onChange={(v) => setField("primaryState", v)}
+                            />
+                          </View>
+                        </View>
+
+                        {/* PIN + PHONE + EMAIL */}
+                        <View style={stylesWeb.rowBetweensLast}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Pin Code:</Text>
+                            <CharBoxRow
+                              length={6}
+                              value={form.primaryPin}
+                              onChange={(v) => setField("primaryPin", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Phone No:</Text>
+                            <CharBoxRow
+                              length={10}
+                              value={form.primaryPhone}
+                              onChange={(v) => setField("primaryPhone", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Email ID:</Text>
+                            <TextInput
+                              style={stylesWeb.longInput}
+                              value={form.primaryEmail}
+                              onChangeText={(t) => setField("primaryEmail", t)}
+                              placeholder=""
+                            />
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* RIGHT BLACK SECTION BAR */}
+                      <View style={stylesWeb.sectionBar}>
+                        {/* TOP LINE */}
+                        <View style={stylesWeb.sectionLine} />
+
+                        {/* TEXT IN MIDDLE */}
+                        <View style={stylesWeb.sectionTextWrap}>
+                          <Text style={stylesWeb.sectionText}>SECTION A</Text>
+                        </View>
+
+                        {/* BOTTOM LINE */}
+                        <View style={stylesWeb.sectionLine} />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={stylesWeb.sectionContainer}>
+                    {/* DIVIDER */}
+                    <View style={stylesWeb.dividerRow}>
+                      <View style={stylesWeb.line} />
+                      <Text style={stylesWeb.dividerText}>
+                        DETAILS OF INSURANCE HISTORY:
+                      </Text>
+                      <View style={stylesWeb.line} />
+                    </View>
+
+                    <View style={stylesWeb.sectionContentRow}>
+                      {/* LEFT CONTENT */}
+                      <View style={{ flex: 1 }}>
+                        {/* ROW 1 */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              a) Currently covered by any other Mediclaim /
+                              Health Insurance:
+                            </Text>
+                            <View style={stylesWeb.checkbox} />
+                            <Text style={stylesWeb.smallText}>Yes</Text>
+                            <View style={stylesWeb.checkbox} />
+                            <Text style={stylesWeb.smallText}>No</Text>
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              b) Date of commencement of first Insurance without
+                              break:
+                            </Text>
+
+                            {/* DATE BOXES */}
+                            <View style={stylesWeb.boxRow}>
+                              {["D", "D", "M", "M", "Y", "Y", "Y", "Y"].map(
+                                (_, i) => (
+                                  <TextInput
+                                    key={i}
+                                    style={stylesWeb.squareBox}
+                                    maxLength={1}
+                                  />
+                                ),
+                              )}
+                            </View>
+                          </View>
+                        </View>
+
+                        {/* ROW 2 */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              c) If yes, company name:
+                            </Text>
+                            <View style={stylesWeb.boxRow}>
+                              {Array.from({ length: 20 }).map((_, i) => (
+                                <TextInput
+                                  key={i}
+                                  style={stylesWeb.squareBox}
+                                />
+                              ))}
+                            </View>
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Policy No.</Text>
+                            <View style={stylesWeb.boxRow}>
+                              {Array.from({ length: 18 }).map((_, i) => (
+                                <TextInput
+                                  key={i}
+                                  style={stylesWeb.squareBox}
+                                />
+                              ))}
+                            </View>
+                          </View>
+                        </View>
+
+                        {/* ROW 3 */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              Sum insured (Rs.)
+                            </Text>
+                            <View style={stylesWeb.boxRow}>
+                              {Array.from({ length: 12 }).map((_, i) => (
+                                <TextInput
+                                  key={i}
+                                  style={stylesWeb.squareBox}
+                                />
+                              ))}
+                            </View>
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              d) Have you been hospitalized in the last four
+                              years since inception of the contract?
+                            </Text>
+                            <View style={stylesWeb.checkbox} />
+                            <Text style={stylesWeb.smallText}>Yes</Text>
+                            <View style={stylesWeb.checkbox} />
+                            <Text style={stylesWeb.smallText}>No</Text>
+
+                            <Text style={[stylesWeb.label, { marginLeft: 10 }]}>
+                              Date:
+                            </Text>
+                            <View style={stylesWeb.boxRow}>
+                              {["M", "M", "Y", "Y"].map((_, i) => (
+                                <TextInput
+                                  key={i}
+                                  style={stylesWeb.squareBox}
+                                />
+                              ))}
+                            </View>
+                          </View>
+                        </View>
+
+                        {/* ROW 4 */}
+                        <View style={stylesWeb.rowBetweenDiagnosis}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Diagnosis:</Text>
+                            <TextInput
+                              style={stylesWeb.longInputWide}
+                              value={form.diagnosis}
+                              onChangeText={(t) => setField("diagnosis", t)}
+                              placeholder=""
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              e) Previously covered by any other Mediclaim
+                              /Health insurance :
+                            </Text>
+                            <View style={stylesWeb.checkbox} />
+                            <Text style={stylesWeb.smallText}>Yes</Text>
+                            <View style={stylesWeb.checkbox} />
+                            <Text style={stylesWeb.smallText}>No</Text>
+                          </View>
+                        </View>
+
+                        {/* ROW 5 */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>
+                            f) If yes, company name:
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 22 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* RIGHT SIDE — SECTION B BAR */}
+                      <View style={stylesWeb.sectionBar}>
+                        <View style={stylesWeb.sectionLine} />
+                        <View style={stylesWeb.sectionTextWrap}>
+                          <Text style={stylesWeb.sectionText}>SECTION B</Text>
+                        </View>
+                        <View style={stylesWeb.sectionLine} />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={stylesWeb.sectionContainer}>
+                    {/* DIVIDER */}
+                    <View style={stylesWeb.dividerRow}>
+                      <View style={stylesWeb.line} />
+                      <Text style={stylesWeb.dividerText}>
+                        DETAILS OF INSURED PERSON HOSPITALIZED:
+                      </Text>
+                      <View style={stylesWeb.line} />
+                    </View>
+
+                    <View style={stylesWeb.sectionContentRow}>
+                      {/* LEFT CONTENT */}
+                      <View style={{ flex: 1 }}>
+                        {/* a) NAME */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>a) Name:</Text>
+                          <CharBoxRow
+                            length={40}
+                            value={form.hospitalizedName}
+                            onChange={(v) => setField("hospitalizedName", v)}
+                          />
+                        </View>
+
+                        {/* b + c + d */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>b) Gender</Text>
+                            <Text style={stylesWeb.smallText}>Male</Text>
+                            <TouchableOpacity
+                              onPress={() =>
+                                setField(
+                                  "gender",
+                                  form.gender === "male" ? "" : "male",
+                                )
+                              }
+                              style={[
+                                stylesWeb.checkbox,
+                                form.gender === "male" && {
+                                  backgroundColor: "#1976D2",
+                                },
+                              ]}
+                            />
+                            <Text style={stylesWeb.smallText}>Female</Text>
+                            <TouchableOpacity
+                              onPress={() =>
+                                setField(
+                                  "gender",
+                                  form.gender === "female" ? "" : "female",
+                                )
+                              }
+                              style={[
+                                stylesWeb.checkbox,
+                                form.gender === "female" && {
+                                  backgroundColor: "#1976D2",
+                                },
+                              ]}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>c) Age years</Text>
+                            <CharBoxRow
+                              length={2}
+                              value={form.ageYears}
+                              onChange={(v) => setField("ageYears", v)}
+                            />
+
+                            <Text style={stylesWeb.smallText}>Months</Text>
+                            <CharBoxRow
+                              length={2}
+                              value={form.ageMonths}
+                              onChange={(v) => setField("ageMonths", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              d) Date of Birth
+                            </Text>
+                            <CharBoxRow
+                              length={8}
+                              value={form.dob}
+                              onChange={(v) => setField("dob", v)}
+                            />
+                          </View>
+                        </View>
+
+                        {/* e) RELATIONSHIP */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>
+                            e) Relationship to Primary insured:
+                          </Text>
+
+                          {[
+                            "Self",
+                            "Spouse",
+                            "Child",
+                            "Father",
+                            "Mother",
+                            "Other",
+                          ].map((item, i) => (
+                            <React.Fragment key={i}>
+                              <Text style={stylesWeb.smallText}>{item}</Text>
+                              <View style={stylesWeb.checkbox} />
+                            </React.Fragment>
+                          ))}
+
+                          <Text style={stylesWeb.smallText}>
+                            (Please Specify)
+                          </Text>
+                          <TextInput style={stylesWeb.longInputWide} />
+                        </View>
+
+                        {/* f) OCCUPATION */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>f) Occupation</Text>
+
+                          {[
+                            "Service",
+                            "Self Employed",
+                            "Home Maker",
+                            "Student",
+                            "Retired",
+                            "Other",
+                          ].map((item, i) => (
+                            <React.Fragment key={i}>
+                              <Text style={stylesWeb.smallText}>{item}</Text>
+                              <View style={stylesWeb.checkbox} />
+                            </React.Fragment>
+                          ))}
+
+                          <Text style={stylesWeb.smallText}>
+                            (Please Specify)
+                          </Text>
+                          <TextInput style={stylesWeb.longInputWide} />
+                        </View>
+
+                        {/* g) ADDRESS */}
+                        <View style={stylesWeb.addressRow}>
+                          <Text style={stylesWeb.label}>
+                            g) Address (if diffrent from above):
+                          </Text>
+
+                          <View style={stylesWeb.addressBoxes}>
+                            <CharBoxRow
+                              length={40}
+                              value={form.hospAddressRow1}
+                              onChange={(v) => setField("hospAddressRow1", v)}
+                            />
+                            <CharBoxRow
+                              length={35}
+                              value={form.hospAddressRow2}
+                              onChange={(v) => setField("hospAddressRow2", v)}
+                            />
+                          </View>
+                        </View>
+
+                        {/* CITY + STATE */}
+                        <View style={stylesWeb.rowBetweens}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>City:</Text>
+                            <CharBoxRow
+                              length={18}
+                              value={form.hospCity}
+                              onChange={(v) => setField("hospCity", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>State:</Text>
+                            <CharBoxRow
+                              length={18}
+                              value={form.hospState}
+                              onChange={(v) => setField("hospState", v)}
+                            />
+                          </View>
+                        </View>
+
+                        {/* PIN + PHONE + EMAIL */}
+                        <View style={stylesWeb.rowBetweensLast}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Pin Code:</Text>
+                            <CharBoxRow
+                              length={6}
+                              value={form.hospPin}
+                              onChange={(v) => setField("hospPin", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Phone No:</Text>
+                            <CharBoxRow
+                              length={10}
+                              value={form.hospPhone}
+                              onChange={(v) => setField("hospPhone", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Email ID:</Text>
+                            <TextInput
+                              style={stylesWeb.longInput}
+                              value={form.hospEmail}
+                              onChangeText={(t) => setField("hospEmail", t)}
+                              placeholder=""
+                            />
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* RIGHT BAR */}
+                      <View style={stylesWeb.sectionBar}>
+                        <View style={stylesWeb.sectionLine} />
+                        <View style={stylesWeb.sectionTextWrap}>
+                          <Text style={stylesWeb.sectionText}>SECTION C</Text>
+                        </View>
+                        <View style={stylesWeb.sectionLine} />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={stylesWeb.sectionContainer}>
+                    {/* DIVIDER */}
+                    <View style={stylesWeb.dividerRow}>
+                      <View style={stylesWeb.line} />
+                      <Text style={stylesWeb.dividerText}>
+                        DETAILS OF HOSPITALIZATION:
+                      </Text>
+                      <View style={stylesWeb.line} />
+                    </View>
+
+                    <View style={stylesWeb.sectionContentRow}>
+                      {/* LEFT CONTENT */}
+                      <View style={{ flex: 1 }}>
+                        {/* a) HOSPITAL NAME */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>
+                            a) Name of Hospital where Admitted:
+                          </Text>
+                          <CharBoxRow
+                            length={40}
+                            value={form.hospitalName}
+                            onChange={(v) => setField("hospitalName", v)}
+                          />
+                        </View>
+
+                        {/* b) ROOM CATEGORY */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>
+                            b) Room Category occupied:
+                          </Text>
+
+                          {[
+                            "Day care",
+                            "Single occupancy",
+                            "Twin sharing",
+                            "3 or more beds per room",
+                          ].map((item, i) => (
+                            <React.Fragment key={i}>
+                              <Text style={stylesWeb.smallText}>{item}</Text>
+                              <View style={stylesWeb.checkbox} />
+                            </React.Fragment>
+                          ))}
+                        </View>
+
+                        {/* c + d */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              c) Hospitalization due to:
+                            </Text>
+
+                            {["Injury", "Illness", "Maternity"].map(
+                              (item, i) => (
+                                <React.Fragment key={i}>
+                                  <Text style={stylesWeb.smallText}>
+                                    {item}
+                                  </Text>
+                                  <View style={stylesWeb.checkbox} />
+                                </React.Fragment>
+                              ),
+                            )}
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              d) Date of injury / Date Disease first detected
+                              /Date of Delivery:
+                            </Text>
+                            <CharBoxRow
+                              length={8}
+                              value={form.injuryDate}
+                              onChange={(v) => setField("injuryDate", v)}
+                            />
+                          </View>
+                        </View>
+
+                        {/* e + f + g + h */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              e) Date of Admission:
+                            </Text>
+                            <CharBoxRow
+                              length={8}
+                              value={form.admissionDate}
+                              onChange={(v) => setField("admissionDate", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>f) Time:</Text>
+                            <CharBoxRow
+                              length={4}
+                              value={form.admissionTime}
+                              onChange={(v) => setField("admissionTime", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              g) Date of Discharge:
+                            </Text>
+                            <CharBoxRow
+                              length={8}
+                              value={form.dischargeDate}
+                              onChange={(v) => setField("dischargeDate", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>h) Time:</Text>
+                            <CharBoxRow
+                              length={4}
+                              value={form.dischargeTime}
+                              onChange={(v) => setField("dischargeTime", v)}
+                            />
+                          </View>
+                        </View>
+
+                        {/* i + ii + iii */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              i) If injury give cause:
+                            </Text>
+
+                            {[
+                              "Self inflicted",
+                              "Road Traffic Accident",
+                              "Substance Abuse / Alcohol Consumption",
+                            ].map((item, i) => (
+                              <React.Fragment key={i}>
+                                <Text style={stylesWeb.smallText}>{item}</Text>
+                                <View style={stylesWeb.checkbox} />
+                              </React.Fragment>
+                            ))}
+                          </View>
+                        </View>
+
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              ii) Reported to Police
+                            </Text>
+                            <View style={stylesWeb.checkbox} />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              iii. MLC Report & Police FIR attached
+                            </Text>
+                            <View style={stylesWeb.checkbox} />
+                            <Text style={stylesWeb.smallText}>Yes</Text>
+                            <View style={stylesWeb.checkbox} />
+                            <Text style={stylesWeb.smallText}>No</Text>
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              j) System of Medicine:
+                            </Text>
+                            <TextInput
+                              style={stylesWeb.longInputWide}
+                              value={form.treatingDoctor}
+                              onChangeText={(t) =>
+                                setField("treatingDoctor", t)
+                              }
+                              placeholder=""
+                            />
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* RIGHT BAR */}
+                      <View style={stylesWeb.sectionBar}>
+                        <View style={stylesWeb.sectionLine} />
+                        <View style={stylesWeb.sectionTextWrap}>
+                          <Text style={stylesWeb.sectionText}>SECTION D</Text>
+                        </View>
+                        <View style={stylesWeb.sectionLine} />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={stylesWeb.sectionContainer}>
+                    {/* DIVIDER */}
+                    <View style={stylesWeb.dividerRow}>
+                      <View style={stylesWeb.line} />
+                      <Text style={stylesWeb.dividerText}>
+                        DETAILS OF CLAIM:
+                      </Text>
+                      <View style={stylesWeb.line} />
+                    </View>
+
+                    <View style={stylesWeb.sectionContentRow}>
+                      {/* LEFT CONTENT */}
+                      <View style={{ flex: 1 }}>
+                        {/* a) TREATMENT EXPENSES */}
+                        <Text style={stylesWeb.label}>
+                          a) Details of the Treatment expenses claimed
+                        </Text>
+
+                        {/* ROWS */}
+                        <View style={stylesWeb.rowBetween}>
+                          <Text style={stylesWeb.label}>
+                            i. Pre-hospitalization expenses Rs.
+                          </Text>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimPre}
+                            onChange={(v) => setField("claimPre", v)}
+                          />
+
+                          <Text style={stylesWeb.label}>
+                            ii. Hospitalization expenses Rs.
+                          </Text>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimHospital}
+                            onChange={(v) => setField("claimHospital", v)}
+                          />
+                        </View>
+
+                        <View style={stylesWeb.rowBetween}>
+                          <Text style={stylesWeb.label}>
+                            iii. Post-hospitalization expenses Rs.
+                          </Text>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimPost}
+                            onChange={(v) => setField("claimPost", v)}
+                          />
+
+                          <Text style={stylesWeb.label}>
+                            iv. Health-Check up cost Rs.
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+                        </View>
+
+                        <View style={stylesWeb.rowBetween}>
+                          <Text style={stylesWeb.label}>
+                            v. Ambulance Charges Rs.
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+
+                          <Text style={stylesWeb.label}>
+                            vi. Others (code):
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 3 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+
+                          <Text style={stylesWeb.label}>Rs.</Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+                        </View>
+
+                        {/* TOTAL */}
+                        <View style={stylesWeb.inlineRows}>
+                          <Text
+                            style={[
+                              stylesWeb.label,
+                              {
+                                fontWeight: "500",
+                                fontSize: 30,
+                                justifyContent: "flex-end",
+                              },
+                            ]}
+                          >
+                            Total Rs.
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 10 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBoxs} />
+                            ))}
+                          </View>
+                        </View>
+
+                        {/* PERIOD */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              vii. Pre-hospitalization period: days
+                            </Text>
+                            <View style={stylesWeb.boxRow}>
+                              {Array.from({ length: 3 }).map((_, i) => (
+                                <TextInput
+                                  key={i}
+                                  style={stylesWeb.squareBox}
+                                />
+                              ))}
+                            </View>
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              viii. Post-hospitalization period: days
+                            </Text>
+                            <View style={stylesWeb.boxRow}>
+                              {Array.from({ length: 3 }).map((_, i) => (
+                                <TextInput
+                                  key={i}
+                                  style={stylesWeb.squareBox}
+                                />
+                              ))}
+                            </View>
+                          </View>
+                        </View>
+
+                        {/* DOMICILIARY */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>
+                            b) Claim for Domiciliary Hospitalization:
+                          </Text>
+                          <View style={stylesWeb.checkbox} />
+                          <Text style={stylesWeb.smallText}>Yes</Text>
+                          <View style={stylesWeb.checkbox} />
+                          <Text style={stylesWeb.smallText}>No</Text>
+                          <Text style={stylesWeb.smallText}>
+                            (If yes, provide details in annexure)
+                          </Text>
+                        </View>
+
+                        {/* CASH BENEFITS */}
+                        <Text style={stylesWeb.label}>
+                          c) Details of Lump sum / cash benefit claimed:
+                        </Text>
+
+                        <View style={stylesWeb.rowBetween}>
+                          <Text style={stylesWeb.label}>
+                            i. Hospital Daily cash Rs.
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+
+                          <Text style={stylesWeb.label}>
+                            ii. Surgical Cash Rs.
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+                        </View>
+
+                        <View style={stylesWeb.rowBetween}>
+                          <Text style={stylesWeb.label}>
+                            iii. Critical Illness benefit Rs.
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+
+                          <Text style={stylesWeb.label}>
+                            iv. Convalescence Rs.
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+                        </View>
+
+                        <View style={stylesWeb.rowBetween}>
+                          <Text style={stylesWeb.label}>
+                            v. Pre/Post hospitalization Lump sum benefit Rs.
+                          </Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+
+                          <Text style={stylesWeb.label}>vi. Others Rs.</Text>
+                          <View style={stylesWeb.boxRow}>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <TextInput key={i} style={stylesWeb.squareBox} />
+                            ))}
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* RIGHT CHECKLIST */}
+                      <View style={stylesWeb.sectionEChecklist}>
+                        <Text style={stylesWeb.label}>
+                          Claim Documents Submitted - Check List:
+                        </Text>
+
+                        {[
+                          "Claim form duly signed",
+                          "Copy of the claim intimation, if any",
+                          "Hospital Main Bill",
+                          "Hospital Break-up Bill",
+                          "Hospital Bill Payment Receipt",
+                          "Hospital Discharge Summary",
+                          "Pharmacy Bill",
+                          "Operation Theater Notes",
+                          "ECG",
+                          "Doctors request for investigation",
+                          "Investigation Reports (Including CT MRI / USG / HPE)",
+                          "Doctors Prescriptions",
+                          "Others",
+                        ].map((item, i) => (
+                          <View key={i} style={stylesWeb.inlineRow}>
+                            <View style={stylesWeb.checkbox} />
+                            <Text style={stylesWeb.smallText}>{item}</Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* RIGHT BAR */}
+                      <View style={stylesWeb.sectionBar}>
+                        <View style={stylesWeb.sectionLine} />
+                        <View style={stylesWeb.sectionTextWrap}>
+                          <Text style={stylesWeb.sectionText}>SECTION E</Text>
+                        </View>
+                        <View style={stylesWeb.sectionLine} />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={stylesWeb.sectionContainer}>
+                    {/* DIVIDER */}
+                    <View style={stylesWeb.dividerRow}>
+                      <View style={stylesWeb.line} />
+                      <Text style={stylesWeb.dividerText}>
+                        DETAILS OF BILLS ENCLOSED:
+                      </Text>
+                      <View style={stylesWeb.line} />
+                    </View>
+
+                    <View style={stylesWeb.sectionContentRow}>
+                      {/* TABLE */}
+                      <View style={stylesWeb.tableContainer}>
+                        {/* HEADER ROW */}
+                        {/* HEADER ROW 1 */}
+                        <View style={stylesWeb.tableRowHeader}>
+                          <Text style={[stylesWeb.tableCell, { width: 50 }]}>
+                            Sl. No.
+                          </Text>
+                          <Text style={[stylesWeb.tableCell, { width: 80 }]}>
+                            Bill No.
+                          </Text>
+
+                          <Text style={[stylesWeb.tableCell, { width: 120 }]}>
+                            Date
+                          </Text>
+
+                          <Text style={[stylesWeb.tableCell, { width: 200 }]}>
+                            Issued by
+                          </Text>
+                          <Text style={[stylesWeb.tableCell, { flex: 1 }]}>
+                            Towards
+                          </Text>
+
+                          <Text style={[stylesWeb.tableCell, { width: 200 }]}>
+                            Amount (Rs)
+                          </Text>
+                        </View>
+
+                        {/* HEADER ROW 2 (GRID UNDER DATE & AMOUNT) */}
+
+                        {/* ROWS */}
+                        {Array.from({ length: 10 }).map((_, rowIndex) => (
+                          <View style={stylesWeb.tableRow}>
+                            <Text style={[stylesWeb.tableCell, { width: 50 }]}>
+                              {rowIndex + 1}.
+                            </Text>
+
+                            <View
+                              style={[stylesWeb.tableCell, { width: 80 }]}
+                            />
+
+                            {/* DATE CELLS */}
+                            {Array.from({ length: 6 }).map((_, i) => (
+                              <View key={i} style={stylesWeb.tableCellSmall} />
+                            ))}
+
+                            <View
+                              style={[stylesWeb.tableCell, { width: 200 }]}
+                            />
+
+                            <View style={[stylesWeb.tableCell, { flex: 1 }]}>
+                              {rowIndex === 0 && "Hospital main Bill"}
+                              {rowIndex === 1 &&
+                                "Pre-hospitalization Bills: Nos"}
+                              {rowIndex === 2 &&
+                                "Post-hospitalization Bills: Nos"}
+                              {rowIndex === 3 && "Pharmacy Bills"}
+                            </View>
+
+                            {/* AMOUNT CELLS */}
+                            {Array.from({ length: 10 }).map((_, i) => (
+                              <View key={i} style={stylesWeb.tableCellSmall} />
+                            ))}
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* RIGHT BAR */}
+                      <View style={stylesWeb.sectionBar}>
+                        <View style={stylesWeb.sectionLine} />
+                        <View style={stylesWeb.sectionTextWrap}>
+                          <Text style={stylesWeb.sectionText}>SECTION F</Text>
+                        </View>
+                        <View style={stylesWeb.sectionLine} />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={stylesWeb.sectionContainer}>
+                    {/* DIVIDER */}
+                    <View style={stylesWeb.dividerRow}>
+                      <View style={stylesWeb.line} />
+                      <Text style={stylesWeb.dividerText}>
+                        DETAILS OF PRIMARY INSURED’S BANK ACCOUNT:
+                      </Text>
+                      <View style={stylesWeb.line} />
+                    </View>
+
+                    <View style={stylesWeb.sectionContentRow}>
+                      {/* LEFT CONTENT */}
+                      <View style={{ flex: 1 }}>
+                        {/* ROW 1 */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>a) PAN:</Text>
+                            <CharBoxRow
+                              length={10}
+                              value={form.pan}
+                              onChange={(v) => setField("pan", v)}
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              b) Account Number:
+                            </Text>
+                            <CharBoxRow
+                              length={22}
+                              value={form.accountNumber}
+                              onChange={(v) => setField("accountNumber", v)}
+                            />
+                          </View>
+                        </View>
+
+                        {/* ROW 2 */}
+                        <View style={stylesWeb.inlineRow}>
+                          <Text style={stylesWeb.label}>
+                            c) Bank Name and Branch:
+                          </Text>
+                          <CharBoxRow
+                            length={40}
+                            value={form.bankNameBranch}
+                            onChange={(v) => setField("bankNameBranch", v)}
+                          />
+                        </View>
+
+                        {/* ROW 3 */}
+                        <View style={stylesWeb.rowBetween}>
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              d) Cheque / DD Payable details:
+                            </Text>
+                            <TextInput
+                              style={stylesWeb.longInputWide}
+                              value={form.chequeDetails}
+                              onChangeText={(t) => setField("chequeDetails", t)}
+                              placeholder=""
+                            />
+                          </View>
+
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>e) IFSC Code:</Text>
+                            <CharBoxRow
+                              length={11}
+                              value={form.ifscCode}
+                              onChange={(v) => setField("ifscCode", v)}
+                            />
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* RIGHT BAR */}
+                      <View style={stylesWeb.sectionBar}>
+                        <View style={stylesWeb.sectionLine} />
+                        <View style={stylesWeb.sectionTextWrap}>
+                          <Text style={stylesWeb.sectionText}>SECTION G</Text>
+                        </View>
+                        <View style={stylesWeb.sectionLine} />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={stylesWeb.sectionContainer}>
+                    {/* DIVIDER */}
+                    <View style={stylesWeb.dividerRow}>
+                      <View style={stylesWeb.line} />
+                      <Text style={stylesWeb.dividerText}>
+                        DECLARATION BY THE INSURED:
+                      </Text>
+                      <View style={stylesWeb.line} />
+                    </View>
+
+                    <View style={stylesWeb.sectionContentRow}>
+                      {/* LEFT CONTENT */}
+                      <View style={{ flex: 1 }}>
+                        {/* PARAGRAPH */}
+                        <Text style={stylesWeb.declarationText}>
+                          I hereby declare that the information furnished in the
+                          claim form is true & correct to the best of my
+                          knowledge and belief. If I have made any false or
+                          untrue statement, suppression or concealment of any
+                          material fact with respect to questions asked in
+                          relation to this claim, my right to claim
+                          reimbursement shall be forfeited. I also consent &
+                          authorize TPA / insurance Company, to seek necessary
+                          medical information / documents from any hospital /
+                          Medical Practitioner who has attended on the person
+                          against whom this claim is made. I hereby declare that
+                          I have included all the bills / receipts for the
+                          purpose of this claim & that I will not be making any
+                          supplementary claim, except the
+                          pre/post-hospitalization claim, if any.
+                        </Text>
+
+                        {/* DATE + PLACE + SIGNATURE */}
+                        <View style={stylesWeb.rowBetween}>
+                          {/* DATE */}
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Date</Text>
+                            <CharBoxRow
+                              length={8}
+                              value={form.declarationDate}
+                              onChange={(v) => setField("declarationDate", v)}
+                            />
+                          </View>
+
+                          {/* PLACE */}
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>Place:</Text>
+                            <TextInput
+                              style={stylesWeb.placeInput}
+                              value={form.declarationPlace}
+                              onChangeText={(t) =>
+                                setField("declarationPlace", t)
+                              }
+                              placeholder=""
+                            />
+                          </View>
+
+                          {/* SIGNATURE */}
+                          <View style={stylesWeb.inlineRow}>
+                            <Text style={stylesWeb.label}>
+                              Signature of the Insured
+                            </Text>
+                            <TouchableOpacity
+                              style={stylesWeb.signatureBox}
+                              onPress={() =>
+                                navigation.navigate("SignatureScreen", {
+                                  onSave: (uri) => setSignatureImage(uri),
+                                })
+                              }
+                              activeOpacity={0.7}
+                            >
+                              {signatureImage ? (
+                                <Image
+                                  source={{ uri: signatureImage }}
+                                  style={stylesWeb.signatureImage}
+                                  resizeMode="contain"
+                                />
+                              ) : (
+                                <Text style={stylesWeb.signaturePlaceholder}>
+                                  Tap to sign
+                                </Text>
+                              )}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+
+                        {/* FOOTER NOTE */}
+                        <View style={stylesWeb.footerDivider} />
+                        <Text style={stylesWeb.footerNote}>
+                          (IMPORTANT: PLEASE TURN OVER)
+                        </Text>
+                      </View>
+
+                      {/* RIGHT BAR */}
+                      <View style={stylesWeb.sectionBar}>
+                        <View style={stylesWeb.sectionLine} />
+                        <View style={stylesWeb.sectionTextWrap}>
+                          <Text style={stylesWeb.sectionText}>SECTION H</Text>
+                        </View>
+                        <View style={stylesWeb.sectionLine} />
+                      </View>
+                    </View>
+                  </View>
+                </View>
               </ScrollView>
             </View>
 
@@ -1954,12 +3282,20 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={stylesMobile.primaryBtn}
+              style={[
+                stylesMobile.primaryBtn,
+                isDownloading && { opacity: 0.6 },
+              ]}
               onPress={handleDownload}
+              disabled={isDownloading}
             >
-              <Text style={stylesMobile.primaryText}>
-                Download updated claim
-              </Text>
+              {isDownloading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={stylesMobile.primaryText}>
+                  Download updated claim
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity style={stylesMobile.greenOutlineBtn}>
@@ -2604,6 +3940,18 @@ const stylesWeb = StyleSheet.create({
     height: 40,
     borderWidth: 1,
     borderColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  signatureImage: {
+    width: "100%",
+    height: "100%",
+  },
+  signaturePlaceholder: {
+    fontSize: 10,
+    color: "#aaa",
+    fontStyle: "italic",
   },
 
   footerNote: {
