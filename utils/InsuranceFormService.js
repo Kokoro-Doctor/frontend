@@ -32,6 +32,15 @@ function checkBox(checked) {
     : `<span class="cb"></span>`;
 }
 
+/** Renders signature area for PDF/HTML: embedded image when provided, else empty box */
+function signatureBlockHtml(dataUrl) {
+  const s = dataUrl && String(dataUrl).trim();
+  if (s && s.startsWith("data:image/")) {
+    return `<span class="signature-box signature-box-filled"><img src="${s}" alt="" class="signature-img" /></span>`;
+  }
+  return `<span class="signature-box"></span>`;
+}
+
 function sectionBar(label) {
   return `
     <div class="section-bar">
@@ -53,10 +62,12 @@ function sectionDivider(label) {
 /**
  * Build a styled A4 HTML string from the filled insurance form state.
  * @param {Object} form - the `form` state from HospitalInsuranceDownload
+ * @param {string | null} [signatureDataUrl] - optional PNG data URI from the e-sign capture
  * @returns {string} HTML string
  */
-export function generateInsuranceFormHTML(form) {
+export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
   const f = form || {};
+  const signatureHtml = signatureBlockHtml(signatureDataUrl);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -193,7 +204,38 @@ export function generateInsuranceFormHTML(form) {
 
   /* ── DECLARATION ── */
   .declaration-text { font-size: 6px; line-height: 1.3; margin-bottom: 3px; }
-  .signature-box { display: inline-block; width: 60px; height: 18px; border: 0.5px solid #555; margin-left: 4px; }
+  .signature-block-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 5px;
+    margin-top: 5px;
+    margin-bottom: 3px;
+  }
+  .signature-box {
+    display: inline-block;
+    min-width: 18mm;
+    width: 18mm;
+    height: 8mm;
+    border: 0.5px solid #555;
+    vertical-align: bottom;
+    box-sizing: border-box;
+  }
+  .signature-box-filled {
+    width: 48mm;
+    height: 16mm;
+    min-width: 48mm;
+    padding: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .signature-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: left bottom;
+  }
   .footer-note { font-size: 6.5px; font-weight: bold; text-align: center; margin-top: 3px; }
 </style>
 </head>
@@ -624,10 +666,10 @@ export function generateInsuranceFormHTML(form) {
         <span class="label">Place:</span>
         <span class="text-field" style="min-width:80px">${escHtml(f.declarationPlace)}</span>
       </div>
-      <div class="row">
-        <span class="label">Signature of the Insured</span>
-        <span class="signature-box"></span>
-      </div>
+    </div>
+    <div class="signature-block-row">
+      <span class="label">Signature of the Insured</span>
+      ${signatureHtml}
     </div>
 
     <hr style="margin:8px 0;border:none;border-top:1px solid #888"/>
@@ -646,15 +688,16 @@ export function generateInsuranceFormHTML(form) {
  * Web  → html2pdf.js renders the compact A4 HTML template directly
  * Mobile → expo-print (HTML string) → expo-sharing
  * @param {Object} form - the `form` state from HospitalInsuranceDownload
+ * @param {string | null} [signatureDataUrl] - optional PNG data URI from the e-sign capture
  * @returns {Promise<void>}
  */
-export async function downloadInsuranceClaim(form) {
+export async function downloadInsuranceClaim(form, signatureDataUrl = null) {
   const patientName = String(form?.primaryName ?? "")
     .trim()
     .replace(/\s+/g, "_") || "Patient";
   const date = new Date().toISOString().split("T")[0];
   const fileName = `InsuranceClaim_${patientName}_${date}.pdf`;
-  const html = generateInsuranceFormHTML(form);
+  const html = generateInsuranceFormHTML(form, signatureDataUrl);
 
   if (Platform.OS === "web") {
     const html2pdf = (await import("html2pdf.js")).default;
@@ -693,8 +736,14 @@ export async function downloadInsuranceClaim(form) {
         .set({
           margin: 0,
           filename: fileName,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, allowTaint: true },
+          // PNG avoids JPEG artifacts on thin signature strokes
+          image: { type: "png", quality: 1 },
+          html2canvas: {
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+          },
           jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         })
         .from(captureEl)

@@ -245,8 +245,12 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
   const [form, setForm] = useState(() => buildInitialForm(structured || {}));
   const [isDownloading, setIsDownloading] = useState(false);
   const [previewMode, setPreviewMode] = useState(true);
+  const [signatureImage, setSignatureImage] = useState(null);
   const formRef = useRef(null);
-  const htmlPreview = useMemo(() => generateInsuranceFormHTML(form), [form]);
+  const htmlPreview = useMemo(
+    () => generateInsuranceFormHTML(form, signatureImage),
+    [form, signatureImage],
+  );
 
   useEffect(() => {
     setForm(buildInitialForm(structured || {}));
@@ -260,7 +264,7 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadInsuranceClaim(form);
+      await downloadInsuranceClaim(form, signatureImage);
     } catch (e) {
       Alert.alert(
         "Download Error",
@@ -1855,7 +1859,27 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                   <Text style={stylesWeb.label}>
                                     Signature of the Insured
                                   </Text>
-                                  <View style={stylesWeb.signatureBox} />
+                                  <TouchableOpacity
+                                    style={stylesWeb.signatureBox}
+                                    onPress={() =>
+                                      navigation.navigate("SignatureScreen", {
+                                        onSave: (uri) => setSignatureImage(uri),
+                                      })
+                                    }
+                                    activeOpacity={0.7}
+                                  >
+                                    {signatureImage ? (
+                                      <Image
+                                        source={{ uri: signatureImage }}
+                                        style={stylesWeb.signatureImage}
+                                        resizeMode="contain"
+                                      />
+                                    ) : (
+                                      <Text style={stylesWeb.signaturePlaceholder}>
+                                        Tap to sign
+                                      </Text>
+                                    )}
+                                  </TouchableOpacity>
                                 </View>
                               </View>
 
@@ -3207,7 +3231,27 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                             <Text style={stylesWeb.label}>
                               Signature of the Insured
                             </Text>
-                            <View style={stylesWeb.signatureBox} />
+                            <TouchableOpacity
+                              style={stylesWeb.signatureBox}
+                              onPress={() =>
+                                navigation.navigate("SignatureScreen", {
+                                  onSave: (uri) => setSignatureImage(uri),
+                                })
+                              }
+                              activeOpacity={0.7}
+                            >
+                              {signatureImage ? (
+                                <Image
+                                  source={{ uri: signatureImage }}
+                                  style={stylesWeb.signatureImage}
+                                  resizeMode="contain"
+                                />
+                              ) : (
+                                <Text style={stylesWeb.signaturePlaceholder}>
+                                  Tap to sign
+                                </Text>
+                              )}
+                            </TouchableOpacity>
                           </View>
                         </View>
 
@@ -3896,6 +3940,18 @@ const stylesWeb = StyleSheet.create({
     height: 40,
     borderWidth: 1,
     borderColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  signatureImage: {
+    width: "100%",
+    height: "100%",
+  },
+  signaturePlaceholder: {
+    fontSize: 10,
+    color: "#aaa",
+    fontStyle: "italic",
   },
 
   footerNote: {
