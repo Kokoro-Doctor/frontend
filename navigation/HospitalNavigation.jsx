@@ -16,6 +16,7 @@ import AIIntegrationScreen from "../screens/HospitalScreens/AIIntegrationScreen"
 import DataIntegrationValidation from "../screens/HospitalScreens/DataIntegrationValidation";
 import DataIntegrationComplete from "../screens/HospitalScreens/DataIntegrationComplete";
 import SignatureScreen from "../screens/HospitalScreens/SignatureScreen";
+import HospitalDashboard from "../screens/HospitalScreens/HospitalDashboard";
 
 const Stack = createNativeStackNavigator();
 
@@ -110,6 +111,11 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="DataIntegrationComplete"
           component={DataIntegrationComplete}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="HospitalDashboard"
+          component={HospitalDashboard}
           options={{ headerShown: false }}
         />
         <Stack.Screen

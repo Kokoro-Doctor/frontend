@@ -221,7 +221,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                         style={styles.cardStyle}
                         onPress={() => {
                           navigation.navigate("HospitalAppNavigation", {
-                            screen: "",
+                            screen: "HospitalDashboard",
                           });
                         }}
                       >
@@ -280,19 +280,28 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
             <View style={MobileStyles.cardsRow}>
-              <TouchableOpacity style={MobileStyles.cardStyle}>
+              <TouchableOpacity
+                style={MobileStyles.cardStyle}
+                onPress={() => {
+                  navigation.navigate("HospitalAppNavigation", {
+                    screen: "HospitalDashboard",
+                  });
+                }}
+              >
                 <Image
                   source={require("../../assets/HospitalPortal/Images/Hospital_cta.png")}
                   style={MobileStyles.image}
                 />
               </TouchableOpacity>
 
-              <TouchableOpacity style={MobileStyles.cardStyle}
-              onPress={() => {
+              <TouchableOpacity
+                style={MobileStyles.cardStyle}
+                onPress={() => {
                   navigation.navigate("HospitalAppNavigation", {
                     screen: "DataIntegrations",
                   });
-                }}>
+                }}
+              >
                 <ImageBackground
                   source={require("../../assets/HospitalPortal/Images/Hospital_card2.png")}
                   style={styles.image}

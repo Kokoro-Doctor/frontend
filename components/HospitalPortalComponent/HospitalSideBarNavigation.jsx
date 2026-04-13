@@ -45,7 +45,7 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
     if (menu === "Home") {
       navigation.navigate("HospitalPortalLandingPage");
     } else if (menu === "Dashboard") {
-      navigation.navigate("");
+      navigation.navigate("HospitalDashboard");
     } else if (menu === "Post OP Patients") {
       navigation.navigate("PostOpCare");
     } else if (menu === "Insurance Claim") {
