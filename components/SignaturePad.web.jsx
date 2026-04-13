@@ -2,10 +2,6 @@ import React, { useRef } from "react";
 import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import ReactSignatureCanvas from "react-signature-canvas";
 
-/** Large backing bitmap so strokes stay sharp when scaled into the PDF (trimmed export uses this resolution). */
-const SIGNATURE_BITMAP_W = 1600;
-const SIGNATURE_BITMAP_H = 800;
-
 const SignaturePad = ({ onSave, onCancel }) => {
   const sigRef = useRef(null);
 
@@ -35,8 +31,6 @@ const SignaturePad = ({ onSave, onCancel }) => {
           maxWidth={2.8}
           penColor="#111111"
           canvasProps={{
-            width: SIGNATURE_BITMAP_W,
-            height: SIGNATURE_BITMAP_H,
             style: {
               width: "100%",
               height: "100%",
