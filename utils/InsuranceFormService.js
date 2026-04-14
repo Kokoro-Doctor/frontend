@@ -3,21 +3,17 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 
+/** A4 at 96 DPI — must match .ifr container and jsPDF `format` on web */
+export const INSURANCE_FORM_PAGE_WIDTH_PX = 794;
+export const INSURANCE_FORM_PAGE_HEIGHT_PX = 1123;
+
 /**
- * Render a string as a row of individual character boxes for the PDF.
- * Each character gets its own bordered cell to match the on-screen char-box UI.
+ * Set `true` to render the PDF capture node on-screen for a few seconds before cleanup
+ * (compare with iframe preview). Keep `false` in production.
  */
-function charBoxHtml(value, length) {
-  const padded = String(value ?? "").padEnd(length, " ").slice(0, length);
-  const cells = padded
-    .split("")
-    .map(
-      (ch) =>
-        `<span class="char-box">${ch === " " ? "&nbsp;" : escHtml(ch)}</span>`,
-    )
-    .join("");
-  return `<span class="char-row">${cells}</span>`;
-}
+const DEBUG_INSURANCE_PDF_CAPTURE = false;
+
+// ─── HTML template helpers ────────────────────────────────────────────────────
 
 function escHtml(s) {
   return String(s ?? "")
@@ -26,528 +22,359 @@ function escHtml(s) {
     .replace(/>/g, "&gt;");
 }
 
-function checkBox(checked) {
-  return checked
-    ? `<span class="cb cb-checked">&#10003;</span>`
-    : `<span class="cb"></span>`;
+/**
+ * Each character gets its own bordered <td> in an inline-table.
+ * Cell size: 11 × 13 px.  Uses display:inline-table so it flows inline.
+ */
+function charBoxHtml(value, length) {
+  const padded = String(value ?? "").padEnd(length, " ").slice(0, length);
+  const cells = padded
+    .split("")
+    .map(
+      (ch) =>
+        `<td style="width:11px;height:13px;border:0.5px solid #666;` +
+        `text-align:center;vertical-align:middle;` +
+        `font-size:8px;font-family:'Courier New',monospace;padding:0;">` +
+        `${ch === " " ? "&nbsp;" : escHtml(ch)}</td>`,
+    )
+    .join("");
+  return (
+    `<table style="display:inline-table;border-collapse:collapse;` +
+    `vertical-align:middle;"><tbody><tr>${cells}</tr></tbody></table>`
+  );
 }
 
-/** Renders signature area for PDF/HTML: embedded image when provided, else empty box */
+function checkBox(checked) {
+  return checked
+    ? `<span style="display:inline-block;width:9px;height:9px;` +
+        `border:0.5px solid #555;text-align:center;line-height:9px;` +
+        `font-size:7px;vertical-align:middle;` +
+        `background:#1565C0;color:#fff;margin:0 1px;">&#10003;</span>`
+    : `<span style="display:inline-block;width:9px;height:9px;` +
+        `border:0.5px solid #555;line-height:9px;` +
+        `vertical-align:middle;margin:0 1px;"></span>`;
+}
+
+/** Inline underline text field */
+function tf(value, minWidth = "80px") {
+  return (
+    `<span style="display:inline-block;min-width:${minWidth};` +
+    `border-bottom:0.5px solid #555;font-size:8px;` +
+    `padding:0 1px;vertical-align:bottom;">` +
+    `${escHtml(String(value ?? ""))}&nbsp;</span>`
+  );
+}
+
+/** Bold span */
+function b(text) {
+  return `<span style="font-weight:bold;">${text}</span>`;
+}
+
+/** 2-column layout row */
+function r2(left, right, wl = "50%") {
+  return (
+    `<table style="width:100%;border-collapse:collapse;margin-bottom:2px;` +
+    `table-layout:fixed;"><tbody><tr>` +
+    `<td style="vertical-align:top;width:${wl};padding-right:4px;">${left}</td>` +
+    `<td style="vertical-align:top;">${right}</td>` +
+    `</tr></tbody></table>`
+  );
+}
+
+/** 3-column layout row */
+function r3(col1, col2, col3, wa = "33%", wb = "33%") {
+  return (
+    `<table style="width:100%;border-collapse:collapse;margin-bottom:2px;` +
+    `table-layout:fixed;"><tbody><tr>` +
+    `<td style="vertical-align:top;width:${wa};padding-right:3px;">${col1}</td>` +
+    `<td style="vertical-align:top;width:${wb};padding-right:3px;">${col2}</td>` +
+    `<td style="vertical-align:top;">${col3}</td>` +
+    `</tr></tbody></table>`
+  );
+}
+
+/** 4-column layout row */
+function r4(col1, col2, col3, col4) {
+  return (
+    `<table style="width:100%;border-collapse:collapse;margin-bottom:2px;` +
+    `table-layout:fixed;"><tbody><tr>` +
+    `<td style="vertical-align:top;padding-right:3px;">${col1}</td>` +
+    `<td style="vertical-align:top;padding-right:3px;">${col2}</td>` +
+    `<td style="vertical-align:top;padding-right:3px;">${col3}</td>` +
+    `<td style="vertical-align:top;">${col4}</td>` +
+    `</tr></tbody></table>`
+  );
+}
+
+/** Section content + narrow dark bar on the right with vertical label */
+function secWrap(content, label) {
+  return (
+    `<table style="width:100%;border:0.5px solid #aaa;border-collapse:collapse;` +
+    `margin-bottom:2px;table-layout:fixed;"><tbody><tr>` +
+    `<td style="vertical-align:top;padding:4px 5px;">${content}</td>` +
+    `<td style="width:14px;background:#1a1a1a;color:#fff;` +
+    `writing-mode:vertical-rl;transform:rotate(180deg);` +
+    `text-align:center;font-size:7px;font-weight:bold;` +
+    `letter-spacing:0.8px;white-space:nowrap;` +
+    `padding:3px 1px;vertical-align:middle;">${label}</td>` +
+    `</tr></tbody></table>`
+  );
+}
+
+/** Section E: 3-column — main content | checklist sidebar | section bar */
+function secWrap3(left, right, label) {
+  return (
+    `<table style="width:100%;border:0.5px solid #aaa;border-collapse:collapse;` +
+    `margin-bottom:2px;table-layout:fixed;"><tbody><tr>` +
+    `<td style="vertical-align:top;padding:4px 5px;">${left}</td>` +
+    `<td style="width:130px;vertical-align:top;padding:4px 5px;` +
+    `border-left:0.5px solid #ccc;">${right}</td>` +
+    `<td style="width:14px;background:#1a1a1a;color:#fff;` +
+    `writing-mode:vertical-rl;transform:rotate(180deg);` +
+    `text-align:center;font-size:7px;font-weight:bold;` +
+    `letter-spacing:0.8px;white-space:nowrap;` +
+    `padding:3px 1px;vertical-align:middle;">${label}</td>` +
+    `</tr></tbody></table>`
+  );
+}
+
+/** ─── LABEL ─── centered divider with horizontal rules */
+function secDiv(label) {
+  return (
+    `<table style="width:100%;border-collapse:collapse;margin-bottom:3px;">` +
+    `<tbody><tr>` +
+    `<td style="border-bottom:0.5px solid #555;"></td>` +
+    `<td style="white-space:nowrap;padding:0 5px 1px;font-weight:bold;` +
+    `font-size:8px;vertical-align:bottom;width:1%;">${label}</td>` +
+    `<td style="border-bottom:0.5px solid #555;"></td>` +
+    `</tr></tbody></table>`
+  );
+}
+
+/** Address label + two rows of char boxes in a table */
+function addrBlock(labelHtml, row1Html, row2Html) {
+  return (
+    `<table style="width:100%;border-collapse:collapse;margin-bottom:2px;">` +
+    `<tbody><tr>` +
+    `<td style="white-space:nowrap;vertical-align:top;` +
+    `padding-right:3px;width:1%;">${labelHtml}</td>` +
+    `<td style="vertical-align:top;">` +
+    `${row1Html}<br>${row2Html}` +
+    `</td></tr></tbody></table>`
+  );
+}
+
+/** Signature block: embedded image or plain bordered box */
 function signatureBlockHtml(dataUrl) {
   const s = dataUrl && String(dataUrl).trim();
   if (s && s.startsWith("data:image/")) {
-    return `<span class="signature-box signature-box-filled"><img src="${s}" alt="" class="signature-img" /></span>`;
+    return (
+      `<span style="display:inline-block;width:180px;min-height:50px;` +
+      `border:0.5px solid #555;vertical-align:bottom;padding:2px;">` +
+      `<img src="${s}" alt="" style="width:150px;height:auto;max-width:100%;` +
+      `object-fit:contain;object-position:left bottom;" /></span>`
+    );
   }
-  return `<span class="signature-box"></span>`;
+  return (
+    `<span style="display:inline-block;width:90px;min-height:35px;` +
+    `border:0.5px solid #555;vertical-align:bottom;"></span>`
+  );
 }
 
-function sectionBar(label) {
-  return `
-    <div class="section-bar">
-      <div class="section-bar-line"></div>
-      <div class="section-bar-text">${label}</div>
-      <div class="section-bar-line"></div>
-    </div>`;
-}
-
-function sectionDivider(label) {
-  return `
-    <div class="divider-row">
-      <div class="divider-line"></div>
-      <span class="divider-label">${label}</span>
-      <div class="divider-line"></div>
-    </div>`;
-}
+// ─── Main HTML generator ──────────────────────────────────────────────────────
 
 /**
  * Build a styled A4 HTML string from the filled insurance form state.
+ * Pure table/block layout — no flexbox, no grid.
  * @param {Object} form - the `form` state from HospitalInsuranceDownload
  * @param {string | null} [signatureDataUrl] - optional PNG data URI from the e-sign capture
  * @returns {string} HTML string
  */
 export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
   const f = form || {};
-  const signatureHtml = signatureBlockHtml(signatureDataUrl);
+  const sigHtml = signatureBlockHtml(signatureDataUrl);
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>Reimbursement Claim Form</title>
-<style>
-  @media print {
-    @page { margin: 0; size: A4 portrait; }
-    .insurance-form-root { padding: 4mm; }
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  .insurance-form-root {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 6.5px;
-    color: #111;
-    background: #fff;
-    padding: 4mm;
-    width: 210mm;
-    min-height: 297mm;
-    margin: 0 auto;
-  }
+  // ── SECTION A: PRIMARY INSURED ──────────────────────────────────────────────
+  const secA = secWrap(
+    secDiv("DETAILS OF PRIMARY INSURED:") +
+    r2(
+      b("a) Policy No.:") + " " + charBoxHtml(f.policyNumber, 18),
+      b("b) Sl. No./Certificate no.") + " " + charBoxHtml(f.certificateNumber, 14),
+      "55%",
+    ) +
+    `<div style="margin-bottom:2px;">${b("c) Company / TPA ID (MA ID) No:")} ${charBoxHtml(f.tpaId, 22)}</div>` +
+    `<div style="margin-bottom:2px;">${b("d) Name:")} ${charBoxHtml(f.primaryName, 40)}</div>` +
+    addrBlock(
+      b("e) Address:"),
+      charBoxHtml(f.primaryAddressRow1, 40),
+      charBoxHtml(f.primaryAddressRow2, 35),
+    ) +
+    r2(
+      b("City:") + " " + charBoxHtml(f.primaryCity, 18),
+      b("State:") + " " + charBoxHtml(f.primaryState, 18),
+    ) +
+    r3(
+      b("Pin Code:") + " " + charBoxHtml(f.primaryPin, 6),
+      b("Phone No:") + " " + charBoxHtml(f.primaryPhone, 10),
+      b("Email ID:") + " " + tf(f.primaryEmail, "100px"),
+    ),
+    "SECTION A",
+  );
 
-  /* ── HEADER ── */
-  .form-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    border-bottom: 1px solid #333;
-    padding-bottom: 3px;
-    margin-bottom: 3px;
-  }
-  .logo-block { display: flex; align-items: center; gap: 2px; }
-  .logo-text { font-size: 9px; font-weight: bold; color: #1565C0; }
-  .center-title { text-align: center; flex: 1; padding: 0 4px; }
-  .form-main-title { font-size: 9px; font-weight: bold; letter-spacing: 0.3px; }
-  .form-sub-title { font-size: 6.5px; margin-top: 1px; }
-  .form-note-center { font-size: 6px; color: #555; margin-top: 1px; font-style: italic; }
-  .form-note-right { font-size: 6px; color: #555; white-space: nowrap; }
+  // ── SECTION B: INSURANCE HISTORY ───────────────────────────────────────────
+  const secB = secWrap(
+    secDiv("DETAILS OF INSURANCE HISTORY:") +
+    r2(
+      b("a) Currently covered by any other Mediclaim / Health Insurance:") +
+        " " + checkBox(false) + `<span style="font-size:8px;">Yes</span>` +
+        " " + checkBox(false) + `<span style="font-size:8px;">No</span>`,
+      b("b) Date of commencement of first Insurance without break:") +
+        " " + charBoxHtml("", 8),
+    ) +
+    r2(
+      b("c) If yes, company name:") + " " + charBoxHtml("", 20),
+      b("Policy No.") + " " + charBoxHtml("", 18),
+    ) +
+    r2(
+      b("Sum insured (Rs.)") + " " + charBoxHtml("", 12),
+      b("d) Hospitalized in last four years?") +
+        " " + checkBox(false) + `<span style="font-size:8px;">Yes</span>` +
+        " " + checkBox(false) + `<span style="font-size:8px;">No</span>` +
+        `&nbsp;` + b("Date:") + " " + charBoxHtml("", 4),
+    ) +
+    r2(
+      b("Diagnosis:") + " " + tf(f.diagnosis, "160px"),
+      b("e) Previously covered by other Mediclaim?") +
+        " " + checkBox(false) + `<span style="font-size:8px;">Yes</span>` +
+        " " + checkBox(false) + `<span style="font-size:8px;">No</span>`,
+    ) +
+    `<div style="margin-bottom:2px;">${b("f) If yes, company name:")} ${charBoxHtml("", 22)}</div>`,
+    "SECTION B",
+  );
 
-  /* ── SECTION WRAPPER ── */
-  .section-wrap {
-    display: flex;
-    gap: 3px;
-    margin-bottom: 2px;
-    border: 0.5px solid #aaa;
-    padding: 3px;
-  }
-  .section-content { flex: 1; min-width: 0; }
+  // ── SECTION C: INSURED PERSON HOSPITALIZED ─────────────────────────────────
+  const secC = secWrap(
+    secDiv("DETAILS OF INSURED PERSON HOSPITALIZED:") +
+    `<div style="margin-bottom:2px;">${b("a) Name:")} ${charBoxHtml(f.hospitalizedName, 40)}</div>` +
+    r3(
+      b("b) Gender") +
+        `&nbsp;<span style="font-size:8px;">Male</span>${checkBox(f.gender === "male")}` +
+        `<span style="font-size:8px;">Female</span>${checkBox(f.gender === "female")}`,
+      b("c) Age years") + " " + charBoxHtml(f.ageYears, 2) +
+        `&nbsp;<span style="font-size:8px;">Months</span>&nbsp;` + charBoxHtml(f.ageMonths, 2),
+      b("d) Date of Birth") + " " + charBoxHtml(f.dob, 8),
+    ) +
+    `<div style="margin-bottom:2px;">${b("e) Relationship to Primary insured:")} ` +
+    ["Self", "Spouse", "Child", "Father", "Mother", "Other"]
+      .map((r) => checkBox(false) + `<span style="font-size:8px;">${r}</span>`)
+      .join("&nbsp;") +
+    `&nbsp;<span style="font-size:7.5px;">(Please Specify)</span>&nbsp;${tf("", "50px")}</div>` +
+    `<div style="margin-bottom:2px;">${b("f) Occupation")} ` +
+    ["Service", "Self Employed", "Home Maker", "Student", "Retired", "Other"]
+      .map((o) => checkBox(false) + `<span style="font-size:8px;">${o}</span>`)
+      .join("&nbsp;") +
+    `&nbsp;<span style="font-size:7.5px;">(Please Specify)</span>&nbsp;${tf("", "50px")}</div>` +
+    addrBlock(
+      b("g) Address (if different from above):"),
+      charBoxHtml(f.hospAddressRow1, 40),
+      charBoxHtml(f.hospAddressRow2, 35),
+    ) +
+    r2(
+      b("City:") + " " + charBoxHtml(f.hospCity, 18),
+      b("State:") + " " + charBoxHtml(f.hospState, 18),
+    ) +
+    r3(
+      b("Pin Code:") + " " + charBoxHtml(f.hospPin, 6),
+      b("Phone No:") + " " + charBoxHtml(f.hospPhone, 10),
+      b("Email ID:") + " " + tf(f.hospEmail, "100px"),
+    ),
+    "SECTION C",
+  );
 
-  /* ── SECTION BAR (right column) ── */
-  .section-bar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    width: 13px;
-    background: #222;
-    color: #fff;
-    font-size: 5.5px;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    padding: 2px 1px;
-    flex-shrink: 0;
-  }
-  .section-bar-line { flex: 1; border-left: 0.5px solid #fff; margin: 1px 0; }
-  .section-bar-text { white-space: nowrap; }
+  // ── SECTION D: HOSPITALIZATION ─────────────────────────────────────────────
+  const secD = secWrap(
+    secDiv("DETAILS OF HOSPITALIZATION:") +
+    `<div style="margin-bottom:2px;">${b("a) Name of Hospital where Admitted:")} ${charBoxHtml(f.hospitalName, 40)}</div>` +
+    `<div style="margin-bottom:2px;">${b("b) Room Category occupied:")} ` +
+    ["Day care", "Single occupancy", "Twin sharing", "3 or more beds per room"]
+      .map((r) => checkBox(false) + `<span style="font-size:8px;">${r}</span>`)
+      .join("&nbsp;") +
+    `</div>` +
+    r2(
+      b("c) Hospitalization due to:") + "&nbsp;" +
+        ["Injury", "Illness", "Maternity"]
+          .map((r) => checkBox(false) + `<span style="font-size:8px;">${r}</span>`)
+          .join("&nbsp;"),
+      b("d) Date of injury / Disease first detected / Delivery:") +
+        " " + charBoxHtml(f.injuryDate, 8),
+    ) +
+    r4(
+      b("e) Date of Admission:") + " " + charBoxHtml(f.admissionDate, 8),
+      b("f) Time:") + " " + charBoxHtml(f.admissionTime, 4),
+      b("g) Date of Discharge:") + " " + charBoxHtml(f.dischargeDate, 8),
+      b("h) Time:") + " " + charBoxHtml(f.dischargeTime, 4),
+    ) +
+    `<div style="margin-bottom:2px;">${b("i) If injury give cause:")} ` +
+    ["Self inflicted", "Road Traffic Accident", "Substance Abuse / Alcohol Consumption"]
+      .map((r) => checkBox(false) + `<span style="font-size:8px;">${r}</span>`)
+      .join("&nbsp;") +
+    `</div>` +
+    r3(
+      b("ii) Reported to Police") + "&nbsp;" + checkBox(false),
+      b("iii) MLC Report &amp; Police FIR attached") +
+        "&nbsp;" + checkBox(false) + `<span style="font-size:8px;">Yes</span>` +
+        "&nbsp;" + checkBox(false) + `<span style="font-size:8px;">No</span>`,
+      b("j) System of Medicine:") + " " + tf(f.treatingDoctor, "80px"),
+    ),
+    "SECTION D",
+  );
 
-  /* ── DIVIDER ── */
-  .divider-row {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    margin-bottom: 2px;
-  }
-  .divider-line { flex: 1; height: 0.5px; background: #555; }
-  .divider-label { font-size: 6px; font-weight: bold; white-space: nowrap; color: #222; }
+  // ── SECTION E: CLAIM DETAILS ───────────────────────────────────────────────
+  const secELeft =
+    secDiv("DETAILS OF CLAIM:") +
+    `<div style="margin-bottom:3px;font-weight:bold;">a) Details of the Treatment expenses claimed</div>` +
+    r2(
+      b("i. Pre-hospitalization expenses Rs.") + " " + charBoxHtml(f.claimPre, 8),
+      b("ii. Hospitalization expenses Rs.") + " " + charBoxHtml(f.claimHospital, 8),
+    ) +
+    r2(
+      b("iii. Post-hospitalization expenses Rs.") + " " + charBoxHtml(f.claimPost, 8),
+      b("iv. Health-Check up cost Rs.") + " " + charBoxHtml("", 8),
+    ) +
+    r2(
+      b("v. Ambulance Charges Rs.") + " " + charBoxHtml("", 8),
+      b("vi. Others (code):") + " " + charBoxHtml("", 3) +
+        "&nbsp;" + b("Rs.") + " " + charBoxHtml("", 8),
+    ) +
+    `<div style="text-align:right;margin-bottom:2px;">` +
+    `<span style="font-weight:bold;font-size:9px;">Total Rs.</span>&nbsp;` +
+    charBoxHtml("", 10) +
+    `</div>` +
+    r2(
+      b("vii. Pre-hospitalization period: days") + " " + charBoxHtml("", 3),
+      b("viii. Post-hospitalization period: days") + " " + charBoxHtml("", 3),
+    ) +
+    `<div style="margin-bottom:2px;">${b("b) Claim for Domiciliary Hospitalization:")} ` +
+    checkBox(false) + `<span style="font-size:8px;">Yes</span>&nbsp;` +
+    checkBox(false) + `<span style="font-size:8px;">No</span>&nbsp;` +
+    `<span style="font-size:7.5px;">(If yes, provide details in annexure)</span></div>` +
+    `<div style="margin-bottom:3px;font-weight:bold;">c) Details of Lump sum / cash benefit claimed:</div>` +
+    r2(
+      b("i. Hospital Daily cash Rs.") + " " + charBoxHtml("", 8),
+      b("ii. Surgical Cash Rs.") + " " + charBoxHtml("", 8),
+    ) +
+    r2(
+      b("iii. Critical Illness benefit Rs.") + " " + charBoxHtml("", 8),
+      b("iv. Convalescence Rs.") + " " + charBoxHtml("", 8),
+    ) +
+    r2(
+      b("v. Pre/Post hospitalization Lump sum benefit Rs.") + " " + charBoxHtml("", 8),
+      b("vi. Others Rs.") + " " + charBoxHtml("", 8),
+    );
 
-  /* ── FORM ROWS ── */
-  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-bottom: 2px; }
-  .row-between { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 2px; margin-bottom: 2px; }
-  .label { font-size: 6.5px; font-weight: bold; white-space: nowrap; }
-  .small-text { font-size: 6.5px; }
-
-  /* ── CHAR BOXES ── */
-  .char-row { display: inline-flex; }
-  .char-box {
-    display: inline-flex;
-    width: 8px;
-    height: 10px;
-    border: 0.5px solid #555;
-    font-size: 6px;
-    align-items: center;
-    justify-content: center;
-    font-family: monospace;
-    margin-right: 0;
-    flex-shrink: 0;
-  }
-
-  /* ── CHECKBOXES ── */
-  .cb {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border: 0.5px solid #555;
-    margin: 0 1px;
-    vertical-align: middle;
-    font-size: 6px;
-    text-align: center;
-    line-height: 7px;
-  }
-  .cb-checked { background: #1565C0; color: #fff; }
-
-  /* ── TEXT INPUTS (free-text fields) ── */
-  .text-field {
-    display: inline-block;
-    min-width: 60px;
-    border-bottom: 0.5px solid #555;
-    font-size: 6.5px;
-    padding: 0 1px;
-    vertical-align: bottom;
-  }
-
-  /* ── CLAIM TABLE ── */
-  .bill-table { width: 100%; border-collapse: collapse; font-size: 6.5px; }
-  .bill-table th, .bill-table td {
-    border: 0.5px solid #999;
-    padding: 1px 2px;
-    text-align: left;
-    vertical-align: middle;
-  }
-  .bill-table th { background: #e8e8e8; font-weight: bold; }
-
-  /* ── DECLARATION ── */
-  .declaration-text { font-size: 6px; line-height: 1.3; margin-bottom: 3px; }
-  .signature-block-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 5px;
-    margin-top: 5px;
-    margin-bottom: 3px;
-  }
-  .signature-box {
-    display: inline-block;
-    min-width: 18mm;
-    width: 18mm;
-    height: 8mm;
-    border: 0.5px solid #555;
-    vertical-align: bottom;
-    box-sizing: border-box;
-  }
-  .signature-box-filled {
-    width: 48mm;
-    height: 16mm;
-    min-width: 48mm;
-    padding: 2px;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  .signature-img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: left bottom;
-  }
-  .footer-note { font-size: 6.5px; font-weight: bold; text-align: center; margin-top: 3px; }
-</style>
-</head>
-<body>
-<div class="insurance-form-root">
-
-<!-- ══════════════════════ HEADER ══════════════════════ -->
-<div class="form-header">
-  <div class="logo-block">
-    <span class="logo-text">Medi Assist</span>
-  </div>
-  <div class="center-title">
-    <div class="form-main-title">REIMBURSEMENT CLAIM FORM</div>
-    <div class="form-sub-title">TO BE FILLED BY THE INSURED</div>
-    <div class="form-note-center">The issue of this Form is not to be taken as an admission of liability</div>
-  </div>
-  <div class="form-note-right">(To be Filled in block letters)</div>
-</div>
-
-<!-- ══════════════════════ SECTION A: PRIMARY INSURED ══════════════════════ -->
-<div class="section-wrap">
-  <div class="section-content">
-    ${sectionDivider("DETAILS OF PRIMARY INSURED:")}
-
-    <div class="row-between">
-      <div class="row">
-        <span class="label">a) Policy No.:</span>
-        ${charBoxHtml(f.policyNumber, 18)}
-      </div>
-      <div class="row">
-        <span class="label">b) Sl. No./Certificate no.</span>
-        ${charBoxHtml(f.certificateNumber, 14)}
-      </div>
-    </div>
-
-    <div class="row">
-      <span class="label">c) Company / TPA ID (MA ID) No:</span>
-      ${charBoxHtml(f.tpaId, 22)}
-    </div>
-
-    <div class="row">
-      <span class="label">d) Name:</span>
-      ${charBoxHtml(f.primaryName, 40)}
-    </div>
-
-    <div class="row">
-      <span class="label">e) Address:</span>
-      <div>
-        ${charBoxHtml(f.primaryAddressRow1, 40)}<br/>
-        ${charBoxHtml(f.primaryAddressRow2, 35)}
-      </div>
-    </div>
-
-    <div class="row-between">
-      <div class="row"><span class="label">City:</span> ${charBoxHtml(f.primaryCity, 18)}</div>
-      <div class="row"><span class="label">State:</span> ${charBoxHtml(f.primaryState, 18)}</div>
-    </div>
-
-    <div class="row-between">
-      <div class="row"><span class="label">Pin Code:</span> ${charBoxHtml(f.primaryPin, 6)}</div>
-      <div class="row"><span class="label">Phone No:</span> ${charBoxHtml(f.primaryPhone, 10)}</div>
-      <div class="row"><span class="label">Email ID:</span> <span class="text-field">${escHtml(f.primaryEmail)}</span></div>
-    </div>
-  </div>
-  ${sectionBar("SECTION A")}
-</div>
-
-<!-- ══════════════════════ SECTION B: INSURANCE HISTORY ══════════════════════ -->
-<div class="section-wrap">
-  <div class="section-content">
-    ${sectionDivider("DETAILS OF INSURANCE HISTORY:")}
-
-    <div class="row-between">
-      <div class="row">
-        <span class="label">a) Currently covered by any other Mediclaim / Health Insurance:</span>
-        ${checkBox(false)}<span class="small-text">Yes</span>
-        ${checkBox(false)}<span class="small-text">No</span>
-      </div>
-      <div class="row">
-        <span class="label">b) Date of commencement of first Insurance without break:</span>
-        ${charBoxHtml("", 8)}
-      </div>
-    </div>
-
-    <div class="row-between">
-      <div class="row">
-        <span class="label">c) If yes, company name:</span>
-        ${charBoxHtml("", 20)}
-      </div>
-      <div class="row">
-        <span class="label">Policy No.</span>
-        ${charBoxHtml("", 18)}
-      </div>
-    </div>
-
-    <div class="row-between">
-      <div class="row">
-        <span class="label">Sum insured (Rs.)</span>
-        ${charBoxHtml("", 12)}
-      </div>
-      <div class="row">
-        <span class="label">d) Hospitalized in last four years?</span>
-        ${checkBox(false)}<span class="small-text">Yes</span>
-        ${checkBox(false)}<span class="small-text">No</span>
-        <span class="label" style="margin-left:6px">Date:</span>
-        ${charBoxHtml("", 4)}
-      </div>
-    </div>
-
-    <div class="row-between">
-      <div class="row">
-        <span class="label">Diagnosis:</span>
-        <span class="text-field" style="min-width:160px">${escHtml(f.diagnosis)}</span>
-      </div>
-      <div class="row">
-        <span class="label">e) Previously covered by other Mediclaim?</span>
-        ${checkBox(false)}<span class="small-text">Yes</span>
-        ${checkBox(false)}<span class="small-text">No</span>
-      </div>
-    </div>
-
-    <div class="row">
-      <span class="label">f) If yes, company name:</span>
-      ${charBoxHtml("", 22)}
-    </div>
-  </div>
-  ${sectionBar("SECTION B")}
-</div>
-
-<!-- ══════════════════════ SECTION C: INSURED PERSON HOSPITALIZED ══════════════════════ -->
-<div class="section-wrap">
-  <div class="section-content">
-    ${sectionDivider("DETAILS OF INSURED PERSON HOSPITALIZED:")}
-
-    <div class="row">
-      <span class="label">a) Name:</span>
-      ${charBoxHtml(f.hospitalizedName, 40)}
-    </div>
-
-    <div class="row-between">
-      <div class="row">
-        <span class="label">b) Gender</span>
-        <span class="small-text">Male</span>${checkBox(f.gender === "male")}
-        <span class="small-text">Female</span>${checkBox(f.gender === "female")}
-      </div>
-      <div class="row">
-        <span class="label">c) Age years</span>
-        ${charBoxHtml(f.ageYears, 2)}
-        <span class="small-text">Months</span>
-        ${charBoxHtml(f.ageMonths, 2)}
-      </div>
-      <div class="row">
-        <span class="label">d) Date of Birth</span>
-        ${charBoxHtml(f.dob, 8)}
-      </div>
-    </div>
-
-    <div class="row">
-      <span class="label">e) Relationship to Primary insured:</span>
-      ${["Self", "Spouse", "Child", "Father", "Mother", "Other"]
-        .map((r) => `${checkBox(false)}<span class="small-text">${r}</span>`)
-        .join(" ")}
-      <span class="small-text">(Please Specify)</span>
-      <span class="text-field">&nbsp;</span>
-    </div>
-
-    <div class="row">
-      <span class="label">f) Occupation</span>
-      ${["Service", "Self Employed", "Home Maker", "Student", "Retired", "Other"]
-        .map((o) => `${checkBox(false)}<span class="small-text">${o}</span>`)
-        .join(" ")}
-      <span class="small-text">(Please Specify)</span>
-      <span class="text-field">&nbsp;</span>
-    </div>
-
-    <div class="row">
-      <span class="label">g) Address (if different from above):</span>
-      <div>
-        ${charBoxHtml(f.hospAddressRow1, 40)}<br/>
-        ${charBoxHtml(f.hospAddressRow2, 35)}
-      </div>
-    </div>
-
-    <div class="row-between">
-      <div class="row"><span class="label">City:</span> ${charBoxHtml(f.hospCity, 18)}</div>
-      <div class="row"><span class="label">State:</span> ${charBoxHtml(f.hospState, 18)}</div>
-    </div>
-
-    <div class="row-between">
-      <div class="row"><span class="label">Pin Code:</span> ${charBoxHtml(f.hospPin, 6)}</div>
-      <div class="row"><span class="label">Phone No:</span> ${charBoxHtml(f.hospPhone, 10)}</div>
-      <div class="row"><span class="label">Email ID:</span> <span class="text-field">${escHtml(f.hospEmail)}</span></div>
-    </div>
-  </div>
-  ${sectionBar("SECTION C")}
-</div>
-
-<!-- ══════════════════════ SECTION D: HOSPITALIZATION ══════════════════════ -->
-<div class="section-wrap">
-  <div class="section-content">
-    ${sectionDivider("DETAILS OF HOSPITALIZATION:")}
-
-    <div class="row">
-      <span class="label">a) Name of Hospital where Admitted:</span>
-      ${charBoxHtml(f.hospitalName, 40)}
-    </div>
-
-    <div class="row">
-      <span class="label">b) Room Category occupied:</span>
-      ${["Day care", "Single occupancy", "Twin sharing", "3 or more beds per room"]
-        .map((r) => `${checkBox(false)}<span class="small-text">${r}</span>`)
-        .join(" ")}
-    </div>
-
-    <div class="row-between">
-      <div class="row">
-        <span class="label">c) Hospitalization due to:</span>
-        ${["Injury", "Illness", "Maternity"]
-          .map((r) => `${checkBox(false)}<span class="small-text">${r}</span>`)
-          .join(" ")}
-      </div>
-      <div class="row">
-        <span class="label">d) Date of injury / Disease first detected / Delivery:</span>
-        ${charBoxHtml(f.injuryDate, 8)}
-      </div>
-    </div>
-
-    <div class="row-between">
-      <div class="row"><span class="label">e) Date of Admission:</span> ${charBoxHtml(f.admissionDate, 8)}</div>
-      <div class="row"><span class="label">f) Time:</span> ${charBoxHtml(f.admissionTime, 4)}</div>
-      <div class="row"><span class="label">g) Date of Discharge:</span> ${charBoxHtml(f.dischargeDate, 8)}</div>
-      <div class="row"><span class="label">h) Time:</span> ${charBoxHtml(f.dischargeTime, 4)}</div>
-    </div>
-
-    <div class="row">
-      <span class="label">i) If injury give cause:</span>
-      ${["Self inflicted", "Road Traffic Accident", "Substance Abuse / Alcohol Consumption"]
-        .map((r) => `${checkBox(false)}<span class="small-text">${r}</span>`)
-        .join(" ")}
-    </div>
-
-    <div class="row-between">
-      <div class="row">
-        <span class="label">ii) Reported to Police</span>${checkBox(false)}
-      </div>
-      <div class="row">
-        <span class="label">iii) MLC Report &amp; Police FIR attached</span>
-        ${checkBox(false)}<span class="small-text">Yes</span>
-        ${checkBox(false)}<span class="small-text">No</span>
-      </div>
-      <div class="row">
-        <span class="label">j) System of Medicine:</span>
-        <span class="text-field">${escHtml(f.treatingDoctor)}</span>
-      </div>
-    </div>
-  </div>
-  ${sectionBar("SECTION D")}
-</div>
-
-<!-- ══════════════════════ SECTION E: CLAIM DETAILS ══════════════════════ -->
-<div class="section-wrap">
-  <div class="section-content">
-    ${sectionDivider("DETAILS OF CLAIM:")}
-
-    <div class="label" style="margin-bottom:4px">a) Details of the Treatment expenses claimed</div>
-
-    <div class="row-between">
-      <div class="row"><span class="label">i. Pre-hospitalization expenses Rs.</span> ${charBoxHtml(f.claimPre, 8)}</div>
-      <div class="row"><span class="label">ii. Hospitalization expenses Rs.</span> ${charBoxHtml(f.claimHospital, 8)}</div>
-    </div>
-    <div class="row-between">
-      <div class="row"><span class="label">iii. Post-hospitalization expenses Rs.</span> ${charBoxHtml(f.claimPost, 8)}</div>
-      <div class="row"><span class="label">iv. Health-Check up cost Rs.</span> ${charBoxHtml("", 8)}</div>
-    </div>
-    <div class="row-between">
-      <div class="row"><span class="label">v. Ambulance Charges Rs.</span> ${charBoxHtml("", 8)}</div>
-      <div class="row"><span class="label">vi. Others (code):</span> ${charBoxHtml("", 3)} <span class="label">Rs.</span> ${charBoxHtml("", 8)}</div>
-    </div>
-    <div class="row" style="justify-content:flex-end">
-      <span class="label" style="font-size:11px">Total Rs.</span>
-      ${charBoxHtml("", 10)}
-    </div>
-
-    <div class="row-between">
-      <div class="row"><span class="label">vii. Pre-hospitalization period: days</span> ${charBoxHtml("", 3)}</div>
-      <div class="row"><span class="label">viii. Post-hospitalization period: days</span> ${charBoxHtml("", 3)}</div>
-    </div>
-
-    <div class="row">
-      <span class="label">b) Claim for Domiciliary Hospitalization:</span>
-      ${checkBox(false)}<span class="small-text">Yes</span>
-      ${checkBox(false)}<span class="small-text">No</span>
-      <span class="small-text">(If yes, provide details in annexure)</span>
-    </div>
-
-    <div class="label" style="margin-bottom:4px">c) Details of Lump sum / cash benefit claimed:</div>
-    <div class="row-between">
-      <div class="row"><span class="label">i. Hospital Daily cash Rs.</span> ${charBoxHtml("", 8)}</div>
-      <div class="row"><span class="label">ii. Surgical Cash Rs.</span> ${charBoxHtml("", 8)}</div>
-    </div>
-    <div class="row-between">
-      <div class="row"><span class="label">iii. Critical Illness benefit Rs.</span> ${charBoxHtml("", 8)}</div>
-      <div class="row"><span class="label">iv. Convalescence Rs.</span> ${charBoxHtml("", 8)}</div>
-    </div>
-    <div class="row-between">
-      <div class="row"><span class="label">v. Pre/Post hospitalization Lump sum benefit Rs.</span> ${charBoxHtml("", 8)}</div>
-      <div class="row"><span class="label">vi. Others Rs.</span> ${charBoxHtml("", 8)}</div>
-    </div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;width:120px;border-left:1px solid #ccc;padding-left:6px">
-    <div class="label">Claim Documents Submitted - Check List:</div>
-    ${[
+  const secERight =
+    `<div style="font-weight:bold;margin-bottom:3px;font-size:7.5px;">Claim Documents Submitted - Check List:</div>` +
+    [
       "Claim form duly signed",
       "Copy of the claim intimation, if any",
       "Hospital Main Bill",
@@ -564,119 +391,149 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
     ]
       .map(
         (item) =>
-          `<div class="row">${checkBox(false)}<span class="small-text">${item}</span></div>`,
+          `<div style="margin-bottom:2px;">${checkBox(false)}<span style="font-size:7.5px;"> ${item}</span></div>`,
       )
-      .join("")}
-  </div>
-  ${sectionBar("SECTION E")}
-</div>
+      .join("");
 
-<!-- ══════════════════════ SECTION F: BILLS ENCLOSED ══════════════════════ -->
-<div class="section-wrap">
-  <div class="section-content">
-    ${sectionDivider("DETAILS OF BILLS ENCLOSED:")}
-    <table class="bill-table">
-      <thead>
-        <tr>
-          <th style="width:30px">Sl. No.</th>
-          <th style="width:60px">Bill No.</th>
-          <th style="width:70px">Date</th>
-          <th style="width:120px">Issued by</th>
-          <th>Towards</th>
-          <th style="width:80px">Amount (Rs)</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${[
-          "Hospital main Bill",
-          "Pre-hospitalization Bills: Nos",
-          "Post-hospitalization Bills: Nos",
-          "Pharmacy Bills",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-        ]
-          .map(
-            (label, i) => `
-          <tr>
-            <td>${i + 1}.</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>${label}</td>
-            <td></td>
-          </tr>`,
-          )
-          .join("")}
-      </tbody>
-    </table>
-  </div>
-  ${sectionBar("SECTION F")}
-</div>
+  const secE = secWrap3(secELeft, secERight, "SECTION E");
 
-<!-- ══════════════════════ SECTION G: BANK ACCOUNT ══════════════════════ -->
-<div class="section-wrap">
-  <div class="section-content">
-    ${sectionDivider("DETAILS OF PRIMARY INSURED'S BANK ACCOUNT:")}
+  // ── SECTION F: BILLS ENCLOSED ──────────────────────────────────────────────
+  const billRows = [
+    "Hospital main Bill",
+    "Pre-hospitalization Bills: Nos",
+    "Post-hospitalization Bills: Nos",
+    "Pharmacy Bills",
+    "", "", "", "", "", "",
+  ]
+    .map(
+      (label, i) =>
+        `<tr>` +
+        `<td style="border:0.5px solid #999;padding:1px 3px;text-align:center;">${i + 1}.</td>` +
+        `<td style="border:0.5px solid #999;padding:1px 3px;">&nbsp;</td>` +
+        `<td style="border:0.5px solid #999;padding:1px 3px;">&nbsp;</td>` +
+        `<td style="border:0.5px solid #999;padding:1px 3px;">&nbsp;</td>` +
+        `<td style="border:0.5px solid #999;padding:1px 3px;">${escHtml(label)}</td>` +
+        `<td style="border:0.5px solid #999;padding:1px 3px;">&nbsp;</td>` +
+        `</tr>`,
+    )
+    .join("");
 
-    <div class="row-between">
-      <div class="row"><span class="label">a) PAN:</span> ${charBoxHtml(f.pan, 10)}</div>
-      <div class="row"><span class="label">b) Account Number:</span> ${charBoxHtml(f.accountNumber, 22)}</div>
-    </div>
+  const secF = secWrap(
+    secDiv("DETAILS OF BILLS ENCLOSED:") +
+    `<table style="width:100%;border-collapse:collapse;font-size:8px;table-layout:fixed;">` +
+    `<thead><tr style="background:#e8e8e8;">` +
+    `<th style="border:0.5px solid #999;padding:2px 3px;width:28px;` +
+    `font-weight:bold;text-align:left;">Sl. No.</th>` +
+    `<th style="border:0.5px solid #999;padding:2px 3px;width:60px;` +
+    `font-weight:bold;text-align:left;">Bill No.</th>` +
+    `<th style="border:0.5px solid #999;padding:2px 3px;width:65px;` +
+    `font-weight:bold;text-align:left;">Date</th>` +
+    `<th style="border:0.5px solid #999;padding:2px 3px;width:110px;` +
+    `font-weight:bold;text-align:left;">Issued by</th>` +
+    `<th style="border:0.5px solid #999;padding:2px 3px;` +
+    `font-weight:bold;text-align:left;">Towards</th>` +
+    `<th style="border:0.5px solid #999;padding:2px 3px;width:75px;` +
+    `font-weight:bold;text-align:left;">Amount (Rs)</th>` +
+    `</tr></thead>` +
+    `<tbody>${billRows}</tbody></table>`,
+    "SECTION F",
+  );
 
-    <div class="row">
-      <span class="label">c) Bank Name and Branch:</span>
-      ${charBoxHtml(f.bankNameBranch, 40)}
-    </div>
+  // ── SECTION G: BANK ACCOUNT ────────────────────────────────────────────────
+  const secG = secWrap(
+    secDiv("DETAILS OF PRIMARY INSURED'S BANK ACCOUNT:") +
+    r2(
+      b("a) PAN:") + " " + charBoxHtml(f.pan, 10),
+      b("b) Account Number:") + " " + charBoxHtml(f.accountNumber, 22),
+    ) +
+    `<div style="margin-bottom:2px;">${b("c) Bank Name and Branch:")} ${charBoxHtml(f.bankNameBranch, 40)}</div>` +
+    r2(
+      b("d) Cheque / DD Payable details:") + " " + tf(f.chequeDetails, "120px"),
+      b("e) IFSC Code:") + " " + charBoxHtml(f.ifscCode, 11),
+    ),
+    "SECTION G",
+  );
 
-    <div class="row-between">
-      <div class="row">
-        <span class="label">d) Cheque / DD Payable details:</span>
-        <span class="text-field" style="min-width:120px">${escHtml(f.chequeDetails)}</span>
-      </div>
-      <div class="row"><span class="label">e) IFSC Code:</span> ${charBoxHtml(f.ifscCode, 11)}</div>
-    </div>
-  </div>
-  ${sectionBar("SECTION G")}
-</div>
+  // ── SECTION H: DECLARATION ─────────────────────────────────────────────────
+  const secH = secWrap(
+    secDiv("DECLARATION BY THE INSURED:") +
+    `<p style="font-size:7.5px;line-height:1.3;margin-bottom:4px;">` +
+    `I hereby declare that the information furnished in the claim form is true &amp; correct ` +
+    `to the best of my knowledge and belief. If I have made any false or untrue statement, ` +
+    `suppression or concealment of any material fact with respect to questions asked in ` +
+    `relation to this claim, my right to claim reimbursement shall be forfeited. ` +
+    `I also consent &amp; authorize TPA / insurance Company, to seek necessary medical information / ` +
+    `documents from any hospital / Medical Practitioner who has attended on the person against ` +
+    `whom this claim is made. I hereby declare that I have included all the bills / receipts ` +
+    `for the purpose of this claim &amp; that I will not be making any supplementary claim, ` +
+    `except the pre/post-hospitalization claim, if any.` +
+    `</p>` +
+    r2(
+      b("Date") + " " + charBoxHtml(f.declarationDate, 8),
+      b("Place:") + " " + tf(f.declarationPlace, "80px"),
+    ) +
+    `<div style="margin-top:4px;margin-bottom:3px;">` +
+    b("Signature of the Insured") + `&nbsp;&nbsp;` + sigHtml +
+    `</div>` +
+    `<hr style="margin:5px 0;border:none;border-top:0.5px solid #888;">` +
+    `<div style="font-weight:bold;text-align:center;font-size:8px;">(IMPORTANT: PLEASE TURN OVER)</div>`,
+    "SECTION H",
+  );
 
-<!-- ══════════════════════ SECTION H: DECLARATION ══════════════════════ -->
-<div class="section-wrap">
-  <div class="section-content">
-    ${sectionDivider("DECLARATION BY THE INSURED:")}
+  // ── ASSEMBLE ────────────────────────────────────────────────────────────────
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reimbursement Claim Form</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { margin: 0; padding: 0; background: #f5f5f5; }
+  .ifr {
+    width: ${INSURANCE_FORM_PAGE_WIDTH_PX}px;
+    min-height: ${INSURANCE_FORM_PAGE_HEIGHT_PX}px;
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8px;
+    color: #000;
+    padding: 12px 14px;
+    margin: 0 auto;
+  }
+  @media print {
+    @page { size: ${INSURANCE_FORM_PAGE_WIDTH_PX}px ${INSURANCE_FORM_PAGE_HEIGHT_PX}px; margin: 0; }
+    body { background: #fff; }
+    .ifr { padding: 12px 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="ifr">
 
-    <p class="declaration-text">
-      I hereby declare that the information furnished in the claim form is true &amp; correct
-      to the best of my knowledge and belief. If I have made any false or untrue statement,
-      suppression or concealment of any material fact with respect to questions asked in
-      relation to this claim, my right to claim reimbursement shall be forfeited.
-      I also consent &amp; authorize TPA / insurance Company, to seek necessary medical information /
-      documents from any hospital / Medical Practitioner who has attended on the person against
-      whom this claim is made. I hereby declare that I have included all the bills / receipts
-      for the purpose of this claim &amp; that I will not be making any supplementary claim,
-      except the pre/post-hospitalization claim, if any.
-    </p>
+<!-- ═══════════════════════ HEADER ═══════════════════════ -->
+<table style="width:100%;border-collapse:collapse;border-bottom:1.5px solid #333;
+  padding-bottom:4px;margin-bottom:4px;table-layout:fixed;">
+<tbody><tr>
+  <td style="width:18%;vertical-align:middle;">
+    <span style="font-size:11px;font-weight:bold;color:#1565C0;">Medi Assist</span>
+  </td>
+  <td style="text-align:center;vertical-align:top;padding:0 4px;">
+    <div style="font-size:10px;font-weight:bold;letter-spacing:0.5px;">REIMBURSEMENT CLAIM FORM</div>
+    <div style="font-size:7.5px;margin-top:1px;">TO BE FILLED BY THE INSURED</div>
+    <div style="font-size:7px;color:#555;font-style:italic;margin-top:1px;">The issue of this Form is not to be taken as an admission of liability</div>
+  </td>
+  <td style="width:18%;text-align:right;vertical-align:top;font-size:7px;color:#555;white-space:nowrap;">
+    (To be Filled in block letters)
+  </td>
+</tr></tbody></table>
 
-    <div class="row-between">
-      <div class="row"><span class="label">Date</span> ${charBoxHtml(f.declarationDate, 8)}</div>
-      <div class="row">
-        <span class="label">Place:</span>
-        <span class="text-field" style="min-width:80px">${escHtml(f.declarationPlace)}</span>
-      </div>
-    </div>
-    <div class="signature-block-row">
-      <span class="label">Signature of the Insured</span>
-      ${signatureHtml}
-    </div>
-
-    <hr style="margin:8px 0;border:none;border-top:1px solid #888"/>
-    <div class="footer-note">(IMPORTANT: PLEASE TURN OVER)</div>
-  </div>
-  ${sectionBar("SECTION H")}
-</div>
+${secA}
+${secB}
+${secC}
+${secD}
+${secE}
+${secF}
+${secG}
+${secH}
 
 </div>
 </body>
@@ -705,13 +562,17 @@ export async function downloadInsuranceClaim(form, signatureDataUrl = null) {
     // html2pdf clones the node into the *main* document. Styles from an iframe body
     // do not apply to that clone, and `body {}` rules never match a div — so we parse
     // the template, inject the same <style> into document.head, and append a copy of
-    // `.insurance-form-root` off-screen. Then html2canvas sees the same CSS as the preview.
+    // `.ifr` off-screen. Then html2canvas sees the same CSS as the preview.
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+
     const parser = new DOMParser();
     const parsed = parser.parseFromString(html, "text/html");
     const styleEl = parsed.querySelector("style");
-    const rootEl = parsed.querySelector(".insurance-form-root");
+    const rootEl = parsed.querySelector(".ifr");
     if (!styleEl || !rootEl) {
-      throw new Error("Insurance form HTML is missing style or .insurance-form-root");
+      throw new Error("Insurance form HTML is missing style or .ifr root");
     }
 
     const injectedStyle = document.createElement("style");
@@ -721,12 +582,25 @@ export async function downloadInsuranceClaim(form, signatureDataUrl = null) {
 
     const host = document.createElement("div");
     host.setAttribute("data-insurance-pdf-export", "1");
-    host.style.cssText =
-      "position:fixed;left:-9999px;top:0;width:210mm;min-height:297mm;background:#fff;";
+    host.style.cssText = DEBUG_INSURANCE_PDF_CAPTURE
+      ? `position:fixed;left:0;top:0;width:${INSURANCE_FORM_PAGE_WIDTH_PX}px;min-height:${INSURANCE_FORM_PAGE_HEIGHT_PX}px;background:#fff;z-index:9998;overflow:auto;`
+      : `position:fixed;left:-9999px;top:0;width:${INSURANCE_FORM_PAGE_WIDTH_PX}px;min-height:${INSURANCE_FORM_PAGE_HEIGHT_PX}px;background:#fff;`;
     host.appendChild(document.importNode(rootEl, true));
     document.body.appendChild(host);
 
     const captureEl = host.firstElementChild;
+    if (DEBUG_INSURANCE_PDF_CAPTURE && captureEl instanceof HTMLElement) {
+      captureEl.style.position = "fixed";
+      captureEl.style.left = "0";
+      captureEl.style.top = "0";
+      captureEl.style.zIndex = "9999";
+      captureEl.style.background = "#fff";
+    }
+
+    const cleanup = () => {
+      injectedStyle.remove();
+      host.remove();
+    };
 
     try {
       await new Promise((resolve) =>
@@ -736,21 +610,28 @@ export async function downloadInsuranceClaim(form, signatureDataUrl = null) {
         .set({
           margin: 0,
           filename: fileName,
-          // PNG avoids JPEG artifacts on thin signature strokes
           image: { type: "png", quality: 1 },
           html2canvas: {
-            scale: 3,
+            scale: 2,
             useCORS: true,
             allowTaint: true,
             logging: false,
+            backgroundColor: "#ffffff",
           },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          jsPDF: {
+            unit: "px",
+            format: [INSURANCE_FORM_PAGE_WIDTH_PX, INSURANCE_FORM_PAGE_HEIGHT_PX],
+            orientation: "portrait",
+          },
         })
         .from(captureEl)
         .save(fileName);
     } finally {
-      injectedStyle.remove();
-      host.remove();
+      if (DEBUG_INSURANCE_PDF_CAPTURE) {
+        setTimeout(cleanup, 3000);
+      } else {
+        cleanup();
+      }
     }
     return;
   }

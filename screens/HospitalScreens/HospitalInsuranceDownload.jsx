@@ -15,7 +15,11 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { downloadInsuranceClaim, generateInsuranceFormHTML } from "../../utils/InsuranceFormService";
+import {
+  downloadInsuranceClaim,
+  generateInsuranceFormHTML,
+  INSURANCE_FORM_PAGE_WIDTH_PX,
+} from "../../utils/InsuranceFormService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -445,6 +449,7 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                           style={{
                             flex: 1,
                             width: "100%",
+                            maxWidth: INSURANCE_FORM_PAGE_WIDTH_PX,
                             border: "none",
                             minHeight: 600,
                           }}
