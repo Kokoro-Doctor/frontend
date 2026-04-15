@@ -366,34 +366,24 @@ const ClaudeThinkingView = ({
 
           {finalReport?.financial_summary && (
             <View style={tk.finCard}>
-              <Text style={tk.secTitle}>Financial Analysis</Text>
+              <Text style={tk.secTitle}>Financial Impact</Text>
               <View style={tk.finRow}>
                 <View style={tk.finItem}>
-                  <Text style={tk.finLabel}>Current Claim</Text>
+                  <Text style={tk.finLabel}>Bill Amount</Text>
                   <Text style={tk.finVal}>
-                    {typeof finalReport.financial_summary
-                      .current_claim_amount === "number"
-                      ? `₹${finalReport.financial_summary.current_claim_amount.toLocaleString("en-IN")}`
-                      : `₹${finalReport.financial_summary.current_claim_amount || "N/A"}`}
+                    ₹{Number(finalReport.financial_summary.bill_amount || 0).toLocaleString("en-IN")}
+                  </Text>
+                </View>
+                <View style={[tk.finItem, { backgroundColor: "#FEF2F2" }]}>
+                  <Text style={tk.finLabel}>Expected As-Is</Text>
+                  <Text style={[tk.finVal, { color: "#DC2626" }]}>
+                    ₹{Number(finalReport.financial_summary.expected_approval_as_is || 0).toLocaleString("en-IN")}
                   </Text>
                 </View>
                 <View style={[tk.finItem, { backgroundColor: "#F0FDF4" }]}>
-                  <Text style={tk.finLabel}>After Fixes</Text>
+                  <Text style={tk.finLabel}>Recoverable</Text>
                   <Text style={[tk.finVal, { color: "#16A34A" }]}>
-                    {typeof finalReport.financial_summary
-                      .expected_amount_after_fixes === "number"
-                      ? `₹${finalReport.financial_summary.expected_amount_after_fixes.toLocaleString("en-IN")}`
-                      : `₹${finalReport.financial_summary.expected_amount_after_fixes || "N/A"}`}
-                  </Text>
-                </View>
-                <View style={[tk.finItem, { backgroundColor: "#EFF6FF" }]}>
-                  <Text style={tk.finLabel}>Opportunity</Text>
-                  <Text style={[tk.finVal, { color: "#2563EB" }]}>
-                    {typeof finalReport.financial_summary
-                      .additional_opportunity === "number"
-                      ? `+₹${finalReport.financial_summary.additional_opportunity.toLocaleString("en-IN")}`
-                      : finalReport.financial_summary.additional_opportunity ||
-                        "N/A"}
+                    +₹{Number(finalReport.financial_summary.recoverable_amount || 0).toLocaleString("en-IN")}
                   </Text>
                 </View>
               </View>
@@ -718,8 +708,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   );
 
   // ─── THE KEY CHANGE: Navigate first, THEN call API ──────────────────
-  const startAnalysis = async (fileOrDoc, isWebFile = false) => {
-    // Step 1: Navigate to review screen immediately
+  const startAnalysis = async () => {
     setCurrentStep(1);
     setIsAnalyzing(true);
     setAnalysisData(null);
@@ -733,41 +722,35 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       }).start();
     }
 
-    // Step 2: Build form data
     const formData = new FormData();
 
-    if (isWebFile) {
-      // Desktop web: real File object
-      formData.append("file", fileOrDoc);
-    } else if (Platform.OS === "web") {
-      // Mobile-width web: expo doc picker asset
-      const response = await fetch(fileOrDoc.uri);
-      const blob = await response.blob();
-      const file = new File([blob], fileOrDoc.name || "insurance_claim.pdf", {
-        type: fileOrDoc.mimeType || blob.type || "application/octet-stream",
-      });
-      formData.append("file", file);
-    } else {
-      // Native mobile
-      formData.append("file", {
-        uri: fileOrDoc.uri,
-        name: fileOrDoc.name || "insurance_claim.pdf",
-        type: fileOrDoc.mimeType || "application/octet-stream",
-      });
+    const fieldMap = {
+      claim: "claim_form",
+      hospital: "hospital_bill",
+      prescription: "doctor_prescription",
+      insurance: "insurance_savings_breakdown",
+    };
+
+    for (const [key, backendField] of Object.entries(fieldMap)) {
+      const file = uploadSections[key];
+      if (!file) continue;
+
+      if (Platform.OS === "web") {
+        formData.append(backendField, file);
+      } else {
+        formData.append(backendField, {
+          uri: file.uri,
+          name: file.name || `${key}.pdf`,
+          type: file.mimeType || "application/octet-stream",
+        });
+      }
     }
 
-    // Step 3: Simulate stage progress while API runs
     const stageTimer = setTimeout(() => setProcessingStage("ocr"), 2000);
-    const stageTimer2 = setTimeout(
-      () => setProcessingStage("extracting"),
-      5000,
-    );
+    const stageTimer2 = setTimeout(() => setProcessingStage("extracting"), 5000);
     const stageTimer3 = setTimeout(() => setProcessingStage("routing"), 10000);
     const stageTimer4 = setTimeout(() => setProcessingStage("auditing"), 12000);
-    const stageTimer5 = setTimeout(
-      () => setProcessingStage("reporting"),
-      25000,
-    );
+    const stageTimer5 = setTimeout(() => setProcessingStage("reporting"), 25000);
 
     try {
       const res = await fetch(`${API_URL}/medilocker/insurance/analyze`, {
@@ -1318,8 +1301,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                             disabled={!isClaimFormUploaded || isAnalyzing}
                             onPress={() => {
                               if (!uploadSections.claim) return;
-
-                              startAnalysis(uploadSections.claim, true);
+                              startAnalysis();
                             }}
                           >
                             <Text style={styles.analyzeBtnText}>
