@@ -371,19 +371,29 @@ const ClaudeThinkingView = ({
                 <View style={tk.finItem}>
                   <Text style={tk.finLabel}>Bill Amount</Text>
                   <Text style={tk.finVal}>
-                    ₹{Number(finalReport.financial_summary.bill_amount || 0).toLocaleString("en-IN")}
+                    ₹
+                    {Number(
+                      finalReport.financial_summary.bill_amount || 0,
+                    ).toLocaleString("en-IN")}
                   </Text>
                 </View>
                 <View style={[tk.finItem, { backgroundColor: "#FEF2F2" }]}>
                   <Text style={tk.finLabel}>Expected As-Is</Text>
                   <Text style={[tk.finVal, { color: "#DC2626" }]}>
-                    ₹{Number(finalReport.financial_summary.expected_approval_as_is || 0).toLocaleString("en-IN")}
+                    ₹
+                    {Number(
+                      finalReport.financial_summary.expected_approval_as_is ||
+                        0,
+                    ).toLocaleString("en-IN")}
                   </Text>
                 </View>
                 <View style={[tk.finItem, { backgroundColor: "#F0FDF4" }]}>
                   <Text style={tk.finLabel}>Recoverable</Text>
                   <Text style={[tk.finVal, { color: "#16A34A" }]}>
-                    +₹{Number(finalReport.financial_summary.recoverable_amount || 0).toLocaleString("en-IN")}
+                    +₹
+                    {Number(
+                      finalReport.financial_summary.recoverable_amount || 0,
+                    ).toLocaleString("en-IN")}
                   </Text>
                 </View>
               </View>
@@ -659,6 +669,67 @@ const StructuredPanel = ({ structured, isLoading }) => {
   );
 };
 
+const MobileAnalysisView = ({
+  structured,
+  thinkingTrace,
+  auditResults,
+  finalReport,
+  analysisData,
+  navigation,
+}) => {
+  const [activeTab, setActiveTab] = useState("details"); // 'details' | 'ai'
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Tab Bar */}
+      <View style={mav.tabBar}>
+        <TouchableOpacity
+          style={[mav.tab, activeTab === "details" && mav.tabActive]}
+          onPress={() => setActiveTab("details")}
+        >
+          <Text
+            style={[mav.tabText, activeTab === "details" && mav.tabTextActive]}
+          >
+            Patient Details
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[mav.tab, activeTab === "ai" && mav.tabActive]}
+          onPress={() => setActiveTab("ai")}
+        >
+          <Text style={[mav.tabText, activeTab === "ai" && mav.tabTextActive]}>
+            AI Analysis
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tab Content */}
+      <View style={mav.tabContent}>
+        {activeTab === "details" ? (
+          <StructuredPanel structured={structured} isLoading={false} />
+        ) : (
+          <ClaudeThinkingView
+            thinkingTrace={thinkingTrace}
+            auditResults={auditResults}
+            finalReport={finalReport}
+            analysisData={analysisData}
+          />
+        )}
+      </View>
+
+      {/* Accept Button */}
+      <TouchableOpacity
+        style={mav.acceptBtn}
+        onPress={() =>
+          navigation.navigate("HospitalInsuranceDownload", { analysisData })
+        }
+      >
+        <Text style={mav.acceptText}>Generate Updated Files →</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 // ═══════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════
@@ -708,6 +779,43 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   );
 
   // ─── THE KEY CHANGE: Navigate first, THEN call API ──────────────────
+  // const startAnalysis = async () => {
+  //   setCurrentStep(1);
+  //   setIsAnalyzing(true);
+  //   setAnalysisData(null);
+  //   setProcessingStage("uploading");
+
+  //   if (Platform.OS === "web" && width > 1000) {
+  //     Animated.timing(slideAnim, {
+  //       toValue: -cardWidth,
+  //       duration: 500,
+  //       useNativeDriver: true,
+  //     }).start();
+  //   }
+
+  //   const formData = new FormData();
+
+  //   const fieldMap = {
+  //     claim: "claim_form",
+  //     hospital: "hospital_bill",
+  //     prescription: "doctor_prescription",
+  //     insurance: "insurance_savings_breakdown",
+  //   };
+
+  //   for (const [key, backendField] of Object.entries(fieldMap)) {
+  //     const file = uploadSections[key];
+  //     if (!file) continue;
+
+  //     if (Platform.OS === "web") {
+  //       formData.append(backendField, file);
+  //     } else {
+  //       formData.append(backendField, {
+  //         uri: file.uri,
+  //         name: file.name || `${key}.pdf`,
+  //         type: file.mimeType || "application/octet-stream",
+  //       });
+  //     }
+  //   }
   const startAnalysis = async () => {
     setCurrentStep(1);
     setIsAnalyzing(true);
@@ -724,33 +832,72 @@ const HospitalInsuranceClaim = ({ navigation }) => {
 
     const formData = new FormData();
 
-    const fieldMap = {
-      claim: "claim_form",
-      hospital: "hospital_bill",
-      prescription: "doctor_prescription",
-      insurance: "insurance_savings_breakdown",
-    };
+    // ✅ FIX: use claimDocs when on native, OR when web width < 1000 (mobile web)
+    const useMobileFlow = Platform.OS !== "web" || width < 1000;
 
-    for (const [key, backendField] of Object.entries(fieldMap)) {
-      const file = uploadSections[key];
-      if (!file) continue;
+    if (useMobileFlow) {
+      if (claimDocs.length === 0) {
+        setIsAnalyzing(false);
+        setCurrentStep(0);
+        return;
+      }
 
-      if (Platform.OS === "web") {
-        formData.append(backendField, file);
-      } else {
-        formData.append(backendField, {
+      const file = claimDocs[0];
+
+      if (Platform.OS !== "web") {
+        // Real native device
+        formData.append("claim_form", {
           uri: file.uri,
-          name: file.name || `${key}.pdf`,
+          name: file.name || "claim.pdf",
           type: file.mimeType || "application/octet-stream",
         });
+      } else {
+        // Web browser (mobile emulation or real mobile browser)
+        formData.append("claim_form", file.file, file.name || "claim.pdf");
+      }
+
+      if (policyDocs.length > 0) {
+        const pfile = policyDocs[0];
+        if (Platform.OS !== "web") {
+          formData.append("hospital_bill", {
+            uri: pfile.uri,
+            name: pfile.name || "policy.pdf",
+            type: pfile.mimeType || "application/octet-stream",
+          });
+        } else {
+          formData.append(
+            "hospital_bill",
+            pfile.file,
+            pfile.name || "policy.pdf",
+          );
+        }
+      }
+    } else {
+      // Desktop web flow
+      const fieldMap = {
+        claim: "claim_form",
+        hospital: "hospital_bill",
+        prescription: "doctor_prescription",
+        insurance: "insurance_savings_breakdown",
+      };
+      for (const [key, backendField] of Object.entries(fieldMap)) {
+        const file = uploadSections[key];
+        if (!file) continue;
+        formData.append(backendField, file);
       }
     }
 
     const stageTimer = setTimeout(() => setProcessingStage("ocr"), 2000);
-    const stageTimer2 = setTimeout(() => setProcessingStage("extracting"), 5000);
+    const stageTimer2 = setTimeout(
+      () => setProcessingStage("extracting"),
+      5000,
+    );
     const stageTimer3 = setTimeout(() => setProcessingStage("routing"), 10000);
     const stageTimer4 = setTimeout(() => setProcessingStage("auditing"), 12000);
-    const stageTimer5 = setTimeout(() => setProcessingStage("reporting"), 25000);
+    const stageTimer5 = setTimeout(
+      () => setProcessingStage("reporting"),
+      25000,
+    );
 
     try {
       const res = await fetch(`${API_URL}/medilocker/insurance/analyze`, {
@@ -786,8 +933,12 @@ const HospitalInsuranceClaim = ({ navigation }) => {
 
   // ─── Mobile: analyze ───────────────────────────────────────────────
   const handleGenerate = () => {
+    console.log("claimDocs:", claimDocs);
+    console.log("claimDocs[0]:", claimDocs[0]);
+    console.log("Platform.OS:", Platform.OS);
+    console.log("width:", width);
     if (claimDocs.length === 0 || isAnalyzing) return;
-    startAnalysis(claimDocs[0], false);
+    startAnalysis();
   };
 
   // ─── Navigation ────────────────────────────────────────────────────
@@ -1253,13 +1404,20 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                             }}
                           >
                             <UploadStepItem
-                              title="Insurance savings breakdown"
-                              subtitle="Co-Pay Excess Pre-auth Billing"
-                              file={uploadSections.insurance}
-                              onUpload={() => handleSectionUpload("insurance")}
-                              onRemove={() => handleSectionRemove("insurance")}
+                              title="Claim Form"
+                              subtitle="Completed & signed insurance claim form"
+                              required
+                              file={uploadSections.claim}
+                              onUpload={() => handleSectionUpload("claim")}
+                              onRemove={() => handleSectionRemove("claim")}
                             />
-
+                            <UploadStepItem
+                              title="Hospital Bill"
+                              subtitle="Itemised bill / discharge summary from hospital"
+                              file={uploadSections.hospital}
+                              onUpload={() => handleSectionUpload("hospital")}
+                              onRemove={() => handleSectionRemove("hospital")}
+                            />
                             <UploadStepItem
                               title="Doctor prescription"
                               subtitle="Signed prescription from treating cardiologist"
@@ -1271,22 +1429,12 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                 handleSectionRemove("prescription")
                               }
                             />
-
                             <UploadStepItem
-                              title="Hospital Bill"
-                              subtitle="Itemised bill / discharge summary from hospital"
-                              file={uploadSections.hospital}
-                              onUpload={() => handleSectionUpload("hospital")}
-                              onRemove={() => handleSectionRemove("hospital")}
-                            />
-
-                            <UploadStepItem
-                              title="Claim Form"
-                              subtitle="Completed & signed insurance claim form"
-                              required
-                              file={uploadSections.claim}
-                              onUpload={() => handleSectionUpload("claim")}
-                              onRemove={() => handleSectionRemove("claim")}
+                              title="Insurance Policy"
+                              subtitle="Co-Pay Excess Pre-auth Billing"
+                              file={uploadSections.insurance}
+                              onUpload={() => handleSectionUpload("insurance")}
+                              onRemove={() => handleSectionRemove("insurance")}
                             />
                           </View>
                           {/* ✅ BUTTON (YOU FORGOT THIS) */}
@@ -1510,56 +1658,81 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
             ) : (
+              // <View style={m.resultCard}>
+              //   <Text style={m.resultTitle}>Kokoro AI Analysis</Text>
+              //   <Text style={m.resultSub}>
+              //     {isAnalyzing
+              //       ? "Analyzing your claim..."
+              //       : "review all sections, then accept suggestions you approve"}
+              //   </Text>
+
+              //   {isAnalyzing && !analysisData ? (
+              //     <ProcessingView stage={processingStage} />
+              //   ) : analysisData ? (
+              //     <>
+              //       <Text style={m.blueLabel}>
+              //         {structured?.source_filename || "Insurance_Claim.pdf"}
+              //       </Text>
+              //       <View style={m.resultBox}>
+              //         <ScrollView>
+              //           <Text style={m.secTitle}>Patient</Text>
+              //           <Text style={m.text}>
+              //             Name: {structured?.patient_details?.name || "N/A"}
+              //           </Text>
+              //           <Text style={m.text}>
+              //             Age: {structured?.patient_details?.age || "N/A"}
+              //           </Text>
+              //           <Text style={m.secTitle}>Insurance</Text>
+              //           <Text style={m.text}>
+              //             TPA:{" "}
+              //             {structured?.insurance_details?.tpa_name || "N/A"}
+              //           </Text>
+              //           <Text style={m.secTitle}>Claim</Text>
+              //           <Text style={m.text}>
+              //             Bill: ₹{structured?.claim_details?.bill_amount || "0"}
+              //           </Text>
+              //           <Text style={m.text}>
+              //             Claimed: ₹
+              //             {structured?.claim_details?.claimed_amount || "0"}
+              //           </Text>
+              //         </ScrollView>
+              //       </View>
+              //       <TouchableOpacity
+              //         style={m.acceptBtn}
+              //         onPress={() =>
+              //           navigation.navigate("HospitalInsuranceDownload", {
+              //             analysisData,
+              //           })
+              //         }
+              //       >
+              //         <Text style={m.acceptText}>Accept All</Text>
+              //       </TouchableOpacity>
+              //     </>
+              //   ) : (
+              //     <Text style={{ padding: 16, color: "#94A3B8" }}>
+              //       Waiting for analysis...
+              //     </Text>
+              //   )}
+              // </View>
               <View style={m.resultCard}>
                 <Text style={m.resultTitle}>Kokoro AI Analysis</Text>
                 <Text style={m.resultSub}>
                   {isAnalyzing
                     ? "Analyzing your claim..."
-                    : "review all sections, then accept suggestions you approve"}
+                    : "Review all sections below"}
                 </Text>
 
                 {isAnalyzing && !analysisData ? (
                   <ProcessingView stage={processingStage} />
                 ) : analysisData ? (
-                  <>
-                    <Text style={m.blueLabel}>
-                      {structured?.source_filename || "Insurance_Claim.pdf"}
-                    </Text>
-                    <View style={m.resultBox}>
-                      <ScrollView>
-                        <Text style={m.secTitle}>Patient</Text>
-                        <Text style={m.text}>
-                          Name: {structured?.patient_details?.name || "N/A"}
-                        </Text>
-                        <Text style={m.text}>
-                          Age: {structured?.patient_details?.age || "N/A"}
-                        </Text>
-                        <Text style={m.secTitle}>Insurance</Text>
-                        <Text style={m.text}>
-                          TPA:{" "}
-                          {structured?.insurance_details?.tpa_name || "N/A"}
-                        </Text>
-                        <Text style={m.secTitle}>Claim</Text>
-                        <Text style={m.text}>
-                          Bill: ₹{structured?.claim_details?.bill_amount || "0"}
-                        </Text>
-                        <Text style={m.text}>
-                          Claimed: ₹
-                          {structured?.claim_details?.claimed_amount || "0"}
-                        </Text>
-                      </ScrollView>
-                    </View>
-                    <TouchableOpacity
-                      style={m.acceptBtn}
-                      onPress={() =>
-                        navigation.navigate("HospitalInsuranceDownload", {
-                          analysisData,
-                        })
-                      }
-                    >
-                      <Text style={m.acceptText}>Accept All</Text>
-                    </TouchableOpacity>
-                  </>
+                  <MobileAnalysisView
+                    structured={structured}
+                    thinkingTrace={thinkingTrace}
+                    auditResults={auditResults}
+                    finalReport={finalReport}
+                    analysisData={analysisData}
+                    navigation={navigation}
+                  />
                 ) : (
                   <Text style={{ padding: 16, color: "#94A3B8" }}>
                     Waiting for analysis...
@@ -2172,9 +2345,17 @@ const m = StyleSheet.create({
     backgroundColor: "#D1D5DB",
     zIndex: 0,
   },
-  activeCircle: { backgroundColor: "#2563EB" },
-  doneCircle: { backgroundColor: "#16A34A" },
-  card: { backgroundColor: "#F3F4F6", borderRadius: 12, padding: 16 },
+  activeCircle: {
+    backgroundColor: "#2563EB",
+  },
+  doneCircle: {
+    backgroundColor: "#16A34A",
+  },
+  card: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    padding: 16,
+  },
   cardTitle: {
     fontSize: 16,
     fontWeight: "600",
@@ -2187,9 +2368,20 @@ const m = StyleSheet.create({
     color: "#6B7280",
     marginBottom: 10,
   },
-  bulletWrap: { marginBottom: 16 },
-  bullet: { fontSize: 12, color: "#6B7280", marginBottom: 4 },
-  label: { fontSize: 13, fontWeight: "600", marginBottom: 6, color: "#2563EB" },
+  bulletWrap: {
+    marginBottom: 16,
+  },
+  bullet: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 4,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 6,
+    color: "#2563EB",
+  },
   uploadBox: {
     borderWidth: 1,
     borderStyle: "dashed",
@@ -2224,7 +2416,14 @@ const m = StyleSheet.create({
   },
   fileText: { fontSize: 11, color: "#374151" },
   fileScroll: { flexDirection: "row", alignItems: "center" },
-  resultCard: { backgroundColor: "#fff", borderRadius: 12, padding: 16 },
+  // resultCard: { backgroundColor: "#fff", borderRadius: 12, padding: 16 },
+  resultCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    flex: 1, 
+    minHeight: 600, 
+  },
   resultTitle: { fontSize: 16, fontWeight: "700", color: "#2563EB" },
   resultSub: { fontSize: 12, color: "#6B7280", marginBottom: 10 },
   resultBox: {
@@ -2283,6 +2482,54 @@ const m = StyleSheet.create({
     backgroundColor: "#E7F3FFBF",
   },
   aiModalTitle: { fontSize: 18, fontWeight: "700", color: "#2563EB" },
+});
+const mav = StyleSheet.create({
+  tabBar: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+  },
+  tabActive: {
+    backgroundColor: "#2563EB",
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  tabTextActive: {
+    color: "#fff",
+  },
+  tabContent: {
+    height: 480,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  acceptBtn: {
+    backgroundColor: "#2563EB",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 20,
+  },
+  acceptText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
 });
 
 export default HospitalInsuranceClaim;
