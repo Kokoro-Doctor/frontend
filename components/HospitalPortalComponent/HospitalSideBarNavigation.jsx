@@ -23,17 +23,22 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       icon: require("../../assets/HospitalPortal/Icon/hospital_home.png"),
     },
     {
+      name: "Medi Claim Agent",
+      icon: require("../../assets/HospitalPortal/Icon/insurance.png"),
+    },
+    {
       name: "Dashboard",
       icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
     },
-    {
-      name: "Insurance Claim",
-      icon: require("../../assets/HospitalPortal/Icon/insurance.png"),
-    },
+    
     {
       name: "Post OP Patients",
       icon: require("../../assets/HospitalPortal/Icon/post_op_patient.png"),
     },
+    //     {
+    //   name: "PA Requests",
+    //   icon: require("../../assets/HospitalPortal/Icon/PARequest.png"),
+    // },
 
     
   ];
@@ -48,9 +53,12 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       navigation.navigate("HospitalDashboard");
     } else if (menu === "Post OP Patients") {
       navigation.navigate("PostOpCare");
-    } else if (menu === "Insurance Claim") {
+    } else if (menu === "Medi Claim Agent") {
       navigation.navigate("HospitalInsuranceClaim");
-    } else {
+    // }else if (menu === "PA Requests") {
+    //   navigation.navigate("PARequests");
+    // } 
+    }else {
       navigation.navigate(menu);
     }
   };
