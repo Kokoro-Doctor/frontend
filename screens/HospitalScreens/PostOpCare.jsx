@@ -447,9 +447,9 @@ const PostOpCare = ({ navigation }) => {
               </View>
 
               <View style={styles.right}>
-                <View style={styles.header}>
+                {/* <View style={styles.header}>
                   <HeaderLoginSignUp navigation={navigation} />
-                </View>
+                </View> */}
 
                 <View style={styles.card}>
                   {/* TITLE ROW */}
@@ -1148,6 +1148,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
+    marginTop:"4%"
   },
   titleTopSection: {
     height: 52,

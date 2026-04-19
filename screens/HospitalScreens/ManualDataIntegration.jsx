@@ -857,9 +857,9 @@ const ManualDataIntegration = ({ navigation }) => {
 
               {/* Right Content */}
               <View style={styles.right}>
-                <View style={styles.header}>
+                {/* <View style={styles.header}>
                   <HeaderLoginSignUp navigation={navigation} />
-                </View>
+                </View> */}
 
                 {/* Card */}
                 <View style={styles.card}>
@@ -2162,6 +2162,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
+    marginTop:"4%"
   },
   titleTopSection: {
     height: 56,

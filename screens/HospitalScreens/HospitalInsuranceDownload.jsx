@@ -294,9 +294,9 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
 
               {/* RIGHT CONTENT */}
               <View style={stylesWeb.content}>
-                <View style={stylesWeb.headerRow}>
+                {/* <View style={stylesWeb.headerRow}>
                   <HeaderLoginSignUp navigation={navigation} />
-                </View>
+                </View> */}
 
                 {/* WHITE CARD */}
                 <View style={stylesWeb.card}>
@@ -3542,6 +3542,7 @@ const stylesWeb = StyleSheet.create({
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
+    marginTop:"4%"
   },
 
   /* ── CARD TITLE ROW ── */

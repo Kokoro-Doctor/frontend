@@ -20,9 +20,9 @@ const ManualUpload = ({ navigation }) => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <StatusBar barStyle="light-content" backgroundColor="#fff" />
-        <View style={stylesMobile.header}>
+        {/* <View style={stylesMobile.header}>
           <HeaderLoginSignUp navigation={navigation} />
-        </View>
+        </View> */}
         <Text style={stylesMobile.title}>AI Integration</Text>
         <TouchableOpacity style={stylesMobile.selectBtn}>
           <Text style={stylesMobile.selectText}>Select Patient</Text>

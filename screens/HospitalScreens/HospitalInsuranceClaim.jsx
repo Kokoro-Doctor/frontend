@@ -1202,9 +1202,9 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                 <HospitalSidebarNavigation navigation={navigation} />
               </View>
               <View style={styles.right}>
-                <View style={styles.header}>
+                {/* <View style={styles.header}>
                   <HeaderLoginSignUp navigation={navigation} />
-                </View>
+                </View> */}
                 <View style={styles.card}>
                   <View style={styles.titleRow}>
                     <Text style={styles.title}>
@@ -2061,6 +2061,7 @@ const styles = StyleSheet.create({
     zIndex: 5,
     height: "85vh",
     overflow: "hidden",
+    marginTop:"4%"
   },
   titleRow: {
     height: 52,
