@@ -2,6 +2,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { Platform } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import ChatBotOverlay from "./components/PatientScreenComponents/ChatbotComponents/ChatbotOverlay";
+import AuthPopupOverlay from "./components/AuthPopupOverlay";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ChatbotProvider } from "./contexts/ChatbotContext";
 import { LoginModalProvider } from "./contexts/LoginModalContext";
@@ -75,6 +76,7 @@ const App = () => {
                   currentRoute={currentRoute}
                 >
                   <RootNavigation />
+                  <AuthPopupOverlay navigationRef={navigationRef} appType={appType} />
                   <ChatBotOverlay navigationRef={navigationRef} />
                 </AuthPopupProvider>
               </NavigationContainer>
