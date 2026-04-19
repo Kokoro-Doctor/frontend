@@ -143,8 +143,10 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
 
   useEffect(() => {
     registerOpenModal(({ mode = "signup" } = {}) => {
-      // If on doctor portal, open doctor modal; otherwise open patient modal
-      if (resolvedIsDoctorPortal) {
+      // Handle different auth modes
+      if (mode === "hospital") {
+        setHospitalModalVisible(true);
+      } else if (resolvedIsDoctorPortal) {
         setDoctorModalVisible(true);
       } else {
         openAuthModal(mode);

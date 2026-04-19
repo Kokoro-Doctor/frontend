@@ -27,35 +27,87 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
   const { setChatbotConfig, isChatExpanded, setIsChatExpanded } = useChatbot();
   const borderAnim = useRef(new Animated.Value(0)).current;
   const [showLabel, setShowLabel] = useState(false);
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     setChatbotConfig({ height: "57%" });
+  //     setShowLabel(true); // show text immediately
+  //     borderAnim.setValue(0);
+  //     const timer = setTimeout(() => {
+  //       Animated.loop(
+  //         // keeps the bounce continuous
+  //         Animated.sequence([
+  //           Animated.spring(borderAnim, {
+  //             toValue: 1,
+  //             friction: 2,
+  //             tension: 100,
+  //             useNativeDriver: true,
+  //           }),
+  //           Animated.spring(borderAnim, {
+  //             toValue: 1,
+  //             friction: 1,
+  //             tension: 100,
+  //             useNativeDriver: true,
+  //           }),
+  //         ]),
+  //       ).start();
+  //     }, 1000);
+
+  //     return () => clearTimeout(timer);
+  //   }, [borderAnim, setChatbotConfig]),
+  // );
   useFocusEffect(
     useCallback(() => {
       setChatbotConfig({ height: "57%" });
-      setShowLabel(true); // show text immediately
-      borderAnim.setValue(0);
-      const timer = setTimeout(() => {
-        Animated.loop(
-          // keeps the bounce continuous
-          Animated.sequence([
-            Animated.spring(borderAnim, {
-              toValue: 1,
-              friction: 2,
-              tension: 100,
-              useNativeDriver: true,
-            }),
-            Animated.spring(borderAnim, {
-              toValue: 1,
-              friction: 1,
-              tension: 100,
-              useNativeDriver: true,
-            }),
-          ]),
-        ).start();
-      }, 1000);
 
-      return () => clearTimeout(timer);
-    }, [borderAnim, setChatbotConfig]),
+      glowAnim.setValue(0);
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: 1200,
+            useNativeDriver: false, // important for shadow
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0,
+            duration: 1200,
+            useNativeDriver: false,
+          }),
+        ]),
+      ).start();
+    }, [glowAnim, setChatbotConfig]),
   );
+
+  const glowStyle = {
+    // 🔥 BOLD BORDER
+    borderWidth: 6.5,
+    borderRadius: 22,
+
+    borderColor: glowAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["rgba(211, 47, 159, 0.5)", "rgba(206, 83, 217, 1)"],
+    }),
+
+    // 🌟 SOFT SHADOW (web + iOS)
+    shadowColor: "#00ffcc",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: glowAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.4, 1],
+    }),
+    shadowRadius: glowAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [8, 25],
+    }),
+
+    // 📱 ANDROID fallback
+    elevation: glowAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [6, 18],
+    }),
+  };
 
   return (
     <>
@@ -78,131 +130,116 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                   <HospitalSidebarNavigation navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
-                  <View style={styles.header}>
+                  {/* <View style={styles.header}>
                     <HeaderLoginSignUp navigation={navigation} />
-                  </View>
+                  </View> */}
                   <View style={styles.title}>
                     <Title />
                   </View>
                   {/* Center Middle */}
                   {!isChatExpanded && (
                     <View style={styles.centerMiddlePart}>
-                      <TouchableOpacity
-                        style={styles.cardStyle}
-                        onPress={() => {
-                          navigation.navigate("HospitalAppNavigation", {
-                            screen: "PostOpCare",
-                          });
-                        }}
-                      >
-                        <Image
-                          source={require("../../assets/HospitalPortal/Images/post_op_care.png")}
-                          style={styles.image}
-                        />
-                      </TouchableOpacity>
-
-                      {/* <View style={styles.AiCard}>
-                        <Animated.View
-                          style={[
-                            styles.cardStyle,
-                            {
-                              height: "100%",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              overflow: "hidden", // Keeps image visible within border
-                              backgroundColor: "transparent",
-                              width: "100%",
-                              borderWidth: 5,
-                              borderRadius: 20,
-                              borderColor: "rgba(37, 255, 111, 1)",
+                      <Animated.View style={[styles.cardStyle, glowStyle]}>
+                        <View
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            overflow: "hidden",
+                            borderRadius: 18,
+                          }}
+                        >
+                          <Animated.View
+                            pointerEvents="none"
+                            style={{
+                              position: "absolute",
+                              top: -10,
+                              bottom: -10,
+                              left: -10,
+                              right: -10,
+                              borderRadius: 25,
+                              backgroundColor: "rgba(0,255,200,0.25)",
+                              opacity: glowAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.2, 0.5],
+                              }),
                               transform: [
                                 {
-                                  translateY: borderAnim.interpolate({
-                                    inputRange: [0, 0.5, 1],
-                                    outputRange: [0, -20, 0], // vertical bounce effect
+                                  scale: glowAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.95, 1.05],
                                   }),
                                 },
                               ],
-                            },
-                            //animatedBorderStyle,
-                          ]}
-                        >
+                            }}
+                          />
+
                           <TouchableOpacity
                             onPress={() => {
-                              navigation.navigate("PatientAppNavigation", {
-                                screen: "MobileChatbot",
+                              navigation.navigate("HospitalAppNavigation", {
+                                screen: "HospitalInsuranceClaim",
                               });
                             }}
-                            activeOpacity={0.9}
-                            style={{ width: "100%", height: "100%" }}
+                            style={{ flex: 1 }}
                           >
                             <Image
-                              source={require("../../assets/DoctorsPortal/Images/DrBuddy.png")}
+                              source={require("../../assets/HospitalPortal/Images/insurance-claim.png")}
                               style={{
                                 width: "100%",
                                 height: "100%",
-                                borderRadius: 16,
+                                borderRadius: 18,
                               }}
+                              resizeMode="cover"
                             />
                           </TouchableOpacity>
-                        </Animated.View>
+                        </View>
+                      </Animated.View>
+                      {/* <Animated.View style={[styles.cardStyle, glowStyle]}>
+                      
+                        <Animated.View
+                          pointerEvents="none"
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            borderRadius: 18,
+                            backgroundColor: "rgba(0,255,200,0.15)",
 
-                        {showLabel && (
-                          <Animated.View
+                            opacity: glowAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0.2, 0.5],
+                            }),
+
+                            zIndex: 0, // 👈 IMPORTANT
+
+                            ...(Platform.OS === "web" && {
+                              boxShadow: "0px 0px 40px rgba(0,255,200,0.6)",
+                            }),
+                          }}
+                        />
+
+                  
+                        <TouchableOpacity
+                          style={{ flex: 1, zIndex:2 }}
+                          onPress={() => {
+                            navigation.navigate("HospitalAppNavigation", {
+                              screen: "HospitalInsuranceClaim",
+                            });
+                          }}
+                        >
+                          <Image
+                            source={require("../../assets/HospitalPortal/Images/insurance-claim.png")}
                             style={{
                               width: "100%",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              // opacity: borderAnim,
-                              opacity: borderAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [0.8, 1], // subtle breathing effect
-                              }),
+                              height: "100%",
+                              borderRadius: 18,
+                              zIndex:2
                             }}
-                          >
-                            <ImageBackground
-                              source={require("../../assets/Images/Union.png")} // rename your uploaded PNG to try_box.png and place it in /assets/Images
-                              style={{
-                                width: "100%",
-                                height: 35, // adjust based on your PNG’s height
-                                justifyContent: "center",
-                                alignItems: "center",
-                                marginVertical: "8%",
-                              }}
-                              resizeMode="stretch" // ensures the green bar stretches evenly
-                            >
-                              <Text
-                                style={{
-                                  color: "#fff",
-                                  fontWeight: "700",
-                                  fontSize: 15,
-                                  //textTransform: "uppercase",
-                                  textShadowColor: "rgba(0, 0, 0, 0.5)",
-                                  textShadowOffset: { width: 1, height: 1 },
-                                  textShadowRadius: 2,
-                                  marginTop: "1%",
-                                }}
-                              >
-                                Try Me for Free
-                              </Text>
-                            </ImageBackground>
-                          </Animated.View>
-                        )}
-                      </View> */}
-                      <TouchableOpacity
-                        style={styles.cardStyle}
-                        onPress={() => {
-                          navigation.navigate("HospitalAppNavigation", {
-                            screen: "HospitalInsuranceClaim",
-                          });
-                        }}
-                      >
-                        <Image
-                          source={require("../../assets/HospitalPortal/Images/insurance-claim.png")}
-                          style={styles.image}
-                        />
-                      </TouchableOpacity>
-
+                            resizeMode="cover"
+                          />
+                        </TouchableOpacity>
+                      </Animated.View> */}
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
@@ -230,6 +267,19 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                           style={styles.image}
                         />
                       </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.cardStyle}
+                        onPress={() => {
+                          navigation.navigate("HospitalAppNavigation", {
+                            screen: "PostOpCare",
+                          });
+                        }}
+                      >
+                        <Image
+                          source={require("../../assets/HospitalPortal/Images/post_op_care.png")}
+                          style={styles.image}
+                        />
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -252,20 +302,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
 
           <View style={MobileStyles.cards}>
             <View style={MobileStyles.cardsRow}>
-              <TouchableOpacity
-                style={MobileStyles.cardStyle}
-                onPress={() => {
-                  navigation.navigate("HospitalAppNavigation", {
-                    screen: "PostOpCare",
-                  });
-                }}
-              >
-                <Image
-                  source={require("../../assets/HospitalPortal/Images/Hospital_card1.png")}
-                  style={MobileStyles.image}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={MobileStyles.cardStyle}
                 onPress={() => {
                   navigation.navigate("HospitalAppNavigation", {
@@ -277,23 +314,22 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                   source={require("../../assets/HospitalPortal/Images/Hospital_card4.png")}
                   style={MobileStyles.image}
                 />
-              </TouchableOpacity>
-            </View>
-            <View style={MobileStyles.cardsRow}>
-              <TouchableOpacity
-                style={MobileStyles.cardStyle}
-                onPress={() => {
-                  navigation.navigate("HospitalAppNavigation", {
-                    screen: "HospitalDashboard",
-                  });
-                }}
-              >
-                <Image
-                  source={require("../../assets/HospitalPortal/Images/Hospital_cta.png")}
-                  style={MobileStyles.image}
-                />
-              </TouchableOpacity>
-
+              </TouchableOpacity> */}
+              <Animated.View style={[MobileStyles.cardStyle, glowStyle]}>
+                <TouchableOpacity
+                  style={{ width: "100%", height: "100%" }}
+                  onPress={() => {
+                    navigation.navigate("HospitalAppNavigation", {
+                      screen: "HospitalInsuranceClaim",
+                    });
+                  }}
+                >
+                  <Image
+                    source={require("../../assets/HospitalPortal/Images/Hospital_card4.png")}
+                    style={MobileStyles.image}
+                  />
+                </TouchableOpacity>
+              </Animated.View>
               <TouchableOpacity
                 style={MobileStyles.cardStyle}
                 onPress={() => {
@@ -323,6 +359,34 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                   {/* TEXT */}
                   <Text style={MobileStyles.cardText}>AI Integration</Text>
                 </ImageBackground>
+              </TouchableOpacity>
+            </View>
+            <View style={MobileStyles.cardsRow}>
+              <TouchableOpacity
+                style={MobileStyles.cardStyle}
+                onPress={() => {
+                  navigation.navigate("HospitalAppNavigation", {
+                    screen: "HospitalDashboard",
+                  });
+                }}
+              >
+                <Image
+                  source={require("../../assets/HospitalPortal/Images/Hospital_cta.png")}
+                  style={MobileStyles.image}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={MobileStyles.cardStyle}
+                onPress={() => {
+                  navigation.navigate("HospitalAppNavigation", {
+                    screen: "PostOpCare",
+                  });
+                }}
+              >
+                <Image
+                  source={require("../../assets/HospitalPortal/Images/Hospital_card1.png")}
+                  style={MobileStyles.image}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -395,26 +459,47 @@ const styles = StyleSheet.create({
     // borderWidth: 1,
     marginHorizontal: "auto",
     alignSelf: "center",
+    marginTop:"4%"
   },
+  // centerMiddlePart: {
+  //   height: "25%",
+  //   width: "47%",
+  //   marginHorizontal: "auto",
+  //   flexDirection: "row",
+  //   justifyContent: "space-between",
+  //   //alignItems: "center",
+  // },
   centerMiddlePart: {
-    height: "25%",
+    minHeight: 220, // 🔥 important
     width: "47%",
     marginHorizontal: "auto",
     flexDirection: "row",
     justifyContent: "space-between",
-    //alignItems: "center",
+    alignItems: "center",
   },
+  // cardStyle: {
+  //   width: "45%",
+  //   ...Platform.select({
+  //     web: {
+  //       width: width > 1000 ? "23%" : "45%",
+  //       borderColor: "#FFFFFF",
+  //       borderRadius: 18,
+  //       alignItems: "center",
+  //       backgroundColor: "transparent",
+  //       justifyContent: "center",
+  //       height: "100%",
+  //     },
+  //   }),
+  // },
   cardStyle: {
     width: "45%",
     ...Platform.select({
       web: {
         width: width > 1000 ? "23%" : "45%",
-        borderColor: "#FFFFFF",
         borderRadius: 18,
         alignItems: "center",
-        backgroundColor: "transparent",
         justifyContent: "center",
-        height: "100%",
+        height: 200, // 🔥 FIXED HEIGHT (must for web)
       },
     }),
   },
@@ -541,15 +626,6 @@ const MobileStyles = StyleSheet.create({
     justifyContent: "space-evenly",
     width: "100%",
   },
-  // gradient: {
-  //   position: "absolute",
-  //   bottom: 0,
-  //   left: 0,
-  //   right: 0,
-  //   height: "55%",
-  //   borderBottomLeftRadius: 17,
-  //   borderBottomRightRadius: 17,
-  // },
 
   blur: {
     position: "absolute",
