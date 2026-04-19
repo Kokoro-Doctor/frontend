@@ -87,7 +87,7 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
 
     borderColor: glowAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: ["rgba(211, 47, 159, 0.5)", "rgba(206, 83, 217, 1)"],
+      outputRange: ["rgba(130, 213, 230, 0.99)", "rgba(8, 81, 124, 1)"],
     }),
 
     // 🌟 SOFT SHADOW (web + iOS)
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     // borderWidth: 1,
     marginHorizontal: "auto",
     alignSelf: "center",
-    marginTop:"4%"
+    marginTop:"5%"
   },
   // centerMiddlePart: {
   //   height: "25%",
@@ -470,12 +470,13 @@ const styles = StyleSheet.create({
   //   //alignItems: "center",
   // },
   centerMiddlePart: {
-    minHeight: 220, // 🔥 important
+    minHeight: 250, // 🔥 important
     width: "47%",
     marginHorizontal: "auto",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    //borderWidth:1
   },
   // cardStyle: {
   //   width: "45%",
@@ -495,7 +496,7 @@ const styles = StyleSheet.create({
     width: "45%",
     ...Platform.select({
       web: {
-        width: width > 1000 ? "23%" : "45%",
+        width: width > 1000 ? "23%" : "55%",
         borderRadius: 18,
         alignItems: "center",
         justifyContent: "center",

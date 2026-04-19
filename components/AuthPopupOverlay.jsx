@@ -30,7 +30,6 @@ const AuthPopupOverlay = ({ navigationRef, appType }) => {
     "Login",
     "Signup",
     "MobileChatbot",
-
     "HospitalUploadPage",
     "HospitalInsuranceClaim",
     "PostOpCare",
