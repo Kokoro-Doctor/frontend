@@ -45,9 +45,9 @@ const ValidateDataScreen = ({ navigation, route }) => {
                 <HospitalSidebarNavigation navigation={navigation} />
               </View>
               <View style={styles.right}>
-                <View style={styles.header}>
+                {/* <View style={styles.header}>
                   <HeaderLoginSignUp navigation={navigation} />
-                </View>
+                </View> */}
 
                 <View style={styles.card}>
                   {/* Title */}
@@ -578,6 +578,7 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "column",
     padding: 20,
+    marginTop:"4%"
   },
   header: {
     marginBottom: 16,

@@ -10,12 +10,13 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
-  const [selectedItem, setSelectedItem] = useState(activeItem);
+  //const [selectedItem, setSelectedItem] = useState(activeItem);
+  const route = useRoute();
 
   const menuItems = [
     {
@@ -27,13 +28,17 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       icon: require("../../assets/HospitalPortal/Icon/insurance.png"),
     },
     {
-      name: "Dashboard",
+      name: "Revenue Dashboard",
       icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
     },
     
     {
       name: "Post OP Patients",
       icon: require("../../assets/HospitalPortal/Icon/post_op_patient.png"),
+    },
+    {
+      name: "Data Integration",
+      icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
     },
     //     {
     //   name: "PA Requests",
@@ -44,12 +49,12 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
   ];
 
   const handleSidebarClick = (menu) => {
-    setSelectedItem(menu);
+    //setSelectedItem(menu);
 
     // Navigate using if/else structure like in code 1
     if (menu === "Home") {
       navigation.navigate("HospitalPortalLandingPage");
-    } else if (menu === "Dashboard") {
+    } else if (menu === "Revenue Dashboard") {
       navigation.navigate("HospitalDashboard");
     } else if (menu === "Post OP Patients") {
       navigation.navigate("PostOpCare");
@@ -58,10 +63,29 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
     // }else if (menu === "PA Requests") {
     //   navigation.navigate("PARequests");
     // } 
+    }else if (menu === "Data Integration") {
+      navigation.navigate("DataIntegrations");
     }else {
       navigation.navigate(menu);
     }
   };
+
+  const getActiveMenu = () => {
+  switch (route.name) {
+    case "HospitalPortalLandingPage":
+      return "Home";
+    case "HospitalDashboard":
+      return "Revenue Dashboard";
+    case "PostOpCare":
+      return "Post OP Patients";
+    case "HospitalInsuranceClaim":
+      return "Medi Claim Agent";
+    case "DataIntegrations":
+      return "Data Integration";
+    default:
+      return "Home";
+  }
+};
 
   return (
     <View style={styles.sidebar_content}>
@@ -95,7 +119,7 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
             activeOpacity={0.6}
             style={[
               styles.menuItemContainer,
-              selectedItem === item.name ? styles.selectedMenuItem : null,
+              getActiveMenu() === item.name ? styles.selectedMenuItem : null,
             ]}
             onPress={() => handleSidebarClick(item.name)}
           >
@@ -103,14 +127,14 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
               source={item.icon}
               style={[
                 styles.menuIcon,
-                selectedItem === item.name && { tintColor: "#ffffff" },
+                getActiveMenu() === item.name && { tintColor: "#ffffff" },
               ]}
             />
 
             <Text
               style={[
                 styles.menuText,
-                selectedItem === item.name ? styles.selectedMenuText : null,
+                getActiveMenu() === item.name ? styles.selectedMenuText : null,
               ]}
             >
               {item.name}

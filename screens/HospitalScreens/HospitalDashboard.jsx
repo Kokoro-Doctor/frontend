@@ -57,9 +57,9 @@ const HospitalDashboard = ({ navigation, route }) => {
                 </View>
                 <View style={styles.Right}>
                   {/* HEADER (fixed) */}
-                  <View style={styles.header}>
+                  {/* <View style={styles.header}>
                     <HeaderLoginSignUp navigation={navigation} />
-                  </View>
+                  </View> */}
 
                   {/* SCROLLABLE CONTENT */}
                   <ScrollView
@@ -250,6 +250,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40, // gives bottom spacing
+    marginTop:"2%"
   },
   cardsRow: {
     flexDirection: "row",
