@@ -184,26 +184,6 @@ export const AuthPopupProvider = ({ children, appType, currentRoute }) => {
       }}
     >
       {children}
-
-      {showPatientAuth && appType === "patient" && (
-        <PatientAuthModal
-          visible
-          initialMode="signup"
-          onRequestClose={() => setShowPatientAuth(false)}
-          onDoctorRegister={() => {
-            setShowPatientAuth(false);
-            setShowDoctorAuth(true);
-          }}
-        />
-      )}
-
-      {showDoctorAuth && appType === "doctor" && (
-        <DoctorAuthModal
-          visible
-          initialMode="signup"
-          onRequestClose={() => setShowDoctorAuth(false)}
-        />
-      )}
     </AuthPopupContext.Provider>
   );
 };

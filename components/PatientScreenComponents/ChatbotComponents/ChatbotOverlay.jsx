@@ -89,6 +89,7 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "SignatureScreen",
     "HospitalDashboard",
     "PARequests"
+    "WelcomeHospital",
   ];
   const shownScreensMobile = ["LandingPage"];
 

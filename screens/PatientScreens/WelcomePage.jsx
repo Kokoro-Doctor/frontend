@@ -715,7 +715,7 @@ export default function KokoroDoctorScreen() {
               style={{
                 marginTop: "1%",
                 color: "#9CA3AF",
-                fontSize: 18,
+                fontSize: 22,
                 marginBottom: 4,
                 fontWeight: "600",
               }}
@@ -728,7 +728,7 @@ export default function KokoroDoctorScreen() {
 
           {/* 🔥 UPLOAD BUTTON (ONLY BEFORE UPLOAD) */}
           {uploadedFiles.length === 0 && (
-            <View style={{ alignItems: "center", marginTop: 10 }}>
+            <View style={{ alignItems: "center" }}>
               <TouchableOpacity
                 onPress={() => {
                   // 🔥 reset state (IMPORTANT)
@@ -744,12 +744,14 @@ export default function KokoroDoctorScreen() {
                   paddingHorizontal: 28,
                   paddingVertical: 14,
                   borderRadius: 30,
+                  width: 320,
                   flexDirection: "row",
                   alignItems: "center",
+                  justifyContent: "center", // 🔥 THIS FIXES CENTER
                 }}
               >
                 <Text
-                  style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}
+                  style={{ color: "#fff", fontSize: 20, fontWeight: "600" }}
                 >
                   Upload Prescription
                 </Text>
