@@ -13,6 +13,7 @@ import {
   Animated,
 } from "react-native";
 import { useChatbot } from "../../contexts/ChatbotContext";
+import mixpanel, { trackButton } from "../../utils/Mixpanel";
 import { useFocusEffect } from "@react-navigation/native";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import Title from "../../components/PatientScreenComponents/Title";
@@ -175,6 +176,9 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
 
                           <TouchableOpacity
                             onPress={() => {
+                              trackButton("hospital_landing_insurance_claim_card_clicked", {
+                                source: "landing_page_web",
+                              });
                               navigation.navigate("HospitalAppNavigation", {
                                 screen: "HospitalInsuranceClaim",
                               });
@@ -243,6 +247,9 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
+                          trackButton("hospital_landing_ai_integration_card_clicked", {
+                            source: "landing_page_web",
+                          });
                           navigation.navigate("HospitalAppNavigation", {
                             screen: "DataIntegrations",
                           });
@@ -257,6 +264,9 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
+                          trackButton("hospital_landing_dashboard_card_clicked", {
+                            source: "landing_page_web",
+                          });
                           navigation.navigate("HospitalAppNavigation", {
                             screen: "HospitalDashboard",
                           });
@@ -270,6 +280,9 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                       <TouchableOpacity
                         style={styles.cardStyle}
                         onPress={() => {
+                          trackButton("hospital_landing_postop_care_card_clicked", {
+                            source: "landing_page_web",
+                          });
                           navigation.navigate("HospitalAppNavigation", {
                             screen: "PostOpCare",
                           });
@@ -319,6 +332,9 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                 <TouchableOpacity
                   style={{ width: "100%", height: "100%" }}
                   onPress={() => {
+                    trackButton("hospital_landing_insurance_claim_card_clicked", {
+                      source: "landing_page_mobile",
+                    });
                     navigation.navigate("HospitalAppNavigation", {
                       screen: "HospitalInsuranceClaim",
                     });
@@ -333,6 +349,9 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
               <TouchableOpacity
                 style={MobileStyles.cardStyle}
                 onPress={() => {
+                  trackButton("hospital_landing_ai_integration_card_clicked", {
+                    source: "landing_page_mobile",
+                  });
                   navigation.navigate("HospitalAppNavigation", {
                     screen: "DataIntegrations",
                   });
@@ -365,6 +384,9 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
               <TouchableOpacity
                 style={MobileStyles.cardStyle}
                 onPress={() => {
+                  trackButton("hospital_landing_dashboard_card_clicked", {
+                    source: "landing_page_mobile",
+                  });
                   navigation.navigate("HospitalAppNavigation", {
                     screen: "HospitalDashboard",
                   });
@@ -378,6 +400,9 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
               <TouchableOpacity
                 style={MobileStyles.cardStyle}
                 onPress={() => {
+                  trackButton("hospital_landing_postop_care_card_clicked", {
+                    source: "landing_page_mobile",
+                  });
                   navigation.navigate("HospitalAppNavigation", {
                     screen: "PostOpCare",
                   });

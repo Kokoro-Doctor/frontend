@@ -15,7 +15,7 @@ import {
 import HospitalAuthModal from "../../components/Auth/HospitalAuthModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
-import mixpanel from "../../utils/Mixpanel";
+import mixpanel, { trackButton } from "../../utils/Mixpanel";
 
 // ─── Inline Animated Analyze Button ───────────────────────────────────────────
 function AnalyzeButton({
@@ -372,10 +372,11 @@ export default function HeroSection({ navigation: navigationProp }) {
   };
 
   const handleHomeNavigation = () => {
-    mixpanel.track("Home Button Clicked", {
+    mixpanel.track("Analyze Claim Button Clicked", {
+      // ← more specific name
       source: "WelcomeHospital",
+      button_type: "hero_cta",
       action: "navigate_to_home",
-      bypass_auth: true,
       timestamp: new Date().toISOString(),
     });
     navigation.navigate("HospitalAppNavigation", {
@@ -810,7 +811,13 @@ export default function HeroSection({ navigation: navigationProp }) {
           <View style={styles.comingSoonModal}>
             <TouchableOpacity
               style={styles.modalCloseBtn}
-              onPress={() => setComingSoonModalVisible(false)}
+              onPress={() => {
+                trackButton("hospital_welcome_modal_close_x_button_clicked", {
+                  modal_type: "coming_soon",
+                  source: "welcome_modal",
+                });
+                setComingSoonModalVisible(false);
+              }}
             >
               <Text style={styles.modalCloseBtnText}>✕</Text>
             </TouchableOpacity>
@@ -823,7 +830,13 @@ export default function HeroSection({ navigation: navigationProp }) {
               </Text>
               <TouchableOpacity
                 style={styles.comingSoonBtn}
-                onPress={() => setComingSoonModalVisible(false)}
+                onPress={() => {
+                  trackButton("hospital_welcome_modal_got_it_button_clicked", {
+                    modal_type: "coming_soon",
+                    source: "welcome_modal",
+                  });
+                  setComingSoonModalVisible(false);
+                }}
               >
                 <Text style={styles.comingSoonBtnText}>Got it</Text>
               </TouchableOpacity>

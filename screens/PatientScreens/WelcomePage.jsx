@@ -1005,66 +1005,101 @@ export default function KokoroDoctorScreen() {
           <Text style={webStyles.sectionTitle}>Featured</Text>
 
           <View style={webStyles.featureRow}>
+            {/* ABHA CARD */}
             <TouchableOpacity
-              style={webStyles.featureCards}
+              style={[webStyles.featureCards, { backgroundColor: "#1E1060" }]}
               onPress={() => {
-                // mixpanel.track("Web Featured CTA Clicked", {
-                //   banner: "start_health_check",
-                //   source: "web-featured-section",
-                //   destination: "DoctorResultShow",
-                // });
                 trackButton("featured_card_health_clicked", {
                   banner: "start_health_check",
                   source: "web-featured-section",
                   destination: "Abha",
                 });
-
                 navigation.navigate("Abha");
               }}
             >
-              <ImageBackground
-                source={require("../../assets/Images/CTABOTTOM.png")}
-                style={webStyles.featureImages}
-                imageStyle={{
-                  resizeMode: "cover",
-                  borderRadius: 20,
+              {/* Top-left text */}
+              <View
+                style={{ position: "absolute", top: 18, left: 50, zIndex: 2 }}
+              >
+                <Text
+                  style={{ color: "#fff", fontSize: 20, fontWeight: "400" }}
+                >
+                  Get Your
+                </Text>
+                <Text
+                  style={{ color: "#FF5A5F", fontSize: 28, fontWeight: "800" }}
+                >
+                  ABHA
+                </Text>
+                <Text
+                  style={{ color: "#fff", fontSize: 20, fontWeight: "400" }}
+                >
+                  Card Here
+                </Text>
+              </View>
+
+              {/* White ABHA card image — top right */}
+              {/* White ABHA card image — top right */}
+              <View
+                style={{
+                  position: "absolute",
+                  top: 15,
+                  right: 26,
+                  width: "55%",
+                  height: "70%",
+                  borderRadius: 14,
+                  overflow: "hidden",
+                  zIndex: 0,
                 }}
               >
-                {/* 🔥 ACTUAL OVERLAY */}
-                <View style={webStyles.realOverlay} />
+                <Image
+                  source={require("../../assets/Images/Abha.png")}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    resizeMode: "cover", // ← fills container, borderRadius clips properly
+                  }}
+                />
+              </View>
 
-                {/* 🔥 CONTENT ABOVE OVERLAY */}
-                <View style={webStyles.featureContent}>
-                  <View>
-                    <Text style={webStyles.featureTitle}>ABHA CARD</Text>
-                    <Text style={webStyles.featureSubtitles}>
-                      Create Abha Card
-                    </Text>
-                  </View>
+              {/* Bottom dark overlay strip */}
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: "50%",
+                  backgroundColor: "rgba(10, 5, 50, 0.85)",
+                  zIndex: 1,
+                }}
+              />
 
-                  <TouchableOpacity
-                    style={webStyles.arrowBtn}
-                    onPress={() => {
-                      // mixpanel.track("Web Featured CTA Clicked", {
-                      //   banner: "start_health_check",
-                      //   source: "web-featured-arrow",
-                      //   destination: "DoctorResultShow",
-                      // });
-                      trackButton("featured_card_health_clicked", {
-                        banner: "start_health_check",
-                        source: "web-featured-arrow",
-                        destination: "Abha",
-                      });
-
-                      navigation.navigate("Abha");
-                    }}
-                  >
-                    <Ionicons name="arrow-forward" size={20} color="#FF5A5F" />
-                  </TouchableOpacity>
+              {/* Bottom content row */}
+              <View style={[webStyles.featureContent, { zIndex: 3 }]}>
+                <View>
+                  <Text style={webStyles.featureTitle}>ABHA CARD</Text>
+                  <Text style={webStyles.featureSubtitles}>
+                    Create Abha Card
+                  </Text>
                 </View>
-              </ImageBackground>
+                <TouchableOpacity
+                  style={webStyles.arrowBtn}
+                  onPress={() => {
+                    trackButton("featured_card_health_clicked", {
+                      banner: "start_health_check",
+                      source: "web-featured-arrow",
+                      destination: "Abha",
+                    });
+                    navigation.navigate("Abha");
+                  }}
+                >
+                  <Ionicons name="arrow-forward" size={20} color="#FF5A5F" />
+                </TouchableOpacity>
+              </View>
             </TouchableOpacity>
 
+            {/* MEDICINE CARD */}
             <TouchableOpacity
               style={webStyles.featureCard}
               onPress={() => navigation.navigate("NewMedicineLandingPage")}
@@ -1074,9 +1109,20 @@ export default function KokoroDoctorScreen() {
                 style={webStyles.featureImage}
               >
                 <View style={webStyles.realOverlay} />
-
-                {/* 🔥 CONTENT ABOVE OVERLAY */}
-                <View style={webStyles.featureContent}>
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: "50%", // same as realOverlay height
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center", // vertically centers within shadow
+                    paddingHorizontal: 36,
+                    zIndex: 3,
+                  }}
+                >
                   <View>
                     <Text style={webStyles.featureTitle}>
                       Confused About {"\n"}Medicine ?
@@ -1085,20 +1131,13 @@ export default function KokoroDoctorScreen() {
                       just type → Kokoro explains
                     </Text>
                   </View>
-
                   <TouchableOpacity
                     style={webStyles.arrowBtn}
                     onPress={() => {
-                      // mixpanel.track("Web Featured CTA Clicked", {
-                      //   banner: "medicine_explainer",
-                      //   source: "web-featured-section",
-                      //   destination: "NewMedicineLandingPage",
-                      // });
                       trackButton("featured_card_Medicine_clicked", {
                         banner: "medicine_explainer",
                         source: "web-featured-section",
                       });
-
                       navigation.navigate("NewMedicineLandingPage");
                     }}
                   >
@@ -2047,40 +2086,54 @@ const webStyles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  featureCard: {
-    width: 450,
-    height: 260,
-    // aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
+  // featureCard: {
+  //   width: 450,
+  //   height: 260,
+  //   // aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
 
-    // height: 180, // ⭐ fixed height for consistency
-    borderRadius: 20,
-    overflow: "hidden",
-    ...Platform.select({
-      macos: {
-        aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
-      },
-    }),
-  },
+  //   // height: 180, // ⭐ fixed height for consistency
+  //   borderRadius: 20,
+  //   overflow: "hidden",
+  //   ...Platform.select({
+  //     macos: {
+  //       aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
+  //     },
+  //   }),
+  // },
 
-  featureCards: {
-    width: 450,
-    height: 260,
-    // aspectRatio: 2.2, // ⭐ EXACT ratio for your banner
-    justifyContent: "flex-end",
-    // height: 180, // ⭐ fixed height for consistency
-    borderRadius: 20,
-    overflow: "hidden",
-    ...Platform.select({
-      macos: {
-        aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
-      },
-    }),
-  },
+  // featureCards: {
+  //   width: 450,
+  //   height: 260,
+  //   // aspectRatio: 2.2, // ⭐ EXACT ratio for your banner
+  //   justifyContent: "flex-end",
+  //   // height: 180, // ⭐ fixed height for consistency
+  //   borderRadius: 20,
+  //   overflow: "hidden",
+  //   ...Platform.select({
+  //     macos: {
+  //       aspectRatio: 1.95, // ⭐ EXACT ratio for your banner
+  //     },
+  //   }),
+  // },
 
   featureImage: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
+  },
+  featureCard: {
+    width: "48%",
+    height: 260,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+
+  featureCards: {
+    width: "48%",
+    height: 260,
+    justifyContent: "flex-end",
+    borderRadius: 20,
+    overflow: "hidden",
   },
 
   featureImages: {
