@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import mixpanel, { trackButton } from "../../utils/Mixpanel";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import * as DocumentPicker from "expo-document-picker";
@@ -86,7 +87,14 @@ const AIIntegrationScreen = ({ navigation }) => {
     return (
       <TouchableOpacity
         style={[stylesMobile.card, isActive && stylesMobile.activeCard]}
-        onPress={() => setSelected(value)}
+        onPress={() => {
+          trackButton(`hospital_data_integration_${value}_selected`, {
+            integration_method: value,
+            method_title: title,
+            source: "integration_method_selection",
+          });
+          setSelected(value);
+        }}
       >
         {showIcon && ( // 👈 IMPORTANT
           <Image
@@ -260,7 +268,12 @@ const AIIntegrationScreen = ({ navigation }) => {
                     <Text style={styles.title}>AI Integration</Text>
                     <TouchableOpacity
                       style={styles.backHomeBtn}
-                      onPress={() => navigation.goBack()}
+                      onPress={() => {
+                        trackButton("hospital_data_integration_back_home_clicked", {
+                          source: "integration_page",
+                        });
+                        navigation.goBack();
+                      }}
                     >
                       <Text style={styles.backHomeBtnText}>Back to home</Text>
                     </TouchableOpacity>
@@ -654,7 +667,14 @@ const AIIntegrationScreen = ({ navigation }) => {
                     {selected && selected !== "excel" && (
                       <TouchableOpacity
                         style={styles.continueBtn}
-                        onPress={handleContinue}
+                        onPress={() => {
+                          trackButton("hospital_data_integration_continue_clicked", {
+                            integration_method: selected,
+                            method_title: selectedMethod?.title,
+                            source: "integration_selection_screen",
+                          });
+                          handleContinue();
+                        }}
                         activeOpacity={0.85}
                       >
                         <Text style={styles.continueBtnText}>
@@ -760,6 +780,10 @@ const AIIntegrationScreen = ({ navigation }) => {
                 <TouchableOpacity
                   style={stylesMobile.button}
                   onPress={() => {
+                    trackButton("hospital_data_integration_connect_test_clicked", {
+                      integration_method: selected,
+                      source: "mobile_integration_selection",
+                    });
                     if (selected === "api") {
                       setShowAPIScreen(true);
                     } else if (selected === "excel") {

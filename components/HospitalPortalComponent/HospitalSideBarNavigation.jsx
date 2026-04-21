@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import mixpanel, { trackButton } from "../../utils/Mixpanel";
 
 const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
   const navigation = useNavigation();
@@ -50,6 +51,12 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
 
   const handleSidebarClick = (menu) => {
     //setSelectedItem(menu);
+
+    // Track the sidebar menu click
+    trackButton(`hospital_sidebar_${menu.toLowerCase().replace(/\s+/g, "_")}_clicked`, {
+      menu_item: menu,
+      source: "sidebar_navigation",
+    });
 
     // Navigate using if/else structure like in code 1
     if (menu === "Home") {
@@ -105,7 +112,12 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
 
         {/* Close button for mobile view */}
         {(Platform.OS !== "web" || width < 900) && (
-          <Pressable onPress={closeSidebar}>
+          <Pressable onPress={() => {
+            trackButton("hospital_sidebar_close_button_clicked", {
+              source: "sidebar_navigation",
+            });
+            closeSidebar();
+          }}>
             <MaterialIcons name="arrow-back" size={24} color="grey" />
           </Pressable>
         )}
