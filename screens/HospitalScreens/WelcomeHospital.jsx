@@ -10,17 +10,24 @@ import {
   Modal,
   Animated,
   Easing,
+  Platform,
+  useWindowDimensions,
   Pressable,
 } from "react-native";
 import HospitalAuthModal from "../../components/Auth/HospitalAuthModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigation } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import mixpanel, { trackButton } from "../../utils/Mixpanel";
+import { Dimensions } from "react-native";
+
+const { height } = Dimensions.get("window");
 
 // ─── Inline Animated Analyze Button ───────────────────────────────────────────
 function AnalyzeButton({
   onPress,
   label = "Analyze your insurance claim now →",
+  compact = false, // ✅ add this
 }) {
   const shimmer = useRef(new Animated.Value(0)).current;
   const pulse1 = useRef(new Animated.Value(0)).current;
@@ -156,7 +163,11 @@ function AnalyzeButton({
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable
           onPress={handlePress}
-          style={[ab.btn, { backgroundColor: bgColor }]}
+          style={[
+            ab.btn,
+            compact && ab.btnCompact,
+            { backgroundColor: bgColor },
+          ]}
           android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: false }}
         >
           {/* shimmer sweep */}
@@ -195,7 +206,9 @@ function AnalyzeButton({
             />
           )}
 
-          <Text style={ab.btnText}>{displayLabel}</Text>
+          <Text style={[ab.btnText, compact && { fontSize: 12 }]}>
+            {displayLabel}
+          </Text>
         </Pressable>
       </Animated.View>
     </View>
@@ -286,6 +299,20 @@ const ab = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.3)",
     borderTopColor: "#ffffff",
   },
+  btnCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 12,
+    overflow: "hidden",
+    elevation: 8,
+    shadowColor: "#1e88e5",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+  },
 });
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -297,6 +324,7 @@ export default function HeroSection({ navigation: navigationProp }) {
   const scrollViewRef = useRef(null);
   const processSectionRef = useRef(null);
   const ctaSectionRef = useRef(null);
+  const { width } = useWindowDimensions();
 
   React.useEffect(() => {
     mixpanel.track("Hospital Welcome Page Viewed", {
@@ -419,381 +447,822 @@ export default function HeroSection({ navigation: navigationProp }) {
 
   return (
     <>
-      <ScrollView
-        ref={scrollViewRef}
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.container}>
-          <ImageBackground
-            source={require("../../assets/HospitalPortal/Images/welcome_bgNew.png")}
-            style={styles.bg}
-            resizeMode="cover"
-          >
-            <View style={styles.overlay} />
+      {Platform.OS === "web" && (width > 1000 || width === 0) && (
+        <ScrollView
+          ref={scrollViewRef}
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.container}>
+            <ImageBackground
+              source={require("../../assets/HospitalPortal/Images/welcome_bgNew.png")}
+              style={styles.bg}
+              resizeMode="cover"
+            >
+              <View style={styles.overlay} />
 
-            {/* Navbar */}
-            <View style={styles.navbar}>
-              <View style={styles.logoRow}>
-                <Image
-                  source={require("../../assets/Images/KokoroLogo.png")}
-                  style={styles.logo}
-                />
-                <Text style={styles.logoText}>Kokoro.Doctor</Text>
-              </View>
-              <View style={styles.auth}>
-                <TouchableOpacity
-                  onPress={handleHomeNavigation}
-                  style={styles.getStarted}
-                >
-                  <Text style={styles.getStartedText}>Get Started</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Hero Content */}
-            <View style={styles.content}>
-              <View style={styles.tag}>
-                <Image
-                  source={require("../../assets/HospitalPortal/Icon/ai_icon.png")}
-                />
-                <Text style={styles.tagText}>AI-Powered Claim Assistant</Text>
-              </View>
-
-              <Text style={styles.heading}>
-                Tired of fixing the same{"\n"}
-                claim errors again and{"\n"}
-                again?
-              </Text>
-
-              <Text style={styles.subText}>
-                Kokoro Doctor works like your intelligent billing assistant —
-                helping you submit cleaner claims, reduce rejections, and get
-                faster approvals.
-              </Text>
-
-              {/* ── Animated Analyze Button ── */}
-              <View style={styles.buttons}>
-                <AnalyzeButton onPress={handleHomeNavigation} />
-              </View>
-
-              {/* Trust */}
-              <View style={styles.trust}>
-                <Image
-                  source={require("../../assets/HospitalPortal/Icon/drs.png")}
-                  style={{ height: 42, width: 82 }}
-                />
-                <View style={{ flexDirection: "column" }}>
-                  <Text
-                    style={{
-                      color: "#FFFFFF",
-                      fontSize: 16,
-                      fontWeight: "400",
-                    }}
+              {/* Navbar */}
+              <View style={styles.navbar}>
+                <View style={styles.logoRow}>
+                  <Image
+                    source={require("../../assets/Images/KokoroLogo.png")}
+                    style={styles.logo}
+                  />
+                  <Text style={styles.logoText}>Kokoro.Doctor</Text>
+                </View>
+                <View style={styles.auth}>
+                  <TouchableOpacity
+                    onPress={handleHomeNavigation}
+                    style={styles.getStarted}
                   >
-                    500+ Hospitals Trust kokoro.doctor
-                  </Text>
-                  <Text style={styles.trustText}>
-                    ⭐⭐⭐⭐⭐ (4.9/5 rating)
-                  </Text>
+                    <Text style={styles.getStartedText}>Get Started</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-            </View>
-          </ImageBackground>
 
-          <View style={styles.problemSection}>
-            <View style={styles.problemHeader}>
-              <Text style={styles.problemTag}>Sound familiar?</Text>
-              <Text style={styles.problemTitle}>
-                What Your Billing Team Deals With Every Day
-              </Text>
-              <Text style={styles.problemSub}>
-                These aren't edge cases — they're the daily reality for hospital
-                {"\n"}billing teams across the country.
-              </Text>
-            </View>
-
-            <View style={styles.row}>
-              {cardDataRow1.map((item, index) => (
-                <View key={index} style={styles.card}>
+              {/* Hero Content */}
+              <View style={styles.content}>
+                <View style={styles.tag}>
                   <Image
-                    source={cardImages[index]}
-                    style={styles.cardImage}
-                    resizeMode="cover"
+                    source={require("../../assets/HospitalPortal/Icon/ai_icon.png")}
                   />
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardDesc}>{item.desc}</Text>
-                  </View>
+                  <Text style={styles.tagText}>AI-Powered Claim Assistant</Text>
                 </View>
-              ))}
-            </View>
 
-            <View style={styles.rowCenter}>
-              {[4, 5].map((item, index) => (
-                <View key={index} style={styles.card}>
+                <Text style={styles.heading}>
+                  Tired of fixing the same{"\n"}
+                  claim errors again and{"\n"}
+                  again?
+                </Text>
+
+                <Text style={styles.subText}>
+                  Kokoro Doctor works like your intelligent billing assistant —
+                  helping you submit cleaner claims, reduce rejections, and get
+                  faster approvals.
+                </Text>
+
+                {/* ── Animated Analyze Button ── */}
+                <View style={styles.buttons}>
+                  <AnalyzeButton onPress={handleHomeNavigation} />
+                </View>
+
+                {/* Trust */}
+                <View style={styles.trust}>
                   <Image
-                    source={cardImages2[index]}
-                    style={styles.cardImage}
-                    resizeMode="cover"
+                    source={require("../../assets/HospitalPortal/Icon/drs.png")}
+                    style={{ height: 42, width: 82 }}
                   />
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardTitle}>Wasted Time</Text>
-                    <Text style={styles.cardDesc}>
-                      Hours spent fixing documentation and resubmitting the same
-                      claims repeatedly
+                  <View style={{ flexDirection: "column" }}>
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        fontSize: 16,
+                        fontWeight: "400",
+                      }}
+                    >
+                      500+ Hospitals Trust kokoro.doctor
+                    </Text>
+                    <Text style={styles.trustText}>
+                      ⭐⭐⭐⭐⭐ (4.9/5 rating)
                     </Text>
                   </View>
                 </View>
-              ))}
+              </View>
+            </ImageBackground>
+
+            <View style={styles.problemSection}>
+              <View style={styles.problemHeader}>
+                <Text style={styles.problemTag}>Sound familiar?</Text>
+                <Text style={styles.problemTitle}>
+                  What Your Billing Team Deals With Every Day
+                </Text>
+                <Text style={styles.problemSub}>
+                  These aren't edge cases — they're the daily reality for
+                  hospital
+                  {"\n"}billing teams across the country.
+                </Text>
+              </View>
+
+              <View style={styles.row}>
+                {cardDataRow1.map((item, index) => (
+                  <View key={index} style={styles.card}>
+                    <Image
+                      source={cardImages[index]}
+                      style={styles.cardImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.cardBody}>
+                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <Text style={styles.cardDesc}>{item.desc}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.rowCenter}>
+                {[4, 5].map((item, index) => (
+                  <View key={index} style={styles.card}>
+                    <Image
+                      source={cardImages2[index]}
+                      style={styles.cardImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.cardBody}>
+                      <Text style={styles.cardTitle}>Wasted Time</Text>
+                      <Text style={styles.cardDesc}>
+                        Hours spent fixing documentation and resubmitting the
+                        same claims repeatedly
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.teamSection}>
+              <View style={styles.teamHeader}>
+                <Text style={styles.teamTag}>Your AI support team</Text>
+                <Text style={styles.teamTitle}>
+                  Meet Your AI Claim Support Team
+                </Text>
+                <Text style={styles.teamSub}>
+                  Not just a tool — think of them as dedicated team members{" "}
+                  {"\n"}
+                  who never miss a detail.
+                </Text>
+              </View>
+              <View style={styles.teamGrid}>
+                {[0, 1, 2, 3].map((index) => (
+                  <View key={index} style={styles.teamCard}>
+                    <View style={styles.teamBadge}>
+                      <Text style={styles.badgeText}>Solution</Text>
+                    </View>
+                    <View style={styles.iconCircle}>
+                      <Text style={{ color: "#fff" }}>★</Text>
+                    </View>
+                    <Text style={styles.teamCardTitle}>
+                      {index === 0 && "Pre-Authorization Agent"}
+                      {index === 1 && "Mediclaim Agent"}
+                      {index === 2 && "Denial Recovery Agent"}
+                      {index === 3 && "Post-Op Flow Agent"}
+                    </Text>
+                    <Text style={styles.teamCardDesc}>
+                      {index === 0 &&
+                        "Helps you get approvals faster by checking eligibility and reducing pre-auth errors before submission"}
+                      {index === 1 &&
+                        "Automatically extracts, verifies, and codes claims using ICD and CPT — reducing manual effort and mistakes"}
+                      {index === 2 &&
+                        "Explains why claims were rejected and helps you fix and resubmit them correctly"}
+                      {index === 3 &&
+                        "Ensures discharge summaries, billing, and claim closure are aligned and complete"}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.resultsSection}>
+              <View style={styles.resultsHeader}>
+                <Text style={styles.resultsTag}>Real results</Text>
+                <Text style={styles.resultsTitle}>
+                  Make Your Billing Work Easier — And More Effective
+                </Text>
+              </View>
+              <View style={styles.statsRow}>
+                {[
+                  { value: "94%", label: "Approval Rate" },
+                  { value: "60%", label: "Rework Reduced" },
+                  { value: "45min", label: "Time Saved / Claim" },
+                  { value: "88%", label: "First-Pass Rate" },
+                ].map((item, index) => (
+                  <View key={index} style={styles.statCard}>
+                    <Text style={styles.statValue}>{item.value}</Text>
+                    <Text style={styles.statLabel}>{item.label}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoTitle}>What changes for your team</Text>
+                {[
+                  "Spend less time fixing rejected claims",
+                  "Submit claims with higher confidence",
+                  "Reduce back-and-forth with insurers",
+                  "Improve approval rates without extra effort",
+                ].map((text, index) => (
+                  <View key={index} style={styles.bulletRow}>
+                    <View style={styles.dot} />
+                    <Text style={styles.bulletText}>{text}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.processSection} ref={processSectionRef}>
+              <View style={styles.processHeader}>
+                <Text style={styles.processTag}>Simple process</Text>
+                <Text style={styles.processTitle}>How it Works</Text>
+                <Text style={styles.processSub}>
+                  Six steps from document to approval — all handled
+                  intelligently.
+                </Text>
+              </View>
+              <View style={styles.timeline}>
+                <View style={styles.verticalLine} />
+                {[
+                  {
+                    title: "Upload Documents",
+                    desc: "Upload patient records and claim documents",
+                  },
+                  {
+                    title: "AI Reads & Understands",
+                    desc: "Our AI analyzes the case context deeply",
+                  },
+                  {
+                    title: "Maps ICD & CPT",
+                    desc: "Automatically assigns correct medical codes",
+                  },
+                  {
+                    title: "Validates Against Policy",
+                    desc: "Checks compliance with insurer requirements",
+                  },
+                  {
+                    title: "Detects Errors",
+                    desc: "Catches mistakes before submission",
+                  },
+                ].map((item, index) => (
+                  <View key={index} style={styles.stepRow}>
+                    <View style={styles.stepIcon}>
+                      <Image
+                        source={require("../../assets/HospitalPortal/Icon/files.png")}
+                        style={styles.stepIconImage}
+                        resizeMode="contain"
+                      />
+                    </View>
+                    <View style={styles.stepCard}>
+                      <View style={styles.stepCardHeader}>
+                        <View style={styles.stepCardIcon}>
+                          <Image
+                            source={require("../../assets/HospitalPortal/Icon/files.png")}
+                            style={styles.stepCardIconImage}
+                            resizeMode="contain"
+                          />
+                        </View>
+                        <Text style={styles.stepLabel}>Step {index + 1}</Text>
+                      </View>
+                      <Text style={styles.stepTitle}>{item.title}</Text>
+                      <Text style={styles.stepDesc}>{item.desc}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.teamSection}>
+              <View style={styles.teamHeader}>
+                <Text style={styles.teamTag}>Your AI support team</Text>
+                <Text style={styles.teamTitle}>
+                  Meet Your AI Claim Support Team
+                </Text>
+                <Text style={styles.teamSub}>
+                  Not just a tool — think of them as dedicated team members{" "}
+                  {"\n"}
+                  who never miss a detail.
+                </Text>
+              </View>
+              <View style={styles.teamGrid}>
+                {[0, 1, 2, 3].map((index) => (
+                  <View key={index} style={styles.teamCard}>
+                    <View style={styles.teamBadge}>
+                      <Text style={styles.badgeText}>Solution</Text>
+                    </View>
+                    <View style={styles.iconCircle}>
+                      <Text style={{ color: "#fff" }}>★</Text>
+                    </View>
+                    <Text style={styles.teamCardTitle}>
+                      {index === 0 && "Increase Revenue Realization"}
+                      {index === 1 && "Reduce Claim Leakage"}
+                      {index === 2 && "Reduce Claim Leakage"}
+                      {index === 3 && "Better Operational Control"}
+                    </Text>
+                    <Text style={styles.teamCardDesc}>
+                      {index === 0 &&
+                        "Capture more of the revenue you've already earned through better claim accuracy"}
+                      {index === 1 &&
+                        "Identify and eliminate the gaps where valid claims fall through the cracks"}
+                      {index === 2 &&
+                        "Streamline workflows so your team can process more claims in less time"}
+                      {index === 3 &&
+                        "Full visibility into claim status, bottlenecks, and team performance"}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.trustSection}>
+              <View style={styles.trustHeader}>
+                <Text style={styles.trustTag}>Trust & reliability</Text>
+                <Text style={styles.trustTitle}>Built to Earn Your Trust</Text>
+              </View>
+              <View style={styles.trustGrid}>
+                {[
+                  {
+                    title: "Secure Data Handling",
+                    desc: "End-to-end encryption and strict access controls protect patient data at every step",
+                  },
+                  {
+                    title: "Audit-Ready Logs",
+                    desc: "Complete trail of every claim action for compliance and internal review",
+                  },
+                  {
+                    title: "Built for Hospitals",
+                    desc: "Designed around actual hospital billing workflows — not retrofitted from generic tools",
+                  },
+                ].map((item, index) => (
+                  <View key={index} style={styles.trustCard}>
+                    <View style={styles.trustIcon}>
+                      <Image
+                        source={trustIcons[index]}
+                        style={styles.trustIconImage}
+                        resizeMode="contain"
+                      />
+                    </View>
+                    <Text style={styles.trustCardTitle}>{item.title}</Text>
+                    <Text style={styles.trustCardDesc}>{item.desc}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.ctaSection} ref={ctaSectionRef}>
+              <View style={styles.ctaCard}>
+                <View style={styles.ctaTag}>
+                  <Text style={styles.ctaTagText}>●</Text>
+                  <Text style={{ color: "#fff" }}>
+                    Harvard Innovation Lab Validated
+                  </Text>
+                </View>
+                <Text style={styles.ctaTitle}>
+                  Make Claim Processing Less{"\n"}Stressful for Your Team
+                </Text>
+                <Text style={styles.ctaSub}>
+                  Let Kokoro.Doctor support your billing team — so they can
+                  {"\n"}
+                  focus on what matters.
+                </Text>
+                <View style={styles.ctaButtons}>
+                  <TouchableOpacity
+                    style={styles.ctaPrimary}
+                    onPress={handleComingSoonPress}
+                  >
+                    <Text style={styles.ctaPrimaryText}>Schedule a Demo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.ctaSecondary}
+                    onPress={handleComingSoonPress}
+                  >
+                    <Text style={styles.ctaSecondaryText}>
+                      Talk to our team
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </View>
+        </ScrollView>
+      )}
+      {(Platform.OS !== "web" || width < 1000) && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1, width: "100%" }} // add width: "100%"
+          showsVerticalScrollIndicator={false}
+        >
+          <SafeAreaView style={{ flex: 1, width: "100%" }}>
+            <ImageBackground
+              source={require("../../assets/HospitalPortal/Images/welcome_bgNew.png")}
+              style={mobileStyles.bg}
+              resizeMode="cover"
+            >
+              <View style={mobileStyles.overlay} />
 
-          <View style={styles.teamSection}>
-            <View style={styles.teamHeader}>
-              <Text style={styles.teamTag}>Your AI support team</Text>
-              <Text style={styles.teamTitle}>
-                Meet Your AI Claim Support Team
-              </Text>
-              <Text style={styles.teamSub}>
-                Not just a tool — think of them as dedicated team members {"\n"}
-                who never miss a detail.
-              </Text>
-            </View>
-            <View style={styles.teamGrid}>
-              {[0, 1, 2, 3].map((index) => (
-                <View key={index} style={styles.teamCard}>
-                  <View style={styles.teamBadge}>
-                    <Text style={styles.badgeText}>Solution</Text>
+              {/* Navbar */}
+              <View style={mobileStyles.navbar}>
+                <View style={mobileStyles.logoRow}>
+                  <Image
+                    source={require("../../assets/Images/KokoroLogo.png")}
+                    style={mobileStyles.logo}
+                  />
+                  <Text style={mobileStyles.logoText}>Kokoro.Doctor</Text>
+                </View>
+                <View style={mobileStyles.auth}>
+                  <TouchableOpacity
+                    onPress={handleHomeNavigation}
+                    style={mobileStyles.getStarted}
+                  >
+                    <Text style={mobileStyles.getStartedText}>Get Started</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Hero Content */}
+              <View style={mobileStyles.content}>
+                <View style={mobileStyles.tag}>
+                  <Image
+                    source={require("../../assets/HospitalPortal/Icon/ai_icon.png")}
+                  />
+                  <Text style={mobileStyles.tagText}>
+                    AI-Powered Claim Assistant
+                  </Text>
+                </View>
+
+                <Text style={mobileStyles.heading}>
+                  Tired of fixing the {"\n"}same claim errors {"\n"}again and
+                  again?
+                </Text>
+
+                <Text style={mobileStyles.subText}>
+                  Kokoro Doctor works like your intelligent {"\n"}billing
+                  assistant — helping you submit cleaner {"\n"}claims, reduce
+                  rejections, and get faster {"\n"}approvals.
+                </Text>
+
+                {/* ── Animated Analyze Button ── */}
+                <View style={mobileStyles.buttons}>
+                  <AnalyzeButton onPress={handleHomeNavigation} compact />
+                </View>
+
+                {/* Trust */}
+                <View style={mobileStyles.trust}>
+                  <Image
+                    source={require("../../assets/HospitalPortal/Icon/drs.png")}
+                    style={{ height: 32, width: 62 }}
+                  />
+                  <View style={{ flexDirection: "column" }}>
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        fontSize: 16,
+                        fontWeight: "400",
+                      }}
+                    >
+                      500+ Hospitals Trust kokoro.doctor
+                    </Text>
+                    <Text style={mobileStyles.trustText}>
+                      ⭐⭐⭐⭐⭐ (4.9/5 rating)
+                    </Text>
                   </View>
-                  <View style={styles.iconCircle}>
+                </View>
+              </View>
+            </ImageBackground>
+
+            <View style={mProblem.container}>
+              <View style={mProblem.header}>
+                <Text style={mProblem.tag}>Sound familiar?</Text>
+
+                <Text style={mProblem.title}>
+                  What Your Billing Team Deals Every Day
+                </Text>
+
+                <Text style={mProblem.sub}>
+                  These aren't edge cases — they’re the daily reality for
+                  hospital billing teams across the country.
+                </Text>
+              </View>
+
+              {[
+                {
+                  title: "Coding Errors",
+                  desc: "Claims rejected due to small ICD/CPT coding errors that slip through manual review",
+                  img: require("../../assets/HospitalPortal/Images/welcomeTab_5.png"),
+                },
+                {
+                  title: "Wasted Time",
+                  desc: "Hours spent fixing documentation and resubmitting the same claims repeatedly",
+                  img: require("../../assets/HospitalPortal/Images/welcomeTab_4.png"),
+                },
+                {
+                  title: "Wasted Time",
+                  desc: "Hours spent fixing documentation and resubmitting the same claims repeatedly",
+                  img: require("../../assets/HospitalPortal/Images/welcomeTab_3.png"),
+                },
+                {
+                  title: "Wasted Time",
+                  desc: "Hours spent fixing documentation and resubmitting the same claims repeatedly",
+                  img: require("../../assets/HospitalPortal/Images/welcomeTab_2.png"),
+                },
+                {
+                  title: "Wasted Time",
+                  desc: "Hours spent fixing documentation and resubmitting the same claims repeatedly",
+                  img: require("../../assets/HospitalPortal/Images/welcomeTab_1.png"),
+                },
+              ].map((item, index) => (
+                <View key={index} style={mProblem.card}>
+                  <Image source={item.img} style={mProblem.image} />
+
+                  <View style={mProblem.cardBody}>
+                    <Text style={mProblem.cardTitle}>{item.title}</Text>
+                    <Text style={mProblem.cardDesc}>{item.desc}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <View style={mobileStyles.teamSection}>
+              <View style={mobileStyles.teamHeader}>
+                <Text style={mobileStyles.teamTag}>Your AI support team</Text>
+
+                <Text style={mobileStyles.teamTitle}>
+                  Meet Your AI Claim Support Team
+                </Text>
+
+                <Text style={mobileStyles.teamSub}>
+                  Not just a tool — think of them as dedicated team members who
+                  never miss a detail.
+                </Text>
+              </View>
+
+              {[
+                {
+                  title: "Pre-Authorization Agent",
+                  desc: "Helps you get approvals faster by checking eligibility and reducing pre-auth errors before submission",
+                },
+                {
+                  title: "Mediclaim Agent",
+                  desc: "Automatically extracts, verifies, and codes claims using ICD and CPT — reducing manual effort and mistakes",
+                },
+                {
+                  title: "Denial Recovery Agent",
+                  desc: "Explains why claims were rejected and helps you fix and resubmit them correctly",
+                },
+                {
+                  title: "Post-Op Flow Agent",
+                  desc: "Ensures discharge summaries, billing, and claim closure are aligned and complete",
+                },
+              ].map((item, index) => (
+                <View key={index} style={mobileStyles.teamCard}>
+                  <View style={mobileStyles.teamBadge}>
+                    <Text style={mobileStyles.badgeText}>Solution</Text>
+                  </View>
+
+                  <View style={mobileStyles.iconCircle}>
                     <Text style={{ color: "#fff" }}>★</Text>
                   </View>
-                  <Text style={styles.teamCardTitle}>
-                    {index === 0 && "Pre-Authorization Agent"}
-                    {index === 1 && "Mediclaim Agent"}
-                    {index === 2 && "Denial Recovery Agent"}
-                    {index === 3 && "Post-Op Flow Agent"}
-                  </Text>
-                  <Text style={styles.teamCardDesc}>
-                    {index === 0 &&
-                      "Helps you get approvals faster by checking eligibility and reducing pre-auth errors before submission"}
-                    {index === 1 &&
-                      "Automatically extracts, verifies, and codes claims using ICD and CPT — reducing manual effort and mistakes"}
-                    {index === 2 &&
-                      "Explains why claims were rejected and helps you fix and resubmit them correctly"}
-                    {index === 3 &&
-                      "Ensures discharge summaries, billing, and claim closure are aligned and complete"}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
 
-          <View style={styles.resultsSection}>
-            <View style={styles.resultsHeader}>
-              <Text style={styles.resultsTag}>Real results</Text>
-              <Text style={styles.resultsTitle}>
-                Make Your Billing Work Easier — And More Effective
-              </Text>
-            </View>
-            <View style={styles.statsRow}>
-              {[
-                { value: "94%", label: "Approval Rate" },
-                { value: "60%", label: "Rework Reduced" },
-                { value: "45min", label: "Time Saved / Claim" },
-                { value: "88%", label: "First-Pass Rate" },
-              ].map((item, index) => (
-                <View key={index} style={styles.statCard}>
-                  <Text style={styles.statValue}>{item.value}</Text>
-                  <Text style={styles.statLabel}>{item.label}</Text>
+                  <Text style={mobileStyles.teamCardTitle}>{item.title}</Text>
+                  <Text style={mobileStyles.teamCardDesc}>{item.desc}</Text>
                 </View>
               ))}
             </View>
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTitle}>What changes for your team</Text>
-              {[
-                "Spend less time fixing rejected claims",
-                "Submit claims with higher confidence",
-                "Reduce back-and-forth with insurers",
-                "Improve approval rates without extra effort",
-              ].map((text, index) => (
-                <View key={index} style={styles.bulletRow}>
-                  <View style={styles.dot} />
-                  <Text style={styles.bulletText}>{text}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
 
-          <View style={styles.processSection} ref={processSectionRef}>
-            <View style={styles.processHeader}>
-              <Text style={styles.processTag}>Simple process</Text>
-              <Text style={styles.processTitle}>How it Works</Text>
-              <Text style={styles.processSub}>
-                Six steps from document to approval — all handled intelligently.
-              </Text>
-            </View>
-            <View style={styles.timeline}>
-              <View style={styles.verticalLine} />
-              {[
-                {
-                  title: "Upload Documents",
-                  desc: "Upload patient records and claim documents",
-                },
-                {
-                  title: "AI Reads & Understands",
-                  desc: "Our AI analyzes the case context deeply",
-                },
-                {
-                  title: "Maps ICD & CPT",
-                  desc: "Automatically assigns correct medical codes",
-                },
-                {
-                  title: "Validates Against Policy",
-                  desc: "Checks compliance with insurer requirements",
-                },
-                {
-                  title: "Detects Errors",
-                  desc: "Catches mistakes before submission",
-                },
-              ].map((item, index) => (
-                <View key={index} style={styles.stepRow}>
-                  <View style={styles.stepIcon}>
-                    <Image
-                      source={require("../../assets/HospitalPortal/Icon/files.png")}
-                      style={styles.stepIconImage}
-                      resizeMode="contain"
-                    />
+            <View style={mobileStyles.resultsSection}>
+              <View style={mobileStyles.resultsHeader}>
+                <Text style={mobileStyles.resultsTag}>Real results</Text>
+
+                <Text style={mobileStyles.resultsTitle}>
+                  Make Your Billing Work Easier — And More Effective
+                </Text>
+              </View>
+
+              <View style={mobileStyles.statsGrid}>
+                {[
+                  { value: "94%", label: "Approval Rate" },
+                  { value: "60%", label: "Rework Reduced" },
+                  { value: "45min", label: "Time Saved / Claim" },
+                  { value: "88%", label: "First-Pass Rate" },
+                ].map((item, index) => (
+                  <View key={index} style={mobileStyles.statCard}>
+                    <Text style={mobileStyles.statValue}>{item.value}</Text>
+                    <Text style={mobileStyles.statLabel}>{item.label}</Text>
                   </View>
-                  <View style={styles.stepCard}>
-                    <View style={styles.stepCardHeader}>
-                      <View style={styles.stepCardIcon}>
+                ))}
+              </View>
+
+              <View style={mobileStyles.infoBox}>
+                <Text style={mobileStyles.infoTitle}>
+                  What changes for your team
+                </Text>
+
+                {[
+                  "Spend less time fixing rejected claims",
+                  "Submit claims with higher confidence",
+                  "Reduce back-and-forth with insurers",
+                  "Improve approval rates without extra effort",
+                ].map((text, index) => (
+                  <View key={index} style={mobileStyles.bulletRow}>
+                    <View style={mobileStyles.dot} />
+                    <Text style={mobileStyles.bulletText}>{text}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={mobileStyles.processSection}>
+              <View style={mobileStyles.processHeader}>
+                <Text style={mobileStyles.processTag}>Simple process</Text>
+
+                <Text style={mobileStyles.processTitle}>How It Works</Text>
+
+                <Text style={mobileStyles.processSub}>
+                  Six steps from document to approval — all handled
+                  intelligently.
+                </Text>
+              </View>
+
+              <View style={mobileStyles.timeline}>
+                <View style={mobileStyles.verticalLine} />
+
+                {[
+                  {
+                    title: "Upload Documents",
+                    desc: "Upload patient records and claim documents",
+                  },
+                  {
+                    title: "AI Reads & Understands",
+                    desc: "Our AI analyzes the case context deeply",
+                  },
+                  {
+                    title: "Maps ICD & CPT",
+                    desc: "Automatically assigns correct medical codes",
+                  },
+                  {
+                    title: "Validates Against Policy",
+                    desc: "Checks compliance with insurer requirements",
+                  },
+                  {
+                    title: "Detects Errors",
+                    desc: "Catches mistakes before submission",
+                  },
+                ].map((item, index) => (
+                  <View key={index} style={mobileStyles.stepRow}>
+                    {/* LEFT ICON COLUMN */}
+                    <View style={mobileStyles.iconCol}>
+                      <View style={mobileStyles.stepIcon}>
                         <Image
                           source={require("../../assets/HospitalPortal/Icon/files.png")}
-                          style={styles.stepCardIconImage}
-                          resizeMode="contain"
+                          style={mobileStyles.stepIconImage}
                         />
                       </View>
-                      <Text style={styles.stepLabel}>Step {index + 1}</Text>
                     </View>
-                    <Text style={styles.stepTitle}>{item.title}</Text>
-                    <Text style={styles.stepDesc}>{item.desc}</Text>
+
+                    {/* CARD */}
+                    <View style={mobileStyles.stepCard}>
+                      <View style={mobileStyles.stepHeader}>
+                        <View style={mobileStyles.stepHeaderIcon}>
+                          <Image
+                            source={require("../../assets/HospitalPortal/Icon/files.png")}
+                            style={mobileStyles.stepHeaderIconImage}
+                          />
+                        </View>
+
+                        <Text style={mobileStyles.stepLabel}>
+                          Step {index + 1}
+                        </Text>
+                      </View>
+
+                      <Text style={mobileStyles.stepTitle}>{item.title}</Text>
+                      <Text style={mobileStyles.stepDesc}>{item.desc}</Text>
+                    </View>
                   </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={mobileStyles.aiSection}>
+              <View style={mobileStyles.aiHeader}>
+                <Text style={mobileStyles.aiTag}>Your AI support team</Text>
+
+                <Text style={mobileStyles.aiTitle}>
+                  Meet Your AI Claim Support Team
+                </Text>
+
+                <Text style={mobileStyles.aiSub}>
+                  Not just a tool — think of them as dedicated team members who
+                  never miss a detail.
+                </Text>
+              </View>
+
+              {[
+                {
+                  title: "Increase Revenue Realization",
+                  desc: "Capture more of the revenue you've already earned through better claim accuracy",
+                },
+                {
+                  title: "Reduce Claim Leakage",
+                  desc: "Identify and eliminate the gaps where valid claims fall through the cracks",
+                },
+                {
+                  title: "Improve Billing Efficiency",
+                  desc: "Streamline workflows so your team can process more claims in less time",
+                },
+                {
+                  title: "Better Operational Control",
+                  desc: "Full visibility into claim status, bottlenecks, and team performance",
+                },
+              ].map((item, index) => (
+                <View key={index} style={mobileStyles.aiCard}>
+                  {/* Badge */}
+                  <View style={mobileStyles.aiBadge}>
+                    <Text style={mobileStyles.aiBadgeText}>Solution</Text>
+                  </View>
+
+                  {/* Icon */}
+                  <View style={mobileStyles.aiIcon}>
+                    <Text style={{ color: "#fff", fontSize: 12 }}>★</Text>
+                  </View>
+
+                  {/* Content */}
+                  <Text style={mobileStyles.aiCardTitle}>{item.title}</Text>
+                  <Text style={mobileStyles.aiCardDesc}>{item.desc}</Text>
                 </View>
               ))}
             </View>
-          </View>
 
-          <View style={styles.teamSection}>
-            <View style={styles.teamHeader}>
-              <Text style={styles.teamTag}>Your AI support team</Text>
-              <Text style={styles.teamTitle}>
-                Meet Your AI Claim Support Team
-              </Text>
-              <Text style={styles.teamSub}>
-                Not just a tool — think of them as dedicated team members {"\n"}
-                who never miss a detail.
-              </Text>
-            </View>
-            <View style={styles.teamGrid}>
-              {[0, 1, 2, 3].map((index) => (
-                <View key={index} style={styles.teamCard}>
-                  <View style={styles.teamBadge}>
-                    <Text style={styles.badgeText}>Solution</Text>
-                  </View>
-                  <View style={styles.iconCircle}>
-                    <Text style={{ color: "#fff" }}>★</Text>
-                  </View>
-                  <Text style={styles.teamCardTitle}>
-                    {index === 0 && "Increase Revenue Realization"}
-                    {index === 1 && "Reduce Claim Leakage"}
-                    {index === 2 && "Reduce Claim Leakage"}
-                    {index === 3 && "Better Operational Control"}
-                  </Text>
-                  <Text style={styles.teamCardDesc}>
-                    {index === 0 &&
-                      "Capture more of the revenue you've already earned through better claim accuracy"}
-                    {index === 1 &&
-                      "Identify and eliminate the gaps where valid claims fall through the cracks"}
-                    {index === 2 &&
-                      "Streamline workflows so your team can process more claims in less time"}
-                    {index === 3 &&
-                      "Full visibility into claim status, bottlenecks, and team performance"}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
+            <View style={mobileStyles.trustSection}>
+              <View style={mobileStyles.trustHeader}>
+                <Text style={mobileStyles.trustTag}>Trust & reliability</Text>
 
-          <View style={styles.trustSection}>
-            <View style={styles.trustHeader}>
-              <Text style={styles.trustTag}>Trust & reliability</Text>
-              <Text style={styles.trustTitle}>Built to Earn Your Trust</Text>
-            </View>
-            <View style={styles.trustGrid}>
+                <Text style={mobileStyles.trustTitle}>
+                  Built to Earn Your Trust
+                </Text>
+              </View>
+
               {[
                 {
                   title: "Secure Data Handling",
                   desc: "End-to-end encryption and strict access controls protect patient data at every step",
+                  icon: require("../../assets/HospitalPortal/Icon/welcomeBottomIcon_1.png"),
                 },
                 {
                   title: "Audit-Ready Logs",
                   desc: "Complete trail of every claim action for compliance and internal review",
+                  icon: require("../../assets/HospitalPortal/Icon/welcomeBottomIcon_2.png"),
                 },
                 {
                   title: "Built for Hospitals",
                   desc: "Designed around actual hospital billing workflows — not retrofitted from generic tools",
+                  icon: require("../../assets/HospitalPortal/Icon/welcomeBottomIcon_3.png"),
                 },
               ].map((item, index) => (
-                <View key={index} style={styles.trustCard}>
-                  <View style={styles.trustIcon}>
+                <View key={index} style={mobileStyles.trustCard}>
+                  <View style={mobileStyles.trustIconWrap}>
                     <Image
-                      source={trustIcons[index]}
-                      style={styles.trustIconImage}
-                      resizeMode="contain"
+                      source={item.icon}
+                      style={mobileStyles.trustIconImage}
                     />
                   </View>
-                  <Text style={styles.trustCardTitle}>{item.title}</Text>
-                  <Text style={styles.trustCardDesc}>{item.desc}</Text>
+
+                  <Text style={mobileStyles.trustCardTitle}>{item.title}</Text>
+                  <Text style={mobileStyles.trustCardDesc}>{item.desc}</Text>
                 </View>
               ))}
             </View>
-          </View>
 
-          <View style={styles.ctaSection} ref={ctaSectionRef}>
-            <View style={styles.ctaCard}>
-              <View style={styles.ctaTag}>
-                <Text style={styles.ctaTagText}>●</Text>
-                <Text style={{ color: "#fff" }}>
-                  Harvard Innovation Lab Validated
+            <View style={mobileStyles.ctaSection}>
+              <View style={mobileStyles.ctaCard}>
+                {/* Tag */}
+                <View style={mobileStyles.ctaTag}>
+                  <Text style={mobileStyles.ctaDot}>●</Text>
+                  <Text style={mobileStyles.ctaTagText}>
+                    Harvard Innovation Lab Validated
+                  </Text>
+                </View>
+
+                {/* Title */}
+                <Text style={mobileStyles.ctaTitle}>
+                  Make Claim Processing{"\n"}Less Stressful for Your{"\n"}Team
                 </Text>
-              </View>
-              <Text style={styles.ctaTitle}>
-                Make Claim Processing Less{"\n"}Stressful for Your Team
-              </Text>
-              <Text style={styles.ctaSub}>
-                Let Kokoro.Doctor support your billing team — so they can{"\n"}
-                focus on what matters.
-              </Text>
-              <View style={styles.ctaButtons}>
-                <TouchableOpacity
-                  style={styles.ctaPrimary}
-                  onPress={handleComingSoonPress}
-                >
-                  <Text style={styles.ctaPrimaryText}>Schedule a Demo</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.ctaSecondary}
-                  onPress={handleComingSoonPress}
-                >
-                  <Text style={styles.ctaSecondaryText}>Talk to our team</Text>
-                </TouchableOpacity>
+
+                {/* Sub */}
+                <Text style={mobileStyles.ctaSub}>
+                  Let Kokoro.Doctor support your billing{"\n"}
+                  team — so they can focus on what matters.
+                </Text>
+
+                {/* Buttons */}
+                <View style={mobileStyles.ctaButtons}>
+                  <TouchableOpacity
+                    style={mobileStyles.ctaPrimary}
+                    onPress={handleComingSoonPress}
+                  >
+                    <Text style={mobileStyles.ctaPrimaryText}>
+                      Schedule a Demo
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={mobileStyles.ctaSecondary}
+                    onPress={handleComingSoonPress}
+                  >
+                    <Text style={mobileStyles.ctaSecondaryText}>
+                      Talk to our team
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        </View>
-      </ScrollView>
+          </SafeAreaView>
+        </ScrollView>
+      )}
 
       <HospitalAuthModal
         visible={hospitalModalVisible}
@@ -1439,4 +1908,727 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   comingSoonBtnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+});
+const mobileStyles = StyleSheet.create({
+  bg: {
+    width: "100%",
+    justifyContent: "flex-start",
+    height: height,
+    overflow: "hidden",
+  },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#025AE036",
+  },
+
+  navbar: {
+    backgroundColor: "#FFFFFF10",
+    backdropFilter: "blur(7px)",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+
+  logoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  logo: {
+    width: 28,
+    height: 28,
+    resizeMode: "contain",
+  },
+
+  logoText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  auth: {},
+
+  getStarted: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+
+  getStartedText: {
+    color: "#000",
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 30,
+  },
+
+  tag: {
+    marginTop: "10%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FFEEEE99",
+    alignSelf: "flex-start",
+    paddingHorizontal: 18,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+
+  tagText: {
+    color: "#444444",
+    fontSize: 12,
+  },
+
+  heading: {
+    fontSize: 36, // reduced for mobile
+    fontWeight: "700",
+    color: "#fff",
+    lineHeight: 34,
+    fontFamily: "Public Sans",
+  },
+
+  subText: {
+    fontFamily: "Public Sans",
+    fontSize: 16,
+    color: "#ddd",
+    marginTop: "6%",
+    lineHeight: 20,
+    fontWeight: "500",
+  },
+
+  buttons: {
+    marginTop: "30%",
+    alignItems: "center",
+    justifyContent: "center",
+
+    alignContent: "center",
+    alignSelf: "center",
+  },
+
+  trust: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 30,
+    gap: 10,
+  },
+
+  trustText: {
+    color: "#fff",
+    fontSize: 10,
+    marginTop: 2,
+  },
+  teamSection: {
+    backgroundColor: "#DCEAFF",
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+
+  teamHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+
+  teamTag: {
+    backgroundColor: "#1e3a5f",
+    color: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    fontSize: 10,
+    marginBottom: 10,
+  },
+
+  teamTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+
+  teamSub: {
+    fontSize: 12,
+    textAlign: "center",
+    color: "#444",
+  },
+
+  teamCard: {
+    backgroundColor: "#07577F",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
+    position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+
+  teamBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "#2563eb",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+  },
+
+  iconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#0b3a55",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  teamCardTitle: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+
+  teamCardDesc: {
+    color: "#cbd5f5",
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  resultsSection: {
+    backgroundColor: "#CEE6FF",
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+
+  resultsHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+
+  resultsTag: {
+    backgroundColor: "#1e3a5f",
+    color: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    fontSize: 10,
+    marginBottom: 10,
+  },
+
+  resultsTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    color: "#1a1a1a",
+  },
+
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 10,
+    marginBottom: 20,
+  },
+
+  statCard: {
+    width: "48%", // 👈 2 cards per row
+    backgroundColor: "#07577F",
+    borderRadius: 12,
+    paddingVertical: 18,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  statValue: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+
+  statLabel: {
+    color: "#cbd5f5",
+    fontSize: 11,
+    textAlign: "center",
+  },
+
+  infoBox: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: "#d946ef",
+  },
+
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 10,
+    color: "#444",
+  },
+
+  bulletRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#2563eb",
+    marginRight: 8,
+  },
+
+  bulletText: {
+    fontSize: 12,
+    color: "#444",
+    flexShrink: 1,
+  },
+  processSection: {
+    backgroundColor: "#CEE6FF",
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+
+  processHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+
+  processTag: {
+    backgroundColor: "#1e3a5f",
+    color: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    fontSize: 10,
+    marginBottom: 10,
+  },
+
+  processTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+
+  processSub: {
+    fontSize: 12,
+    color: "#444",
+    textAlign: "center",
+  },
+  timeline: {
+    marginTop: 10,
+    position: "relative",
+    paddingLeft: 20,
+    paddingRight: 20,
+  },
+
+  /* ❌ OLD: left: 28 */
+  /* ✅ FIXED: perfectly centered */
+  verticalLine: {
+    position: "absolute",
+    left: 20 + 20 - 1, // paddingLeft + half iconCol - half line width
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: "#bcd3ff",
+  },
+
+  iconCol: {
+    width: 40,
+    alignItems: "center",
+    marginRight: 10,
+  },
+
+  stepIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+  },
+
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 18,
+  },
+
+  /* 🔥 ICON COLUMN */
+
+  stepIconImage: {
+    width: 16,
+    height: 16,
+    tintColor: "#2563eb",
+  },
+
+  /* 🔥 CARD */
+  stepCard: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+  },
+
+  stepHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+
+  stepHeaderIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: "#E8F0FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 6,
+  },
+
+  stepHeaderIconImage: {
+    width: 14,
+    height: 14,
+    tintColor: "#2563eb",
+  },
+
+  stepLabel: {
+    color: "#2563eb",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  stepTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111",
+    marginBottom: 4,
+  },
+
+  stepDesc: {
+    fontSize: 12,
+    color: "#666",
+  },
+  aiSection: {
+    backgroundColor: "#EAF2FF",
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+
+  aiHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+
+  aiTag: {
+    backgroundColor: "#1e3a5f",
+    color: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    fontSize: 10,
+    marginBottom: 10,
+  },
+
+  aiTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+
+  aiSub: {
+    fontSize: 12,
+    textAlign: "center",
+    color: "#444",
+  },
+
+  aiCard: {
+    backgroundColor: "#0B5E7A",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
+    position: "relative",
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+
+  aiBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "#2563eb",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+
+  aiBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+  },
+
+  aiIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#084B63",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  aiCardTitle: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+
+  aiCardDesc: {
+    color: "#C7E6F3",
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  trustSection: {
+    backgroundColor: "#DCEAFF",
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+
+  trustHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+
+  trustTag: {
+    backgroundColor: "#1e3a5f",
+    color: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    fontSize: 10,
+    marginBottom: 10,
+  },
+
+  trustTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    color: "#1a1a1a",
+  },
+
+  trustCard: {
+    backgroundColor: "#F1F5F9",
+    borderRadius: 14,
+    padding: 18,
+    alignItems: "center",
+    marginBottom: 14,
+  },
+
+  trustIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    backgroundColor: "#E0E7FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  trustIconImage: {
+    width: 28,
+    height: 28,
+    tintColor: "#2563eb", // 🔥 makes icons blue like UI
+  },
+
+  trustCardTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+
+  trustCardDesc: {
+    fontSize: 11,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 16,
+  },
+  ctaSection: {
+    backgroundColor: "#DCEAFF",
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+
+  ctaCard: {
+    backgroundColor: "#07577F",
+    borderRadius: 26,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+
+  ctaTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#ffffff10",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+
+  ctaDot: {
+    color: "#22c55e",
+    fontSize: 10,
+  },
+
+  ctaTagText: {
+    color: "#fff",
+    fontSize: 11,
+  },
+
+  ctaTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 10,
+    lineHeight: 24,
+  },
+
+  ctaSub: {
+    color: "#cbd5f5",
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 18,
+  },
+
+  ctaButtons: {
+    width: "100%",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  ctaPrimary: {
+    backgroundColor: "#fff",
+    width: "80%",
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+
+  ctaPrimaryText: {
+    color: "#0B5E7A",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  ctaSecondary: {
+    borderWidth: 1,
+    borderColor: "#60a5fa",
+    width: "80%",
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+
+  ctaSecondaryText: {
+    color: "#cbd5f5",
+    fontSize: 13,
+  },
+});
+const mProblem = StyleSheet.create({
+  container: {
+    backgroundColor: "#C6E2FF",
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+
+  header: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+
+  tag: {
+    backgroundColor: "#1e3a5f",
+    color: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    fontSize: 10,
+    marginBottom: 10,
+  },
+
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    color: "#1a1a1a",
+    marginBottom: 8,
+  },
+
+  sub: {
+    fontSize: 12,
+    textAlign: "center",
+    color: "#444",
+  },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 14,
+  },
+
+  image: {
+    width: "100%",
+    height: 140,
+  },
+
+  cardBody: {
+    padding: 12,
+  },
+
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+
+  cardDesc: {
+    fontSize: 11,
+    color: "#666",
+  },
 });
