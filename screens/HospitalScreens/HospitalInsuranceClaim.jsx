@@ -26,6 +26,7 @@ import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../env-vars";
+import mixpanel, { trackButton } from "../../utils/Mixpanel";
 
 // ═══════════════════════════════════════════════════════════════════════
 // PROCESSING STATUS COMPONENT (shown while API call is in progress)
@@ -748,9 +749,12 @@ const MobileAnalysisView = ({
       {/* Accept Button */}
       <TouchableOpacity
         style={mav.acceptBtn}
-        onPress={() =>
-          navigation.navigate("HospitalInsuranceDownload", { analysisData })
-        }
+        onPress={() => {
+          trackButton("hospital_insurance_generate_files_button_clicked", {
+            source: "insurance_claim_analysis_result",
+          });
+          navigation.navigate("HospitalInsuranceDownload", { analysisData });
+        }}
       >
         <Text style={mav.acceptText}>Generate Updated Files →</Text>
       </TouchableOpacity>
@@ -1272,6 +1276,10 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   // ─── Web desktop: analyze ──────────────────────────────────────────
   const analyzeInsurance = () => {
     if (claimFiles.length === 0) return;
+    trackButton("hospital_insurance_analyze_button_clicked", {
+      source: "insurance_claim_web",
+      claim_files_count: claimFiles.length,
+    });
     startAnalysis(claimFiles[0], true);
   };
 
@@ -1282,6 +1290,10 @@ const HospitalInsuranceClaim = ({ navigation }) => {
     console.log("Platform.OS:", Platform.OS);
     console.log("width:", width);
     if (claimDocs.length === 0 || isAnalyzing) return;
+    trackButton("hospital_insurance_generate_button_clicked", {
+      source: "insurance_claim_mobile",
+      claim_docs_count: claimDocs.length,
+    });
     startAnalysis();
   };
 
@@ -1773,33 +1785,77 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               subtitle="Completed & signed insurance claim form"
                               required
                               file={uploadSections.claim}
-                              onUpload={() => handleSectionUpload("claim")}
-                              onRemove={() => handleSectionRemove("claim")}
+                              onUpload={() => {
+                                trackButton("hospital_insurance_upload_claim_form_clicked", {
+                                  source: "document_upload_section",
+                                  document_type: "claim_form",
+                                });
+                                handleSectionUpload("claim");
+                              }}
+                              onRemove={() => {
+                                trackButton("hospital_insurance_remove_claim_form_clicked", {
+                                  source: "document_upload_section",
+                                  document_type: "claim_form",
+                                });
+                                handleSectionRemove("claim");
+                              }}
                             />
                             <UploadStepItem
                               title="Hospital Bill"
                               subtitle="Itemised bill / discharge summary from hospital"
                               file={uploadSections.hospital}
-                              onUpload={() => handleSectionUpload("hospital")}
-                              onRemove={() => handleSectionRemove("hospital")}
+                              onUpload={() => {
+                                trackButton("hospital_insurance_upload_hospital_bill_clicked", {
+                                  source: "document_upload_section",
+                                  document_type: "hospital_bill",
+                                });
+                                handleSectionUpload("hospital");
+                              }}
+                              onRemove={() => {
+                                trackButton("hospital_insurance_remove_hospital_bill_clicked", {
+                                  source: "document_upload_section",
+                                  document_type: "hospital_bill",
+                                });
+                                handleSectionRemove("hospital");
+                              }}
                             />
                             <UploadStepItem
                               title="Doctor prescription"
                               subtitle="Signed prescription from treating cardiologist"
                               file={uploadSections.prescription}
-                              onUpload={() =>
-                                handleSectionUpload("prescription")
-                              }
-                              onRemove={() =>
-                                handleSectionRemove("prescription")
-                              }
+                              onUpload={() => {
+                                trackButton("hospital_insurance_upload_prescription_clicked", {
+                                  source: "document_upload_section",
+                                  document_type: "prescription",
+                                });
+                                handleSectionUpload("prescription");
+                              }}
+                              onRemove={() => {
+                                trackButton("hospital_insurance_remove_prescription_clicked", {
+                                  source: "document_upload_section",
+                                  document_type: "prescription",
+                                });
+                                handleSectionRemove("prescription");
+                              }}
                             />
                             <UploadStepItem
                               title="Insurance Policy"
                               subtitle="Co-Pay Excess Pre-auth Billing"
                               file={uploadSections.insurance}
-                              onUpload={() => handleSectionUpload("insurance")}
-                              onRemove={() => handleSectionRemove("insurance")}
+                              onUpload={() => {
+                                trackButton("hospital_insurance_upload_policy_clicked", {
+                                  source: "document_upload_section",
+                                  document_type: "insurance_policy",
+                                });
+                                handleSectionUpload("insurance");
+                              }}
+                              onRemove={() => {
+                                trackButton("hospital_insurance_remove_policy_clicked", {
+                                  source: "document_upload_section",
+                                  document_type: "insurance_policy",
+                                });
+                                handleSectionRemove("insurance");
+                              }}
                             />
                           </View>
                           {/* ✅ BUTTON (YOU FORGOT THIS) */}
@@ -1811,8 +1867,14 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                 backgroundColor: "#4476b4ff",
                               },
                             ]}
-                            disabled={!isAnyUploaded || isAnalyzing}
-                            onPress={() => startAnalysis()}
+                            disabled={!isClaimFormUploaded || isAnalyzing}
+                            onPress={() => {
+                              if (!uploadSections.claim) return;
+                              trackButton("hospital_insurance_submit_claim_button_clicked", {
+                                source: "insurance_claim_form_upload",
+                              });
+                              startAnalysis();
+                            }}
                           >
                             <Text style={styles.analyzeBtnText}>
                               {isClaimFormUploaded
