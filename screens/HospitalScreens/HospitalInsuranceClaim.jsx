@@ -24,6 +24,7 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../../env-vars";
 import mixpanel, { trackButton } from "../../utils/Mixpanel";
 
@@ -31,7 +32,7 @@ import mixpanel, { trackButton } from "../../utils/Mixpanel";
 // PROCESSING STATUS COMPONENT (shown while API call is in progress)
 // ═══════════════════════════════════════════════════════════════════════
 
-const ProcessingView = ({ stage }) => {
+const ProcessingView = ({ stage, flow }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -53,7 +54,7 @@ const ProcessingView = ({ stage }) => {
     return () => anim.stop();
   }, []);
 
-  const stages = [
+  const auditStages = [
     { key: "uploading", label: "Uploading document...", icon: "upload-cloud" },
     { key: "ocr", label: "Reading document with OCR...", icon: "eye" },
     {
@@ -74,23 +75,50 @@ const ProcessingView = ({ stage }) => {
     },
   ];
 
+  const autofillStages = [
+    { key: "uploading", label: "Uploading documents...", icon: "upload-cloud" },
+    { key: "ocr", label: "Reading all documents with OCR...", icon: "eye" },
+    {
+      key: "extracting",
+      label: "Extracting patient & billing data...",
+      icon: "file-text",
+    },
+    {
+      key: "filling",
+      label: "Auto-filling Medi Assist claim form...",
+      icon: "edit-3",
+    },
+    {
+      key: "calculating",
+      label: "Calculating claimable amount...",
+      icon: "dollar-sign",
+    },
+  ];
+
+  const stages = flow === "autofill" ? autofillStages : auditStages;
   const currentIndex = stages.findIndex((s) => s.key === stage);
 
   return (
     <View style={procStyles.container}>
       <View style={procStyles.card}>
         <Animated.View style={[procStyles.pulseCircle, { opacity: pulse }]}>
-          <Feather name="cpu" size={28} color="#2563EB" />
+          <Feather
+            name={flow === "autofill" ? "edit-3" : "cpu"}
+            size={28}
+            color="#2563EB"
+          />
         </Animated.View>
-        <Text style={procStyles.title}>Kokoro AI is analyzing your claim</Text>
-        <Text style={procStyles.subtitle}>This may take 20-30 seconds</Text>
-
+        <Text style={procStyles.title}>
+          {flow === "autofill"
+            ? "Kokoro AI is filling your claim form"
+            : "Kokoro AI is analyzing your claim"}
+        </Text>
+        <Text style={procStyles.subtitle}>This may take 15-20 seconds</Text>
         <View style={procStyles.stageList}>
           {stages.map((s, i) => {
             const isDone = i < currentIndex;
             const isCurrent = i === currentIndex;
             const isPending = i > currentIndex;
-
             return (
               <View key={s.key} style={procStyles.stageRow}>
                 <View
@@ -735,6 +763,260 @@ const MobileAnalysisView = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════
+// AUTOFILL COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════
+
+const FormField = ({ label, value, isMissing }) => (
+  <View style={afStyles.fieldRow}>
+    <Text style={afStyles.fieldLabel}>{label}:</Text>
+    {isMissing || !value ? (
+      <View style={afStyles.missingBadge}>
+        <Text style={afStyles.missingText}>Not available</Text>
+      </View>
+    ) : (
+      <Text style={afStyles.fieldValue}>{String(value)}</Text>
+    )}
+  </View>
+);
+
+const FormSection = ({ title, data }) => {
+  const [collapsed, setCollapsed] = useState(false);
+  if (!data) return null;
+  const fields = Object.entries(data).filter(
+    ([key]) => key !== "documents_checklist",
+  );
+  const filledCount = fields.filter(
+    ([_, v]) => v !== null && v !== "" && v !== false,
+  ).length;
+  const totalCount = fields.length;
+  const fillPercent =
+    totalCount > 0 ? Math.round((filledCount / totalCount) * 100) : 0;
+  const barColor =
+    fillPercent === 100 ? "#16A34A" : fillPercent > 50 ? "#F59E0B" : "#DC2626";
+  return (
+    <View style={afStyles.section}>
+      <TouchableOpacity
+        onPress={() => setCollapsed(!collapsed)}
+        activeOpacity={0.7}
+        style={afStyles.sectionHeader}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={afStyles.sectionTitle}>{title}</Text>
+          <View style={afStyles.progressBarBg}>
+            <View
+              style={[
+                afStyles.progressBarFill,
+                { width: `${fillPercent}%`, backgroundColor: barColor },
+              ]}
+            />
+          </View>
+          <Text style={afStyles.progressText}>
+            {filledCount}/{totalCount} fields filled
+          </Text>
+        </View>
+        <Text style={afStyles.collapseIcon}>{collapsed ? "▸" : "▾"}</Text>
+      </TouchableOpacity>
+      {!collapsed && (
+        <View style={afStyles.sectionBody}>
+          {fields.map(([key, value]) => (
+            <FormField
+              key={key}
+              label={key
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (c) => c.toUpperCase())}
+              value={value}
+              isMissing={value === null || value === ""}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
+
+const BillsTable = ({ bills }) => {
+  if (!bills || bills.length === 0) return null;
+  return (
+    <View style={afStyles.section}>
+      <Text
+        style={[
+          afStyles.sectionTitle,
+          { paddingHorizontal: 12, paddingTop: 10 },
+        ]}
+      >
+        Bills Enclosed
+      </Text>
+      <View style={afStyles.table}>
+        <View style={afStyles.tableHeader}>
+          <Text style={[afStyles.tableCell, { flex: 2, fontWeight: "700" }]}>
+            Towards
+          </Text>
+          <Text
+            style={[
+              afStyles.tableCell,
+              { flex: 1, fontWeight: "700", textAlign: "right" },
+            ]}
+          >
+            Amount
+          </Text>
+        </View>
+        {bills.map((bill, i) => (
+          <View key={i} style={afStyles.tableRow}>
+            <Text style={[afStyles.tableCell, { flex: 2 }]}>
+              {bill.towards}
+            </Text>
+            <Text style={[afStyles.tableCell, { flex: 1, textAlign: "right" }]}>
+              {bill.amount
+                ? `₹${Number(bill.amount).toLocaleString("en-IN")}`
+                : "—"}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const AutofillFormPreview = ({ autofillResult }) => {
+  if (!autofillResult)
+    return <Text style={{ padding: 16, color: "#94A3B8" }}>No form data</Text>;
+  const r = autofillResult;
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      showsVerticalScrollIndicator={true}
+    >
+      <View style={afStyles.formHeader}>
+        <Text style={afStyles.formHeaderTitle}>
+          Medi Assist Reimbursement Claim Form
+        </Text>
+        <Text style={afStyles.formHeaderSub}>
+          Auto-filled from your uploaded documents
+        </Text>
+      </View>
+      <FormSection
+        title="Section A — Primary Insured"
+        data={r.section_a_primary_insured}
+      />
+      <FormSection
+        title="Section B — Insurance History"
+        data={r.section_b_insurance_history}
+      />
+      <FormSection
+        title="Section C — Patient Details"
+        data={r.section_c_patient_details}
+      />
+      <FormSection
+        title="Section D — Hospitalization"
+        data={r.section_d_hospitalization}
+      />
+      <FormSection
+        title="Section E — Claim Details"
+        data={r.section_e_claim_details}
+      />
+      <BillsTable bills={r.section_f_bills_enclosed} />
+      <FormSection
+        title="Section G — Bank Account"
+        data={r.section_g_bank_account}
+      />
+      <FormSection
+        title="Part B — Hospital Section"
+        data={r.part_b_hospital_section}
+      />
+      {r.part_c_cashless_request && (
+        <View style={afStyles.costBreakdown}>
+          <Text style={afStyles.sectionTitle}>Cost Breakdown</Text>
+          {Object.entries(r.part_c_cashless_request)
+            .filter(
+              ([k, v]) =>
+                v !== null && k !== "applicable" && typeof v === "number",
+            )
+            .map(([key, val]) => (
+              <View key={key} style={afStyles.costRow}>
+                <Text style={afStyles.costLabel}>
+                  {key
+                    .replace(/_/g, " ")
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
+                </Text>
+                <Text style={afStyles.costValue}>
+                  ₹{Number(val).toLocaleString("en-IN")}
+                </Text>
+              </View>
+            ))}
+        </View>
+      )}
+    </ScrollView>
+  );
+};
+
+const AutofillSummaryPanel = ({ autofillResult, autofillExtracted }) => {
+  if (!autofillResult)
+    return <Text style={{ padding: 16, color: "#94A3B8" }}>Waiting...</Text>;
+  const r = autofillResult;
+  const claimable = r.claimable_summary || {};
+  const missing = r.missing_fields || [];
+  const suggestions = r.optimization_suggestions || [];
+  const docsAvailable = autofillExtracted?.documents_available || [];
+  return (
+    <ScrollView style={{ padding: 12 }} showsVerticalScrollIndicator={true}>
+      <View style={afStyles.claimCard}>
+        <Text style={afStyles.claimCardTitle}>Estimated Claimable Amount</Text>
+        <Text style={afStyles.claimAmount}>
+          ₹{Number(claimable.total_bill || 0).toLocaleString("en-IN")}
+        </Text>
+        {claimable.tip && (
+          <Text style={afStyles.claimTip}>{claimable.tip}</Text>
+        )}
+      </View>
+      <View style={afStyles.docsCard}>
+        <Text style={afStyles.docsTitle}>Documents Analyzed</Text>
+        {docsAvailable.map((doc, i) => (
+          <View key={i} style={afStyles.docChip}>
+            <Feather name="check-circle" size={14} color="#16A34A" />
+            <Text style={afStyles.docChipText}>
+              {doc.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+            </Text>
+          </View>
+        ))}
+      </View>
+      {missing.length > 0 && (
+        <View style={afStyles.missingCard}>
+          <Text style={afStyles.missingCardTitle}>
+            Missing Fields ({missing.length})
+          </Text>
+          <Text style={afStyles.missingCardSub}>
+            Upload more documents to fill these
+          </Text>
+          {missing.map((m, i) => (
+            <View key={i} style={afStyles.missingItem}>
+              <View style={afStyles.missingDot} />
+              <View style={{ flex: 1 }}>
+                <Text style={afStyles.missingField}>
+                  {m.field?.replace(/_/g, " ")}
+                </Text>
+                <Text style={afStyles.missingHow}>{m.how_to_get}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+      {suggestions.length > 0 && (
+        <View style={afStyles.sugCard}>
+          <Text style={afStyles.sugCardTitle}>Optimization Tips</Text>
+          {suggestions.map((s, i) => (
+            <View key={i} style={afStyles.sugItem}>
+              <Text style={afStyles.sugItemNum}>{i + 1}</Text>
+              <Text style={afStyles.sugItemText}>{s}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </ScrollView>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -819,7 +1101,6 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   //         type: file.mimeType || "application/octet-stream",
   //       });
   //     }
-  //   }
   const startAnalysis = async () => {
     setCurrentStep(1);
     setIsAnalyzing(true);
@@ -839,42 +1120,80 @@ const HospitalInsuranceClaim = ({ navigation }) => {
     // ✅ FIX: use claimDocs when on native, OR when web width < 1000 (mobile web)
     const useMobileFlow = Platform.OS !== "web" || width < 1000;
 
+    // if (useMobileFlow) {
+    //   if (claimDocs.length === 0) {
+    //     setIsAnalyzing(false);
+    //     setCurrentStep(0);
+    //     return;
+    //   }
+
+    //   const file = claimDocs[0];
+
+    //   if (Platform.OS !== "web") {
+    //     // Real native device
+    //     formData.append("claim_form", {
+    //       uri: file.uri,
+    //       name: file.name || "claim.pdf",
+    //       type: file.mimeType || "application/octet-stream",
+    //     });
+    //   } else {
+    //     // Web browser (mobile emulation or real mobile browser)
+    //     formData.append("claim_form", file.file, file.name || "claim.pdf");
+    //   }
+
+    //   if (policyDocs.length > 0) {
+    //     const pfile = policyDocs[0];
+    //     if (Platform.OS !== "web") {
+    //       formData.append("hospital_bill", {
+    //         uri: pfile.uri,
+    //         name: pfile.name || "policy.pdf",
+    //         type: pfile.mimeType || "application/octet-stream",
+    //       });
+    //     } else {
+    //       formData.append(
+    //         "hospital_bill",
+    //         pfile.file,
+    //         pfile.name || "policy.pdf",
+    //       );
+    //     }
+    //   }
+    // }
     if (useMobileFlow) {
-      if (claimDocs.length === 0) {
+      // ✅ Now reads from uploadSections (unified with desktop)
+      const fieldMap = {
+        claim: "claim_form",
+        hospital: "hospital_bill",
+        prescription: "doctor_prescription",
+        insurance: "insurance_savings_breakdown",
+      };
+
+      let hasAnyFile = false;
+      for (const [key, backendField] of Object.entries(fieldMap)) {
+        const file = uploadSections[key];
+        if (!file) continue;
+        hasAnyFile = true;
+
+        if (Platform.OS !== "web") {
+          // Native device — file from DocumentPicker has uri/name/mimeType
+          formData.append(backendField, {
+            uri: file.uri,
+            name: file.name || `${key}.pdf`,
+            type: file.mimeType || "application/octet-stream",
+          });
+        } else {
+          // Mobile web browser — file is a File object
+          formData.append(
+            backendField,
+            file.file || file,
+            file.name || `${key}.pdf`,
+          );
+        }
+      }
+
+      if (!hasAnyFile) {
         setIsAnalyzing(false);
         setCurrentStep(0);
         return;
-      }
-
-      const file = claimDocs[0];
-
-      if (Platform.OS !== "web") {
-        // Real native device
-        formData.append("claim_form", {
-          uri: file.uri,
-          name: file.name || "claim.pdf",
-          type: file.mimeType || "application/octet-stream",
-        });
-      } else {
-        // Web browser (mobile emulation or real mobile browser)
-        formData.append("claim_form", file.file, file.name || "claim.pdf");
-      }
-
-      if (policyDocs.length > 0) {
-        const pfile = policyDocs[0];
-        if (Platform.OS !== "web") {
-          formData.append("hospital_bill", {
-            uri: pfile.uri,
-            name: pfile.name || "policy.pdf",
-            type: pfile.mimeType || "application/octet-stream",
-          });
-        } else {
-          formData.append(
-            "hospital_bill",
-            pfile.file,
-            pfile.name || "policy.pdf",
-          );
-        }
       }
     } else {
       // Desktop web flow
@@ -891,23 +1210,46 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       }
     }
 
-    const stageTimer = setTimeout(() => setProcessingStage("ocr"), 2000);
-    const stageTimer2 = setTimeout(
-      () => setProcessingStage("extracting"),
-      5000,
-    );
-    const stageTimer3 = setTimeout(() => setProcessingStage("routing"), 10000);
-    const stageTimer4 = setTimeout(() => setProcessingStage("auditing"), 12000);
-    const stageTimer5 = setTimeout(
-      () => setProcessingStage("reporting"),
-      25000,
-    );
+    const isAutofill = !uploadSections.claim;
+    let stageTimer, stageTimer2, stageTimer3, stageTimer4, stageTimer5;
+
+    if (isAutofill) {
+      stageTimer = setTimeout(() => setProcessingStage("ocr"), 2000);
+      stageTimer2 = setTimeout(() => setProcessingStage("extracting"), 4000);
+      stageTimer3 = setTimeout(() => setProcessingStage("filling"), 10000);
+      stageTimer4 = setTimeout(() => setProcessingStage("calculating"), 14000);
+      stageTimer5 = null;
+    } else {
+      stageTimer = setTimeout(() => setProcessingStage("ocr"), 2000);
+      stageTimer2 = setTimeout(() => setProcessingStage("extracting"), 5000);
+      stageTimer3 = setTimeout(() => setProcessingStage("routing"), 10000);
+      stageTimer4 = setTimeout(() => setProcessingStage("auditing"), 12000);
+      stageTimer5 = setTimeout(() => setProcessingStage("reporting"), 25000);
+    }
 
     try {
+      // Attach auth token when available (web: localStorage, native: AsyncStorage)
+      const headers = {};
+      if (Platform.OS === "web") {
+        const token = localStorage.getItem("token");
+        if (token) headers.Authorization = `Bearer ${token}`;
+      } else {
+        const token = await AsyncStorage.getItem("@token").catch(() => null);
+        if (token) headers.Authorization = `Bearer ${token}`;
+      }
+
       const res = await fetch(`${API_URL}/medilocker/insurance/analyze`, {
         method: "POST",
+        headers, // do NOT set Content-Type for FormData (browser sets boundary)
         body: formData,
       });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => null);
+        console.error("Analysis API returned error", res.status, text);
+        throw new Error(text || `Analyze failed: ${res.status}`);
+      }
+
       const data = await res.json();
 
       if (data?.detail) {
@@ -918,12 +1260,14 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       setAnalysisData(data);
     } catch (error) {
       console.error("Analysis error:", error);
+      // show user an alert on failure (optional)
+      // alert(`Analysis failed: ${error.message}`);
     } finally {
       clearTimeout(stageTimer);
       clearTimeout(stageTimer2);
       clearTimeout(stageTimer3);
       clearTimeout(stageTimer4);
-      clearTimeout(stageTimer5);
+      if (stageTimer5) clearTimeout(stageTimer5);
       setIsAnalyzing(false);
       setProcessingStage("");
     }
@@ -1175,19 +1519,40 @@ const HospitalInsuranceClaim = ({ navigation }) => {
     );
   };
 
-  const handleSectionUpload = (key) => {
+  // const handleSectionUpload = (key) => {
+  //   const input = document.createElement("input");
+  //   input.type = "file";
+
+  //   input.onchange = (e) => {
+  //     const file = e.target.files[0];
+
+  //     setUploadSections((prev) => ({
+  //       ...prev,
+  //       [key]: file,
+  //     }));
+  //   };
+
+  //   input.click();
+  // };
+  const handleSectionUpload = async (key) => {
+    if (Platform.OS !== "web") {
+      // Native: use DocumentPicker
+      try {
+        const result = await DocumentPicker.getDocumentAsync({ type: "*/*" });
+        if (result.canceled) return;
+        setUploadSections((prev) => ({ ...prev, [key]: result.assets[0] }));
+      } catch (e) {
+        console.log(e);
+      }
+      return;
+    }
+    // Web fallback
     const input = document.createElement("input");
     input.type = "file";
-
     input.onchange = (e) => {
       const file = e.target.files[0];
-
-      setUploadSections((prev) => ({
-        ...prev,
-        [key]: file,
-      }));
+      setUploadSections((prev) => ({ ...prev, [key]: file }));
     };
-
     input.click();
   };
 
@@ -1497,7 +1862,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                           <TouchableOpacity
                             style={[
                               styles.analyzeBtn,
-                              (!isClaimFormUploaded || isAnalyzing) && {
+                              (!isAnyUploaded || isAnalyzing) && {
                                 opacity: 0.5,
                                 backgroundColor: "#4476b4ff",
                               },
@@ -1512,10 +1877,26 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                             }}
                           >
                             <Text style={styles.analyzeBtnText}>
-                              Submit claim document →
+                              {isClaimFormUploaded
+                                ? "Submit claim document →"
+                                : "Auto-fill claim form →"}
                             </Text>
                           </TouchableOpacity>
-                          {!isClaimFormUploaded && (
+                          {!isClaimFormUploaded && isAnyUploaded && (
+                            <Text
+                              style={{
+                                marginTop: 2,
+                                color: "#2563EB",
+                                fontSize: 13,
+                                fontWeight: "500",
+                                marginLeft: "30%",
+                              }}
+                            >
+                              No claim form? We&apos;ll auto-fill one from your
+                              documents
+                            </Text>
+                          )}
+                          {!isAnyUploaded && (
                             <Text
                               style={{
                                 marginTop: 2,
@@ -1525,7 +1906,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                 marginLeft: "30%",
                               }}
                             >
-                              Claim Form is required before proceeding ⚠️
+                              Upload at least one document to proceed ⚠️
                             </Text>
                           )}
                         </View>
@@ -1543,32 +1924,122 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               approve
                             </Text>
                           </View>
+                          {/* <View style={styles.reviewBody}>
+                            {isAnalyzing && !analysisData ? (
+                              <>
+                                <View style={styles.leftPanel}>
+                                  <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+                                    <ActivityIndicator size="large" color="#2563EB" />
+                                    <Text style={{ marginTop: 10, color: "#64748B", fontSize: 13 }}>Extracting data...</Text>
+                                  </View>
+                                </View>
+                                <View style={styles.rightPanel}>
+                                  <ProcessingView stage={processingStage} flow={uploadSections.claim ? "audit" : "autofill"} />
+                                </View>
+                              </>
+                            ) : analysisData?.flow === "autofill" ? (
+                              <>
+                                <View style={styles.leftPanel}>
+                                  <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+                            )}
+                          </View>
+                          {analysisData && (
+                            <>
+                            <TouchableOpacity
+                              style={styles.genBtn}
+                              onPress={() =>
+                                navigation.navigate(
+                                  "HospitalInsuranceDownload",
+                                  { analysisData },
+                                )
+                              }
+                            >
+                              <Text style={styles.genBtnText}>
+                                Generate updated files
+                              </Text>
+                            </TouchableOpacity>
+                            </>
+                          )} */}
                           <View style={styles.reviewBody}>
-                            {/* LEFT: Structured Data */}
-                            <View style={styles.leftPanel}>
-                              <StructuredPanel
-                                structured={structured}
-                                isLoading={isAnalyzing && !structured}
-                              />
-                            </View>
-
-                            {/* RIGHT: Thinking + Report */}
-                            <View style={styles.rightPanel}>
-                              {isAnalyzing && !analysisData ? (
-                                <ProcessingView stage={processingStage} />
-                              ) : analysisData ? (
-                                <ClaudeThinkingView
-                                  thinkingTrace={thinkingTrace}
-                                  auditResults={auditResults}
-                                  finalReport={finalReport}
-                                  analysisData={analysisData}
-                                />
-                              ) : (
-                                <Text style={{ padding: 16, color: "#94A3B8" }}>
-                                  Upload a claim to begin
-                                </Text>
-                              )}
-                            </View>
+                            {isAnalyzing && !analysisData ? (
+                              <>
+                                <View style={styles.leftPanel}>
+                                  <View
+                                    style={{
+                                      flex: 1,
+                                      justifyContent: "center",
+                                      alignItems: "center",
+                                      padding: 20,
+                                    }}
+                                  >
+                                    <ActivityIndicator
+                                      size="large"
+                                      color="#2563EB"
+                                    />
+                                    <Text
+                                      style={{
+                                        marginTop: 10,
+                                        color: "#64748B",
+                                        fontSize: 13,
+                                      }}
+                                    >
+                                      Extracting data...
+                                    </Text>
+                                  </View>
+                                </View>
+                                <View style={styles.rightPanel}>
+                                  <ProcessingView
+                                    stage={processingStage}
+                                    flow={
+                                      uploadSections.claim
+                                        ? "audit"
+                                        : "autofill"
+                                    }
+                                  />
+                                </View>
+                              </>
+                            ) : analysisData?.flow === "autofill" ? (
+                              <>
+                                <View style={styles.leftPanel}>
+                                  <AutofillSummaryPanel
+                                    autofillResult={
+                                      analysisData?.autofill_result
+                                    }
+                                    autofillExtracted={
+                                      analysisData?.extracted_data
+                                    }
+                                  />
+                                </View>
+                                <View style={styles.rightPanel}>
+                                  <AutofillFormPreview
+                                    autofillResult={
+                                      analysisData?.autofill_result
+                                    }
+                                  />
+                                </View>
+                              </>
+                            ) : analysisData ? (
+                              <>
+                                <View style={styles.leftPanel}>
+                                  <StructuredPanel
+                                    structured={structured}
+                                    isLoading={false}
+                                  />
+                                </View>
+                                <View style={styles.rightPanel}>
+                                  <ClaudeThinkingView
+                                    thinkingTrace={thinkingTrace}
+                                    auditResults={auditResults}
+                                    finalReport={finalReport}
+                                    analysisData={analysisData}
+                                  />
+                                </View>
+                              </>
+                            ) : (
+                              <Text style={{ padding: 16, color: "#94A3B8" }}>
+                                Waiting for analysis...
+                              </Text>
+                            )}
                           </View>
                           {analysisData && (
                             <TouchableOpacity
@@ -1581,7 +2052,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               }
                             >
                               <Text style={styles.genBtnText}>
-                                Generate updated files
+                                Generate updated files →
                               </Text>
                             </TouchableOpacity>
                           )}
@@ -1647,137 +2118,294 @@ const HospitalInsuranceClaim = ({ navigation }) => {
             </View>
 
             {currentStep === 0 ? (
-              <View style={m.card}>
-                <Image
-                  source={require("../../assets/HospitalPortal/Icon/medicalIcon.png")}
-                  style={{ width: "100%", marginBottom: 12 }}
-                  resizeMode="contain"
-                />
-                <Text style={m.cardTitle}>
-                  Upload your insurance {"\n"}claim and save money
-                </Text>
-                <Text style={m.subText}>
-                  kokoro.doctor AI will auto-extract all codes{"\n"}from these
-                  document
-                </Text>
-                <View style={m.bulletWrap}>
-                  <Text style={m.bullet}>• Both documents are mandatory</Text>
-                  <Text style={m.bullet}>
-                    • Analysis cannot begin without the claim document
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: "#fff",
+                  paddingHorizontal: 16,
+                }}
+              >
+                {/* Header */}
+                <View style={{ alignItems: "center", paddingVertical: 20 }}>
+                  <Image
+                    source={require("../../assets/HospitalPortal/Icon/medicalIcon.png")}
+                    style={{ width: 40, height: 40, marginBottom: 12 }}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: "700",
+                      color: "#0F172A",
+                      textAlign: "center",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Upload Claim Documents
                   </Text>
-                  <Text style={m.bullet}>
-                    • Kokoro AI analyzes your claim directly
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: "#64748B",
+                      textAlign: "center",
+                      lineHeight: 20,
+                      paddingHorizontal: 10,
+                    }}
+                  >
+                    Upload the required documents to process your post-surgery
+                    claim. All files are encrypted and stored securely.
                   </Text>
                 </View>
-                <Text style={m.label}>Insurance Claim Document</Text>
-                <TouchableOpacity
-                  style={m.uploadBox}
-                  onPress={() => pickDocument("claim")}
-                >
-                  <Feather name="upload" size={20} color="#2563EB" />
-                  <Text style={m.uploadText}>
-                    Upload Photo <Text style={m.link}>Click here</Text>
-                  </Text>
-                </TouchableOpacity>
-                {claimDocs.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={m.fileScroll}
-                    style={{ marginTop: -10, marginBottom: 10 }}
-                  >
-                    {claimDocs.map((doc, index) => (
-                      <View key={index} style={m.fileChip}>
-                        <Feather
-                          name="check-circle"
-                          size={14}
-                          color="#16A34A"
-                        />
-                        <Text style={m.fileText} numberOfLines={1}>
-                          {doc.name}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => removeFile("claim", index)}
+
+                {/* Document Upload Items */}
+                {[
+                  {
+                    num: 1,
+                    label: "Claim Form",
+                    title: "Claim Form",
+                    subtitle: "Completed & signed insurance claim form",
+                    key: "claim",
+                  },
+                  {
+                    num: 2,
+                    label: "Hospital bill",
+                    title: "Hospital Bill",
+                    subtitle: "Itemised bill / discharge summary from hospital",
+                    key: "hospital",
+                  },
+                  {
+                    num: 3,
+                    label: "Doctor Prescription",
+                    title: "Doctor prescription",
+                    subtitle: "Signed prescription from treating cardiologist",
+                    key: "prescription",
+                  },
+
+                  {
+                    num: 4,
+                    label: "Policy Member ID",
+                    title: "Insurance Policy",
+                    subtitle: "Co-Pay Excess Pre-auth Billing",
+                    key: "insurance",
+                  },
+                ].map((item) => {
+                  const file = uploadSections[item.key];
+                  const isUploaded = !!file;
+                  return (
+                    <View key={item.key} style={{ marginBottom: 16 }}>
+                      {/* Row label */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginBottom: 8,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 14,
+                            backgroundColor: isUploaded ? "#16A34A" : "#EFF6FF",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            marginRight: 10,
+                          }}
                         >
-                          <Feather name="x" size={14} color="#6B7280" />
-                        </TouchableOpacity>
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: "700",
+                              color: isUploaded ? "#fff" : "#2563EB",
+                            }}
+                          >
+                            {isUploaded ? "✓" : item.num}
+                          </Text>
+                        </View>
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            fontWeight: "600",
+                            color: "#0F172A",
+                          }}
+                        >
+                          {item.label}
+                        </Text>
                       </View>
-                    ))}
-                  </ScrollView>
+
+                      {/* Upload Card */}
+                      <View
+                        style={{
+                          borderWidth: 1,
+                          borderColor: isUploaded ? "#16A34A" : "#E2E8F0",
+                          borderRadius: 12,
+                          backgroundColor: isUploaded ? "#F0FDF4" : "#fff",
+                          padding: 14,
+                          flexDirection: "row",
+                          alignItems: "center",
+                        }}
+                      >
+                        {/* Icon */}
+                        <View
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 8,
+                            backgroundColor: isUploaded ? "#16A34A" : "#EFF6FF",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            marginRight: 12,
+                          }}
+                        >
+                          <Feather
+                            name={isUploaded ? "check" : "file-text"}
+                            size={16}
+                            color={isUploaded ? "#fff" : "#2563EB"}
+                          />
+                        </View>
+
+                        {/* Text */}
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              fontWeight: "600",
+                              color: "#0F172A",
+                            }}
+                          >
+                            {item.title}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: "#64748B",
+                              marginTop: 2,
+                            }}
+                            numberOfLines={1}
+                          >
+                            {isUploaded ? file.name : item.subtitle}
+                          </Text>
+                        </View>
+
+                        {/* Action buttons */}
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          {isUploaded && (
+                            <TouchableOpacity
+                              onPress={() => handleSectionRemove(item.key)}
+                              style={{ padding: 4 }}
+                            >
+                              <Feather name="x" size={16} color="#DC2626" />
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity
+                            onPress={() => handleSectionUpload(item.key)}
+                            style={{
+                              backgroundColor: isUploaded
+                                ? "#DCFCE7"
+                                : "#EFF6FF",
+                              paddingHorizontal: 12,
+                              paddingVertical: 6,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                fontWeight: "600",
+                                color: isUploaded ? "#16A34A" : "#2563EB",
+                              }}
+                            >
+                              {isUploaded ? "Replace" : "Upload"}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+
+                {/* Warning / hint text */}
+                {!isAnyUploaded && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      backgroundColor: "#FFF7ED",
+                      borderRadius: 8,
+                      padding: 12,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Feather
+                      name="alert-triangle"
+                      size={14}
+                      color="#F59E0B"
+                      style={{ marginRight: 8, marginTop: 1 }}
+                    />
+                    <Text style={{ fontSize: 12, color: "#92400E", flex: 1 }}>
+                      To proceed further user has to upload at least anyone
+                      document
+                    </Text>
+                  </View>
                 )}
+
+                {!isClaimFormUploaded && isAnyUploaded && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      backgroundColor: "#EFF6FF",
+                      borderRadius: 8,
+                      padding: 12,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Feather
+                      name="info"
+                      size={14}
+                      color="#2563EB"
+                      style={{ marginRight: 8, marginTop: 1 }}
+                    />
+                    <Text style={{ fontSize: 12, color: "#1D4ED8", flex: 1 }}>
+                      No claim form? We&apos;ll auto-fill one from your
+                      documents
+                    </Text>
+                  </View>
+                )}
+
+                {/* Submit Button */}
                 <TouchableOpacity
-                  style={[
-                    m.button,
-                    (isAnalyzing || claimDocs.length === 0) && { opacity: 0.5 },
-                  ]}
-                  onPress={() => {
-                    trackButton("hospital_insurance_mobile_generate_button_clicked", {
-                      source: "insurance_claim_mobile_step",
-                    });
-                    handleGenerate();
+                  style={{
+                    backgroundColor:
+                      isAnyUploaded && !isAnalyzing ? "#2563EB" : "#93C5FD",
+                    paddingVertical: 14,
+                    borderRadius: 10,
+                    alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 8,
+                    marginBottom: 30,
                   }}
-                  disabled={isAnalyzing || claimDocs.length === 0}
+                  disabled={!isAnyUploaded || isAnalyzing}
+                  onPress={() => startAnalysis()}
                 >
-                  <Text style={m.buttonText}>Generate with AI</Text>
+                  <Text
+                    style={{ color: "#fff", fontSize: 15, fontWeight: "600" }}
+                  >
+                    {isClaimFormUploaded
+                      ? "Submit claim document"
+                      : "Auto-fill claim form"}
+                  </Text>
+                  <Feather name="arrow-right" size={16} color="#fff" />
                 </TouchableOpacity>
               </View>
             ) : (
-              // <View style={m.resultCard}>
-              //   <Text style={m.resultTitle}>Kokoro AI Analysis</Text>
-              //   <Text style={m.resultSub}>
-              //     {isAnalyzing
-              //       ? "Analyzing your claim..."
-              //       : "review all sections, then accept suggestions you approve"}
-              //   </Text>
-
-              //   {isAnalyzing && !analysisData ? (
-              //     <ProcessingView stage={processingStage} />
-              //   ) : analysisData ? (
-              //     <>
-              //       <Text style={m.blueLabel}>
-              //         {structured?.source_filename || "Insurance_Claim.pdf"}
-              //       </Text>
-              //       <View style={m.resultBox}>
-              //         <ScrollView>
-              //           <Text style={m.secTitle}>Patient</Text>
-              //           <Text style={m.text}>
-              //             Name: {structured?.patient_details?.name || "N/A"}
-              //           </Text>
-              //           <Text style={m.text}>
-              //             Age: {structured?.patient_details?.age || "N/A"}
-              //           </Text>
-              //           <Text style={m.secTitle}>Insurance</Text>
-              //           <Text style={m.text}>
-              //             TPA:{" "}
-              //             {structured?.insurance_details?.tpa_name || "N/A"}
-              //           </Text>
-              //           <Text style={m.secTitle}>Claim</Text>
-              //           <Text style={m.text}>
-              //             Bill: ₹{structured?.claim_details?.bill_amount || "0"}
-              //           </Text>
-              //           <Text style={m.text}>
-              //             Claimed: ₹
-              //             {structured?.claim_details?.claimed_amount || "0"}
-              //           </Text>
-              //         </ScrollView>
-              //       </View>
-              //       <TouchableOpacity
-              //         style={m.acceptBtn}
-              //         onPress={() =>
-              //           navigation.navigate("HospitalInsuranceDownload", {
-              //             analysisData,
-              //           })
-              //         }
-              //       >
-              //         <Text style={m.acceptText}>Accept All</Text>
-              //       </TouchableOpacity>
-              //     </>
-              //   ) : (
-              //     <Text style={{ padding: 16, color: "#94A3B8" }}>
-              //       Waiting for analysis...
-              //     </Text>
-              //   )}
-              // </View>
               <View style={m.resultCard}>
                 <Text style={m.resultTitle}>Kokoro AI Analysis</Text>
                 <Text style={m.resultSub}>
@@ -2125,7 +2753,7 @@ const styles = StyleSheet.create({
     zIndex: 5,
     height: "85vh",
     overflow: "hidden",
-    marginTop:"4%"
+    marginTop: "4%",
   },
   titleRow: {
     height: 52,
@@ -2364,6 +2992,180 @@ const styles = StyleSheet.create({
   },
 });
 
+const afStyles = StyleSheet.create({
+  formHeader: { backgroundColor: "#1D4ED8", padding: 16, marginBottom: 12 },
+  formHeaderTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  formHeaderSub: { color: "#BFDBFE", fontSize: 12, marginTop: 2 },
+  section: {
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    marginHorizontal: 12,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    backgroundColor: "#F8FAFC",
+  },
+  sectionTitle: { fontSize: 13, fontWeight: "700", color: "#1E293B" },
+  sectionBody: { padding: 10, backgroundColor: "#fff" },
+  collapseIcon: { fontSize: 16, color: "#64748B", marginLeft: 8 },
+  progressBarBg: {
+    height: 4,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 2,
+    marginTop: 6,
+    width: "100%",
+  },
+  progressBarFill: { height: 4, borderRadius: 2 },
+  progressText: { fontSize: 10, color: "#94A3B8", marginTop: 3 },
+  fieldRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  fieldLabel: {
+    fontSize: 11,
+    color: "#64748B",
+    width: "45%",
+    fontWeight: "500",
+  },
+  fieldValue: { fontSize: 12, color: "#1E293B", flex: 1, fontWeight: "500" },
+  missingBadge: {
+    backgroundColor: "#FEF2F2",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  missingText: { fontSize: 10, color: "#DC2626", fontWeight: "600" },
+  table: { margin: 12 },
+  tableHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 2,
+    borderBottomColor: "#1D4ED8",
+    paddingBottom: 6,
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+    paddingVertical: 6,
+  },
+  tableCell: { fontSize: 12, color: "#334155" },
+  costBreakdown: {
+    margin: 12,
+    padding: 12,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+  },
+  costRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  costLabel: { fontSize: 12, color: "#64748B" },
+  costValue: { fontSize: 12, fontWeight: "600", color: "#1E293B" },
+  claimCard: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 12,
+  },
+  claimCardTitle: { fontSize: 12, color: "#1D4ED8", fontWeight: "600" },
+  claimAmount: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginTop: 4,
+  },
+  claimTip: { fontSize: 12, color: "#475569", marginTop: 8, lineHeight: 18 },
+  docsCard: {
+    backgroundColor: "#F0FDF4",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  docsTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#166534",
+    marginBottom: 8,
+  },
+  docChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  docChipText: { fontSize: 12, color: "#166534" },
+  missingCard: {
+    backgroundColor: "#FEF2F2",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  missingCardTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#DC2626",
+    marginBottom: 2,
+  },
+  missingCardSub: { fontSize: 11, color: "#94A3B8", marginBottom: 8 },
+  missingItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 8,
+  },
+  missingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#DC2626",
+    marginTop: 5,
+  },
+  missingField: { fontSize: 12, fontWeight: "600", color: "#1E293B" },
+  missingHow: { fontSize: 11, color: "#64748B" },
+  sugCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  sugCardTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 8,
+  },
+  sugItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 6,
+  },
+  sugItemNum: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#2563EB",
+    color: "#fff",
+    textAlign: "center",
+    lineHeight: 20,
+    fontSize: 11,
+    fontWeight: "700",
+    overflow: "hidden",
+  },
+  sugItemText: { flex: 1, fontSize: 12, color: "#334155", lineHeight: 18 },
+});
+
 const m = StyleSheet.create({
   container: { backgroundColor: "#fff" },
   header: { zIndex: 2 },
@@ -2486,8 +3288,8 @@ const m = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
-    flex: 1, 
-    minHeight: 600, 
+    flex: 1,
+    minHeight: 600,
   },
   resultTitle: { fontSize: 16, fontWeight: "700", color: "#2563EB" },
   resultSub: { fontSize: 12, color: "#6B7280", marginBottom: 10 },

@@ -41,10 +41,10 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       name: "Data Integration",
       icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
     },
-    //     {
-    //   name: "PA Requests",
-    //   icon: require("../../assets/HospitalPortal/Icon/PARequest.png"),
-    // },
+    {
+      name: "PA Requests",
+      icon: require("../../assets/HospitalPortal/Icon/PARequest.png"),
+    },
 
     
   ];
@@ -67,9 +67,8 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       navigation.navigate("PostOpCare");
     } else if (menu === "Medi Claim Agent") {
       navigation.navigate("HospitalInsuranceClaim");
-    // }else if (menu === "PA Requests") {
-    //   navigation.navigate("PARequests");
-    // } 
+    }else if (menu === "PA Requests") {
+      navigation.navigate("PARequests");
     }else if (menu === "Data Integration") {
       navigation.navigate("DataIntegrations");
     }else {
@@ -89,6 +88,8 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       return "Medi Claim Agent";
     case "DataIntegrations":
       return "Data Integration";
+    case "PARequests":
+      return "PA Requests"
     default:
       return "Home";
   }
