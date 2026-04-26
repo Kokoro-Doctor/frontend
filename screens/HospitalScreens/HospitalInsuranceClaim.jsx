@@ -1786,17 +1786,23 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               required
                               file={uploadSections.claim}
                               onUpload={() => {
-                                trackButton("hospital_insurance_upload_claim_form_clicked", {
-                                  source: "document_upload_section",
-                                  document_type: "claim_form",
-                                });
+                                trackButton(
+                                  "hospital_insurance_upload_claim_form_clicked",
+                                  {
+                                    source: "document_upload_section",
+                                    document_type: "claim_form",
+                                  },
+                                );
                                 handleSectionUpload("claim");
                               }}
                               onRemove={() => {
-                                trackButton("hospital_insurance_remove_claim_form_clicked", {
-                                  source: "document_upload_section",
-                                  document_type: "claim_form",
-                                });
+                                trackButton(
+                                  "hospital_insurance_remove_claim_form_clicked",
+                                  {
+                                    source: "document_upload_section",
+                                    document_type: "claim_form",
+                                  },
+                                );
                                 handleSectionRemove("claim");
                               }}
                             />
@@ -1805,17 +1811,23 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               subtitle="Itemised bill / discharge summary from hospital"
                               file={uploadSections.hospital}
                               onUpload={() => {
-                                trackButton("hospital_insurance_upload_hospital_bill_clicked", {
-                                  source: "document_upload_section",
-                                  document_type: "hospital_bill",
-                                });
+                                trackButton(
+                                  "hospital_insurance_upload_hospital_bill_clicked",
+                                  {
+                                    source: "document_upload_section",
+                                    document_type: "hospital_bill",
+                                  },
+                                );
                                 handleSectionUpload("hospital");
                               }}
                               onRemove={() => {
-                                trackButton("hospital_insurance_remove_hospital_bill_clicked", {
-                                  source: "document_upload_section",
-                                  document_type: "hospital_bill",
-                                });
+                                trackButton(
+                                  "hospital_insurance_remove_hospital_bill_clicked",
+                                  {
+                                    source: "document_upload_section",
+                                    document_type: "hospital_bill",
+                                  },
+                                );
                                 handleSectionRemove("hospital");
                               }}
                             />
@@ -1824,17 +1836,23 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               subtitle="Signed prescription from treating cardiologist"
                               file={uploadSections.prescription}
                               onUpload={() => {
-                                trackButton("hospital_insurance_upload_prescription_clicked", {
-                                  source: "document_upload_section",
-                                  document_type: "prescription",
-                                });
+                                trackButton(
+                                  "hospital_insurance_upload_prescription_clicked",
+                                  {
+                                    source: "document_upload_section",
+                                    document_type: "prescription",
+                                  },
+                                );
                                 handleSectionUpload("prescription");
                               }}
                               onRemove={() => {
-                                trackButton("hospital_insurance_remove_prescription_clicked", {
-                                  source: "document_upload_section",
-                                  document_type: "prescription",
-                                });
+                                trackButton(
+                                  "hospital_insurance_remove_prescription_clicked",
+                                  {
+                                    source: "document_upload_section",
+                                    document_type: "prescription",
+                                  },
+                                );
                                 handleSectionRemove("prescription");
                               }}
                             />
@@ -1843,23 +1861,29 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               subtitle="Co-Pay Excess Pre-auth Billing"
                               file={uploadSections.insurance}
                               onUpload={() => {
-                                trackButton("hospital_insurance_upload_policy_clicked", {
-                                  source: "document_upload_section",
-                                  document_type: "insurance_policy",
-                                });
+                                trackButton(
+                                  "hospital_insurance_upload_policy_clicked",
+                                  {
+                                    source: "document_upload_section",
+                                    document_type: "insurance_policy",
+                                  },
+                                );
                                 handleSectionUpload("insurance");
                               }}
                               onRemove={() => {
-                                trackButton("hospital_insurance_remove_policy_clicked", {
-                                  source: "document_upload_section",
-                                  document_type: "insurance_policy",
-                                });
+                                trackButton(
+                                  "hospital_insurance_remove_policy_clicked",
+                                  {
+                                    source: "document_upload_section",
+                                    document_type: "insurance_policy",
+                                  },
+                                );
                                 handleSectionRemove("insurance");
                               }}
                             />
                           </View>
                           {/* ✅ BUTTON (YOU FORGOT THIS) */}
-                          <TouchableOpacity
+                          {/* <TouchableOpacity
                             style={[
                               styles.analyzeBtn,
                               (!isAnyUploaded || isAnalyzing) && {
@@ -1873,6 +1897,32 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               trackButton("hospital_insurance_submit_claim_button_clicked", {
                                 source: "insurance_claim_form_upload",
                               });
+                              startAnalysis();
+                            }}
+                          >
+                            <Text style={styles.analyzeBtnText}>
+                              {isClaimFormUploaded
+                                ? "Submit claim document →"
+                                : "Auto-fill claim form →"}
+                            </Text>
+                          </TouchableOpacity> */}
+                          <TouchableOpacity
+                            style={[
+                              styles.analyzeBtn,
+                              (!isAnyUploaded || isAnalyzing) && {
+                                opacity: 0.5,
+                                backgroundColor: "#4476b4ff",
+                              },
+                            ]}
+                            disabled={!isAnyUploaded || isAnalyzing} // ← was: !isClaimFormUploaded
+                            onPress={() => {
+                              if (!isAnyUploaded) return; // ← was: if (!uploadSections.claim) return;
+                              trackButton(
+                                isClaimFormUploaded
+                                  ? "hospital_insurance_submit_claim_button_clicked"
+                                  : "hospital_insurance_autofill_button_clicked",
+                                { source: "insurance_claim_form_upload" },
+                              );
                               startAnalysis();
                             }}
                           >
