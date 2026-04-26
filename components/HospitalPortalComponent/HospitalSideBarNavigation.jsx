@@ -45,7 +45,11 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       name: "PA Requests",
       icon: require("../../assets/HospitalPortal/Icon/PARequest.png"),
     },
-
+    {
+      name: "Patient Management",
+      icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
+    },
+    
     
   ];
 
@@ -71,6 +75,8 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       navigation.navigate("PARequests");
     }else if (menu === "Data Integration") {
       navigation.navigate("DataIntegrations");
+    }else if (menu === "Patient Management") {
+      navigation.navigate("HospitalPatientManagement");
     }else {
       navigation.navigate(menu);
     }
@@ -89,7 +95,9 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
     case "DataIntegrations":
       return "Data Integration";
     case "PARequests":
-      return "PA Requests"
+      return "PA Requests";
+    case "HospitalPatientManagement":
+      return "Patient Management"
     default:
       return "Home";
   }

@@ -91,7 +91,8 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "PARequests",
     "PARequests",
     "WelcomeHospital",
-    "HospitalPortalLandingPage"
+    "HospitalPortalLandingPage",
+    "HospitalPatientManagement"
   ];
   const shownScreensMobile = ["LandingPage"];
 
