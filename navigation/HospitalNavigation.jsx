@@ -18,6 +18,7 @@ import DataIntegrationComplete from "../screens/HospitalScreens/DataIntegrationC
 import SignatureScreen from "../screens/HospitalScreens/SignatureScreen";
 import HospitalDashboard from "../screens/HospitalScreens/HospitalDashboard";
 import PARequests from "../screens/HospitalScreens/PARequests";
+import HospitalPatientManagement from "../screens/HospitalScreens/HospitalPatientManagement";
 
 const Stack = createNativeStackNavigator();
 
@@ -127,6 +128,11 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="PARequests"
           component={PARequests}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="HospitalPatientManagement"
+          component={HospitalPatientManagement}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
