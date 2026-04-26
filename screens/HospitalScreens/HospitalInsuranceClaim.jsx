@@ -25,7 +25,7 @@ import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { INSURANCE_URL } from "../../env-vars";
+import { API_URL } from "../../env-vars";
 import mixpanel, { trackButton } from "../../utils/Mixpanel";
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1238,8 +1238,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
         if (token) headers.Authorization = `Bearer ${token}`;
       }
 
-      // const res = await fetch(`${API_URL}/medilocker/insurance/analyze`, {
-      const res = await fetch(`${INSURANCE_URL}/medilocker/insurance/analyze`, {
+      const res = await fetch(`${API_URL}/medilocker/insurance/analyze`, {
         method: "POST",
         headers, // do NOT set Content-Type for FormData (browser sets boundary)
         body: formData,
