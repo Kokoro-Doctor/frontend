@@ -763,255 +763,398 @@ const MobileAnalysisView = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════
-// AUTOFILL COMPONENTS
+// AUTOFILL: Single Intelligent View (Web + Mobile)
 // ═══════════════════════════════════════════════════════════════════════
 
-const FormField = ({ label, value, isMissing }) => (
-  <View style={afStyles.fieldRow}>
-    <Text style={afStyles.fieldLabel}>{label}:</Text>
-    {isMissing || !value ? (
-      <View style={afStyles.missingBadge}>
-        <Text style={afStyles.missingText}>Not available</Text>
+const AutofillView = ({ analysisData, isMobile }) => {
+  const ext = analysisData?.autofill_extracted || {};
+  const result = analysisData?.autofill_result || {};
+  const claimable = result?.claimable_summary || {};
+  const suggestions = result?.optimization_suggestions || [];
+  const docsAvailable = ext?.documents_available || [];
+  const dataSources = ext?.data_sources || {};
+
+  // Build cost cards from billing_details — only show > 0
+  const billing = ext?.billing_details || {};
+  const costLabels = {
+    total_room_charges: "Room",
+    icu_charges: "ICU",
+    ot_charges: "OT",
+    surgeon_fees: "Surgeon",
+    anesthesia_fees: "Anesthesia",
+    consultation_charges: "Consult",
+    pharmacy_charges: "Medicine",
+    investigation_charges: "Lab/Tests",
+    nursing_charges: "Nursing",
+    ambulance_charges: "Ambulance",
+    consumables_charges: "Consumables",
+    implant_charges: "Implants",
+    other_charges: "Other",
+    pre_hospitalization_expenses: "Pre-Hosp",
+    post_hospitalization_expenses: "Post-Hosp",
+  };
+  const costCards = Object.entries(costLabels)
+    .map(([key, label]) => ({ key, label, amount: billing[key] }))
+    .filter((c) => c.amount && c.amount > 0);
+
+  const costColors = [
+    "#2563EB",
+    "#7C3AED",
+    "#059669",
+    "#D97706",
+    "#DC2626",
+    "#0891B2",
+    "#4F46E5",
+    "#BE185D",
+    "#065F46",
+    "#92400E",
+    "#6D28D9",
+    "#0E7490",
+    "#B91C1C",
+    "#047857",
+    "#9333EA",
+  ];
+
+  // Helpers
+  const patient = ext?.patient_details || {};
+  const hospital = ext?.hospital_details || {};
+  const diagnosis = ext?.diagnosis_and_procedures || {};
+  const insurance = ext?.insurance_details || {};
+  const bank = ext?.bank_details || {};
+  const admission = ext?.admission_details || {};
+  const chronic = ext?.chronic_illness_history || {};
+  const maternity = ext?.maternity_details || {};
+
+  const InfoRow = ({ label, value }) => {
+    if (!value) return null;
+    return (
+      <View style={av.infoRow}>
+        <Text style={av.infoLabel}>{label}</Text>
+        <Text style={av.infoValue}>{String(value)}</Text>
       </View>
-    ) : (
-      <Text style={afStyles.fieldValue}>{String(value)}</Text>
-    )}
-  </View>
-);
+    );
+  };
 
-const FormSection = ({ title, data }) => {
-  const [collapsed, setCollapsed] = useState(false);
-  if (!data) return null;
-  const fields = Object.entries(data).filter(
-    ([key]) => key !== "documents_checklist",
-  );
-  const filledCount = fields.filter(
-    ([_, v]) => v !== null && v !== "" && v !== false,
-  ).length;
-  const totalCount = fields.length;
-  const fillPercent =
-    totalCount > 0 ? Math.round((filledCount / totalCount) * 100) : 0;
-  const barColor =
-    fillPercent === 100 ? "#16A34A" : fillPercent > 50 ? "#F59E0B" : "#DC2626";
-  return (
-    <View style={afStyles.section}>
-      <TouchableOpacity
-        onPress={() => setCollapsed(!collapsed)}
-        activeOpacity={0.7}
-        style={afStyles.sectionHeader}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={afStyles.sectionTitle}>{title}</Text>
-          <View style={afStyles.progressBarBg}>
-            <View
-              style={[
-                afStyles.progressBarFill,
-                { width: `${fillPercent}%`, backgroundColor: barColor },
-              ]}
-            />
-          </View>
-          <Text style={afStyles.progressText}>
-            {filledCount}/{totalCount} fields filled
-          </Text>
+  const SectionBlock = ({ icon, title, children }) => {
+    const hasContent = React.Children.toArray(children).some((c) => c !== null);
+    if (!hasContent) return null;
+    return (
+      <View style={av.sectionBlock}>
+        <View style={av.sectionHeader}>
+          <Feather name={icon} size={16} color="#2563EB" />
+          <Text style={av.sectionTitle}>{title}</Text>
         </View>
-        <Text style={afStyles.collapseIcon}>{collapsed ? "▸" : "▾"}</Text>
-      </TouchableOpacity>
-      {!collapsed && (
-        <View style={afStyles.sectionBody}>
-          {fields.map(([key, value]) => (
-            <FormField
-              key={key}
-              label={key
-                .replace(/_/g, " ")
-                .replace(/\b\w/g, (c) => c.toUpperCase())}
-              value={value}
-              isMissing={value === null || value === ""}
-            />
-          ))}
-        </View>
-      )}
-    </View>
-  );
-};
-
-const BillsTable = ({ bills }) => {
-  if (!bills || bills.length === 0) return null;
-  return (
-    <View style={afStyles.section}>
-      <Text
-        style={[
-          afStyles.sectionTitle,
-          { paddingHorizontal: 12, paddingTop: 10 },
-        ]}
-      >
-        Bills Enclosed
-      </Text>
-      <View style={afStyles.table}>
-        <View style={afStyles.tableHeader}>
-          <Text style={[afStyles.tableCell, { flex: 2, fontWeight: "700" }]}>
-            Towards
-          </Text>
-          <Text
-            style={[
-              afStyles.tableCell,
-              { flex: 1, fontWeight: "700", textAlign: "right" },
-            ]}
-          >
-            Amount
-          </Text>
-        </View>
-        {bills.map((bill, i) => (
-          <View key={i} style={afStyles.tableRow}>
-            <Text style={[afStyles.tableCell, { flex: 2 }]}>
-              {bill.towards}
-            </Text>
-            <Text style={[afStyles.tableCell, { flex: 1, textAlign: "right" }]}>
-              {bill.amount
-                ? `₹${Number(bill.amount).toLocaleString("en-IN")}`
-                : "—"}
-            </Text>
-          </View>
-        ))}
+        <View style={av.sectionBody}>{children}</View>
       </View>
-    </View>
-  );
-};
+    );
+  };
 
-const AutofillFormPreview = ({ autofillResult }) => {
-  if (!autofillResult)
-    return <Text style={{ padding: 16, color: "#94A3B8" }}>No form data</Text>;
-  const r = autofillResult;
+  const totalBill = billing?.total_bill_amount || claimable?.total_bill || 0;
+
+  // Check if any chronic illness exists
+  const hasChronicHistory = Object.values(chronic).some(
+    (v) => v !== null && v !== false,
+  );
+
+  // Check if maternity data exists
+  const hasMaternity = Object.values(maternity).some((v) => v !== null);
+
   return (
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={true}
     >
-      <View style={afStyles.formHeader}>
-        <Text style={afStyles.formHeaderTitle}>
-          Medi Assist Reimbursement Claim Form
+      {/* ── CLAIMABLE AMOUNT — TOP, BIG, BOLD ── */}
+      <View style={av.amountCard}>
+        <Text style={av.amountLabel}>Total Claimable Amount</Text>
+        <Text style={[av.amountValue, isMobile && { fontSize: 32 }]}>
+          ₹{Number(totalBill).toLocaleString("en-IN")}
         </Text>
-        <Text style={afStyles.formHeaderSub}>
-          Auto-filled from your uploaded documents
-        </Text>
+        {claimable?.tip && <Text style={av.amountTip}>{claimable.tip}</Text>}
       </View>
-      <FormSection
-        title="Section A — Primary Insured"
-        data={r.section_a_primary_insured}
-      />
-      <FormSection
-        title="Section B — Insurance History"
-        data={r.section_b_insurance_history}
-      />
-      <FormSection
-        title="Section C — Patient Details"
-        data={r.section_c_patient_details}
-      />
-      <FormSection
-        title="Section D — Hospitalization"
-        data={r.section_d_hospitalization}
-      />
-      <FormSection
-        title="Section E — Claim Details"
-        data={r.section_e_claim_details}
-      />
-      <BillsTable bills={r.section_f_bills_enclosed} />
-      <FormSection
-        title="Section G — Bank Account"
-        data={r.section_g_bank_account}
-      />
-      <FormSection
-        title="Part B — Hospital Section"
-        data={r.part_b_hospital_section}
-      />
-      {r.part_c_cashless_request && (
-        <View style={afStyles.costBreakdown}>
-          <Text style={afStyles.sectionTitle}>Cost Breakdown</Text>
-          {Object.entries(r.part_c_cashless_request)
-            .filter(
-              ([k, v]) =>
-                v !== null && k !== "applicable" && typeof v === "number",
-            )
-            .map(([key, val]) => (
-              <View key={key} style={afStyles.costRow}>
-                <Text style={afStyles.costLabel}>
-                  {key
-                    .replace(/_/g, " ")
-                    .replace(/\b\w/g, (c) => c.toUpperCase())}
-                </Text>
-                <Text style={afStyles.costValue}>
-                  ₹{Number(val).toLocaleString("en-IN")}
+
+      {/* ── COST BREAKDOWN CARDS ── */}
+      {costCards.length > 0 && (
+        <View style={av.costSection}>
+          <Text style={av.costSectionTitle}>Cost Breakdown</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={av.costScroll}
+          >
+            {costCards.map((c, i) => (
+              <View
+                key={c.key}
+                style={[
+                  av.costCard,
+                  { borderTopColor: costColors[i % costColors.length] },
+                ]}
+              >
+                <Text style={av.costCardLabel}>{c.label}</Text>
+                <Text
+                  style={[
+                    av.costCardAmount,
+                    { color: costColors[i % costColors.length] },
+                  ]}
+                >
+                  ₹{Number(c.amount).toLocaleString("en-IN")}
                 </Text>
               </View>
             ))}
+          </ScrollView>
         </View>
       )}
-    </ScrollView>
-  );
-};
 
-const AutofillSummaryPanel = ({ autofillResult, autofillExtracted }) => {
-  if (!autofillResult)
-    return <Text style={{ padding: 16, color: "#94A3B8" }}>Waiting...</Text>;
-  const r = autofillResult;
-  const claimable = r.claimable_summary || {};
-  const missing = r.missing_fields || [];
-  const suggestions = r.optimization_suggestions || [];
-  const docsAvailable = autofillExtracted?.documents_available || [];
-  return (
-    <ScrollView style={{ padding: 12 }} showsVerticalScrollIndicator={true}>
-      <View style={afStyles.claimCard}>
-        <Text style={afStyles.claimCardTitle}>Estimated Claimable Amount</Text>
-        <Text style={afStyles.claimAmount}>
-          ₹{Number(claimable.total_bill || 0).toLocaleString("en-IN")}
-        </Text>
-        {claimable.tip && (
-          <Text style={afStyles.claimTip}>{claimable.tip}</Text>
-        )}
-      </View>
-      <View style={afStyles.docsCard}>
-        <Text style={afStyles.docsTitle}>Documents Analyzed</Text>
-        {docsAvailable.map((doc, i) => (
-          <View key={i} style={afStyles.docChip}>
-            <Feather name="check-circle" size={14} color="#16A34A" />
-            <Text style={afStyles.docChipText}>
-              {doc.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-            </Text>
+      {/* ── PATIENT ── */}
+      <SectionBlock icon="user" title="Patient">
+        <InfoRow label="Name" value={patient.name} />
+        <InfoRow label="Gender" value={patient.gender} />
+        <InfoRow
+          label="Age"
+          value={patient.age ? `${patient.age} years` : null}
+        />
+        <InfoRow label="Date of Birth" value={patient.date_of_birth} />
+        <InfoRow
+          label="Address"
+          value={
+            [patient.address, patient.city, patient.state, patient.pin_code]
+              .filter(Boolean)
+              .join(", ") || null
+          }
+        />
+        <InfoRow label="Phone" value={patient.phone} />
+        <InfoRow label="Email" value={patient.email} />
+        <InfoRow label="Patient ID" value={patient.patient_id} />
+        <InfoRow
+          label="Relation to Insured"
+          value={patient.relationship_to_insured}
+        />
+        <InfoRow label="Occupation" value={patient.occupation} />
+      </SectionBlock>
+
+      {/* ── HOSPITAL ── */}
+      <SectionBlock icon="home" title="Hospital">
+        <InfoRow label="Hospital" value={hospital.hospital_name} />
+        <InfoRow label="Hospital ID" value={hospital.hospital_id} />
+        <InfoRow
+          label="Registration No"
+          value={hospital.hospital_registration_number}
+        />
+        <InfoRow label="Type" value={hospital.hospital_type} />
+        <InfoRow label="Admitted" value={hospital.admission_date} />
+        <InfoRow label="Admission Time" value={hospital.admission_time} />
+        <InfoRow label="Discharged" value={hospital.discharge_date} />
+        <InfoRow label="Discharge Time" value={hospital.discharge_time} />
+        <InfoRow label="Room" value={hospital.room_category} />
+        <InfoRow label="Doctor" value={hospital.treating_doctor} />
+        <InfoRow label="Qualification" value={hospital.doctor_qualification} />
+        <InfoRow
+          label="Doctor Reg No"
+          value={hospital.doctor_registration_number}
+        />
+        <InfoRow label="Doctor Phone" value={hospital.doctor_phone} />
+      </SectionBlock>
+
+      {/* ── DIAGNOSIS & TREATMENT ── */}
+      <SectionBlock icon="activity" title="Diagnosis & Treatment">
+        <InfoRow
+          label="Primary Diagnosis"
+          value={diagnosis.primary_diagnosis}
+        />
+        <InfoRow label="ICD Code" value={diagnosis.primary_icd_code} />
+        <InfoRow
+          label="Additional Diagnosis"
+          value={diagnosis.additional_diagnosis}
+        />
+        <InfoRow label="Additional ICD" value={diagnosis.additional_icd_code} />
+        <InfoRow label="Co-morbidity 1" value={diagnosis.co_morbidity_1} />
+        <InfoRow label="Co-morbidity 2" value={diagnosis.co_morbidity_2} />
+        <InfoRow label="Procedure 1" value={diagnosis.procedure_1} />
+        <InfoRow
+          label="Procedure 1 ICD PCS"
+          value={diagnosis.procedure_1_icd_pcs}
+        />
+        <InfoRow label="Procedure 2" value={diagnosis.procedure_2} />
+        <InfoRow label="Procedure 3" value={diagnosis.procedure_3} />
+        <InfoRow
+          label="Procedure Details"
+          value={diagnosis.procedure_details}
+        />
+        <InfoRow
+          label="Line of Treatment"
+          value={diagnosis.line_of_treatment}
+        />
+        <InfoRow
+          label="Drug Route"
+          value={diagnosis.route_of_drug_administration}
+        />
+        <InfoRow
+          label="Hospitalization Cause"
+          value={diagnosis.hospitalization_cause}
+        />
+        <InfoRow
+          label="System of Medicine"
+          value={diagnosis.system_of_medicine}
+        />
+        <InfoRow label="Injury Cause" value={diagnosis.injury_cause} />
+        <InfoRow label="RTA" value={diagnosis.is_rta} />
+        <InfoRow label="Medico Legal" value={diagnosis.is_medico_legal} />
+        <InfoRow
+          label="Reported to Police"
+          value={diagnosis.reported_to_police}
+        />
+        <InfoRow label="FIR Number" value={diagnosis.fir_number} />
+      </SectionBlock>
+
+      {/* ── INSURANCE ── */}
+      <SectionBlock icon="shield" title="Insurance">
+        <InfoRow label="Company" value={insurance.insurance_company} />
+        <InfoRow label="TPA" value={insurance.tpa_name} />
+        <InfoRow label="Policy Number" value={insurance.policy_number} />
+        <InfoRow label="Certificate No" value={insurance.certificate_number} />
+        <InfoRow label="Sum Insured" value={insurance.sum_insured} />
+        <InfoRow label="Employee ID" value={insurance.employee_id} />
+        <InfoRow label="ID Card No" value={insurance.insurer_id_card} />
+      </SectionBlock>
+
+      {/* ── BANK DETAILS ── */}
+      <SectionBlock icon="credit-card" title="Bank Details">
+        <InfoRow label="PAN" value={bank.pan} />
+        <InfoRow label="Account No" value={bank.account_number} />
+        <InfoRow label="Bank" value={bank.bank_name_branch} />
+        <InfoRow label="IFSC" value={bank.ifsc_code} />
+        <InfoRow
+          label="Cheque/DD Payable To"
+          value={bank.cheque_dd_payable_to}
+        />
+      </SectionBlock>
+
+      {/* ── ADMISSION DETAILS ── */}
+      <SectionBlock icon="clipboard" title="Admission Details">
+        <InfoRow label="Type" value={admission.type_of_admission} />
+        <InfoRow
+          label="Expected Stay"
+          value={
+            admission.expected_days_stay
+              ? `${admission.expected_days_stay} days`
+              : null
+          }
+        />
+        <InfoRow
+          label="ICU Days"
+          value={admission.days_in_icu ? `${admission.days_in_icu} days` : null}
+        />
+        <InfoRow
+          label="Discharge Status"
+          value={admission.status_at_discharge}
+        />
+        <InfoRow
+          label="Pre-Hosp Period"
+          value={
+            admission.pre_hospitalization_period_days
+              ? `${admission.pre_hospitalization_period_days} days`
+              : null
+          }
+        />
+        <InfoRow
+          label="Post-Hosp Period"
+          value={
+            admission.post_hospitalization_period_days
+              ? `${admission.post_hospitalization_period_days} days`
+              : null
+          }
+        />
+        <InfoRow
+          label="Domiciliary"
+          value={admission.domiciliary_hospitalization}
+        />
+      </SectionBlock>
+
+      {/* ── CHRONIC HISTORY (only if any) ── */}
+      {hasChronicHistory && (
+        <SectionBlock icon="heart" title="Chronic Illness History">
+          <InfoRow label="Diabetes" value={chronic.diabetes} />
+          <InfoRow label="Heart Disease" value={chronic.heart_disease} />
+          <InfoRow label="Hypertension" value={chronic.hypertension} />
+          <InfoRow label="Hyperlipidemias" value={chronic.hyperlipidemias} />
+          <InfoRow label="Osteoarthritis" value={chronic.osteoarthritis} />
+          <InfoRow label="Asthma/COPD" value={chronic.asthma_copd} />
+          <InfoRow label="Cancer" value={chronic.cancer} />
+          <InfoRow label="Alcohol/Drug" value={chronic.alcohol_drug_abuse} />
+          <InfoRow label="HIV/STD" value={chronic.hiv_std} />
+          <InfoRow label="Other" value={chronic.other} />
+        </SectionBlock>
+      )}
+
+      {/* ── MATERNITY (only if any) ── */}
+      {hasMaternity && (
+        <SectionBlock icon="heart" title="Maternity">
+          <InfoRow label="Delivery Date" value={maternity.date_of_delivery} />
+          <InfoRow label="Gravida" value={maternity.gravida_status} />
+          <InfoRow
+            label="Expected Delivery"
+            value={maternity.expected_delivery_date}
+          />
+        </SectionBlock>
+      )}
+
+      {/* ── DOCUMENTS ANALYZED ── */}
+      {docsAvailable.length > 0 && (
+        <View style={av.docsBlock}>
+          <View style={av.sectionHeader}>
+            <Feather name="file-text" size={16} color="#16A34A" />
+            <Text style={av.sectionTitle}>Documents Analyzed</Text>
           </View>
-        ))}
-      </View>
-      {missing.length > 0 && (
-        <View style={afStyles.missingCard}>
-          <Text style={afStyles.missingCardTitle}>
-            Missing Fields ({missing.length})
-          </Text>
-          <Text style={afStyles.missingCardSub}>
-            Upload more documents to fill these
-          </Text>
-          {missing.map((m, i) => (
-            <View key={i} style={afStyles.missingItem}>
-              <View style={afStyles.missingDot} />
-              <View style={{ flex: 1 }}>
-                <Text style={afStyles.missingField}>
-                  {m.field?.replace(/_/g, " ")}
+          {docsAvailable.map((doc, i) => {
+            const sourceKey = `fields_from_${doc}`;
+            const fieldCount = dataSources[sourceKey]?.length || 0;
+            return (
+              <View key={i} style={av.docRow}>
+                <Feather name="check-circle" size={14} color="#16A34A" />
+                <Text style={av.docName}>
+                  {doc
+                    .replace(/_/g, " ")
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
                 </Text>
-                <Text style={afStyles.missingHow}>{m.how_to_get}</Text>
+                {fieldCount > 0 && (
+                  <Text style={av.docCount}>{fieldCount} fields</Text>
+                )}
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
+
+      {/* ── SMART SUGGESTIONS ── */}
       {suggestions.length > 0 && (
-        <View style={afStyles.sugCard}>
-          <Text style={afStyles.sugCardTitle}>Optimization Tips</Text>
+        <View style={av.sugBlock}>
+          <View style={av.sectionHeader}>
+            <Feather name="zap" size={16} color="#D97706" />
+            <Text style={av.sectionTitle}>Smart Suggestions</Text>
+          </View>
           {suggestions.map((s, i) => (
-            <View key={i} style={afStyles.sugItem}>
-              <Text style={afStyles.sugItemNum}>{i + 1}</Text>
-              <Text style={afStyles.sugItemText}>{s}</Text>
+            <View key={i} style={av.sugRow}>
+              <View style={av.sugDot}>
+                <Text style={av.sugDotText}>{i + 1}</Text>
+              </View>
+              <Text style={av.sugText}>{s}</Text>
             </View>
           ))}
         </View>
       )}
+
+      {/* ── ACTION BUTTONS ── */}
+      {/* <View style={av.actionRow}>
+        <TouchableOpacity style={av.downloadBtn}>
+          <Feather name="download" size={16} color="#473636ff" />
+          <Text style={av.downloadText}>Download Form</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={av.submitBtn}>
+          <Feather name="send" size={16} color="#2563EB" />
+          <Text style={av.submitText}>Submit to TPA</Text>
+        </TouchableOpacity>
+      </View> */}
     </ScrollView>
   );
 };
@@ -1164,7 +1307,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
         claim: "claim_form",
         hospital: "hospital_bill",
         prescription: "doctor_prescription",
-        insurance: "insurance_savings_breakdown",
+        insurance: "insurance_policy",
       };
 
       let hasAnyFile = false;
@@ -1201,7 +1344,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
         claim: "claim_form",
         hospital: "hospital_bill",
         prescription: "doctor_prescription",
-        insurance: "insurance_savings_breakdown",
+        insurance: "insurance_policy",
       };
       for (const [key, backendField] of Object.entries(fieldMap)) {
         const file = uploadSections[key];
@@ -2010,87 +2153,76 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                             </TouchableOpacity>
                             </>
                           )} */}
-                          <View style={styles.reviewBody}>
-                            {isAnalyzing && !analysisData ? (
-                              <>
-                                <View style={styles.leftPanel}>
-                                  <View
+                          {isAnalyzing && !analysisData ? (
+                            <View style={styles.reviewBody}>
+                              <View style={styles.leftPanel}>
+                                <View
+                                  style={{
+                                    flex: 1,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    padding: 20,
+                                  }}
+                                >
+                                  <ActivityIndicator
+                                    size="large"
+                                    color="#2563EB"
+                                  />
+                                  <Text
                                     style={{
-                                      flex: 1,
-                                      justifyContent: "center",
-                                      alignItems: "center",
-                                      padding: 20,
+                                      marginTop: 10,
+                                      color: "#64748B",
+                                      fontSize: 13,
                                     }}
                                   >
-                                    <ActivityIndicator
-                                      size="large"
-                                      color="#2563EB"
-                                    />
-                                    <Text
-                                      style={{
-                                        marginTop: 10,
-                                        color: "#64748B",
-                                        fontSize: 13,
-                                      }}
-                                    >
-                                      Extracting data...
-                                    </Text>
-                                  </View>
+                                    Extracting data...
+                                  </Text>
                                 </View>
-                                <View style={styles.rightPanel}>
-                                  <ProcessingView
-                                    stage={processingStage}
-                                    flow={
-                                      uploadSections.claim
-                                        ? "audit"
-                                        : "autofill"
-                                    }
-                                  />
-                                </View>
-                              </>
-                            ) : analysisData?.flow === "autofill" ? (
-                              <>
-                                <View style={styles.leftPanel}>
-                                  <AutofillSummaryPanel
-                                    autofillResult={
-                                      analysisData?.autofill_result
-                                    }
-                                    autofillExtracted={
-                                      analysisData?.extracted_data
-                                    }
-                                  />
-                                </View>
-                                <View style={styles.rightPanel}>
-                                  <AutofillFormPreview
-                                    autofillResult={
-                                      analysisData?.autofill_result
-                                    }
-                                  />
-                                </View>
-                              </>
-                            ) : analysisData ? (
-                              <>
-                                <View style={styles.leftPanel}>
-                                  <StructuredPanel
-                                    structured={structured}
-                                    isLoading={false}
-                                  />
-                                </View>
-                                <View style={styles.rightPanel}>
-                                  <ClaudeThinkingView
-                                    thinkingTrace={thinkingTrace}
-                                    auditResults={auditResults}
-                                    finalReport={finalReport}
-                                    analysisData={analysisData}
-                                  />
-                                </View>
-                              </>
-                            ) : (
-                              <Text style={{ padding: 16, color: "#94A3B8" }}>
-                                Waiting for analysis...
-                              </Text>
-                            )}
-                          </View>
+                              </View>
+                              <View style={styles.rightPanel}>
+                                <ProcessingView
+                                  stage={processingStage}
+                                  flow={
+                                    uploadSections.claim ? "audit" : "autofill"
+                                  }
+                                />
+                              </View>
+                            </View>
+                          ) : analysisData?.flow === "autofill" ? (
+                            <View
+                              style={{
+                                width: "79%",
+                                height: "calc(70vh - 130px)",
+                                marginTop: "1%",
+                              }}
+                            >
+                              <AutofillView
+                                analysisData={analysisData}
+                                isMobile={false}
+                              />
+                            </View>
+                          ) : analysisData ? (
+                            <View style={styles.reviewBody}>
+                              <View style={styles.leftPanel}>
+                                <StructuredPanel
+                                  structured={structured}
+                                  isLoading={false}
+                                />
+                              </View>
+                              <View style={styles.rightPanel}>
+                                <ClaudeThinkingView
+                                  thinkingTrace={thinkingTrace}
+                                  auditResults={auditResults}
+                                  finalReport={finalReport}
+                                  analysisData={analysisData}
+                                />
+                              </View>
+                            </View>
+                          ) : (
+                            <Text style={{ padding: 16, color: "#94A3B8" }}>
+                              Waiting for analysis...
+                            </Text>
+                          )}
                           {analysisData && (
                             <TouchableOpacity
                               style={styles.genBtn}
@@ -2465,7 +2597,12 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                 </Text>
 
                 {isAnalyzing && !analysisData ? (
-                  <ProcessingView stage={processingStage} />
+                  <ProcessingView
+                    stage={processingStage}
+                    flow={uploadSections.claim ? "audit" : "autofill"}
+                  />
+                ) : analysisData?.flow === "autofill" ? (
+                  <AutofillView analysisData={analysisData} isMobile={true} />
                 ) : analysisData ? (
                   <MobileAnalysisView
                     structured={structured}
@@ -3040,6 +3177,161 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+});
+
+const av = StyleSheet.create({
+  amountCard: {
+    backgroundColor: "#0F172A",
+    borderRadius: 12,
+    padding: 20,
+    margin: 12,
+    alignItems: "center",
+  },
+  amountLabel: {
+    color: "#94A3B8",
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  amountValue: { color: "#fff", fontSize: 38, fontWeight: "800", marginTop: 4 },
+  amountTip: {
+    color: "#94A3B8",
+    fontSize: 12,
+    marginTop: 10,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  costSection: { marginHorizontal: 12, marginBottom: 16 },
+  costSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 10,
+  },
+  costScroll: { flexDirection: "row", gap: 10, paddingRight: 12 },
+  costCard: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 12,
+    minWidth: 100,
+    borderTopWidth: 3,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    alignItems: "center",
+  },
+  costCardLabel: {
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  costCardAmount: { fontSize: 16, fontWeight: "800" },
+  sectionBlock: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    marginHorizontal: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    overflow: "hidden",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "#F8FAFC",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  sectionTitle: { fontSize: 14, fontWeight: "700", color: "#1E293B" },
+  sectionBody: { padding: 12 },
+  infoRow: {
+    flexDirection: "row",
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F8FAFC",
+  },
+  infoLabel: {
+    width: "40%",
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  infoValue: { flex: 1, fontSize: 13, color: "#1E293B", fontWeight: "600" },
+  docsBlock: {
+    backgroundColor: "#F0FDF4",
+    borderRadius: 10,
+    marginHorizontal: 12,
+    marginBottom: 10,
+    padding: 14,
+  },
+  docRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  docName: { fontSize: 13, color: "#166534", fontWeight: "600", flex: 1 },
+  docCount: {
+    fontSize: 11,
+    color: "#16A34A",
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    fontWeight: "600",
+  },
+  sugBlock: {
+    backgroundColor: "#FFFBEB",
+    borderRadius: 10,
+    marginHorizontal: 12,
+    marginBottom: 10,
+    padding: 14,
+  },
+  sugRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginTop: 10,
+  },
+  sugDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#D97706",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sugDotText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  sugText: { flex: 1, fontSize: 13, color: "#92400E", lineHeight: 19 },
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginHorizontal: 12,
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  downloadBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#2563EB",
+    paddingVertical: 14,
+    borderRadius: 10,
+  },
+  downloadText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  submitBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    paddingVertical: 14,
+    borderRadius: 10,
+  },
+  submitText: { color: "#2563EB", fontWeight: "700", fontSize: 14 },
 });
 
 const afStyles = StyleSheet.create({
