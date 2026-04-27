@@ -79,6 +79,38 @@ function tpaOrCompanyId(structured) {
   return a || b || "";
 }
 
+/** Split a single address string into two fixed-width lines. */
+function splitAddressLines(raw, w1, w2) {
+  if (raw == null || String(raw).trim() === "")
+    return ["".padEnd(w1, " "), "".padEnd(w2, " ")];
+  const t = String(raw)
+    .replace(/\s+/g, " ")
+    .trim();
+  if (t.length <= w1) {
+    return [t.padEnd(w1, " "), "".padEnd(w2, " ")];
+  }
+  return [t.slice(0, w1).padEnd(w1, " "), t.slice(w1, w1 + w2).padEnd(w2, " ")];
+}
+
+/** HH:MM or similar → 4 char boxes (HHMM). */
+function padTimeChars(raw) {
+  if (raw == null || raw === "") return "    ";
+  const s = String(raw).replace(/\D/g, "");
+  if (s.length >= 4) return s.slice(0, 4);
+  if (s.length === 0) return "    ";
+  return s.padStart(4, "0").slice(-4);
+}
+
+function yesNoString(v) {
+  if (v == null) return "";
+  if (v === true) return "yes";
+  if (v === false) return "no";
+  const t = String(v).toLowerCase().trim();
+  if (t === "y" || t === "yes" || t === "true" || t === "1") return "yes";
+  if (t === "n" || t === "no" || t === "false" || t === "0") return "no";
+  return "";
+}
+
 function buildInitialForm(sd) {
   if (!sd || typeof sd !== "object") sd = {};
   const patient = sd.patient_details || {};
@@ -89,6 +121,11 @@ function buildInitialForm(sd) {
   const bank = sd.bank_details || {};
   const meta = sd.document_metadata || {};
 
+  const [addr1, addr2] = splitAddressLines(
+    patient.address || patient.full_address,
+    40,
+    35,
+  );
   const name = padChars(strUpper(patient.name, 40), 40);
   const policy = padChars(
     truncateChars(
@@ -99,15 +136,41 @@ function buildInitialForm(sd) {
     ),
     18,
   );
+  const cert = padChars(
+    truncateChars(
+      String(
+        ins.certificate_number != null
+          ? ins.certificate_number
+          : ins.insurer_id_card || "",
+      )
+        .replace(/\s/g, "")
+        .toUpperCase(),
+      14,
+    ),
+    14,
+  );
   const tpa = padChars(strUpper(tpaOrCompanyId(sd), 22), 22);
   const hospital = padChars(strUpper(hosp.hospital_name, 40), 40);
   const admission = padChars(parseDateToDDMMYYYY(hosp.admission_date), 8);
   const discharge = padChars(parseDateToDDMMYYYY(hosp.discharge_date), 8);
-  const diagnosis = String(diag.primary_diagnosis ?? "");
+  const diagnosis = String(
+    diag.primary_diagnosis != null && diag.primary_diagnosis !== ""
+      ? diag.primary_diagnosis
+      : (diag.procedure_names && diag.procedure_names[0]) || "",
+  );
 
   const pre = padAmountToLength(claim.pre_hospitalization_amount, 8);
-  const hospAmt = padAmountToLength(claim.bill_amount, 8);
+  const hospAmt = padAmountToLength(claim.bill_amount ?? claim.claimed_amount, 8);
   const post = padAmountToLength(claim.post_hospitalization_amount, 8);
+  const healthChk = padAmountToLength(claim.health_checkup_cost, 8);
+  const amb = padAmountToLength(claim.ambulance_charges, 8);
+  const oth = padAmountToLength(claim.other_charges, 8);
+  const tot = padAmountToLength(claim.bill_amount ?? claim.claimed_amount, 10);
+  const preDays = padChars(truncateChars(String(claim.pre_hosp_period_days ?? ""), 3), 3);
+  const postDays = padChars(
+    truncateChars(String(claim.post_hosp_period_days ?? ""), 3),
+    3,
+  );
 
   const genderRaw = String(patient.gender ?? "").toLowerCase();
   let gender = "";
@@ -115,21 +178,51 @@ function buildInitialForm(sd) {
   else if (genderRaw.includes("male") || genderRaw === "m") gender = "male";
 
   const ageYears = padChars(parseAgeYears(patient.age), 2);
-  const ageMonths = "  ";
+  const ageMo = String(patient.age_months != null && patient.age_months !== "" ? String(patient.age_months) : "  ");
+  const ageMonths = padChars(
+    String(ageMo).replace(/\D/g, "").slice(0, 2) || "  ",
+    2,
+  );
+
+  const primaryPhone = padChars(
+    truncateChars(digitsOnly(patient.phone), 10),
+    10,
+  );
+  const primaryEmail = String(patient.email ?? "").trim();
+  const city = padChars(strUpper(patient.city, 18), 18);
+  const state = padChars(strUpper(patient.state, 18), 18);
+  const pin = padChars(truncateChars(digitsOnly(patient.pin_code), 6), 6);
+  const dob = padChars(parseDateToDDMMYYYY(patient.date_of_birth), 8);
+  const injuryDate = padChars(
+    parseDateToDDMMYYYY(
+      diag.date_of_injury_or_disease || hosp.date_of_injury,
+    ),
+    8,
+  );
 
   const accNum = padChars(
     truncateChars(String(bank.account_number ?? "").replace(/\s/g, ""), 22),
     22,
   );
-  const bankName = padChars(
-    strUpper(String(bank.bank_name ?? "").trim(), 40),
+  const bankNm = strUpper(
+    String(
+      bank.bank_name ?? bank.bank_name_branch ?? bank.branch ?? "",
+    ).trim(),
     40,
   );
+  const bankName = padChars(bankNm, 40);
   const ifsc = padChars(
     truncateChars(String(bank.ifsc_code ?? "").toUpperCase(), 11),
     11,
   );
-  const chequeLine = String(bank.account_holder ?? "").trim();
+  const panStr = String(bank.pan ?? "").toUpperCase().replace(/\s/g, "");
+  const pan = padChars(truncateChars(panStr, 10), 10);
+  const chequeLine = String(
+    bank.account_holder ||
+      bank.cheque_dd_payable_to ||
+      patient.name ||
+      "",
+  ).trim();
 
   const docDate = padChars(parseDateToDDMMYYYY(meta.document_date), 8);
 
@@ -137,18 +230,54 @@ function buildInitialForm(sd) {
     .replace(/\s/g, "")
     .toUpperCase();
 
+  const [hA1, hA2] = patient.hosp_address_different
+    ? splitAddressLines(
+        patient.alternate_hosp_address || patient.address,
+        40,
+        35,
+      )
+    : [addr1, addr2];
+  const hPhone = padChars(
+    truncateChars(
+      digitsOnly(
+        patient.phone_secondary || patient.phone,
+      ),
+      10,
+    ),
+    10,
+  );
+
+  const rel = String(patient.relationship_to_insured || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const occ = String(patient.occupation || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const room = String(hosp.room_category || hosp.room_type || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const hospCause = String(
+    diag.hospitalization_cause || hosp.hospitalization_cause || "",
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+  const sysMed = String(diag.system_of_medicine || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const treatDoc = String(hosp.treating_doctor ?? "").trim();
+
   return {
     policyNumber: policy,
-    certificateNumber: "".padEnd(14, " "),
+    certificateNumber: cert,
     tpaId: tpa,
     primaryName: name,
-    primaryAddressRow1: "".padEnd(40, " "),
-    primaryAddressRow2: "".padEnd(35, " "),
-    primaryCity: "".padEnd(18, " "),
-    primaryState: "".padEnd(18, " "),
-    primaryPin: "".padEnd(6, " "),
-    primaryPhone: "".padEnd(10, " "),
-    primaryEmail: "",
+    primaryAddressRow1: addr1,
+    primaryAddressRow2: addr2,
+    primaryCity: city,
+    primaryState: state,
+    primaryPin: pin,
+    primaryPhone,
+    primaryEmail,
     diagnosis,
     hospitalizedName: name,
     gender,
@@ -160,6 +289,13 @@ function buildInitialForm(sd) {
     claimPre: pre,
     claimHospital: hospAmt,
     claimPost: post,
+    healthCheckupCost: healthChk,
+    ambulanceCharges: amb,
+    otherChargesCode: "   ",
+    otherChargesAmount: oth,
+    totalClaim: tot,
+    preHospPeriodDays: preDays,
+    postHospPeriodDays: postDays,
     accountNumber: accNum,
     bankNameBranch: bankName,
     ifscCode: ifsc,
@@ -168,8 +304,11 @@ function buildInitialForm(sd) {
     mobileIdRow: padChars(truncateChars(polCompact, 12), 12),
     mobilePolicy: padChars(truncateChars(polCompact, 16), 16),
     mobileNameTrunc: padChars(strUpper(patient.name, 20), 20),
-    mobilePhone: "".padEnd(10, " "),
-    mobileEmail: "".padEnd(20, " "),
+    mobilePhone: primaryPhone,
+    mobileEmail: padChars(
+      (primaryEmail || "").slice(0, 20),
+      20,
+    ),
     mobileHospital: strUpper(hosp.hospital_name, 200),
     mobileAdmission:
       hosp.admission_date != null && hosp.admission_date !== ""
@@ -183,21 +322,419 @@ function buildInitialForm(sd) {
       claim.bill_amount != null && claim.bill_amount !== ""
         ? String(claim.bill_amount)
         : "",
-    injuryDate: "".padEnd(8, " "),
-    dob: "".padEnd(8, " "),
-    admissionTime: "".padEnd(4, " "),
-    dischargeTime: "".padEnd(4, " "),
-    treatingDoctor: String(hosp.treating_doctor ?? ""),
-    hospAddressRow1: "".padEnd(40, " "),
-    hospAddressRow2: "".padEnd(35, " "),
-    hospCity: "".padEnd(18, " "),
-    hospState: "".padEnd(18, " "),
-    hospPin: "".padEnd(6, " "),
-    hospPhone: "".padEnd(10, " "),
-    hospEmail: "",
-    pan: "".padEnd(10, " "),
-    declarationPlace: "",
+    injuryDate,
+    dob,
+    admissionTime: padTimeChars(hosp.admission_time),
+    dischargeTime: padTimeChars(hosp.discharge_time),
+    treatingDoctor: treatDoc,
+    systemOfMedicine: sysMed,
+    hospAddressRow1: hA1,
+    hospAddressRow2: hA2,
+    hospCity: city,
+    hospState: state,
+    hospPin: pin,
+    hospPhone: hPhone,
+    hospEmail: String(patient.email || "").trim(),
+    pan,
+    declarationPlace: strUpper(
+      String(patient.city || patient.state || "").trim(),
+      40,
+    ),
+    relationship: rel,
+    occupation: occ,
+    roomCategory: room,
+    hospitalizationCause: hospCause,
+    bCurrentlyOther: "",
+    bCommencement: "".padEnd(8, " "),
+    bIfYesCoName: "".padEnd(20, " "),
+    bIfYesPolicy: "".padEnd(18, " "),
+    bSumInsured: "".padEnd(12, " "),
+    bHosp4Y: "",
+    bHosp4YDate: "".padEnd(4, " "),
+    bPreviouslyOther: "",
+    bIfYesCoName2: "".padEnd(22, " "),
+    domiciliary: "",
+    hospitalDailyCash: "".padEnd(8, " "),
+    surgicalCash: "".padEnd(8, " "),
+    criticalIllnessBenefit: "".padEnd(8, " "),
+    convalescence: "".padEnd(8, " "),
+    prePostLumpSum: "".padEnd(8, " "),
+    othersLump: "".padEnd(8, " "),
+    injurySelf: false,
+    injuryRta: false,
+    injurySubstance: false,
+    reportedPolice: false,
+    firYes: false,
+    firNo: false,
+    docChecklist: Array(13).fill(false),
+    billsRows: Array(10)
+      .fill(null)
+      .map(() => ({ billNo: "", date: "", issuedBy: "", towards: "", amount: "" })),
   };
+}
+
+/**
+ * Claim download PDF is built from the same shape as `buildInitialForm` expects.
+ * Audit flow (claim form uploaded) returns `structured_data`. Autofill flow
+ * (hospital bill / prescription / policy only) leaves `structured_data` null
+ * and puts data in `autofill_extracted` with `billing_details` instead of
+ * `claim_details` — map that here so the form is not blank.
+ */
+function normalizeAutofillExtractedForForm(ext) {
+  if (!ext || typeof ext !== "object") return {};
+  const bill = ext.billing_details || {};
+  const bank = ext.bank_details || {};
+  const ad = ext.admission_details || {};
+  return {
+    patient_details: ext.patient_details || {},
+    insurance_details: ext.insurance_details || {},
+    hospital_details: ext.hospital_details || {},
+    diagnosis_and_procedures: ext.diagnosis_and_procedures || {},
+    claim_details: {
+      pre_hospitalization_amount: bill.pre_hospitalization_expenses ?? null,
+      bill_amount:
+        bill.total_bill_amount ?? bill.hospitalization_expenses ?? null,
+      post_hospitalization_amount: bill.post_hospitalization_expenses ?? null,
+      health_checkup_cost: bill.health_checkup_cost ?? null,
+      ambulance_charges: bill.ambulance_charges ?? null,
+      other_charges: bill.other_charges ?? null,
+      pre_hosp_period_days: ad.pre_hospitalization_period_days ?? null,
+      post_hosp_period_days: ad.post_hospitalization_period_days ?? null,
+    },
+    bank_details: {
+      ...bank,
+      bank_name: bank.bank_name ?? bank.bank_name_branch ?? null,
+    },
+    document_metadata: ext.document_metadata || {},
+  };
+}
+
+function getStructuredDataForInsuranceForm(analysisData) {
+  if (!analysisData) return {};
+  if (analysisData.structured_data) {
+    return analysisData.structured_data;
+  }
+  if (analysisData.autofill_extracted) {
+    return normalizeAutofillExtractedForForm(analysisData.autofill_extracted);
+  }
+  return {};
+}
+
+function applyAutofillResultToForm(base, ar) {
+  if (!ar || typeof ar !== "object") return base;
+  const out = { ...base };
+  const a = ar.section_a_primary_insured || {};
+  const b = ar.section_b_insurance_history || {};
+  const c = ar.section_c_patient_details || {};
+  const d = ar.section_d_hospitalization || {};
+  const e = ar.section_e_claim_details || {};
+  const g = ar.section_g_bank_account || {};
+  const partB = ar.part_b_hospital_section || {};
+
+  if (a.policy_number != null && String(a.policy_number).trim() !== "") {
+    out.policyNumber = padChars(
+      truncateChars(
+        String(a.policy_number).replace(/\s/g, "").toUpperCase(),
+        18,
+      ),
+      18,
+    );
+  }
+  if (a.certificate_number != null && String(a.certificate_number).trim() !== "") {
+    out.certificateNumber = padChars(
+      truncateChars(
+        String(a.certificate_number).replace(/\s/g, "").toUpperCase(),
+        14,
+      ),
+      14,
+    );
+  }
+  if (a.company_tpa_id) {
+    out.tpaId = padChars(strUpper(String(a.company_tpa_id), 22), 22);
+  }
+  if (a.name) {
+    out.primaryName = padChars(strUpper(a.name, 40), 40);
+    out.hospitalizedName = out.primaryName;
+  }
+  if (a.address) {
+    const [l1, l2] = splitAddressLines(a.address, 40, 35);
+    out.primaryAddressRow1 = l1;
+    out.primaryAddressRow2 = l2;
+  }
+  if (a.city) out.primaryCity = padChars(strUpper(a.city, 18), 18);
+  if (a.state) out.primaryState = padChars(strUpper(a.state, 18), 18);
+  if (a.pin_code) {
+    out.primaryPin = padChars(truncateChars(digitsOnly(a.pin_code), 6), 6);
+  }
+  if (a.phone) {
+    out.primaryPhone = padChars(truncateChars(digitsOnly(a.phone), 10), 10);
+  }
+  if (a.email) out.primaryEmail = String(a.email).trim();
+
+  const cur = b.currently_other_insurance;
+  if (cur != null) {
+    out.bCurrentlyOther = yesNoString(cur) || out.bCurrentlyOther;
+  }
+  if (b.commencement_date) {
+    out.bCommencement = padChars(
+      parseDateToDDMMYYYY(b.commencement_date),
+      8,
+    );
+  }
+  if (b.company_name) {
+    out.bIfYesCoName = padChars(strUpper(b.company_name, 20), 20);
+  }
+  if (b.policy_number) {
+    out.bIfYesPolicy = padChars(
+      truncateChars(
+        String(b.policy_number).replace(/\s/g, "").toUpperCase(),
+        18,
+      ),
+      18,
+    );
+  }
+  if (b.sum_insured) {
+    out.bSumInsured = padAmountToLength(b.sum_insured, 12);
+  }
+  if (b.hospitalized_last_4_years != null) {
+    out.bHosp4Y = yesNoString(b.hospitalized_last_4_years);
+  }
+  if (b.diagnosis) {
+    out.diagnosis = String(b.diagnosis);
+  }
+  if (b.previously_other_insurance != null) {
+    out.bPreviouslyOther = yesNoString(b.previously_other_insurance);
+  }
+
+  if (c.name) {
+    out.hospitalizedName = padChars(strUpper(c.name, 40), 40);
+  }
+  if (c.gender) {
+    const gr = String(c.gender).toLowerCase();
+    if (gr.includes("f")) out.gender = "female";
+    else if (gr.includes("m")) out.gender = "male";
+  }
+  if (c.age_years != null) {
+    out.ageYears = padChars(parseAgeYears(String(c.age_years)), 2);
+  }
+  if (c.age_months != null) {
+    out.ageMonths = padChars(
+      truncateChars(String(c.age_months).replace(/\D/g, ""), 2),
+      2,
+    );
+  }
+  if (c.date_of_birth) {
+    out.dob = padChars(parseDateToDDMMYYYY(c.date_of_birth), 8);
+  }
+  if (c.relationship_to_insured) {
+    out.relationship = String(c.relationship_to_insured).trim();
+  }
+  if (c.occupation) {
+    out.occupation = String(c.occupation).trim();
+  }
+  if (c.address) {
+    const [c1, c2] = splitAddressLines(c.address, 40, 35);
+    out.hospAddressRow1 = c1;
+    out.hospAddressRow2 = c2;
+  }
+  if (c.phone) {
+    out.hospPhone = padChars(truncateChars(digitsOnly(c.phone), 10), 10);
+  }
+  if (c.email) {
+    out.hospEmail = String(c.email).trim();
+  }
+
+  if (d.hospital_name) {
+    out.hospitalName = padChars(strUpper(d.hospital_name, 40), 40);
+  }
+  if (d.room_category) {
+    out.roomCategory = String(d.room_category).trim();
+  }
+  if (d.hospitalization_cause) {
+    out.hospitalizationCause = String(d.hospitalization_cause).trim();
+  }
+  if (d.date_of_injury_or_disease) {
+    out.injuryDate = padChars(
+      parseDateToDDMMYYYY(d.date_of_injury_or_disease),
+      8,
+    );
+  }
+  if (d.admission_date) {
+    out.admissionDate = padChars(parseDateToDDMMYYYY(d.admission_date), 8);
+  }
+  if (d.admission_time) {
+    out.admissionTime = padTimeChars(d.admission_time);
+  }
+  if (d.discharge_date) {
+    out.dischargeDate = padChars(parseDateToDDMMYYYY(d.discharge_date), 8);
+  }
+  if (d.discharge_time) {
+    out.dischargeTime = padTimeChars(d.discharge_time);
+  }
+  if (d.system_of_medicine) {
+    out.systemOfMedicine = String(d.system_of_medicine).trim();
+  }
+  if (d.injury_cause) {
+    const inj = String(d.injury_cause).toLowerCase();
+    if (inj.includes("self")) out.injurySelf = true;
+    if (inj.includes("road") || inj.includes("rta") || inj.includes("traffic")) {
+      out.injuryRta = true;
+    }
+    if (inj.includes("alcohol") || inj.includes("substance")) {
+      out.injurySubstance = true;
+    }
+  }
+  if (d.is_rta === true) out.injuryRta = true;
+  if (d.reported_to_police === true) out.reportedPolice = true;
+  if (d.fir_attached === true) {
+    out.firYes = true;
+  } else if (d.fir_attached === false) {
+    out.firNo = true;
+  }
+  if (d.treating_doctor) {
+    out.treatingDoctor = String(d.treating_doctor).trim();
+  } else if (partB.treating_doctor) {
+    out.treatingDoctor = String(partB.treating_doctor).trim();
+  }
+
+  if (e.pre_hospitalization_expenses != null) {
+    out.claimPre = padAmountToLength(e.pre_hospitalization_expenses, 8);
+  }
+  if (e.hospitalization_expenses != null) {
+    out.claimHospital = padAmountToLength(e.hospitalization_expenses, 8);
+  }
+  if (e.post_hospitalization_expenses != null) {
+    out.claimPost = padAmountToLength(e.post_hospitalization_expenses, 8);
+  }
+  if (e.health_checkup_cost != null) {
+    out.healthCheckupCost = padAmountToLength(e.health_checkup_cost, 8);
+  }
+  if (e.ambulance_charges != null) {
+    out.ambulanceCharges = padAmountToLength(e.ambulance_charges, 8);
+  }
+  if (e.other_charges != null) {
+    out.otherChargesAmount = padAmountToLength(e.other_charges, 8);
+  }
+  if (e.total != null) {
+    out.totalClaim = padAmountToLength(e.total, 10);
+  }
+  if (e.pre_hospitalization_period_days != null) {
+    out.preHospPeriodDays = padChars(
+      truncateChars(String(e.pre_hospitalization_period_days), 3),
+      3,
+    );
+  }
+  if (e.post_hospitalization_period_days != null) {
+    out.postHospPeriodDays = padChars(
+      truncateChars(String(e.post_hospitalization_period_days), 3),
+      3,
+    );
+  }
+  if (e.domiciliary_hospitalization != null) {
+    out.domiciliary = yesNoString(e.domiciliary_hospitalization);
+  }
+  if (e.hospital_daily_cash) {
+    out.hospitalDailyCash = padAmountToLength(e.hospital_daily_cash, 8);
+  }
+  if (e.surgical_cash) {
+    out.surgicalCash = padAmountToLength(e.surgical_cash, 8);
+  }
+  if (e.critical_illness_benefit) {
+    out.criticalIllnessBenefit = padAmountToLength(
+      e.critical_illness_benefit,
+      8,
+    );
+  }
+  if (e.convalescence) {
+    out.convalescence = padAmountToLength(e.convalescence, 8);
+  }
+  if (e.pre_post_hospitalization_lump_sum != null) {
+    out.prePostLumpSum = padAmountToLength(
+      e.pre_post_hospitalization_lump_sum,
+      8,
+    );
+  }
+  if (e.others_lump != null) {
+    out.othersLump = padAmountToLength(e.others_lump, 8);
+  }
+  if (Array.isArray(e.documents_checklist) && out.docChecklist) {
+    e.documents_checklist.forEach((item, i) => {
+      if (i < 13 && item === true) {
+        out.docChecklist[i] = true;
+      }
+    });
+  }
+
+  if (g.pan) {
+    out.pan = padChars(
+      truncateChars(String(g.pan).toUpperCase().replace(/\s/g, ""), 10),
+      10,
+    );
+  }
+  if (g.account_number) {
+    out.accountNumber = padChars(
+      truncateChars(
+        String(g.account_number).replace(/\s/g, ""),
+        22,
+      ),
+      22,
+    );
+  }
+  if (g.bank_name_branch) {
+    out.bankNameBranch = padChars(
+      strUpper(String(g.bank_name_branch), 40),
+      40,
+    );
+  }
+  if (g.cheque_dd_payable_to) {
+    out.chequeDetails = String(g.cheque_dd_payable_to).trim();
+  }
+  if (g.ifsc_code) {
+    out.ifscCode = padChars(
+      truncateChars(String(g.ifsc_code).toUpperCase(), 11),
+      11,
+    );
+  }
+
+  if (partB.patient_name) {
+    out.hospitalizedName = padChars(strUpper(partB.patient_name, 40), 40);
+  }
+  if (partB.primary_diagnosis) {
+    out.diagnosis = String(partB.primary_diagnosis);
+  }
+  if (partB.total_claimed_amount) {
+    out.claimHospital = padAmountToLength(partB.total_claimed_amount, 8);
+  }
+
+  const sF = ar.section_f_bills_enclosed;
+  if (Array.isArray(sF) && out.billsRows) {
+    sF.forEach((row, i) => {
+      if (i >= 10 || !row) return;
+      out.billsRows[i] = {
+        billNo:
+          row.bill_number != null ? String(row.bill_number) : out.billsRows[i].billNo,
+        date:
+          row.bill_date != null ? String(row.bill_date) : out.billsRows[i].date,
+        issuedBy:
+          row.issued_by != null
+            ? String(row.issued_by)
+            : out.billsRows[i].issuedBy,
+        towards: row.towards != null ? String(row.towards) : out.billsRows[i].towards,
+        amount: row.amount != null ? String(row.amount) : out.billsRows[i].amount,
+      };
+    });
+  }
+
+  return out;
+}
+
+function buildFormFromAnalysis(analysisData) {
+  const sd = getStructuredDataForInsuranceForm(analysisData);
+  let f = buildInitialForm(sd);
+  if (analysisData?.autofill_result) {
+    f = applyAutofillResultToForm(f, analysisData.autofill_result);
+  }
+  return f;
 }
 
 function CharBoxRow({
@@ -237,12 +774,12 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
   const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
 
-  const structured = useMemo(
-    () => analysisData?.structured_data ?? null,
+  const formSeed = useMemo(
+    () => buildFormFromAnalysis(analysisData),
     [analysisData],
   );
 
-  const [form, setForm] = useState(() => buildInitialForm(structured || {}));
+  const [form, setForm] = useState(() => formSeed);
   const [isDownloading, setIsDownloading] = useState(false);
   const [previewMode, setPreviewMode] = useState(true);
   const [signatureImage, setSignatureImage] = useState(null);
@@ -253,8 +790,8 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
   );
 
   useEffect(() => {
-    setForm(buildInitialForm(structured || {}));
-  }, [structured]);
+    setForm(formSeed);
+  }, [formSeed]);
 
   const setField = useCallback((key, v) => {
     setForm((prev) => ({ ...prev, [key]: v }));

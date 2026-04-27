@@ -3182,13 +3182,15 @@ const ManualDataIntegration = ({ navigation }) => {
     }
 
     const body = {
-      doctor_id: doctorId,
       phone,
       name: patientSnapshot.fullName.trim(),
       email: patientSnapshot.email?.trim() || "",
       age: Number(patientSnapshot.age),
       gender: patientSnapshot.gender,
     };
+    if (doctorId) {
+      body.doctor_id = doctorId;
+    }
 
     const res = await fetch(`${API_URL}/hospitals/staff/add-patient`, {
       method: "POST",
@@ -3351,10 +3353,12 @@ const ManualDataIntegration = ({ navigation }) => {
       setPatientSaved(true);
       setTimeout(() => setPatientSaved(false), 3000);
 
-      setPatientCountMap((prev) => ({
-        ...prev,
-        [docId]: (prev[docId] || 0) + 1,
-      }));
+      if (docId) {
+        setPatientCountMap((prev) => ({
+          ...prev,
+          [docId]: (prev[docId] || 0) + 1,
+        }));
+      }
 
       setPatientForm({ ...EMPTY_PATIENT_FORM });
       setPatientDocs({ ...EMPTY_PATIENT_DOCS }); // reset doc state

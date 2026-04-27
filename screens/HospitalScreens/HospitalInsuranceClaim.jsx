@@ -18,6 +18,7 @@ import {
   Animated,
   StatusBar,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -1390,6 +1391,12 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       if (!res.ok) {
         const text = await res.text().catch(() => null);
         console.error("Analysis API returned error", res.status, text);
+        if (res.status === 504) {
+          Alert.alert(
+            "Analysis timed out",
+            "The server took too long to finish (often large PDFs or many documents). Try fewer files, smaller PDFs, or try again in a moment.",
+          );
+        }
         throw new Error(text || `Analyze failed: ${res.status}`);
       }
 
