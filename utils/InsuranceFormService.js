@@ -32,6 +32,61 @@ function checkBox(checked) {
     : `<span class="cb"></span>`;
 }
 
+function relMatches(rel, label) {
+  const r = String(rel || "")
+    .toLowerCase()
+    .trim();
+  const l = label.toLowerCase();
+  if (!r) return false;
+  if (l === "other")
+    return !["self", "spouse", "child", "father", "mother"].some((k) =>
+      r.includes(k),
+    ) && r.length > 0;
+  return r === l || r.includes(l);
+}
+
+function occMatches(occ, label) {
+  const o = String(occ || "")
+    .toLowerCase()
+    .trim();
+  const l = label.toLowerCase();
+  if (!o) return false;
+  if (l === "other")
+    return !["service", "self", "home", "student", "retired"].some((k) =>
+      o.includes(k),
+    );
+  if (l === "self employed") return o.includes("self") && o.includes("employ");
+  if (l === "home maker") return o.includes("home") || o.includes("homemaker");
+  return o.includes(l.split(" ")[0]);
+}
+
+function roomMatches(rc, kind) {
+  const r = String(rc || "").toLowerCase();
+  if (!r) return false;
+  if (kind === "day") return r.includes("day");
+  if (kind === "single") return r.includes("single");
+  if (kind === "twin") return r.includes("twin") || r.includes("double");
+  if (kind === "multi")
+    return (
+      r.includes("3") ||
+      r.includes("more") ||
+      r.includes("general") ||
+      r.includes("shared")
+    );
+  return false;
+}
+
+function causeMatches(cause, kind) {
+  const c = String(cause || "").toLowerCase();
+  if (!c) return false;
+  if (kind === "injury") return c.includes("injur");
+  if (kind === "illness")
+    return c.includes("ill") || c.includes("disease") || c.includes("sick");
+  if (kind === "maternity")
+    return c.includes("mater") || c.includes("deliver") || c.includes("pregnan");
+  return false;
+}
+
 /** Renders signature area for PDF/HTML: embedded image when provided, else empty box */
 function signatureBlockHtml(dataUrl) {
   const s = dataUrl && String(dataUrl).trim();
@@ -311,37 +366,37 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
     <div class="row-between">
       <div class="row">
         <span class="label">a) Currently covered by any other Mediclaim / Health Insurance:</span>
-        ${checkBox(false)}<span class="small-text">Yes</span>
-        ${checkBox(false)}<span class="small-text">No</span>
+        ${checkBox(f.bCurrentlyOther === "yes")}<span class="small-text">Yes</span>
+        ${checkBox(f.bCurrentlyOther === "no")}<span class="small-text">No</span>
       </div>
       <div class="row">
         <span class="label">b) Date of commencement of first Insurance without break:</span>
-        ${charBoxHtml("", 8)}
+        ${charBoxHtml(f.bCommencement || "        ", 8)}
       </div>
     </div>
 
     <div class="row-between">
       <div class="row">
         <span class="label">c) If yes, company name:</span>
-        ${charBoxHtml("", 20)}
+        ${charBoxHtml(f.bIfYesCoName || "".padEnd(20, " "), 20)}
       </div>
       <div class="row">
         <span class="label">Policy No.</span>
-        ${charBoxHtml("", 18)}
+        ${charBoxHtml(f.bIfYesPolicy || "".padEnd(18, " "), 18)}
       </div>
     </div>
 
     <div class="row-between">
       <div class="row">
         <span class="label">Sum insured (Rs.)</span>
-        ${charBoxHtml("", 12)}
+        ${charBoxHtml(f.bSumInsured || "".padEnd(12, " "), 12)}
       </div>
       <div class="row">
         <span class="label">d) Hospitalized in last four years?</span>
-        ${checkBox(false)}<span class="small-text">Yes</span>
-        ${checkBox(false)}<span class="small-text">No</span>
+        ${checkBox(f.bHosp4Y === "yes")}<span class="small-text">Yes</span>
+        ${checkBox(f.bHosp4Y === "no")}<span class="small-text">No</span>
         <span class="label" style="margin-left:6px">Date:</span>
-        ${charBoxHtml("", 4)}
+        ${charBoxHtml(f.bHosp4YDate || "    ", 4)}
       </div>
     </div>
 
@@ -352,14 +407,14 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
       </div>
       <div class="row">
         <span class="label">e) Previously covered by other Mediclaim?</span>
-        ${checkBox(false)}<span class="small-text">Yes</span>
-        ${checkBox(false)}<span class="small-text">No</span>
+        ${checkBox(f.bPreviouslyOther === "yes")}<span class="small-text">Yes</span>
+        ${checkBox(f.bPreviouslyOther === "no")}<span class="small-text">No</span>
       </div>
     </div>
 
     <div class="row">
       <span class="label">f) If yes, company name:</span>
-      ${charBoxHtml("", 22)}
+      ${charBoxHtml(f.bIfYesCoName2 || "".padEnd(22, " "), 22)}
     </div>
   </div>
   ${sectionBar("SECTION B")}
@@ -396,19 +451,42 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
     <div class="row">
       <span class="label">e) Relationship to Primary insured:</span>
       ${["Self", "Spouse", "Child", "Father", "Mother", "Other"]
-        .map((r) => `${checkBox(false)}<span class="small-text">${r}</span>`)
+        .map(
+          (r) =>
+            `${checkBox(relMatches(f.relationship, r))}<span class="small-text">${r}</span>`,
+        )
         .join(" ")}
       <span class="small-text">(Please Specify)</span>
-      <span class="text-field">&nbsp;</span>
+      <span class="text-field">${escHtml(
+        (f.relationship && !["Self", "Spouse", "Child", "Father", "Mother"].some(
+          (x) => f.relationship.toLowerCase() === x.toLowerCase(),
+        )
+          ? f.relationship
+          : "") || "\u00a0",
+      )}</span>
     </div>
 
     <div class="row">
       <span class="label">f) Occupation</span>
       ${["Service", "Self Employed", "Home Maker", "Student", "Retired", "Other"]
-        .map((o) => `${checkBox(false)}<span class="small-text">${o}</span>`)
+        .map(
+          (o) =>
+            `${checkBox(occMatches(f.occupation, o))}<span class="small-text">${o}</span>`,
+        )
         .join(" ")}
       <span class="small-text">(Please Specify)</span>
-      <span class="text-field">&nbsp;</span>
+      <span class="text-field">${escHtml(
+        (() => {
+          const o = (f.occupation || "").trim();
+          if (!o) return "";
+          if (occMatches(o, "Service")) return "";
+          if (occMatches(o, "Self Employed")) return "";
+          if (occMatches(o, "Home Maker")) return "";
+          if (occMatches(o, "Student")) return "";
+          if (occMatches(o, "Retired")) return "";
+          return o;
+        })(),
+      )}</span>
     </div>
 
     <div class="row">
@@ -446,7 +524,10 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
     <div class="row">
       <span class="label">b) Room Category occupied:</span>
       ${["Day care", "Single occupancy", "Twin sharing", "3 or more beds per room"]
-        .map((r) => `${checkBox(false)}<span class="small-text">${r}</span>`)
+        .map((label, idx) => {
+          const kinds = ["day", "single", "twin", "multi"];
+          return `${checkBox(roomMatches(f.roomCategory, kinds[idx]))}<span class="small-text">${label}</span>`;
+        })
         .join(" ")}
     </div>
 
@@ -454,7 +535,10 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
       <div class="row">
         <span class="label">c) Hospitalization due to:</span>
         ${["Injury", "Illness", "Maternity"]
-          .map((r) => `${checkBox(false)}<span class="small-text">${r}</span>`)
+          .map((label, idx) => {
+            const kinds = ["injury", "illness", "maternity"];
+            return `${checkBox(causeMatches(f.hospitalizationCause, kinds[idx]))}<span class="small-text">${label}</span>`;
+          })
           .join(" ")}
       </div>
       <div class="row">
@@ -473,23 +557,37 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
     <div class="row">
       <span class="label">i) If injury give cause:</span>
       ${["Self inflicted", "Road Traffic Accident", "Substance Abuse / Alcohol Consumption"]
-        .map((r) => `${checkBox(false)}<span class="small-text">${r}</span>`)
+        .map(
+          (label) =>
+            `${checkBox(
+              label.startsWith("Self")
+                ? f.injurySelf
+                : label.includes("Traffic")
+                ? f.injuryRta
+                : f.injurySubstance,
+            )}<span class="small-text">${label}</span>`,
+        )
         .join(" ")}
     </div>
 
     <div class="row-between">
       <div class="row">
-        <span class="label">ii) Reported to Police</span>${checkBox(false)}
+        <span class="label">ii) Reported to Police</span>
+        ${checkBox(f.reportedPolice)}
       </div>
       <div class="row">
         <span class="label">iii) MLC Report &amp; Police FIR attached</span>
-        ${checkBox(false)}<span class="small-text">Yes</span>
-        ${checkBox(false)}<span class="small-text">No</span>
+        ${checkBox(f.firYes)}<span class="small-text">Yes</span>
+        ${checkBox(f.firNo)}<span class="small-text">No</span>
       </div>
       <div class="row">
         <span class="label">j) System of Medicine:</span>
-        <span class="text-field">${escHtml(f.treatingDoctor)}</span>
+        <span class="text-field">${escHtml(f.systemOfMedicine || "")}</span>
       </div>
+    </div>
+    <div class="row">
+      <span class="label">Treating doctor / consultant:</span>
+      <span class="text-field">${escHtml(f.treatingDoctor || "")}</span>
     </div>
   </div>
   ${sectionBar("SECTION D")}
@@ -508,41 +606,41 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
     </div>
     <div class="row-between">
       <div class="row"><span class="label">iii. Post-hospitalization expenses Rs.</span> ${charBoxHtml(f.claimPost, 8)}</div>
-      <div class="row"><span class="label">iv. Health-Check up cost Rs.</span> ${charBoxHtml("", 8)}</div>
+      <div class="row"><span class="label">iv. Health-Check up cost Rs.</span> ${charBoxHtml(f.healthCheckupCost || "".padEnd(8, " "), 8)}</div>
     </div>
     <div class="row-between">
-      <div class="row"><span class="label">v. Ambulance Charges Rs.</span> ${charBoxHtml("", 8)}</div>
-      <div class="row"><span class="label">vi. Others (code):</span> ${charBoxHtml("", 3)} <span class="label">Rs.</span> ${charBoxHtml("", 8)}</div>
+      <div class="row"><span class="label">v. Ambulance Charges Rs.</span> ${charBoxHtml(f.ambulanceCharges || "".padEnd(8, " "), 8)}</div>
+      <div class="row"><span class="label">vi. Others (code):</span> ${charBoxHtml(f.otherChargesCode || "   ", 3)} <span class="label">Rs.</span> ${charBoxHtml(f.otherChargesAmount || "".padEnd(8, " "), 8)}</div>
     </div>
     <div class="row" style="justify-content:flex-end">
       <span class="label" style="font-size:11px">Total Rs.</span>
-      ${charBoxHtml("", 10)}
+      ${charBoxHtml(f.totalClaim || "".padEnd(10, " "), 10)}
     </div>
 
     <div class="row-between">
-      <div class="row"><span class="label">vii. Pre-hospitalization period: days</span> ${charBoxHtml("", 3)}</div>
-      <div class="row"><span class="label">viii. Post-hospitalization period: days</span> ${charBoxHtml("", 3)}</div>
+      <div class="row"><span class="label">vii. Pre-hospitalization period: days</span> ${charBoxHtml(f.preHospPeriodDays || "   ", 3)}</div>
+      <div class="row"><span class="label">viii. Post-hospitalization period: days</span> ${charBoxHtml(f.postHospPeriodDays || "   ", 3)}</div>
     </div>
 
     <div class="row">
       <span class="label">b) Claim for Domiciliary Hospitalization:</span>
-      ${checkBox(false)}<span class="small-text">Yes</span>
-      ${checkBox(false)}<span class="small-text">No</span>
+      ${checkBox(f.domiciliary === "yes")}<span class="small-text">Yes</span>
+      ${checkBox(f.domiciliary === "no")}<span class="small-text">No</span>
       <span class="small-text">(If yes, provide details in annexure)</span>
     </div>
 
     <div class="label" style="margin-bottom:4px">c) Details of Lump sum / cash benefit claimed:</div>
     <div class="row-between">
-      <div class="row"><span class="label">i. Hospital Daily cash Rs.</span> ${charBoxHtml("", 8)}</div>
-      <div class="row"><span class="label">ii. Surgical Cash Rs.</span> ${charBoxHtml("", 8)}</div>
+      <div class="row"><span class="label">i. Hospital Daily cash Rs.</span> ${charBoxHtml(f.hospitalDailyCash || "".padEnd(8, " "), 8)}</div>
+      <div class="row"><span class="label">ii. Surgical Cash Rs.</span> ${charBoxHtml(f.surgicalCash || "".padEnd(8, " "), 8)}</div>
     </div>
     <div class="row-between">
-      <div class="row"><span class="label">iii. Critical Illness benefit Rs.</span> ${charBoxHtml("", 8)}</div>
-      <div class="row"><span class="label">iv. Convalescence Rs.</span> ${charBoxHtml("", 8)}</div>
+      <div class="row"><span class="label">iii. Critical Illness benefit Rs.</span> ${charBoxHtml(f.criticalIllnessBenefit || "".padEnd(8, " "), 8)}</div>
+      <div class="row"><span class="label">iv. Convalescence Rs.</span> ${charBoxHtml(f.convalescence || "".padEnd(8, " "), 8)}</div>
     </div>
     <div class="row-between">
-      <div class="row"><span class="label">v. Pre/Post hospitalization Lump sum benefit Rs.</span> ${charBoxHtml("", 8)}</div>
-      <div class="row"><span class="label">vi. Others Rs.</span> ${charBoxHtml("", 8)}</div>
+      <div class="row"><span class="label">v. Pre/Post hospitalization Lump sum benefit Rs.</span> ${charBoxHtml(f.prePostLumpSum || "".padEnd(8, " "), 8)}</div>
+      <div class="row"><span class="label">vi. Others Rs.</span> ${charBoxHtml(f.othersLump || "".padEnd(8, " "), 8)}</div>
     </div>
   </div>
   <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;width:120px;border-left:1px solid #ccc;padding-left:6px">
@@ -563,8 +661,8 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
       "Others",
     ]
       .map(
-        (item) =>
-          `<div class="row">${checkBox(false)}<span class="small-text">${item}</span></div>`,
+        (item, i) =>
+          `<div class="row">${checkBox(!!(f.docChecklist && f.docChecklist[i]))}<span class="small-text">${item}</span></div>`,
       )
       .join("")}
   </div>
@@ -587,30 +685,37 @@ export function generateInsuranceFormHTML(form, signatureDataUrl = null) {
         </tr>
       </thead>
       <tbody>
-        ${[
-          "Hospital main Bill",
-          "Pre-hospitalization Bills: Nos",
-          "Post-hospitalization Bills: Nos",
-          "Pharmacy Bills",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-        ]
-          .map(
-            (label, i) => `
-          <tr>
+        ${(() => {
+          const defaultTowards = [
+            "Hospital main Bill",
+            "Pre-hospitalization Bills: Nos",
+            "Post-hospitalization Bills: Nos",
+            "Pharmacy Bills",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+          ];
+          return defaultTowards
+            .map((defLabel, i) => {
+              const r =
+                f.billsRows && f.billsRows[i]
+                  ? f.billsRows[i]
+                  : { billNo: "", date: "", issuedBy: "", towards: "", amount: "" };
+              const tw = (r.towards && r.towards.trim() !== "" ? r.towards : defLabel) || "";
+              return `<tr>
             <td>${i + 1}.</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>${label}</td>
-            <td></td>
-          </tr>`,
-          )
-          .join("")}
+            <td>${escHtml(r.billNo || "")}</td>
+            <td>${escHtml(r.date || "")}</td>
+            <td>${escHtml(r.issuedBy || "")}</td>
+            <td>${escHtml(tw)}</td>
+            <td>${escHtml(r.amount || "")}</td>
+          </tr>`;
+            })
+            .join("");
+        })()}
       </tbody>
     </table>
   </div>
