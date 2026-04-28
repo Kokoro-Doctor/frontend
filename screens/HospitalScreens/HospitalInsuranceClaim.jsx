@@ -2249,7 +2249,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                 </Text>
                               </TouchableOpacity>
                               <TouchableOpacity
-                                style={[styles.genBtn, { backgroundColor: "#2E7D32" }]}
+                                style={[styles.genBtn, { backgroundColor: "#fff" }]}
                                 onPress={() =>
                                   navigation.navigate("MediAssistFormB", { analysisData })
                                 }
