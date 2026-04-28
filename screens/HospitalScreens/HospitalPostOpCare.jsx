@@ -731,7 +731,7 @@ const HospitalPostOpCare = ({ navigation }) => {
                           <TouchableOpacity
                             style={styles.generateUpdatedButton}
                             onPress={() =>
-                              navigation.navigate("HospitalInsuranceDownload", {
+                              navigation.navigate("MediAssistFormA", {
                                 analysisData,
                               })
                             }
@@ -1010,7 +1010,7 @@ const HospitalPostOpCare = ({ navigation }) => {
                 <TouchableOpacity
                   style={stylesMobile.acceptBtn}
                   onPress={() =>
-                    navigation.navigate("HospitalInsuranceDownload", {
+                    navigation.navigate("MediAssistFormA", {
                       analysisData,
                     })
                   }

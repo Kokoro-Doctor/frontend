@@ -7,7 +7,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useRole } from "../contexts/RoleContext";
 import HospitalPortalLandingPage from "../screens/HospitalScreens/HospitalPortalLandingPage";
 import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsuranceClaim";
-import HospitalInsuranceDownload from "../screens/HospitalScreens/HospitalInsuranceDownload";
+import MediAssistFormA from "../screens/HospitalScreens/MediAssistFormA";
+import MediAssistFormB from "../screens/HospitalScreens/MediAssistFormB";
 import PostOpCare from "../screens/HospitalScreens/PostOpCare";
 import PostOpCarePrescription from "../screens/HospitalScreens/PostOpCarePrescription";
 import DataIntegrations from "../screens/HospitalScreens/DataIntegrations";
@@ -76,8 +77,13 @@ const HospitalAppNavigation = ({ navigation }) => {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="HospitalInsuranceDownload"
-          component={HospitalInsuranceDownload}
+          name="MediAssistFormA"
+          component={MediAssistFormA}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="MediAssistFormB"
+          component={MediAssistFormB}
           options={{ headerShown: false }}
         />
         <Stack.Screen
