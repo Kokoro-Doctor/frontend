@@ -754,10 +754,16 @@ const MobileAnalysisView = ({
           trackButton("hospital_insurance_generate_files_button_clicked", {
             source: "insurance_claim_analysis_result",
           });
-          navigation.navigate("HospitalInsuranceDownload", { analysisData });
+          navigation.navigate("MediAssistFormA", { analysisData });
         }}
       >
         <Text style={mav.acceptText}>Generate Updated Files →</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[mav.acceptBtn, { marginTop: 8, backgroundColor: "#2E7D32" }]}
+        onPress={() => navigation.navigate("MediAssistFormB", { analysisData })}
+      >
+        <Text style={mav.acceptText}>Generate Form B (hospital) →</Text>
       </TouchableOpacity>
     </View>
   );
@@ -2149,7 +2155,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               style={styles.genBtn}
                               onPress={() =>
                                 navigation.navigate(
-                                  "HospitalInsuranceDownload",
+                                  "MediAssistFormA",
                                   { analysisData },
                                 )
                               }
@@ -2231,19 +2237,28 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                             </Text>
                           )}
                           {analysisData && (
-                            <TouchableOpacity
-                              style={styles.genBtn}
-                              onPress={() =>
-                                navigation.navigate(
-                                  "HospitalInsuranceDownload",
-                                  { analysisData },
-                                )
-                              }
-                            >
-                              <Text style={styles.genBtnText}>
-                                Generate updated files →
-                              </Text>
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: "row", gap: 8 }}>
+                              <TouchableOpacity
+                                style={styles.genBtn}
+                                onPress={() =>
+                                  navigation.navigate("MediAssistFormA", { analysisData })
+                                }
+                              >
+                                <Text style={styles.genBtnText}>
+                                  Generate updated files →
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[styles.genBtn, { backgroundColor: "#2E7D32" }]}
+                                onPress={() =>
+                                  navigation.navigate("MediAssistFormB", { analysisData })
+                                }
+                              >
+                                <Text style={styles.genBtnText}>
+                                  Generate Form B (hospital) →
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
                           )}
                         </View>
                       </Animated.View>

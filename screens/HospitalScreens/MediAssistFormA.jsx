@@ -1,3 +1,7 @@
+/**
+ * Hospital portal: preview, edit, and download Medi Assist Reimbursement Claim Form A.
+ * @see ../utils/MediAssistFormA.js for HTML/PDF generation.
+ */
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   ImageBackground,
@@ -15,7 +19,10 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { downloadInsuranceClaim, generateInsuranceFormHTML } from "../../utils/InsuranceFormService";
+import {
+  downloadMediAssistFormA,
+  generateMediAssistFormAHTML,
+} from "../../utils/MediAssistFormA";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -770,7 +777,7 @@ function CharBoxRow({
   );
 }
 
-export default function HospitalInsuranceDownload({ navigation, route }) {
+export default function MediAssistFormA({ navigation, route }) {
   const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
 
@@ -785,7 +792,7 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
   const [signatureImage, setSignatureImage] = useState(null);
   const formRef = useRef(null);
   const htmlPreview = useMemo(
-    () => generateInsuranceFormHTML(form, signatureImage),
+    () => generateMediAssistFormAHTML(form, signatureImage),
     [form, signatureImage],
   );
 
@@ -801,7 +808,7 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadInsuranceClaim(form, signatureImage);
+      await downloadMediAssistFormA(form, signatureImage);
     } catch (e) {
       Alert.alert(
         "Download Error",
