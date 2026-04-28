@@ -780,6 +780,7 @@ const AutofillView = ({ analysisData, isMobile }) => {
   const suggestions = result?.optimization_suggestions || [];
   const docsAvailable = ext?.documents_available || [];
   const dataSources = ext?.data_sources || {};
+  const billing = ext?.billing_details || {};
 
   // Build cost cards from billing_details — only show > 0
   // const billing = ext?.billing_details || {};
