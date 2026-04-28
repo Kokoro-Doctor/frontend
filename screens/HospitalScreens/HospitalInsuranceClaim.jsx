@@ -782,27 +782,35 @@ const AutofillView = ({ analysisData, isMobile }) => {
   const dataSources = ext?.data_sources || {};
 
   // Build cost cards from billing_details — only show > 0
-  const billing = ext?.billing_details || {};
-  const costLabels = {
-    total_room_charges: "Room",
-    icu_charges: "ICU",
-    ot_charges: "OT",
-    surgeon_fees: "Surgeon",
-    anesthesia_fees: "Anesthesia",
-    consultation_charges: "Consult",
-    pharmacy_charges: "Medicine",
-    investigation_charges: "Lab/Tests",
-    nursing_charges: "Nursing",
-    ambulance_charges: "Ambulance",
-    consumables_charges: "Consumables",
-    implant_charges: "Implants",
-    other_charges: "Other",
-    pre_hospitalization_expenses: "Pre-Hosp",
-    post_hospitalization_expenses: "Post-Hosp",
-  };
-  const costCards = Object.entries(costLabels)
-    .map(([key, label]) => ({ key, label, amount: billing[key] }))
-    .filter((c) => c.amount && c.amount > 0);
+  // const billing = ext?.billing_details || {};
+  // const costLabels = {
+  //   total_room_charges: "Room",
+  //   icu_charges: "ICU",
+  //   ot_charges: "OT",
+  //   surgeon_fees: "Surgeon",
+  //   anesthesia_fees: "Anesthesia",
+  //   consultation_charges: "Consult",
+  //   pharmacy_charges: "Medicine",
+  //   investigation_charges: "Lab/Tests",
+  //   nursing_charges: "Nursing",
+  //   ambulance_charges: "Ambulance",
+  //   consumables_charges: "Consumables",
+  //   implant_charges: "Implants",
+  //   other_charges: "Other",
+  //   pre_hospitalization_expenses: "Pre-Hosp",
+  //   post_hospitalization_expenses: "Post-Hosp",
+  // };
+  // const costCards = Object.entries(costLabels)
+  //   .map(([key, label]) => ({ key, label, amount: billing[key] }))
+  //   .filter((c) => c.amount && c.amount > 0);
+  const billingSummary = billing?.billing_summary || [];
+  const costCards = billingSummary
+    .filter((item) => item.amount && item.amount > 0)
+    .map((item, i) => ({
+      key: `cat_${i}`,
+      label: item.category,
+      amount: item.amount,
+    }));
 
   const costColors = [
     "#2563EB",
@@ -2241,7 +2249,9 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               <TouchableOpacity
                                 style={styles.genBtn}
                                 onPress={() =>
-                                  navigation.navigate("MediAssistFormA", { analysisData })
+                                  navigation.navigate("MediAssistFormA", {
+                                    analysisData,
+                                  })
                                 }
                               >
                                 <Text style={styles.genBtnText}>
@@ -2249,9 +2259,14 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                 </Text>
                               </TouchableOpacity>
                               <TouchableOpacity
-                                style={[styles.genBtn, { backgroundColor: "#2E7D32" }]}
+                                style={[
+                                  styles.genBtn,
+                                  { backgroundColor: "#2E7D32" },
+                                ]}
                                 onPress={() =>
-                                  navigation.navigate("MediAssistFormB", { analysisData })
+                                  navigation.navigate("MediAssistFormB", {
+                                    analysisData,
+                                  })
                                 }
                               >
                                 <Text style={styles.genBtnText}>
