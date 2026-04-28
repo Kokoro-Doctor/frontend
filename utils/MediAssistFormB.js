@@ -23,14 +23,57 @@ function esc(s) {
  *   "fixed"   → each box is exactly 8px wide
  */
 function boxes(value, n, mode = "fixed") {
-  const padded = String(value ?? "").padEnd(n, " ").slice(0, n);
+  const padded = String(value ?? "")
+    .padEnd(n, " ")
+    .slice(0, n);
   const cls = mode === "stretch" ? "cb-s" : "cb-f";
   return (
     `<span class="${cls}">` +
-    padded.split("").map(ch =>
-      `<span class="cb">${ch === " " ? "&nbsp;" : esc(ch)}</span>`
-    ).join("") +
+    padded
+      .split("")
+      .map((ch) => `<span class="cb">${ch === " " ? "&nbsp;" : esc(ch)}</span>`)
+      .join("") +
     `</span>`
+  );
+}
+
+/**
+ * dateBoxes(value, yearDigits)
+ * Renders D D | M M | Y Y style boxes matching the original form.
+ * value should be a string like "DDMMYY" (digits only).
+ */
+function dateBoxes(value, yearDigits = 2) {
+  const v = String(value ?? "")
+    .replace(/\D/g, "")
+    .padEnd(4 + yearDigits, " ");
+  const d1 = v[0] || " ",
+    d2 = v[1] || " ";
+  const m1 = v[2] || " ",
+    m2 = v[3] || " ";
+  const y = v.slice(4, 4 + yearDigits).padEnd(yearDigits, " ");
+  const sep = `<span class="date-sep">|</span>`;
+  const box = (ch) =>
+    `<span class="cb">${ch === " " ? "&nbsp;" : esc(ch)}</span>`;
+  return (
+    `<span class="cb-f">${box(d1)}${box(d2)}</span>${sep}` +
+    `<span class="cb-f">${box(m1)}${box(m2)}</span>${sep}` +
+    `<span class="cb-f">${y.split("").map(box).join("")}</span>`
+  );
+}
+
+/**
+ * timeBoxes(value) — renders H H | M M style boxes
+ */
+function timeBoxes(value) {
+  const v = String(value ?? "")
+    .replace(/\D/g, "")
+    .padEnd(4, " ");
+  const sep = `<span class="date-sep">|</span>`;
+  const box = (ch) =>
+    `<span class="cb">${ch === " " ? "&nbsp;" : esc(ch)}</span>`;
+  return (
+    `<span class="cb-f">${box(v[0])}${box(v[1])}</span>${sep}` +
+    `<span class="cb-f">${box(v[2])}${box(v[3])}</span>`
   );
 }
 
@@ -63,19 +106,29 @@ function bar(label) {
 export function generateMediAssistFormBHTML(form, signatureDataUrl = null) {
   const f = form ?? {};
 
-  const diagLabels = ["i. Primary Diagnosis","ii. Additional Diagnosis","iii. Co-morbidities","iv. Co-morbidities"];
-  const procLabels = ["i. Procedure 1:","ii. Procedure 2:","iii. Procedure 3:","iv. Details of Procedure:"];
+  const diagLabels = [
+    "i. Primary Diagnosis",
+    "ii. Additional Diagnosis",
+    "iii. Co-morbidities",
+    "iv. Co-morbidities",
+  ];
+  const procLabels = [
+    "i. Procedure 1:",
+    "ii. Procedure 2:",
+    "iii. Procedure 3:",
+    "iv. Details of Procedure:",
+  ];
 
-  const diags = Array.from({length:4}, (_,i) => {
+  const diags = Array.from({ length: 4 }, (_, i) => {
     const r = f.diagnoses?.[i] ?? {};
     return { icd: r.icd10 ?? "", desc: r.description ?? "" };
   });
-  const procs = Array.from({length:4}, (_,i) => {
+  const procs = Array.from({ length: 4 }, (_, i) => {
     const r = f.procedures?.[i] ?? {};
     return { icd: r.icd10pcs ?? "", desc: r.description ?? "" };
   });
 
-  const clLeft  = [
+  const clLeft = [
     "Claim Form duly signed",
     "Original Pre-authorization request",
     "Copy of the Pre-authorization approval letter",
@@ -95,7 +148,9 @@ export function generateMediAssistFormBHTML(form, signatureDataUrl = null) {
     "Original death summary from hospital where applicable",
     "Any other, please specify",
   ];
-  const cl = Array.isArray(f.claimDocChecklist) ? f.claimDocChecklist : Array(16).fill(false);
+  const cl = Array.isArray(f.claimDocChecklist)
+    ? f.claimDocChecklist
+    : Array(16).fill(false);
 
   const sig = String(signatureDataUrl ?? "").trim();
   const sigHtml = sig.startsWith("data:image/")
@@ -157,7 +212,7 @@ html, body {
 
 /* ── SECTION WRAPPER ── */
 .sw { display: flex; border: 1px solid #000; border-top: none; }
-.sb { flex: 1; min-width: 0; padding: 2px 3px; }
+.sb { flex: 1; min-width: 0; padding: 2px 3px; overflow: hidden; }
 
 /* ── SECTION BAR ── */
 .bar {
@@ -177,26 +232,25 @@ html, body {
    SECTION A TABLE — uses table-layout:auto
    so label columns size to their text and
    the box column takes all remaining space.
-   This is the key fix for Section A.
 ────────────────────────────────────────── */
 .ft-auto {
-  width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
-  table-layout: auto;   /* ← auto, NOT fixed */
+  table-layout: auto;
 }
 .ft-auto td {
   padding: 1.5px 2px;
   vertical-align: middle;
   font-size: 7px;
-  white-space: nowrap;  /* labels never wrap */
+  white-space: nowrap;
+  overflow: visible;
 }
-/* The stretch column — no width set so it takes all leftover space */
 .ft-auto td.grow {
-  width: 100%;          /* grabs remaining space in auto layout */
+  width: 100%;
   white-space: nowrap;
 }
 
-/* ── FIXED-LAYOUT TABLE (Sections B, C, G…) ── */
+/* ── FIXED-LAYOUT TABLE ── */
 .ft {
   width: 100%;
   border-collapse: collapse;
@@ -212,11 +266,9 @@ html, body {
 td.s { width: auto; }
 
 /* ── CHARACTER BOXES ── */
-/* stretch: fills its container with flex */
 .cb-s { display: flex; width: 100%; }
 .cb-s .cb { flex: 1; min-width: 0; }
 
-/* fixed: each box exactly 8px */
 .cb-f { display: inline-flex; }
 .cb-f .cb { width: 8px; flex: none; }
 
@@ -226,6 +278,17 @@ td.s { width: auto; }
   font-size: 5.5px; font-family: monospace;
   text-align: center; line-height: 10px;
   overflow: hidden; flex-shrink: 0;
+}
+
+/* ── DATE / TIME SEPARATOR ── */
+.date-sep {
+  display: inline-block;
+  font-size: 8px;
+  font-weight: 900;
+  vertical-align: middle;
+  line-height: 10px;
+  padding: 0 0.5px;
+  color: #333;
 }
 
 /* ── CHECKBOXES ── */
@@ -293,12 +356,6 @@ td.s { width: auto; }
 </div>
 
 <!-- ══════════ SECTION A ══════════ -->
-<!--
-  Uses ft-auto (table-layout:auto).
-  Label td: white-space:nowrap → sizes to text content.
-  Box td:   class="grow"       → width:100% grabs all remaining space.
-  This guarantees labels are always fully visible AND boxes stretch to right edge.
--->
 <div class="sh">DETAILS OF HOSPITAL</div>
 <div class="sw">
   <div class="sb">
@@ -310,9 +367,9 @@ td.s { width: auto; }
         <td class="grow">${boxes(f.hospitalName, 60, "stretch")}</td>
       </tr>
 
-      <!-- ROW 2: b) Hospital ID + c) Network -->
+      <!-- ROW 2: a) Hospital ID + c) Network — labels match original PDF -->
       <tr>
-        <td><span class="lb">b) Hospital ID:</span></td>
+        <td><span class="lb">a) Hospital ID:</span></td>
         <td>${boxes(f.hospitalId, 20, "fixed")}</td>
         <td><span class="lb">c) Type of Hospital:</span></td>
         <td><span class="lb2">Network</span> ${chk(f.hospitalNetwork === "network")}</td>
@@ -320,20 +377,20 @@ td.s { width: auto; }
         <td class="grow"><span class="lbi">(if non network fill section E)</span></td>
       </tr>
 
-      <!-- ROW 3: d) Doctor — Surname / First / Middle on same row -->
+      <!-- ROW 3: c) Treating doctor — Surname / First / Middle with character boxes -->
       <tr>
-        <td><span class="lb">d) Name of the treating doctor:</span></td>
+        <td><span class="lb">c) Name of the treating doctor:</span></td>
         <td colspan="5" class="grow">
-          <span class="lb">Surname:</span>&nbsp;${boxes(f.treatingDoctorSurname, 18, "fixed")}
-          <span class="lb" style="margin-left:6px">First:</span>&nbsp;${boxes(f.treatingDoctorFirst, 14, "fixed")}
-          <span class="lb" style="margin-left:6px">Middle:</span>&nbsp;${boxes(f.treatingDoctorMiddle, 14, "fixed")}
+          <span class="lb">Surname:</span>&nbsp;${boxes(f.treatingDoctorSurname, 10, "fixed")}
+          <span class="lb" style="margin-left:4px">First:</span>&nbsp;${boxes(f.treatingDoctorFirst, 10, "fixed")}
+          <span class="lb" style="margin-left:4px">Middle:</span>&nbsp;${boxes(f.treatingDoctorMiddle, 10, "fixed")}
         </td>
       </tr>
 
       <!-- ROW 4: e) Qualification + f) Reg No + g) Phone -->
       <tr>
         <td><span class="lb">e) Qualification:</span></td>
-        <td class="grow">${ul(f.qualification, 100)}</td>
+        <td class="grow">${ul(f.qualification, 80)}</td>
         <td><span class="lb">f) Registration No. with State Code:</span></td>
         <td>${boxes(f.registrationNoStateCode, 14, "fixed")}</td>
         <td><span class="lb">g) Phone No.:</span></td>
@@ -351,92 +408,83 @@ td.s { width: auto; }
   <div class="sb">
     <table class="ft-auto">
 
-      <!-- a) Patient name — Surname / First / Middle labelled separately -->
+      <!-- a) Patient name -->
       <tr>
         <td><span class="lb">a) Name of the Patient:</span></td>
-        <td class="grow">
-          <span class="lb">Surname:</span>&nbsp;${boxes(f.patientSurname, 18, "fixed")}
-          <span class="lb" style="margin-left:6px">First:</span>&nbsp;${boxes(f.patientFirst, 16, "fixed")}
-          <span class="lb" style="margin-left:6px">Middle:</span>&nbsp;${boxes(f.patientMiddle, 14, "fixed")}
+        <td colspan="6" class="grow">
+          <span class="lb">Surname:</span>&nbsp;${boxes(f.patientSurname, 10, "fixed")}
+          <span class="lb" style="margin-left:4px">First:</span>&nbsp;${boxes(f.patientFirst, 10, "fixed")}
+          <span class="lb" style="margin-left:4px">Middle:</span>&nbsp;${boxes(f.patientMiddle, 10, "fixed")}
         </td>
       </tr>
 
-      <!-- b) IP Reg + c) Gender + d) Age + e) DOB -->
+      <!-- b) IP Reg + c) Gender + d) Age -->
       <tr>
-        <td><span class="lb">b) IP Registration Number:</span></td>
-        <td>${boxes(f.ipRegNumber, 15, "fixed")}</td>
-        <td>
+        <td style="white-space:nowrap"><span class="lb">b) IP Registration Number:</span></td>
+        <td style="white-space:nowrap">${boxes(f.ipRegNumber, 12, "fixed")}</td>
+        <td style="white-space:nowrap">
           <span class="lb">c) Gender:</span>
-          <span class="lb2"> Male</span> ${chk(f.gender === "male")}
-          <span class="lb2"> Female</span> ${chk(f.gender === "female")}
+          <span class="lb2"> Male</span>&nbsp;${chk(f.gender === "male")}
+          <span class="lb2"> Female</span>&nbsp;${chk(f.gender === "female")}
         </td>
-        <td>
-          <span class="lb">d) Age: Years</span>
-          ${boxes(f.ageYears, 2, "fixed")}
-          <span class="lb2"> Months</span>
-          ${boxes(f.ageMonths, 2, "fixed")}
+        <td style="white-space:nowrap">
+          <span class="lb">d) Age: Years</span>&nbsp;${boxes(f.ageYears, 2, "fixed")}
+          <span class="lb2">&nbsp;Months</span>&nbsp;${boxes(f.ageMonths, 2, "fixed")}
         </td>
-        <td class="grow">
-          <span class="lb">e) Date of birth:</span>
-          ${boxes(f.dob, 6, "fixed")}
+        <td colspan="3" class="grow" style="white-space:nowrap">
+          <span class="lb">e) Date of birth:</span>&nbsp;${dateBoxes(f.dob, 2)}
         </td>
       </tr>
 
-      <!-- f) Admission + g) Time + h) Discharge + i) Time — all on ONE row -->
+      <!-- f) Admission + g) Time + h) Discharge + i) Time -->
       <tr>
-        <td>
-          <span class="lb">f) Date of Admission:</span>
-          ${boxes(f.admissionDate, 8, "fixed")}
+        <td colspan="2" style="white-space:nowrap">
+          <span class="lb">f) Date of Admission:</span>&nbsp;${dateBoxes(f.admissionDate, 2)}
         </td>
-        <td>
-          <span class="lb">g) Time:</span>
-          ${boxes(f.admissionTime, 4, "fixed")}
+        <td style="white-space:nowrap">
+          <span class="lb">g) Time:</span>&nbsp;${timeBoxes(f.admissionTime)}
         </td>
-        <td>
-          <span class="lb">h) Date of Discharge:</span>
-          ${boxes(f.dischargeDate, 8, "fixed")}
+        <td colspan="2" style="white-space:nowrap">
+          <span class="lb">h) Date of Discharge:</span>&nbsp;${dateBoxes(f.dischargeDate, 2)}
         </td>
-        <td colspan="2" class="grow">
-          <span class="lb">i) Time:</span>
-          ${boxes(f.dischargeTime, 4, "fixed")}
+        <td colspan="2" class="grow" style="white-space:nowrap">
+          <span class="lb">i) Time:</span>&nbsp;${timeBoxes(f.dischargeTime)}
         </td>
       </tr>
 
-      <!-- j) Type + maternity -->
+      <!-- j) Type of Admission + k) Maternity + Delivery + Gravida -->
       <tr>
-        <td colspan="2">
+        <td colspan="3" style="white-space:nowrap">
           <span class="lb">j) Type of Admission:</span>
-          <span class="lb2"> Emergency</span> ${chk(f.typeOfAdmission === "emergency")}
-          <span class="lb2"> Planned</span> ${chk(f.typeOfAdmission === "planned")}
-          <span class="lb2"> Day Care</span> ${chk(f.typeOfAdmission === "day_care")}
-          <span class="lb2"> Maternity</span> ${chk(f.typeOfAdmission === "maternity")}
+          <span class="lb2"> Emergency</span>&nbsp;${chk(f.typeOfAdmission === "emergency")}
+          <span class="lb2"> Planned</span>&nbsp;${chk(f.typeOfAdmission === "planned")}
+          <span class="lb2"> Day Care</span>&nbsp;${chk(f.typeOfAdmission === "day_care")}
+          <span class="lb2"> Maternity</span>&nbsp;${chk(f.typeOfAdmission === "maternity")}
         </td>
-        <td><span class="lb">k) If Maternity</span></td>
-        <td>
-          <span class="lb">l) Date of Delivery:</span>
-          ${boxes(f.dateOfDelivery, 6, "fixed")}
+        <td style="white-space:nowrap"><span class="lb">k) If Maternity</span></td>
+        <td colspan="2" style="white-space:nowrap">
+          <span class="lb">i) Date of Delivery:</span>&nbsp;${dateBoxes(f.dateOfDelivery, 2)}
         </td>
-        <td class="grow">
-          <span class="lb">m) Gravida Status:</span>
-          ${boxes(f.gravidaStatus, 4, "fixed")}
+        <td class="grow" style="white-space:nowrap">
+          <span class="lb">ii) Gravida Status:</span>&nbsp;${boxes(f.gravidaStatus, 4, "fixed")}
         </td>
       </tr>
 
-      <!-- l) Discharge status + m) Total -->
+      <!-- l) Discharge status + m) Total claimed -->
       <tr>
-        <td colspan="3">
+        <td colspan="4" style="white-space:nowrap">
           <span class="lb">l) Status at time of discharge:</span>
-          <span class="lb2"> Discharge to home</span> ${chk(f.dischargeStatus === "home")}
-          <span class="lb2"> Discharge to another hospital</span> ${chk(f.dischargeStatus === "another_hospital")}
-          <span class="lb2"> Deceased</span> ${chk(f.dischargeStatus === "deceased")}
+          <span class="lb2"> Discharge to home</span>&nbsp;${chk(f.dischargeStatus === "home")}
+          <span class="lb2"> Discharge to another hospital</span>&nbsp;${chk(f.dischargeStatus === "another_hospital")}
+          <span class="lb2"> Deceased</span>&nbsp;${chk(f.dischargeStatus === "deceased")}
         </td>
-        <td colspan="2" class="grow">
-          <span class="lb">m) Total claimed amount:</span>
-          ${ul(f.totalClaimedAmount, 55)}
+        <td colspan="3" class="grow" style="white-space:nowrap">
+          <span class="lb">m) Total claimed amount:</span>&nbsp;${ul(f.totalClaimedAmount, 55)}
         </td>
       </tr>
 
     </table>
+
   </div>
   ${bar("SECTION B")}
 </div>
@@ -446,7 +494,7 @@ td.s { width: auto; }
 <div class="sw">
   <div class="sb">
 
-    <!-- ICD two-column table — label + boxes on SAME row -->
+    <!-- ICD two-column table -->
     <div class="icd-wrap">
       <!-- LEFT: diagnoses -->
       <div class="icd-half">
@@ -454,12 +502,14 @@ td.s { width: auto; }
         <table class="icd-tbl">
           <thead>
             <tr>
-              <th style="width:80px">ICD 10 Codes</th>
+              <th style="width:90px">ICD 10 Codes</th>
               <th>Description</th>
             </tr>
           </thead>
           <tbody>
-            ${diags.map((d,i) => `
+            ${diags
+              .map(
+                (d, i) => `
             <tr>
               <td>
                 <div class="icd-row">
@@ -468,7 +518,9 @@ td.s { width: auto; }
                 </div>
               </td>
               <td>${ulFull(d.desc)}</td>
-            </tr>`).join("")}
+            </tr>`,
+              )
+              .join("")}
           </tbody>
         </table>
       </div>
@@ -479,12 +531,14 @@ td.s { width: auto; }
         <table class="icd-tbl">
           <thead>
             <tr>
-              <th style="width:80px">ICD 10 PCS</th>
+              <th style="width:90px">ICD 10 PCS</th>
               <th>Description</th>
             </tr>
           </thead>
           <tbody>
-            ${procs.map((p,i) => `
+            ${procs
+              .map(
+                (p, i) => `
             <tr>
               <td>
                 <div class="icd-row">
@@ -493,7 +547,9 @@ td.s { width: auto; }
                 </div>
               </td>
               <td>${ulFull(p.desc)}</td>
-            </tr>`).join("")}
+            </tr>`,
+              )
+              .join("")}
           </tbody>
         </table>
       </div>
@@ -549,7 +605,7 @@ td.s { width: auto; }
       <!-- v) FIR + vi) reason -->
       <tr>
         <td><span class="lb">v. FIR No.:</span></td>
-        <td>${boxes(f.firNumber, 12, "fixed")}</td>
+        <td>${boxes(f.firNumber, 10, "fixed")}</td>
         <td><span class="lb">vi. If not reported to police give reason:</span></td>
         <td class="grow">${ulFull(f.firNotReportedReason)}</td>
       </tr>
@@ -565,15 +621,18 @@ td.s { width: auto; }
   <div class="sb">
     <table class="clt">
       <tbody>
-        ${Array.from({length:8}, (_,i) => `
+        ${Array.from(
+          { length: 8 },
+          (_, i) => `
         <tr>
           <td style="width:50%">
             <div class="cli">${chk(cl[i])}<span>${esc(clLeft[i])}</span></div>
           </td>
           <td>
-            <div class="cli">${chk(cl[i+8])}<span>${esc(clRight[i])}</span></div>
+            <div class="cli">${chk(cl[i + 8])}<span>${esc(clRight[i])}</span></div>
           </td>
-        </tr>`).join("")}
+        </tr>`,
+        ).join("")}
       </tbody>
     </table>
   </div>
@@ -589,30 +648,30 @@ td.s { width: auto; }
   <div class="sb">
     <table class="ft-auto">
 
-      <!-- a) Address line 1 — stretch full width -->
+      <!-- a) Address line 1 -->
       <tr>
         <td><span class="lb">a) Address of the Hospital:</span></td>
         <td class="grow">${boxes(f.nonNetAddress1, 60, "stretch")}</td>
       </tr>
-      <!-- Address line 2 — full row of boxes, no label -->
+      <!-- Address line 2 -->
       <tr>
         <td></td>
         <td class="grow">${boxes(f.nonNetAddress2, 60, "stretch")}</td>
       </tr>
 
-      <!-- City + State -->
+      <!-- City + State — both with character boxes matching original PDF -->
       <tr>
-        <td style="text-align:right"><span class="lb">City:</span></td>
+        <td><span class="lb">City:</span></td>
         <td class="grow">
-          ${ul(f.nonNetCity, 60)}
-          <span class="lb" style="margin-left:10px">State:</span>
-          ${ul(f.nonNetState, 60)}
+          ${boxes(f.nonNetCity, 20, "fixed")}
+          <span class="lb" style="margin-left:6px">State:</span>
+          ${boxes(f.nonNetState, 20, "fixed")}
         </td>
       </tr>
 
       <!-- Pin + Phone + Reg -->
       <tr>
-        <td style="text-align:right"><span class="lb">Pin Code:</span></td>
+        <td><span class="lb">Pin Code:</span></td>
         <td class="grow">
           ${boxes(f.nonNetPin, 6, "fixed")}
           <span class="lb" style="margin-left:6px">b) Phone No.:</span>
@@ -659,9 +718,7 @@ td.s { width: auto; }
   <div class="sb">
 
     <p style="font-size:6px;line-height:1.4;margin-bottom:6px">
-      We hereby declare that the information furnished in this Claim Form is true &amp; correct to the best of our knowledge
-      and belief. If we have made any false or untrue statement, suppression or concealment of any material fact,
-      our right to claim under this claim shall be forfeited.
+      We hereby declare that the information furnished in this Claim Form is true &amp; correct to the best of our knowledge and belief. If we have made any false or untrue statement, suppression or concealment of any material fact, our right to claim under this claim shall be forfeited.
     </p>
 
     <!-- Date / Place LEFT — Signature RIGHT -->
@@ -670,7 +727,7 @@ td.s { width: auto; }
         <td style="vertical-align:bottom">
           <div style="margin-bottom:6px">
             <span class="lb">Date:</span>
-            ${boxes(f.declarationDate, 8, "fixed")}
+            ${dateBoxes(f.declarationDate, 2)}
           </div>
           <div>
             <span class="lb">Place:</span>
@@ -699,39 +756,55 @@ td.s { width: auto; }
    DOWNLOAD
 ═══════════════════════════════════════════ */
 export async function downloadMediAssistFormB(form, signatureDataUrl = null) {
-  const name = String(form?.hospitalName ?? "").trim().replace(/\s+/g, "_") || "Hospital";
+  const name =
+    String(form?.hospitalName ?? "")
+      .trim()
+      .replace(/\s+/g, "_") || "Hospital";
   const date = new Date().toISOString().split("T")[0];
   const fileName = `MediAssistFormB_${name}_${date}.pdf`;
   const html = generateMediAssistFormBHTML(form, signatureDataUrl);
 
   if (Platform.OS === "web") {
     const html2pdf = (await import("html2pdf.js")).default;
-    const parser  = new DOMParser();
-    const parsed  = parser.parseFromString(html, "text/html");
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(html, "text/html");
     const styleEl = parsed.querySelector("style");
-    const rootEl  = parsed.querySelector(".page");
-    if (!styleEl || !rootEl) throw new Error("Template missing <style> or .page");
+    const rootEl = parsed.querySelector(".page");
+    if (!styleEl || !rootEl)
+      throw new Error("Template missing <style> or .page");
 
     const injStyle = document.createElement("style");
-    injStyle.setAttribute("data-formb-pdf","1");
+    injStyle.setAttribute("data-formb-pdf", "1");
     injStyle.textContent = styleEl.textContent;
     document.head.appendChild(injStyle);
 
     const host = document.createElement("div");
-    host.setAttribute("data-formb-pdf","1");
-    host.style.cssText = "position:fixed;left:-9999px;top:0;width:210mm;background:#fff;z-index:-1;";
+    host.setAttribute("data-formb-pdf", "1");
+    host.style.cssText =
+      "position:fixed;left:-9999px;top:0;width:210mm;background:#fff;z-index:-1;";
     host.appendChild(document.importNode(rootEl, true));
     document.body.appendChild(host);
 
     try {
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await html2pdf().set({
-        margin: 0,
-        filename: fileName,
-        image: { type: "png", quality: 1 },
-        html2canvas: { scale: 3, useCORS: true, allowTaint: true, logging: false, width: 794 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      }).from(host.firstElementChild).save(fileName);
+      await new Promise((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(r)),
+      );
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: fileName,
+          image: { type: "png", quality: 1 },
+          html2canvas: {
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            width: 794,
+          },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(host.firstElementChild)
+        .save(fileName);
     } finally {
       injStyle.remove();
       host.remove();
@@ -742,7 +815,9 @@ export async function downloadMediAssistFormB(form, signatureDataUrl = null) {
   const { uri } = await Print.printToFileAsync({ html });
   const destUri = FileSystem.documentDirectory + fileName;
   await FileSystem.copyAsync({ from: uri, to: destUri });
-  try { await FileSystem.deleteAsync(uri, { idempotent: true }); } catch (_) {}
+  try {
+    await FileSystem.deleteAsync(uri, { idempotent: true });
+  } catch (_) {}
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(destUri, {
       mimeType: "application/pdf",
