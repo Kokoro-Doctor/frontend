@@ -712,14 +712,16 @@ const getUpdatedFilesScreen = (analysisData) => {
   const autofillInsurance = analysisData?.autofill_extracted?.insurance_details;
   const tpaName =
     structuredInsurance?.tpa_name || autofillInsurance?.tpa_name || "";
+  const hasTpaName = normalizeCarrierName(tpaName).length > 0;
   const insuranceCompany =
     structuredInsurance?.insurance_company ||
     autofillInsurance?.insurance_company ||
     "";
 
+  if (!hasTpaName) return "StarHealthFormA";
   if (isStarHealthCarrier(tpaName)) return "StarHealthFormA";
   if (isMediAssistCarrier(tpaName)) return "MediAssistFormA";
-  if (!tpaName && isStarHealthCarrier(insuranceCompany)) {
+  if (isStarHealthCarrier(insuranceCompany)) {
     return "StarHealthFormA";
   }
 

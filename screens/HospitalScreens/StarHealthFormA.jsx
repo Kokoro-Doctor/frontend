@@ -25,6 +25,7 @@ import {
   downloadInsuranceClaim,
   generateInsuranceFormHTML,
 } from "../../utils/StarHealthFormA";
+import { mapToStarHealthFormA } from "../../utils/StarHealthMapper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -254,6 +255,75 @@ function buildInitialForm(sd) {
   };
 }
 
+const CHECKED_BOX_STYLE = {
+  backgroundColor: "#1976D2",
+  borderColor: "#1976D2",
+};
+
+function isYesValue(value) {
+  return String(value ?? "").trim().toLowerCase() === "yes";
+}
+
+function isNoValue(value) {
+  return String(value ?? "").trim().toLowerCase() === "no";
+}
+
+function relationshipMatches(value, key) {
+  const rel = String(value ?? "").trim().toLowerCase();
+  if (!rel) return false;
+  if (key === "other") {
+    return !["self", "spouse", "child", "father", "mother"].some(
+      (item) => rel === item || rel.includes(item),
+    );
+  }
+  return rel === key || rel.includes(key);
+}
+
+function occupationMatches(value, key) {
+  const occupation = String(value ?? "").trim().toLowerCase();
+  if (!occupation) return false;
+  if (key === "other") {
+    return !["service", "self", "home", "student", "retired"].some((item) =>
+      occupation.includes(item),
+    );
+  }
+  if (key === "self employed") {
+    return occupation.includes("self") && occupation.includes("employ");
+  }
+  if (key === "home maker") return occupation.includes("home");
+  return occupation.includes(key.split(" ")[0]);
+}
+
+function roomCategoryMatches(value, key) {
+  const room = String(value ?? "").trim().toLowerCase();
+  if (!room) return false;
+  if (key === "day care") return room.includes("day");
+  if (key === "single occupancy") return room.includes("single");
+  if (key === "twin sharing") return room.includes("twin") || room.includes("double");
+  if (key === "3 or more beds per room") {
+    return (
+      room.includes("3") ||
+      room.includes("more") ||
+      room.includes("general") ||
+      room.includes("shared")
+    );
+  }
+  return false;
+}
+
+function hospitalizationCauseMatches(value, key) {
+  const cause = String(value ?? "").trim().toLowerCase();
+  if (!cause) return false;
+  if (key === "injury") return cause.includes("injur");
+  if (key === "illness") {
+    return cause.includes("ill") || cause.includes("disease") || cause.includes("sick");
+  }
+  if (key === "maternity") {
+    return cause.includes("mater") || cause.includes("deliver") || cause.includes("pregnan");
+  }
+  return false;
+}
+
 function CharBoxRow({
   length,
   value,
@@ -360,12 +430,12 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
   const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
 
-  const structured = useMemo(
-    () => analysisData?.structured_data ?? null,
+  const formSeed = useMemo(
+    () => mapToStarHealthFormA(analysisData),
     [analysisData],
   );
 
-  const [form, setForm] = useState(() => buildInitialForm(structured || {}));
+  const [form, setForm] = useState(() => formSeed);
   const [isDownloading, setIsDownloading] = useState(false);
   const [previewMode, setPreviewMode] = useState(true);
   const [signatureImage, setSignatureImage] = useState(null);
@@ -378,8 +448,8 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
   );
 
   useEffect(() => {
-    setForm(buildInitialForm(structured || {}));
-  }, [structured]);
+    setForm(formSeed);
+  }, [formSeed]);
 
   const setField = useCallback((key, v) => {
     setForm((prev) => ({ ...prev, [key]: v }));
@@ -887,11 +957,23 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                         a) Currently covered by any other
                                         Mediclaim / Health Insurance:
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isYesValue(form.bCurrentlyOther) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         Yes
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isNoValue(form.bCurrentlyOther) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         No
                                       </Text>
@@ -971,11 +1053,23 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                         last four years since inception of the
                                         contract?
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isYesValue(form.bHosp4Y) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         Yes
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isNoValue(form.bHosp4Y) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         No
                                       </Text>
@@ -1023,11 +1117,23 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                         e) Previously covered by any other
                                         Mediclaim /Health insurance :
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isYesValue(form.bPreviouslyOther) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         Yes
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isNoValue(form.bPreviouslyOther) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         No
                                       </Text>
@@ -1192,7 +1298,16 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                         <Text style={stylesWeb.smallText}>
                                           {item}
                                         </Text>
-                                        <View style={stylesWeb.checkbox} />
+                                        <View
+                                          style={[
+                                            stylesWeb.checkbox,
+                                            relationshipMatches(
+                                              form.relationship ||
+                                                form.relationshipSpecify,
+                                              item.toLowerCase(),
+                                            ) && CHECKED_BOX_STYLE,
+                                          ]}
+                                        />
                                       </React.Fragment>
                                     ))}
 
@@ -1226,7 +1341,16 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                         <Text style={stylesWeb.smallText}>
                                           {item}
                                         </Text>
-                                        <View style={stylesWeb.checkbox} />
+                                        <View
+                                          style={[
+                                            stylesWeb.checkbox,
+                                            occupationMatches(
+                                              form.occupation ||
+                                                form.occupationSpecify,
+                                              item.toLowerCase(),
+                                            ) && CHECKED_BOX_STYLE,
+                                          ]}
+                                        />
                                       </React.Fragment>
                                     ))}
 
@@ -1391,7 +1515,15 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                         <Text style={stylesWeb.smallText}>
                                           {item}
                                         </Text>
-                                        <View style={stylesWeb.checkbox} />
+                                        <View
+                                          style={[
+                                            stylesWeb.checkbox,
+                                            roomCategoryMatches(
+                                              form.roomCategory,
+                                              item.toLowerCase(),
+                                            ) && CHECKED_BOX_STYLE,
+                                          ]}
+                                        />
                                       </React.Fragment>
                                     ))}
                                   </View>
@@ -1409,7 +1541,15 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                             <Text style={stylesWeb.smallText}>
                                               {item}
                                             </Text>
-                                            <View style={stylesWeb.checkbox} />
+                                            <View
+                                              style={[
+                                                stylesWeb.checkbox,
+                                                hospitalizationCauseMatches(
+                                                  form.hospitalizationCause,
+                                                  item.toLowerCase(),
+                                                ) && CHECKED_BOX_STYLE,
+                                              ]}
+                                            />
                                           </React.Fragment>
                                         ),
                                       )}
@@ -1501,7 +1641,20 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                           <Text style={stylesWeb.smallText}>
                                             {item}
                                           </Text>
-                                          <View style={stylesWeb.checkbox} />
+                                          <View
+                                            style={[
+                                              stylesWeb.checkbox,
+                                              ((item === "Self inflicted" &&
+                                                form.injurySelf) ||
+                                                (item ===
+                                                  "Road Traffic Accident" &&
+                                                  form.injuryRta) ||
+                                                (item ===
+                                                  "Substance Abuse / Alcohol Consumption" &&
+                                                  form.injurySubstance)) &&
+                                                CHECKED_BOX_STYLE,
+                                            ]}
+                                          />
                                         </React.Fragment>
                                       ))}
                                     </View>
@@ -1512,18 +1665,34 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                       <Text style={stylesWeb.label}>
                                         ii) Reported to Police
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          form.reportedPolice &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                     </View>
 
                                     <View style={stylesWeb.inlineRow}>
                                       <Text style={stylesWeb.label}>
                                         iii. MLC Report & Police FIR attached
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          form.firYes && CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         Yes
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          form.firNo && CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         No
                                       </Text>
@@ -1718,9 +1887,21 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                     <Text style={stylesWeb.label}>
                                       b) Claim for Domiciliary Hospitalization:
                                     </Text>
-                                    <View style={stylesWeb.checkbox} />
+                                    <View
+                                      style={[
+                                        stylesWeb.checkbox,
+                                        isYesValue(form.domiciliary) &&
+                                          CHECKED_BOX_STYLE,
+                                      ]}
+                                    />
                                     <Text style={stylesWeb.smallText}>Yes</Text>
-                                    <View style={stylesWeb.checkbox} />
+                                    <View
+                                      style={[
+                                        stylesWeb.checkbox,
+                                        isNoValue(form.domiciliary) &&
+                                          CHECKED_BOX_STYLE,
+                                      ]}
+                                    />
                                     <Text style={stylesWeb.smallText}>No</Text>
                                     <Text style={stylesWeb.smallText}>
                                       (If yes, provide details in annexure)
@@ -1835,7 +2016,13 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                                     "Others",
                                   ].map((item, i) => (
                                     <View key={i} style={stylesWeb.inlineRow}>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          form.docChecklist?.[i] &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         {item}
                                       </Text>
@@ -2394,9 +2581,21 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                               a) Currently covered by any other Mediclaim /
                               Health Insurance:
                             </Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isYesValue(form.bCurrentlyOther) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>Yes</Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isNoValue(form.bCurrentlyOther) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>No</Text>
                           </View>
 
@@ -2464,9 +2663,21 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                               d) Have you been hospitalized in the last four
                               years since inception of the contract?
                             </Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isYesValue(form.bHosp4Y) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>Yes</Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isNoValue(form.bHosp4Y) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>No</Text>
 
                             <Text style={[stylesWeb.label, { marginLeft: 10 }]}>
@@ -2500,9 +2711,21 @@ export default function HospitalInsuranceDownload({ navigation, route }) {
                               e) Previously covered by any other Mediclaim
                               /Health insurance :
                             </Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isYesValue(form.bPreviouslyOther) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>Yes</Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isNoValue(form.bPreviouslyOther) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>No</Text>
                           </View>
                         </View>

@@ -80,6 +80,72 @@ function lineFieldHtml(value, className = "") {
   return `<span class="line-field${className ? ` ${className}` : ""}">${text || "&nbsp;"}</span>`;
 }
 
+function isYes(value) {
+  return String(value ?? "").trim().toLowerCase() === "yes";
+}
+
+function isNo(value) {
+  return String(value ?? "").trim().toLowerCase() === "no";
+}
+
+function relationshipChecked(value, key) {
+  const rel = String(value ?? "").trim().toLowerCase();
+  if (!rel) return false;
+  if (key === "other") {
+    return !["self", "spouse", "child", "father", "mother"].some(
+      (item) => rel === item || rel.includes(item),
+    );
+  }
+  return rel === key || rel.includes(key);
+}
+
+function occupationChecked(value, key) {
+  const occupation = String(value ?? "").trim().toLowerCase();
+  if (!occupation) return false;
+  if (key === "other") {
+    return !["service", "self", "home", "student", "retired"].some((item) =>
+      occupation.includes(item),
+    );
+  }
+  if (key === "self employed") {
+    return occupation.includes("self") && occupation.includes("employ");
+  }
+  if (key === "homemaker") {
+    return occupation.includes("home");
+  }
+  return occupation.includes(key.split(" ")[0]);
+}
+
+function roomCategoryChecked(value, key) {
+  const room = String(value ?? "").trim().toLowerCase();
+  if (!room) return false;
+  if (key === "day care") return room.includes("day");
+  if (key === "single occupancy") return room.includes("single");
+  if (key === "twin sharing") return room.includes("twin") || room.includes("double");
+  if (key === "3 or more beds per room") {
+    return (
+      room.includes("3") ||
+      room.includes("more") ||
+      room.includes("general") ||
+      room.includes("shared")
+    );
+  }
+  return false;
+}
+
+function hospitalizationCauseChecked(value, key) {
+  const cause = String(value ?? "").trim().toLowerCase();
+  if (!cause) return false;
+  if (key === "injury") return cause.includes("injur");
+  if (key === "illness") {
+    return cause.includes("ill") || cause.includes("disease") || cause.includes("sick");
+  }
+  if (key === "maternity") {
+    return cause.includes("mater") || cause.includes("deliver") || cause.includes("pregnan");
+  }
+  return false;
+}
+
 function placeholderBoxRowHtml(value, placeholders) {
   const raw = String(value ?? "")
     .replace(/\s/g, "")
@@ -180,6 +246,44 @@ export function generateInsuranceFormHTML(
   const f = form || {};
   const signatureHtml = signatureBlockHtml(signatureDataUrl);
   const logoSrc = logoDataUrl || STAR_HEALTH_LOGO_DATA_URI;
+  const relationshipValue = f.relationship || f.relationshipSpecify;
+  const occupationValue = f.occupation || f.occupationSpecify;
+  const claimChecklistItems = [
+    "Claim Form Duly signed",
+    "Copy of the claim intimation",
+    "Hospital Main Bill",
+    "Hospital Break-up Bill",
+    "Hospital Bill Payment Receipt",
+    "Hospital Discharge Summary",
+    "Pharmacy Bill",
+    "Operation Theater Notes",
+    "ECG",
+    "Doctor's request for investigation",
+    "Investigation Reports (Including CT /MRI / USG / HPE)",
+    "Doctor's Prescriptions",
+    "Others",
+  ];
+  const billRows = [
+    "Hospital Main Bill",
+    "Pre-hospitalization Bills: Nos",
+    "Post-hospitalization Bills: Nos",
+    "Pharmacy Bills",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ].map((label, index) => {
+    const row = f.billRows?.[index] ?? {};
+    return {
+      billNo: row.billNo ?? "",
+      date: row.date ?? "",
+      issuedBy: row.issuedBy ?? "",
+      towards: row.towards || label,
+      amount: row.amount ?? "",
+    };
+  });
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -661,39 +765,39 @@ export function generateInsuranceFormHTML(
       <div class="form-line-cell form-line-cell-grow">
         <span class="form-line-label">a) Currently covered by any other Mediclaim / Health Insurance:</span>
         <span class="option-group">
-          <span class="option-item">Yes ${checkBox(false)}</span>
-          <span class="option-item">No ${checkBox(false)}</span>
+          <span class="option-item">Yes ${checkBox(isYes(f.bCurrentlyOther))}</span>
+          <span class="option-item">No ${checkBox(isNo(f.bCurrentlyOther))}</span>
         </span>
       </div>
       <div class="form-line-cell">
         <span class="form-line-label">b) Date of commencement of first Insurance without break:</span>
-        ${placeholderBoxRowHtml("", ["D", "D", "M", "M", "Y", "Y"])}
+        ${segmentedDateHtml(f.insuranceFirstCommencementDate)}
       </div>
       <span class="form-note-inline">(Copies of Policies to be attached)</span>
     </div>
     <div class="form-line-row">
       <div class="form-line-cell form-line-cell-grow">
         <span class="form-line-label">c) If yes, company name:</span>
-        ${lineFieldHtml("", "line-field-b-company")}
+        ${lineFieldHtml(f.insuranceCompanyName, "line-field-b-company")}
       </div>
       <div class="form-line-cell">
         <span class="form-line-label">Policy No.</span>
-        ${lineFieldHtml("", "line-field-b-policy")}
+        ${lineFieldHtml(f.insurancePolicyNo, "line-field-b-policy")}
       </div>
     </div>
     <div class="form-line-row form-line-row-tight">
       <div class="form-line-cell">
         <span class="form-line-label">Sum Insured (Rs.) :</span>
-        ${lineFieldHtml("", "line-field-b-sum")}
+        ${lineFieldHtml(f.insuranceSumInsured, "line-field-b-sum")}
       </div>
       <div class="form-line-cell form-line-cell-grow">
         <span class="form-line-label">d) Have you been hospitalized in the last 4 years?</span>
         <span class="option-group">
-          <span class="option-item">Yes ${checkBox(false)}</span>
-          <span class="option-item">No ${checkBox(false)}</span>
+          <span class="option-item">Yes ${checkBox(isYes(f.bHosp4Y))}</span>
+          <span class="option-item">No ${checkBox(isNo(f.bHosp4Y))}</span>
         </span>
         <span class="form-line-label">Date:</span>
-        ${segmentedDateHtml("")}
+        ${lineFieldHtml(f.hospitalizationHistoryDate, "line-field-b-sum")}
         <span class="form-line-label">Diagnosis:</span>
         ${lineFieldHtml(f.diagnosis, "line-field-b-diagnosis")}
       </div>
@@ -702,13 +806,13 @@ export function generateInsuranceFormHTML(
       <div class="form-line-cell">
         <span class="form-line-label">e) Previously covered by any other Mediclaim / Health insurance :</span>
         <span class="option-group">
-          <span class="option-item">Yes ${checkBox(false)}</span>
-          <span class="option-item">No ${checkBox(false)}</span>
+          <span class="option-item">Yes ${checkBox(isYes(f.bPreviouslyOther))}</span>
+          <span class="option-item">No ${checkBox(isNo(f.bPreviouslyOther))}</span>
         </span>
       </div>
       <div class="form-line-cell form-line-cell-grow">
         <span class="form-line-label">f) If yes, Company Name</span>
-        ${lineFieldHtml("", "line-field-b-prev-company")}
+        ${lineFieldHtml(f.previousMediclaimCompanyName, "line-field-b-prev-company")}
       </div>
     </div>
   </div>
@@ -749,34 +853,34 @@ export function generateInsuranceFormHTML(
       <div class="form-line-cell form-line-cell-grow">
         <span class="form-line-label">e) Relationship to Primary insured:</span>
         <span class="option-group">
-          <span class="option-item">Self ${checkBox(false)}</span>
-          <span class="option-item">Spouse ${checkBox(false)}</span>
-          <span class="option-item">Child ${checkBox(false)}</span>
-          <span class="option-item">Father ${checkBox(false)}</span>
-          <span class="option-item">Mother ${checkBox(false)}</span>
-          <span class="option-item">Other ${checkBox(false)}</span>
+          <span class="option-item">Self ${checkBox(relationshipChecked(relationshipValue, "self"))}</span>
+          <span class="option-item">Spouse ${checkBox(relationshipChecked(relationshipValue, "spouse"))}</span>
+          <span class="option-item">Child ${checkBox(relationshipChecked(relationshipValue, "child"))}</span>
+          <span class="option-item">Father ${checkBox(relationshipChecked(relationshipValue, "father"))}</span>
+          <span class="option-item">Mother ${checkBox(relationshipChecked(relationshipValue, "mother"))}</span>
+          <span class="option-item">Other ${checkBox(relationshipChecked(relationshipValue, "other"))}</span>
         </span>
       </div>
       <div class="form-line-cell">
         <span class="form-line-label">(Please Specify)</span>
-        <span class="line-box-field line-field-c-specify">&nbsp;</span>
+        ${lineFieldHtml(f.relationshipSpecify, "line-field-c-specify")}
       </div>
     </div>
     <div class="form-line-row form-line-row-tight">
       <div class="form-line-cell form-line-cell-grow">
         <span class="form-line-label">f) Occupation:</span>
         <span class="option-group">
-          <span class="option-item">Service ${checkBox(false)}</span>
-          <span class="option-item">Self Employed ${checkBox(false)}</span>
-          <span class="option-item">Homemaker ${checkBox(false)}</span>
-          <span class="option-item">Student ${checkBox(false)}</span>
-          <span class="option-item">Retired ${checkBox(false)}</span>
-          <span class="option-item">Other ${checkBox(false)}</span>
+          <span class="option-item">Service ${checkBox(occupationChecked(occupationValue, "service"))}</span>
+          <span class="option-item">Self Employed ${checkBox(occupationChecked(occupationValue, "self employed"))}</span>
+          <span class="option-item">Homemaker ${checkBox(occupationChecked(occupationValue, "homemaker"))}</span>
+          <span class="option-item">Student ${checkBox(occupationChecked(occupationValue, "student"))}</span>
+          <span class="option-item">Retired ${checkBox(occupationChecked(occupationValue, "retired"))}</span>
+          <span class="option-item">Other ${checkBox(occupationChecked(occupationValue, "other"))}</span>
         </span>
       </div>
       <div class="form-line-cell">
         <span class="form-line-label">(Please Specify)</span>
-        <span class="line-box-field line-field-c-specify">&nbsp;</span>
+        ${lineFieldHtml(f.occupationSpecify, "line-field-c-specify")}
       </div>
     </div>
     <div class="form-line-row">
@@ -837,18 +941,18 @@ export function generateInsuranceFormHTML(
       <div class="form-line-cell form-line-cell-grow">
         <span class="form-line-label">b) Room Category occupied:</span>
         <span class="option-group">
-          <span class="option-item">Day care ${checkBox(false)}</span>
-          <span class="option-item">Single occupancy ${checkBox(false)}</span>
-          <span class="option-item">Twin sharing ${checkBox(false)}</span>
-          <span class="option-item">3 or more beds per room ${checkBox(false)}</span>
+          <span class="option-item">Day care ${checkBox(roomCategoryChecked(f.roomCategory, "day care"))}</span>
+          <span class="option-item">Single occupancy ${checkBox(roomCategoryChecked(f.roomCategory, "single occupancy"))}</span>
+          <span class="option-item">Twin sharing ${checkBox(roomCategoryChecked(f.roomCategory, "twin sharing"))}</span>
+          <span class="option-item">3 or more beds per room ${checkBox(roomCategoryChecked(f.roomCategory, "3 or more beds per room"))}</span>
         </span>
       </div>
       <div class="form-line-cell">
         <span class="form-line-label">c) Hospitalization due to:</span>
         <span class="option-group">
-          <span class="option-item">Injury ${checkBox(false)}</span>
-          <span class="option-item">Illness ${checkBox(false)}</span>
-          <span class="option-item">Maternity ${checkBox(false)}</span>
+          <span class="option-item">Injury ${checkBox(hospitalizationCauseChecked(f.hospitalizationCause, "injury"))}</span>
+          <span class="option-item">Illness ${checkBox(hospitalizationCauseChecked(f.hospitalizationCause, "illness"))}</span>
+          <span class="option-item">Maternity ${checkBox(hospitalizationCauseChecked(f.hospitalizationCause, "maternity"))}</span>
         </span>
       </div>
     </div>
@@ -880,9 +984,9 @@ export function generateInsuranceFormHTML(
       <div class="form-line-cell form-line-cell-grow">
         <span class="form-line-label">i) If Injury give cause:</span>
         <span class="option-group">
-          <span class="option-item">Self inflicted ${checkBox(false)}</span>
-          <span class="option-item">Road Traffic Accident ${checkBox(false)}</span>
-          <span class="option-item">Substance Abuse / Alcohol Consumption ${checkBox(false)}</span>
+          <span class="option-item">Self inflicted ${checkBox(!!f.injurySelf)}</span>
+          <span class="option-item">Road Traffic Accident ${checkBox(!!f.injuryRta)}</span>
+          <span class="option-item">Substance Abuse / Alcohol Consumption ${checkBox(!!f.injurySubstance)}</span>
         </span>
       </div>
     </div>
@@ -890,22 +994,22 @@ export function generateInsuranceFormHTML(
       <div class="form-line-cell">
         <span class="form-line-label">i. If Medico legal:</span>
         <span class="option-group">
-          <span class="option-item">Yes ${checkBox(false)}</span>
-          <span class="option-item">No ${checkBox(false)}</span>
+          <span class="option-item">Yes ${checkBox(isYes(f.medicoLegal))}</span>
+          <span class="option-item">No ${checkBox(isNo(f.medicoLegal))}</span>
         </span>
       </div>
       <div class="form-line-cell">
         <span class="form-line-label">ii. Reported to police:</span>
         <span class="option-group">
-          <span class="option-item">Yes ${checkBox(false)}</span>
+          <span class="option-item">Yes ${checkBox(!!f.reportedPolice)}</span>
           <span class="option-item">No ${checkBox(false)}</span>
         </span>
       </div>
       <div class="form-line-cell">
         <span class="form-line-label">iii. MLC Report &amp; Police FIR attached:</span>
         <span class="option-group">
-          <span class="option-item">Yes ${checkBox(false)}</span>
-          <span class="option-item">No ${checkBox(false)}</span>
+          <span class="option-item">Yes ${checkBox(!!f.firYes)}</span>
+          <span class="option-item">No ${checkBox(!!f.firNo)}</span>
         </span>
       </div>
       <div class="form-line-cell">
@@ -944,102 +1048,88 @@ export function generateInsuranceFormHTML(
             <div class="claim-line">
               <span class="claim-line-label">iv. Health-Check up Cost:</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimHealthCheckup, "claim-line-field")}</span>
             </div>
             <div class="claim-line">
               <span class="claim-line-label">v. Ambulance Charges:</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimAmbulance, "claim-line-field")}</span>
             </div>
             <div class="claim-line">
               <span class="claim-line-label">vi. Others (code):</span>
-              <span class="claim-code-boxes">${emptyBoxRowHtml(3)}</span>
+              <span class="claim-code-boxes">${charBoxHtml(f.claimOtherCode, 3)}</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimOtherAmount, "claim-line-field")}</span>
             </div>
             <div class="claim-line claim-total-row">
               <span class="claim-line-label">Total</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimTotal, "claim-line-field")}</span>
             </div>
             <div class="claim-line">
               <span class="claim-line-label">vii. Pre-hospitalization period:</span>
               <span class="claim-line-days">days</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field-sm")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimPreHospitalDays, "claim-line-field-sm")}</span>
             </div>
             <div class="claim-line">
               <span class="claim-line-label">viii. Post-hospitalization period:</span>
               <span class="claim-line-days">days</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field-sm")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimPostHospitalDays, "claim-line-field-sm")}</span>
             </div>
           </div>
           <div class="claim-col">
             <div class="claim-line" style="margin-top:14px">
               <span class="claim-line-label">b) Claim for Domiciliary Hospitalization:</span>
-              <span class="claim-check-inline">Yes ${checkBox(false)}</span>
-              <span class="claim-check-inline">No ${checkBox(false)}</span>
+              <span class="claim-check-inline">Yes ${checkBox(isYes(f.domiciliary))}</span>
+              <span class="claim-check-inline">No ${checkBox(isNo(f.domiciliary))}</span>
               <span class="form-note-inline">(If yes, provide details in annexure)</span>
             </div>
             <div class="claim-subheading">c) Details of Lump sum / cash benefit claimed:</div>
             <div class="claim-line">
               <span class="claim-line-label">i. Hospital Daily Cash:</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimHospitalDailyCash, "claim-line-field")}</span>
             </div>
             <div class="claim-line">
               <span class="claim-line-label">ii. Surgical Cash:</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimSurgicalCash, "claim-line-field")}</span>
             </div>
             <div class="claim-line">
               <span class="claim-line-label">iii. Critical Illness Benefit:</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimCriticalIllness, "claim-line-field")}</span>
             </div>
             <div class="claim-line">
               <span class="claim-line-label">iv. Convalescence:</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimConvalescence, "claim-line-field")}</span>
             </div>
             <div class="claim-line">
               <span class="claim-line-label">v. Pre/Post hospitalization Lump sum benefit:</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimPrePostBenefit, "claim-line-field")}</span>
             </div>
             <div class="claim-line">
               <span class="claim-line-label">vi. Others:</span>
-              <span class="claim-code-boxes">${emptyBoxRowHtml(3)}</span>
+              <span class="claim-code-boxes">${charBoxHtml(f.claimOtherCode, 3)}</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimOtherBenefit, "claim-line-field")}</span>
             </div>
             <div class="claim-line claim-total-row">
               <span class="claim-line-label">Total</span>
               <span class="claim-line-rs">Rs.</span>
-              <span class="claim-line-fill">${lineFieldHtml("", "claim-line-field")}</span>
+              <span class="claim-line-fill">${lineFieldHtml(f.claimTotal, "claim-line-field")}</span>
             </div>
           </div>
         </div>
       </div>
       <div class="claim-checklist">
         <div class="claim-checklist-title">Claim Documents Submitted- Check List:</div>
-        ${[
-          "Claim Form Duly signed",
-          "Copy of the claim intimation",
-          "Hospital Main Bill",
-          "Hospital Break-up Bill",
-          "Hospital Bill Payment Receipt",
-          "Hospital Discharge Summary",
-          "Pharmacy Bill",
-          "Operation Theater Notes",
-          "Doctor's request for investigation",
-          "ECG",
-          "Investigation Reports (Including CT /MRI / USG / HPE)",
-          "Doctor's Prescriptions",
-          "Others",
-        ]
+        ${claimChecklistItems
           .map(
-            (item) =>
-              `<div class="claim-checklist-item">${checkBox(false)}<span>${item}</span></div>`,
+            (item, index) =>
+              `<div class="claim-checklist-item">${checkBox(!!f.docChecklist?.[index])}<span>${item}</span></div>`,
           )
           .join("")}
       </div>
@@ -1064,27 +1154,16 @@ export function generateInsuranceFormHTML(
         </tr>
       </thead>
       <tbody>
-        ${[
-          "Hospital Main Bill",
-          "Pre-hospitalization Bills: ______ Nos",
-          "Post-hospitalization Bills: ______ Nos",
-          "Pharmacy Bills",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-        ]
+        ${billRows
           .map(
-            (label, i) => `
+            (row, i) => `
           <tr>
             <td class="bills-sl">${i + 1}</td>
-            <td class="bills-billno"></td>
-            <td class="bills-date">${placeholderBoxRowHtml("", ["D", "D", "M", "M", "Y", "Y"])}</td>
-            <td class="bills-issued"></td>
-            <td class="bills-towards">${escHtml(label)}</td>
-            <td class="bills-amount"><span class="bills-amount-boxes">${emptyBoxRowHtml(8)}</span></td>
+            <td class="bills-billno">${escHtml(row.billNo)}</td>
+            <td class="bills-date">${placeholderBoxRowHtml(row.date, ["D", "D", "M", "M", "Y", "Y"])}</td>
+            <td class="bills-issued">${escHtml(row.issuedBy)}</td>
+            <td class="bills-towards">${escHtml(row.towards)}</td>
+            <td class="bills-amount"><span class="bills-amount-boxes">${charBoxHtml(row.amount, 8)}</span></td>
           </tr>`,
           )
           .join("")}
