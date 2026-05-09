@@ -3821,6 +3821,8 @@ import mixpanel, { trackButton } from "../../utils/Mixpanel";
 
 const ProcessingView = ({ stage, flow }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
+  const isAutofillFlow =
+    flow === "autofill" || flow === "stored_autofill";
 
   useEffect(() => {
     const anim = Animated.loop(
@@ -3882,7 +3884,7 @@ const ProcessingView = ({ stage, flow }) => {
     },
   ];
 
-  const stages = flow === "autofill" ? autofillStages : auditStages;
+  const stages = isAutofillFlow ? autofillStages : auditStages;
   const currentIndex = stages.findIndex((s) => s.key === stage);
 
   return (
@@ -3890,13 +3892,13 @@ const ProcessingView = ({ stage, flow }) => {
       <View style={procStyles.card}>
         <Animated.View style={[procStyles.pulseCircle, { opacity: pulse }]}>
           <Feather
-            name={flow === "autofill" ? "edit-3" : "cpu"}
+            name={isAutofillFlow ? "edit-3" : "cpu"}
             size={28}
             color="#2563EB"
           />
         </Animated.View>
         <Text style={procStyles.title}>
-          {flow === "autofill"
+          {isAutofillFlow
             ? "Kokoro AI is filling your claim form"
             : "Kokoro AI is analyzing your claim"}
         </Text>
@@ -5067,7 +5069,14 @@ const HospitalInsuranceClaim = ({ navigation }) => {
     [analysisData],
   );
 
-  // ─── THE KEY CHANGE: Navigate first, THEN call API ──────────────────
+  /** Stored-doc pipeline returns flow `stored_autofill`; multipart upload returns `autofill`. */
+  const isAutofillAnalysisResult = useMemo(
+    () =>
+      !!analysisData &&
+      (analysisData.flow === "autofill" ||
+        analysisData.flow === "stored_autofill"),
+    [analysisData],
+  );
 
   const startAnalysis = async () => {
     setCurrentStep(1);
@@ -5602,7 +5611,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
             style={styles.background}
             resizeMode="cover"
           >
-            <View style={styles.overlay} />
+            <View pointerEvents="none" style={styles.overlay} />
             <View style={styles.main}>
               <View style={styles.left}>
                 <HospitalSidebarNavigation navigation={navigation} />
@@ -5613,45 +5622,44 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                 </View> */}
                 <View style={styles.card}>
                   <View style={styles.titleRow}>
-                    <Text style={styles.title}>
-                      Insurance claim analysis AI
-                    </Text>
-                    {/* <TouchableOpacity
-                      style={styles.backBtn}
-                      onPress={() => (currentStep === 1 ? goBack() : null)}
-                    >
-                      <Text style={styles.backBtnText}>
-                        {currentStep === 1 ? "← Back" : "Select Patient"}
+                    <View style={styles.titleAndPatientCluster}>
+                      <Text style={styles.title}>
+                        Insurance claim analysis AI
                       </Text>
-                    </TouchableOpacity> */}
-                    <View
-                      style={{
-                        position: "relative", // IMPORTANT
-                        zIndex: 999999, // IMPORTANT
-                        elevation: 999999,
-
-                        overflow: "visible",
-                      }}
-                    >
-                      <TouchableOpacity
-                        style={styles.backBtn}
-                        onPress={currentStep === 1 ? goBack : fetchPatients}
+                      <View
+                        style={{
+                          position: "relative",
+                          zIndex: 999999,
+                          elevation: 999999,
+                          overflow: "visible",
+                        }}
                       >
-                        <Text style={styles.backBtnText}>
-                          {currentStep === 1
-                            ? "← Back"
-                            : selectedPatient
-                              ? `${selectedPatient.name} ▾`
-                              : "Select Patient ▾"}
-                        </Text>
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.backBtn}
+                          hitSlop={{
+                            top: 12,
+                            bottom: 12,
+                            left: 12,
+                            right: 12,
+                          }}
+                          onPress={currentStep === 1 ? goBack : fetchPatients}
+                        >
+                          <Text style={styles.backBtnText}>
+                            {currentStep === 1
+                              ? "← Back"
+                              : selectedPatient
+                                ? `${selectedPatient.name} ▾`
+                                : "Select Patient ▾"}
+                          </Text>
+                        </TouchableOpacity>
 
-                      {patientDropdownOpen && Platform.OS === "web" && (
+                        {patientDropdownOpen && Platform.OS === "web" && (
                   <View
                     style={{
                       position: "fixed",
                       top: 88,
-                      right: 48,
+                      left: "50%",
+                      marginLeft: -190,
                       width: 380,
                       maxHeight: 360,
                       backgroundColor: "#ffffff",
@@ -5774,6 +5782,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                     )}
                   </View>
                 )}
+                      </View>
                     </View>
                   </View>
 
@@ -6225,7 +6234,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                 />
                               </View>
                             </View>
-                          ) : analysisData?.flow === "autofill" ? (
+                          ) : isAutofillAnalysisResult ? (
                             <View
                               style={{
                                 width: "79%",
@@ -6337,29 +6346,26 @@ const HospitalInsuranceClaim = ({ navigation }) => {
           <ScrollView
             contentContainerStyle={m.container}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             <StatusBar barStyle="light-content" backgroundColor="#fff" />
             <View style={m.header}>
               <HeaderLoginSignUp navigation={navigation} />
             </View>
-            <Text style={m.title}>Insurance claim analysis AI</Text>
-            {/* <TouchableOpacity style={m.selectBtn}>
-              <Text style={m.selectText}>Select Patient</Text>
-            </TouchableOpacity> */}
-            <View
-              style={{
-                position: "relative",
-                marginLeft: "2%",
-                marginBottom: 16,
-              }}
-            >
-              <TouchableOpacity style={m.selectBtn} onPress={fetchPatients}>
-                <Text style={m.selectText}>
-                  {selectedPatient
-                    ? `${selectedPatient.name} ▾`
-                    : "Select Patient ▾"}
-                </Text>
-              </TouchableOpacity>
+            <View style={m.titleRowWithSelect}>
+              <Text style={m.titleCentered}>Insurance claim analysis AI</Text>
+              <View style={{ position: "relative" }}>
+                <TouchableOpacity
+                  style={m.selectBtn}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  onPress={fetchPatients}
+                >
+                  <Text style={m.selectText}>
+                    {selectedPatient
+                      ? `${selectedPatient.name} ▾`
+                      : "Select Patient ▾"}
+                  </Text>
+                </TouchableOpacity>
 
               {patientDropdownOpen && (
                 <View
@@ -6491,6 +6497,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                   )}
                 </View>
               )}
+              </View>
             </View>
 
             {/* Stepper */}
@@ -6829,7 +6836,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                     stage={processingStage}
                     flow={uploadSections.claim ? "audit" : "autofill"}
                   />
-                ) : analysisData?.flow === "autofill" ? (
+                ) : isAutofillAnalysisResult ? (
                   <AutofillView analysisData={analysisData} isMobile={true} />
                 ) : analysisData ? (
                   <MobileAnalysisView
@@ -7171,13 +7178,28 @@ const styles = StyleSheet.create({
     marginTop: "4%",
   },
   titleRow: {
-    height: 52,
+    minHeight: 52,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 4,
+    zIndex: 10,
+    paddingHorizontal: 8,
   },
-  title: { fontSize: 19, fontWeight: "600" },
+  titleAndPatientCluster: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 14,
+    maxWidth: "100%",
+  },
+  title: {
+    fontSize: 19,
+    fontWeight: "600",
+    flexShrink: 1,
+    textAlign: "center",
+  },
   backBtn: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -7745,15 +7767,27 @@ const m = StyleSheet.create({
     marginBottom: 12,
     paddingLeft: "2%",
   },
+  titleRowWithSelect: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  titleCentered: {
+    fontSize: 22,
+    fontWeight: "700",
+    flexShrink: 1,
+    textAlign: "center",
+  },
   selectBtn: {
-    marginLeft: "2%",
-    alignSelf: "flex-start",
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    marginBottom: 16,
   },
   selectText: { fontSize: 14, color: "#333" },
   stepContainer: {
