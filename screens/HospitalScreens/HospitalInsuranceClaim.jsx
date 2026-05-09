@@ -5030,6 +5030,12 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   const [policyDocs, setPolicyDocs] = useState([]);
   const [aiAnalysisModalOpen, setAiAnalysisModalOpen] = useState(false);
   const aiAnalysisSideAnim = useState(new Animated.Value(height))[0];
+  const selectBtnRef = useRef(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patientDropdownOpen, setPatientDropdownOpen] = useState(false);
+  const [patientList, setPatientList] = useState([]);
+  const [patientLoading, setPatientLoading] = useState(false);
   const [uploadSections, setUploadSections] = useState({
     insurance: null,
     prescription: null,
@@ -5238,6 +5244,166 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       useNativeDriver: true,
     }).start();
   };
+
+  const fetchPatients = async () => {
+    if (patientDropdownOpen) {
+      setPatientDropdownOpen(false);
+      return;
+    }
+
+    setPatientLoading(true);
+    setPatientDropdownOpen(true);
+
+    try {
+      let token = null;
+      if (Platform.OS === "web") {
+        token = localStorage.getItem("token");
+      } else {
+        token = await AsyncStorage.getItem("@token").catch(() => null);
+      }
+
+      if (!token) {
+        console.error("No auth token found");
+        setPatientLoading(false);
+        return;
+      }
+
+      // Decode hospital_id from JWT payload (no library needed)
+      const payloadBase64 = token.split(".")[1];
+      const paddedPayload = payloadBase64
+        .replace(/-/g, "+")
+        .replace(/_/g, "/")
+        .padEnd(
+          payloadBase64.length + ((4 - (payloadBase64.length % 4)) % 4),
+          "=",
+        );
+      const decoded = JSON.parse(atob(paddedPayload));
+      const hospitalId = decoded.sub || decoded.hospital_id;
+
+      if (!hospitalId) {
+        console.error("hospital_id not found in token");
+        setPatientLoading(false);
+        return;
+      }
+
+      const res = await fetch(
+        `${API_URL}/hospitals/${hospitalId}/patients?limit=50`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!res.ok) {
+        console.error("Failed to fetch patients:", res.status);
+        setPatientLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      setPatientList(data.patients || []);
+    } catch (err) {
+      console.error("fetchPatients error:", err);
+    } finally {
+      setPatientLoading(false);
+    }
+  };
+
+  const handlePatientSelect = async (patient) => {
+  setSelectedPatient(patient);
+  setPatientDropdownOpen(false);
+
+  // Step 2 pe le jao aur loading shuru karo
+  setCurrentStep(1);
+  setIsAnalyzing(true);
+  setAnalysisData(null);
+  setProcessingStage("uploading");
+
+  // Web desktop pe slide animation
+  if (Platform.OS === "web" && width > 1000) {
+    Animated.timing(slideAnim, {
+      toValue: -cardWidth,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  // Stage timers — stored autofill fast hota hai, shorter timings
+  const t1 = setTimeout(() => setProcessingStage("ocr"), 1500);
+  const t2 = setTimeout(() => setProcessingStage("extracting"), 3500);
+  const t3 = setTimeout(() => setProcessingStage("filling"), 7000);
+  const t4 = setTimeout(() => setProcessingStage("calculating"), 11000);
+
+  try {
+    let token = null;
+    if (Platform.OS === "web") {
+      token = localStorage.getItem("token");
+    } else {
+      token = await AsyncStorage.getItem("@token").catch(() => null);
+    }
+
+    const res = await fetch(
+      `${API_URL}/medilocker/users/${patient.user_id}/insurance/autofill-stored`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => null);
+      console.error("autofill-stored failed:", res.status, text);
+      if (res.status === 504) {
+        Alert.alert(
+          "Timeout",
+          "Server took too long. Patient documents may still be processing. Try again in a moment.",
+        );
+      } else if (res.status === 404) {
+        Alert.alert(
+          "No documents found",
+          `No uploaded documents found for ${patient.name}. Ask them to upload documents via the patient app first.`,
+        );
+      }
+      throw new Error(text || `autofill-stored failed: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    if (data?.error) {
+      console.error("Backend error:", data.error);
+      Alert.alert("Analysis error", data.error);
+      return;
+    }
+
+    setAnalysisData(data);
+    trackButton("hospital_insurance_stored_autofill_success", {
+      source: "patient_select_dropdown",
+      user_id: patient.user_id,
+      documents_processed: data.documents_processed?.join(", ") || "",
+    });
+  } catch (err) {
+    console.error("handlePatientSelect error:", err);
+    setCurrentStep(0);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  } finally {
+    clearTimeout(t1);
+    clearTimeout(t2);
+    clearTimeout(t3);
+    clearTimeout(t4);
+    setIsAnalyzing(false);
+    setProcessingStage("");
+  }
+};
 
   const openAiModal = () => {
     setAiAnalysisModalOpen(true);
@@ -5450,14 +5616,165 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                     <Text style={styles.title}>
                       Insurance claim analysis AI
                     </Text>
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                       style={styles.backBtn}
                       onPress={() => (currentStep === 1 ? goBack() : null)}
                     >
                       <Text style={styles.backBtnText}>
                         {currentStep === 1 ? "← Back" : "Select Patient"}
                       </Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
+                    <View
+                      style={{
+                        position: "relative", // IMPORTANT
+                        zIndex: 999999, // IMPORTANT
+                        elevation: 999999,
+
+                        overflow: "visible",
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={styles.backBtn}
+                        onPress={currentStep === 1 ? goBack : fetchPatients}
+                      >
+                        <Text style={styles.backBtnText}>
+                          {currentStep === 1
+                            ? "← Back"
+                            : selectedPatient
+                              ? `${selectedPatient.name} ▾`
+                              : "Select Patient ▾"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {patientDropdownOpen && Platform.OS === "web" && (
+                  <View
+                    style={{
+                      position: "fixed",
+                      top: 88,
+                      right: 48,
+                      width: 380,
+                      maxHeight: 360,
+                      backgroundColor: "#ffffff",
+                      borderRadius: 12,
+                      borderWidth: 1.5,
+                      borderColor: "#CBD5E1",
+                      zIndex: 99999,
+                      shadowColor: "#000",
+                      shadowOpacity: 0.18,
+                      shadowRadius: 20,
+                      shadowOffset: { width: 0, height: 8 },
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Header */}
+                    <View
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        backgroundColor: "#F8FAFC",
+                        borderBottomWidth: 1,
+                        borderBottomColor: "#E2E8F0",
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: "#64748B", fontWeight: "700", letterSpacing: 0.8 }}>
+                        SELECT PATIENT
+                      </Text>
+                      <TouchableOpacity onPress={() => setPatientDropdownOpen(false)}>
+                        <Feather name="x" size={14} color="#94A3B8" />
+                      </TouchableOpacity>
+                    </View>
+
+                    {patientLoading ? (
+                      <View style={{ padding: 28, alignItems: "center", backgroundColor: "#fff" }}>
+                        <ActivityIndicator size="small" color="#2563EB" />
+                        <Text style={{ color: "#64748B", fontSize: 13, marginTop: 10 }}>
+                          Loading patients...
+                        </Text>
+                      </View>
+                    ) : patientList.length === 0 ? (
+                      <View style={{ padding: 28, alignItems: "center", backgroundColor: "#fff" }}>
+                        <Feather name="users" size={28} color="#CBD5E1" />
+                        <Text style={{ color: "#94A3B8", fontSize: 13, marginTop: 10 }}>
+                          No patients found
+                        </Text>
+                      </View>
+                    ) : (
+                      <ScrollView
+                        style={{ backgroundColor: "#ffffff" }}
+                        showsVerticalScrollIndicator
+                      >
+                        {patientList.map((p, i) => (
+                          <TouchableOpacity
+                            key={p.user_id || i}
+                            onPress={() => {
+                              console.log("Patient clicked:", p.name, p.user_id);
+                              handlePatientSelect(p);
+                            }}
+                            style={{
+                              paddingHorizontal: 16,
+                              paddingVertical: 13,
+                              borderBottomWidth: i < patientList.length - 1 ? 1 : 0,
+                              borderBottomColor: "#F1F5F9",
+                              backgroundColor:
+                                selectedPatient?.user_id === p.user_id
+                                  ? "#EFF6FF"
+                                  : "#ffffff",
+                              flexDirection: "row",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 14,
+                                fontWeight: "600",
+                                color: "#0F172A",
+                                flex: 1,
+                                marginRight: 10,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {p.name || "Unknown"}
+                            </Text>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                              {p.age ? (
+                                <Text style={{
+                                  fontSize: 11, color: "#ffffff",
+                                  backgroundColor: "#2563EB",
+                                  paddingHorizontal: 6, paddingVertical: 2,
+                                  borderRadius: 4, fontWeight: "600",
+                                  overflow: "hidden",
+                                }}>
+                                  {p.age}y
+                                </Text>
+                              ) : null}
+                              {p.gender ? (
+                                <Text style={{
+                                  fontSize: 11, color: "#059669",
+                                  backgroundColor: "#DCFCE7",
+                                  paddingHorizontal: 6, paddingVertical: 2,
+                                  borderRadius: 4, fontWeight: "600",
+                                  overflow: "hidden",
+                                }}>
+                                  {p.gender.charAt(0).toUpperCase()}
+                                </Text>
+                              ) : null}
+                              {p.phoneNumber ? (
+                                <Text style={{ fontSize: 11, color: "#64748B" }}>
+                                  {p.phoneNumber}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
+                )}
+                    </View>
                   </View>
 
                   {/* Step Bar */}
@@ -6026,9 +6343,155 @@ const HospitalInsuranceClaim = ({ navigation }) => {
               <HeaderLoginSignUp navigation={navigation} />
             </View>
             <Text style={m.title}>Insurance claim analysis AI</Text>
-            <TouchableOpacity style={m.selectBtn}>
+            {/* <TouchableOpacity style={m.selectBtn}>
               <Text style={m.selectText}>Select Patient</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+            <View
+              style={{
+                position: "relative",
+                marginLeft: "2%",
+                marginBottom: 16,
+              }}
+            >
+              <TouchableOpacity style={m.selectBtn} onPress={fetchPatients}>
+                <Text style={m.selectText}>
+                  {selectedPatient
+                    ? `${selectedPatient.name} ▾`
+                    : "Select Patient ▾"}
+                </Text>
+              </TouchableOpacity>
+
+              {patientDropdownOpen && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 38,
+                    left: 0,
+                    width: 260,
+                    backgroundColor: "#fff",
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: "#E2E8F0",
+                    zIndex: 9999,
+                    elevation: 10,
+                    maxHeight: 280,
+                    overflow: "hidden",
+                  }}
+                >
+                  {patientLoading ? (
+                    <View style={{ padding: 20, alignItems: "center" }}>
+                      <ActivityIndicator size="small" color="#2563EB" />
+                      <Text
+                        style={{ color: "#64748B", fontSize: 13, marginTop: 8 }}
+                      >
+                        Loading patients...
+                      </Text>
+                    </View>
+                  ) : patientList.length === 0 ? (
+                    <View style={{ padding: 16 }}>
+                      <Text
+                        style={{
+                          color: "#94A3B8",
+                          fontSize: 13,
+                          textAlign: "center",
+                        }}
+                      >
+                        No patients found
+                      </Text>
+                    </View>
+                  ) : (
+                    <ScrollView style={{ maxHeight: 260 }}>
+                      {patientList.map((p, i) => (
+                        <TouchableOpacity
+                          key={p.user_id || i}
+                          onPress={() => handlePatientSelect(p)}
+                          style={{
+                            paddingHorizontal: 14,
+                            paddingVertical: 12,
+                            borderBottomWidth:
+                              i < patientList.length - 1 ? 1 : 0,
+                            borderBottomColor: "#E2E8F0",
+                            backgroundColor:
+                              selectedPatient?.user_id === p.user_id
+                                ? "#EFF6FF"
+                                : "#fff",
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          {/* Left: Name */}
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              fontWeight: "600",
+                              color: "#0F172A",
+                              flex: 1,
+                              marginRight: 8,
+                            }}
+                            numberOfLines={1}
+                          >
+                            {p.name || "Unknown"}
+                          </Text>
+
+                          {/* Right: age · gender · phone in a row */}
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            {p.age ? (
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  color: "#fff",
+                                  backgroundColor: "#2563EB",
+                                  paddingHorizontal: 6,
+                                  paddingVertical: 2,
+                                  borderRadius: 4,
+                                  fontWeight: "600",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                {p.age}y
+                              </Text>
+                            ) : null}
+                            {p.gender ? (
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  color: "#059669",
+                                  backgroundColor: "#DCFCE7",
+                                  paddingHorizontal: 6,
+                                  paddingVertical: 2,
+                                  borderRadius: 4,
+                                  fontWeight: "600",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                {p.gender.charAt(0).toUpperCase()}
+                              </Text>
+                            ) : null}
+                            {p.phoneNumber ? (
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  color: "#64748B",
+                                }}
+                              >
+                                {p.phoneNumber}
+                              </Text>
+                            ) : null}
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+              )}
+            </View>
 
             {/* Stepper */}
             <View style={m.stepContainer}>
