@@ -1691,7 +1691,7 @@
 /**
  * Hospital portal: preview, edit, and download Medi Assist Claim Form Part B (hospital section).
  * @see ../utils/MediAssistFormB.js for HTML/PDF generation.
- * Autofill mapping (buildInitialFormB from analysisData) is intentionally left for a future ticket.
+ * Autofill mapping delegated to MediAssistMapper.js — mapToFormB(analysisData).
  */
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
@@ -1713,6 +1713,7 @@ import {
   downloadMediAssistFormB,
   generateMediAssistFormBHTML,
 } from "../../utils/MediAssistFormB";
+import { mapToFormB, padChars } from "../../utils/MediAssistMapper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
@@ -1909,8 +1910,9 @@ function SectionBar({ label }) {
    MAIN SCREEN
 ───────────────────────────────────────────── */
 export default function MediAssistFormB({ navigation, route }) {
+  const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
-  const [form, setForm] = useState(() => buildInitialFormB());
+  const [form, setForm] = useState(() => mapToFormB(analysisData));
   const [isDownloading, setIsDownloading] = useState(false);
   const [previewMode, setPreviewMode] = useState(true);
   const [signatureImage, setSignatureImage] = useState(null);
@@ -2887,24 +2889,14 @@ export default function MediAssistFormB({ navigation, route }) {
                   </View>
 
                   {/* CLAIM CARD */}
-                  {/* <View
-                    style={{
-                      backgroundColor: "#F9FAFB",
-                      borderRadius: 8,
-                      padding: 14,
-                      borderWidth: 1,
-                      borderColor: "#E5E7EB",
-                    }}
-                  > */}
-                
                   <View
                     style={{
                       backgroundColor: "#F9FAFB",
                       borderRadius: 8,
                       padding: 14,
-                      paddingBottom: 6,
                       borderWidth: 1,
                       borderColor: "#E5E7EB",
+                      flex: 1,
                     }}
                   >
                     <View
@@ -2971,10 +2963,10 @@ export default function MediAssistFormB({ navigation, route }) {
                       <iframe
                         srcDoc={htmlPreview}
                         style={{
+                          flex: 1,
                           width: "100%",
                           border: "none",
-                          minHeight: 400,
-                          maxHeight: 480,
+                          minHeight: 600,
                         }}
                         title="Claim Form B Preview"
                       />
@@ -2983,34 +2975,23 @@ export default function MediAssistFormB({ navigation, route }) {
                     )}
                   </View>
 
-                  {/* DOWNLOAD BUTTONS — scroll with the form */}
-                  <View style={{ marginTop: 8, gap: 8 }}>
-                    <TouchableOpacity
-                      style={[
-                        stylesWeb.primaryBtnWeb,
-                        isDownloading && { opacity: 0.6 },
-                      ]}
-                      onPress={handleDownload}
-                      disabled={isDownloading}
-                    >
-                      {isDownloading ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Text style={stylesWeb.primaryTextWeb}>
-                          Download Form B PDF
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={stylesWeb.outlineBtnWeb}
-                      onPress={() => navigation.goBack()}
-                    >
-                      <Text style={stylesWeb.outlineTextWeb}>
-                        Back to claim analysis
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </ScrollView>
+                {/* DOWNLOAD BUTTONS */}
+                <View style={{ marginTop: 12, gap: 8 }}>
+                  <TouchableOpacity
+                    style={[stylesWeb.primaryBtnWeb, isDownloading && { opacity: 0.6 }]}
+                    onPress={handleDownload}
+                    disabled={isDownloading}
+                  >
+                    {isDownloading
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : <Text style={stylesWeb.primaryTextWeb}>Download Form B PDF</Text>
+                    }
+                  </TouchableOpacity>
+                  <TouchableOpacity style={stylesWeb.outlineBtnWeb} onPress={() => navigation.goBack()}>
+                    <Text style={stylesWeb.outlineTextWeb}>Back to claim analysis</Text>
+                  </TouchableOpacity>
+                </View>
+
               </View>
             </View>
           </View>
@@ -3389,7 +3370,7 @@ const stylesWeb = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 8,
     alignItems: "center",
-    marginBottom: 1,
+    marginBottom: 12,
   },
   primaryTextWeb: { color: "#fff", fontSize: 14, fontWeight: "600" },
   outlineBtnWeb: {

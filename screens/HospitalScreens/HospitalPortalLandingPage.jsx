@@ -131,9 +131,9 @@ const HospitalPortalLandingPage = ({ navigation, route }) => {
                   <HospitalSidebarNavigation navigation={navigation} />
                 </View>
                 <View style={styles.Right}>
-                  {/* <View style={styles.header}>
+                  <View style={styles.header}>
                     <HeaderLoginSignUp navigation={navigation} />
-                  </View> */}
+                  </View>
                   <View style={styles.title}>
                     <Title />
                   </View>
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     // borderWidth: 1,
     marginHorizontal: "auto",
     alignSelf: "center",
-    marginTop:"5%"
+    marginTop:"2%"
   },
   // centerMiddlePart: {
   //   height: "25%",

@@ -104,7 +104,7 @@
 //   // ─────────────────────────────────────────────
 //   // FILE PICKER  (web only)
 //   // ─────────────────────────────────────────────
-  
+
 //   const openFilePicker = () => {
 //     if (Platform.OS === "web") {
 //       const input = document.createElement("input");
@@ -2738,10 +2738,6 @@
 
 // export default ManualDataIntegration;
 
-
-
-
-
 import React, { useState } from "react";
 import {
   ImageBackground,
@@ -2803,7 +2799,7 @@ const EMPTY_PATIENT_FORM = {
 
 // ── Document upload initial state ──
 const EMPTY_PATIENT_DOCS = {
-  insurance: null,    // { file, name, uploading, uploaded, error }
+  insurance: null, // { file, name, uploading, uploaded, error }
   hospitalBill: null,
   prescription: null,
 };
@@ -2914,10 +2910,7 @@ const ManualDataIntegration = ({ navigation }) => {
     try {
       const DocumentPicker = require("react-native-document-picker");
       const res = await DocumentPicker.default.pickSingle({
-        type: [
-          DocumentPicker.types.pdf,
-          DocumentPicker.types.images,
-        ],
+        type: [DocumentPicker.types.pdf, DocumentPicker.types.images],
       });
       setPatientDocs((prev) => ({
         ...prev,
@@ -2944,74 +2937,6 @@ const ManualDataIntegration = ({ navigation }) => {
   // ─────────────────────────────────────────────
   const removeDoc = (docKey) => {
     setPatientDocs((prev) => ({ ...prev, [docKey]: null }));
-  };
-
-  // ─────────────────────────────────────────────
-  // UPLOAD PATIENT DOCUMENTS TO BACKEND
-  // Sends each doc as multipart with patient_id
-  // ─────────────────────────────────────────────
-  const uploadPatientDocuments = async (patientId) => {
-    const token = Platform.OS === "web" ? localStorage.getItem("token") : null;
-
-    const uploads = DOC_CONFIG.filter((cfg) => patientDocs[cfg.key]?.file);
-    if (uploads.length === 0) return; // nothing to upload
-
-    setDocsUploading(true);
-
-    // Mark each doc as uploading
-    setPatientDocs((prev) => {
-      const next = { ...prev };
-      uploads.forEach(({ key }) => {
-        if (next[key]) next[key] = { ...next[key], uploading: true, error: "" };
-      });
-      return next;
-    });
-
-    // Upload concurrently
-    await Promise.all(
-      uploads.map(async ({ key, fieldName }) => {
-        const docState = patientDocs[key];
-        try {
-          const fd = new FormData();
-          fd.append("patient_id", patientId);
-          fd.append("document_type", fieldName);
-          fd.append("file", docState.file);
-
-          const res = await fetch(`${API_URL}/hospitals/staff/upload-patient-document`, {
-            method: "POST",
-            headers: {
-              ...(token && { Authorization: `Bearer ${token}` }),
-              // ⚠️ Do NOT set Content-Type — browser sets it with boundary for FormData
-            },
-            body: fd,
-          });
-
-          if (!res.ok) {
-            const txt = await res.text();
-            let msg = `Upload failed (${res.status})`;
-            try { msg = JSON.parse(txt).message || msg; } catch (_) {}
-            throw new Error(msg);
-          }
-
-          setPatientDocs((prev) => ({
-            ...prev,
-            [key]: { ...prev[key], uploading: false, uploaded: true, error: "" },
-          }));
-        } catch (err) {
-          setPatientDocs((prev) => ({
-            ...prev,
-            [key]: {
-              ...prev[key],
-              uploading: false,
-              uploaded: false,
-              error: err.message || "Upload failed",
-            },
-          }));
-        }
-      })
-    );
-
-    setDocsUploading(false);
   };
 
   // ─────────────────────────────────────────────
@@ -3118,6 +3043,8 @@ const ManualDataIntegration = ({ navigation }) => {
   // ─────────────────────────────────────────────
   const callAddDoctorAPI = async (snapshot) => {
     const token = Platform.OS === "web" ? localStorage.getItem("token") : null;
+    const hospitalId =
+      Platform.OS === "web" ? localStorage.getItem("hospital_id") : null;
 
     let phone = snapshot.phoneNo.trim();
     if (phone && !phone.startsWith("+")) {
@@ -3125,7 +3052,7 @@ const ManualDataIntegration = ({ navigation }) => {
     }
 
     const body = {
-      hospital_id: "HOSP_8FBF9714",
+      hospital_id: hospitalId, // ← REPLACE hardcoded value with this
       phone,
       name: snapshot.fullName.trim(),
       specialization: snapshot.specialization.trim() || snapshot.department,
@@ -3169,46 +3096,134 @@ const ManualDataIntegration = ({ navigation }) => {
     }
   };
 
-  // ─────────────────────────────────────────────
-  // ADD PATIENT API
-  // Returns the created patient object (with patient_id)
-  // ─────────────────────────────────────────────
   const callAddPatientAPI = async (doctorId, patientSnapshot) => {
     const token = Platform.OS === "web" ? localStorage.getItem("token") : null;
 
+    const hospitalId =
+      Platform.OS === "web" ? localStorage.getItem("hospital_id") : null;
+    console.log("TOKEN =>", token);
+    console.log("HOSPITAL ID =>", hospitalId);
+    console.log("DOCTOR ID =>", doctorId);
+    console.log("PATIENT SNAPSHOT =>", patientSnapshot);
+    console.log("SELECTED DOCTOR =>", selectedDoctor);
+
     let phone = patientSnapshot.phoneNo?.trim();
+
     if (phone && !phone.startsWith("+")) {
       phone = "+91" + phone.replace(/^0+/, "");
     }
 
-    const body = {
-      phone,
-      name: patientSnapshot.fullName.trim(),
-      email: patientSnapshot.email?.trim() || "",
-      age: Number(patientSnapshot.age),
-      gender: patientSnapshot.gender,
-    };
-    if (doctorId) {
-      body.doctor_id = doctorId;
+    // ─────────────────────────────────────
+    // VALIDATE REQUIRED DOCUMENTS
+    // ─────────────────────────────────────
+    if (!patientDocs.insurance?.file) {
+      throw new Error("Insurance policy document is required");
     }
 
-    const res = await fetch(`${API_URL}/hospitals/staff/add-patient`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      body: JSON.stringify(body),
-    });
+    if (!patientDocs.hospitalBill?.file) {
+      throw new Error("Hospital bill document is required");
+    }
+
+    if (!patientDocs.prescription?.file) {
+      throw new Error("Prescription document is required");
+    }
+
+    // ─────────────────────────────────────
+    // CREATE MULTIPART FORMDATA
+    // ─────────────────────────────────────
+    const formData = new FormData();
+
+    // Required
+    formData.append("hospital_id", hospitalId);
+    formData.append("phone", phone);
+    formData.append("name", patientSnapshot.fullName.trim());
+
+    // Optional
+    if (doctorId) {
+      formData.append("doctor_id", doctorId);
+    }
+
+    if (patientSnapshot.email?.trim()) {
+      formData.append("email", patientSnapshot.email.trim());
+    }
+
+    if (patientSnapshot.age) {
+      formData.append("age", String(patientSnapshot.age));
+    }
+
+    if (patientSnapshot.gender) {
+      formData.append("gender", patientSnapshot.gender);
+    }
+
+    // ─────────────────────────────────────
+    // DOCUMENTS
+    // ─────────────────────────────────────
+    formData.append("insurance_policy", patientDocs.insurance.file);
+
+    formData.append("hospital_bill", patientDocs.hospitalBill.file);
+
+    formData.append("prescription", patientDocs.prescription.file);
+
+    console.log("INSURANCE FILE =>", patientDocs.insurance);
+    console.log("HOSPITAL BILL FILE =>", patientDocs.hospitalBill);
+    console.log("PRESCRIPTION FILE =>", patientDocs.prescription);
+
+    console.log("INSURANCE REAL FILE =>", patientDocs.insurance?.file);
+
+    console.log("HOSPITAL BILL REAL FILE =>", patientDocs.hospitalBill?.file);
+
+    console.log("PRESCRIPTION REAL FILE =>", patientDocs.prescription?.file);
+
+    // ─────────────────────────────────────
+    // API CALL
+    // ─────────────────────────────────────
+    // const res = await fetch(`${API_URL}/hospitals/staff/add-patient`, {
+    //   method: "POST",
+    //   headers: {
+    //     ...(token && {
+    //       Authorization: `Bearer ${token}`,
+    //     }),
+
+    //     // ⚠️ DO NOT SET CONTENT-TYPE
+    //     // Browser automatically sets multipart boundary
+    //   },
+    //   body: formData,
+    // });
+
+    // const text = await res.text();
+    let res;
+
+    try {
+      res = await fetch(`${API_URL}/hospitals/staff/add-patient`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      console.log("FETCH RESPONSE RECEIVED");
+      console.log("STATUS =>", res.status);
+    } catch (err) {
+      console.log("FETCH FAILED =>", err);
+      alert("FETCH FAILED");
+      throw err;
+    }
 
     const text = await res.text();
 
+    console.log("RAW RESPONSE =>", text);
+
     if (!res.ok) {
       let msg = "Failed to add patient";
+
       try {
         const err = JSON.parse(text);
-        msg = err.message || err.error || msg;
+
+        msg = err.message || err.error || err.detail || msg;
       } catch (_) {}
+
       throw new Error(msg);
     }
 
@@ -3220,6 +3235,7 @@ const ManualDataIntegration = ({ navigation }) => {
   // ─────────────────────────────────────────────
   const fetchDoctorList = async () => {
     const token = Platform.OS === "web" ? localStorage.getItem("token") : null;
+
     const hospitalId =
       Platform.OS === "web" ? localStorage.getItem("hospital_id") : null;
 
@@ -3228,29 +3244,33 @@ const ManualDataIntegration = ({ navigation }) => {
 
     try {
       const res = await fetch(
-        `${API_URL}/doctorsService/doctors?hospital_id=${hospitalId || "HOSP_8FBF9714"}`,
+        `${API_URL}/doctorsService/doctors?hospital_id=${hospitalId}`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),
           },
-        }
+        },
       );
 
       const responseText = await res.text();
 
       if (!res.ok) {
         let msg = `Error ${res.status}`;
+
         try {
           const errJson = JSON.parse(responseText);
           msg = errJson.message || errJson.error || msg;
         } catch (_) {}
+
         throw new Error(msg);
       }
 
       const data = JSON.parse(responseText);
+
       const list = Array.isArray(data) ? data : data.doctors || data.data || [];
+
       setDoctorList(list);
     } catch (err) {
       setListError(err.message || "Failed to load doctor list.");
@@ -3331,6 +3351,20 @@ const ManualDataIntegration = ({ navigation }) => {
       alert("Gender is required");
       return false;
     }
+    if (!patientDocs.insurance?.file) {
+      alert("Insurance policy document is required");
+      return false;
+    }
+
+    if (!patientDocs.hospitalBill?.file) {
+      alert("Hospital bill document is required");
+      return false;
+    }
+
+    if (!patientDocs.prescription?.file) {
+      alert("Prescription document is required");
+      return false;
+    }
 
     const docId = selectedDoctor?.doctor_id || selectedDoctor?.id;
 
@@ -3339,16 +3373,16 @@ const ManualDataIntegration = ({ navigation }) => {
       const response = await callAddPatientAPI(docId, patientForm);
 
       // Extract patient_id from response — adjust key if backend differs
-      const patientId =
-        response?.patient?.patient_id ||
-        response?.patient_id ||
-        response?.id ||
-        null;
+      // const patientId =
+      //   response?.patient?.patient_id ||
+      //   response?.patient_id ||
+      //   response?.id ||
+      //   null;
 
-      // Upload documents if any were selected and we have a patient ID
-      if (patientId) {
-        await uploadPatientDocuments(patientId);
-      }
+      // // Upload documents if any were selected and we have a patient ID
+      // if (patientId) {
+      //   await uploadPatientDocuments(patientId);
+      // }
 
       setPatientSaved(true);
       setTimeout(() => setPatientSaved(false), 3000);
@@ -3568,13 +3602,17 @@ const ManualDataIntegration = ({ navigation }) => {
             <TouchableOpacity
               style={[
                 styles.excelUploadBtn,
-                (!uploadFile || uploadStatus === "uploading") && { opacity: 0.5 },
+                (!uploadFile || uploadStatus === "uploading") && {
+                  opacity: 0.5,
+                },
               ]}
               onPress={handleExcelUpload}
               disabled={!uploadFile || uploadStatus === "uploading"}
             >
               {uploadStatus === "uploading" ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
                   <ActivityIndicator color="#fff" size="small" />
                   <Text style={styles.excelUploadBtnText}>Uploading...</Text>
                 </View>
@@ -3585,7 +3623,9 @@ const ManualDataIntegration = ({ navigation }) => {
 
             <View style={styles.excelTemplateBox}>
               <TouchableOpacity style={styles.excelTemplateBtn}>
-                <Text style={styles.excelTemplateBtnText}>Download Template</Text>
+                <Text style={styles.excelTemplateBtnText}>
+                  Download Template
+                </Text>
               </TouchableOpacity>
               <Text style={styles.excelTemplateHint}>
                 Not sure of format? Download our template first
@@ -3700,7 +3740,14 @@ const ManualDataIntegration = ({ navigation }) => {
             disabled={!uploadFile || uploadStatus === "uploading"}
           >
             {uploadStatus === "uploading" ? (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  justifyContent: "center",
+                }}
+              >
                 <ActivityIndicator color="#fff" size="small" />
                 <Text style={styles.mobileBtnText}>Uploading...</Text>
               </View>
@@ -3724,7 +3771,9 @@ const ManualDataIntegration = ({ navigation }) => {
           </View>
 
           <View style={styles.mobileExcelStatsRow}>
-            <View style={[styles.mobileExcelStatCard, styles.excelStatCardNeutral]}>
+            <View
+              style={[styles.mobileExcelStatCard, styles.excelStatCardNeutral]}
+            >
               <Text style={styles.mobileExcelStatNumber}>
                 {uploadResult?.doctor_imported ?? "—"}
               </Text>
@@ -3732,16 +3781,24 @@ const ManualDataIntegration = ({ navigation }) => {
                 Doctor{"\n"}Imported
               </Text>
             </View>
-            <View style={[styles.mobileExcelStatCard, styles.excelStatCardSuccess]}>
-              <Text style={[styles.mobileExcelStatNumber, { color: "#16A34A" }]}>
+            <View
+              style={[styles.mobileExcelStatCard, styles.excelStatCardSuccess]}
+            >
+              <Text
+                style={[styles.mobileExcelStatNumber, { color: "#16A34A" }]}
+              >
                 {uploadResult?.total_patients ?? "—"}
               </Text>
               <Text style={[styles.mobileExcelStatLabel, { color: "#16A34A" }]}>
                 patients{"\n"}records
               </Text>
             </View>
-            <View style={[styles.mobileExcelStatCard, styles.excelStatCardError]}>
-              <Text style={[styles.mobileExcelStatNumber, { color: "#DC2626" }]}>
+            <View
+              style={[styles.mobileExcelStatCard, styles.excelStatCardError]}
+            >
+              <Text
+                style={[styles.mobileExcelStatNumber, { color: "#DC2626" }]}
+              >
                 {uploadResult?.error_count ?? 0}
               </Text>
               <Text style={[styles.mobileExcelStatLabel, { color: "#DC2626" }]}>
@@ -3750,7 +3807,12 @@ const ManualDataIntegration = ({ navigation }) => {
             </View>
           </View>
 
-          <Text style={[styles.excelEtaNote, { textAlign: "center", marginBottom: 16 }]}>
+          <Text
+            style={[
+              styles.excelEtaNote,
+              { textAlign: "center", marginBottom: 16 },
+            ]}
+          >
             Data will be live within {uploadResult?.eta_hours ?? 24}h
           </Text>
 
@@ -3801,6 +3863,9 @@ const ManualDataIntegration = ({ navigation }) => {
 
               {/* Right Content */}
               <View style={styles.right}>
+                <View style={styles.header}>
+                  <HeaderLoginSignUp navigation={navigation} />
+                </View>
                 {/* Card */}
                 <View style={styles.card}>
                   {/* Title Row */}
@@ -3827,13 +3892,20 @@ const ManualDataIntegration = ({ navigation }) => {
                                 styles.stepCircle,
                                 isCompleted && styles.stepCircleComplete,
                                 isActive && styles.stepCircleActive,
-                                !isCompleted && !isActive && styles.stepCircleInactive,
+                                !isCompleted &&
+                                  !isActive &&
+                                  styles.stepCircleInactive,
                               ]}
                             >
                               {isCompleted ? (
                                 <Text style={styles.stepCheckmark}>✓</Text>
                               ) : (
-                                <Text style={[styles.stepNumber, !isActive && { color: "#9CA3AF" }]}>
+                                <Text
+                                  style={[
+                                    styles.stepNumber,
+                                    !isActive && { color: "#9CA3AF" },
+                                  ]}
+                                >
                                   {index + 1}
                                 </Text>
                               )}
@@ -3842,19 +3914,29 @@ const ManualDataIntegration = ({ navigation }) => {
                               <Text
                                 style={[
                                   styles.stepTitle,
-                                  { color: index <= currentStep ? "#2563EB" : "#9CA3AF" },
+                                  {
+                                    color:
+                                      index <= currentStep
+                                        ? "#2563EB"
+                                        : "#9CA3AF",
+                                  },
                                 ]}
                               >
                                 {step.label}
                               </Text>
-                              <Text style={styles.stepSubtitle}>{step.sub}</Text>
+                              <Text style={styles.stepSubtitle}>
+                                {step.sub}
+                              </Text>
                             </View>
                           </View>
                           {index < steps.length - 1 && (
                             <View
                               style={[
                                 styles.stepConnector,
-                                { backgroundColor: index < currentStep ? "#2563EB" : "#E5E7EB" },
+                                {
+                                  backgroundColor:
+                                    index < currentStep ? "#2563EB" : "#E5E7EB",
+                                },
                               ]}
                             />
                           )}
@@ -3897,12 +3979,16 @@ const ManualDataIntegration = ({ navigation }) => {
                           style={styles.backHomeBtn}
                           onPress={() => setShowPatientForm(false)}
                         >
-                          <Text style={styles.backHomeBtnText}>Skip for now</Text>
+                          <Text style={styles.backHomeBtnText}>
+                            Skip for now
+                          </Text>
                         </TouchableOpacity>
                       </View>
 
                       <View style={styles.formSection}>
-                        <Text style={styles.sectionLabel}>Patients Details :</Text>
+                        <Text style={styles.sectionLabel}>
+                          Patients Details :
+                        </Text>
 
                         {/* Row 1 */}
                         <View style={styles.formRow}>
@@ -4008,14 +4094,19 @@ const ManualDataIntegration = ({ navigation }) => {
                             />
                           </View>
                           <View style={styles.formField}>
-                            <Text style={styles.fieldLabel}>Admission date</Text>
+                            <Text style={styles.fieldLabel}>
+                              Admission date
+                            </Text>
                             <TextInput
                               style={styles.input}
                               placeholder="dd-mm-yyyy"
                               value={patientForm.admissionDate}
                               placeholderTextColor="#C0C0C0"
                               onChangeText={(v) =>
-                                setPatientForm((p) => ({ ...p, admissionDate: v }))
+                                setPatientForm((p) => ({
+                                  ...p,
+                                  admissionDate: v,
+                                }))
                               }
                             />
                           </View>
@@ -4040,7 +4131,8 @@ const ManualDataIntegration = ({ navigation }) => {
                         {/* ── DOCUMENT UPLOAD ROW ── */}
                         <View style={{ marginBottom: 20 }}>
                           <Text style={styles.fieldLabel}>
-                            Upload Documents<Text style={styles.required}>*</Text>
+                            Upload Documents
+                            <Text style={styles.required}>*</Text>
                           </Text>
                           {renderDocumentUploadRow(false)}
                         </View>
@@ -4050,35 +4142,57 @@ const ManualDataIntegration = ({ navigation }) => {
                           <TouchableOpacity
                             style={[
                               styles.saveDoneBtn,
-                              (isSavingMobile || docsUploading) && { opacity: 0.7 },
+                              (isSavingMobile || docsUploading) && {
+                                opacity: 0.7,
+                              },
                             ]}
                             onPress={handlePatientSaveDone}
                             disabled={isSavingMobile || docsUploading}
                             activeOpacity={0.85}
                           >
                             {isSavingMobile || docsUploading ? (
-                              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 8,
+                                }}
+                              >
                                 <ActivityIndicator color="#fff" size="small" />
-                                <Text style={styles.saveDoneBtnText}>Saving...</Text>
+                                <Text style={styles.saveDoneBtnText}>
+                                  Saving...
+                                </Text>
                               </View>
                             ) : (
-                              <Text style={styles.saveDoneBtnText}>Save & Done</Text>
+                              <Text style={styles.saveDoneBtnText}>
+                                Save & Done
+                              </Text>
                             )}
                           </TouchableOpacity>
 
                           <TouchableOpacity
                             style={[
                               styles.saveAnotherBtn,
-                              (isSavingMobile || docsUploading) && { opacity: 0.7 },
+                              (isSavingMobile || docsUploading) && {
+                                opacity: 0.7,
+                              },
                             ]}
                             onPress={handlePatientSaveAnother}
                             disabled={isSavingMobile || docsUploading}
                             activeOpacity={0.85}
                           >
                             {isSavingMobile || docsUploading ? (
-                              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 8,
+                                }}
+                              >
                                 <ActivityIndicator color="#fff" size="small" />
-                                <Text style={styles.saveAnotherBtnText}>Saving...</Text>
+                                <Text style={styles.saveAnotherBtnText}>
+                                  Saving...
+                                </Text>
                               </View>
                             ) : (
                               <Text style={styles.saveAnotherBtnText}>
@@ -4108,35 +4222,71 @@ const ManualDataIntegration = ({ navigation }) => {
                           }}
                           activeOpacity={0.85}
                         >
-                          <Text style={styles.addDoctorBtnText}>+ Add Doctor</Text>
+                          <Text style={styles.addDoctorBtnText}>
+                            + Add Doctor
+                          </Text>
                         </TouchableOpacity>
                       </View>
 
                       {listLoading ? (
                         <View style={styles.listCenterBox}>
                           <ActivityIndicator color="#2563EB" size="large" />
-                          <Text style={styles.listLoadingText}>Loading doctors...</Text>
+                          <Text style={styles.listLoadingText}>
+                            Loading doctors...
+                          </Text>
                         </View>
                       ) : listError ? (
                         <View style={styles.listCenterBox}>
-                          <Text style={styles.listErrorText}>⚠️ {listError}</Text>
-                          <TouchableOpacity style={styles.retryBtn} onPress={fetchDoctorList}>
+                          <Text style={styles.listErrorText}>
+                            ⚠️ {listError}
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.retryBtn}
+                            onPress={fetchDoctorList}
+                          >
                             <Text style={styles.retryBtnText}>Retry</Text>
                           </TouchableOpacity>
                         </View>
                       ) : (
-                        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                        <ScrollView
+                          style={{ flex: 1 }}
+                          showsVerticalScrollIndicator={false}
+                        >
                           <View style={styles.tableHead}>
-                            <Text style={[styles.tableHeadCell, styles.colId]}>ID</Text>
-                            <Text style={[styles.tableHeadCell, styles.colName]}>DOCTOR NAME</Text>
-                            <Text style={[styles.tableHeadCell, styles.colName]}>PATIENT COUNT</Text>
-                            <Text style={[styles.tableHeadCell, styles.colDept]}>DEPARTMENT</Text>
-                            <Text style={[styles.tableHeadCell, styles.colAction]}>ACTION</Text>
-                            <Text style={[styles.tableHeadCell, styles.colAction2]}>ACTION</Text>
+                            <Text style={[styles.tableHeadCell, styles.colId]}>
+                              ID
+                            </Text>
+                            <Text
+                              style={[styles.tableHeadCell, styles.colName]}
+                            >
+                              DOCTOR NAME
+                            </Text>
+                            <Text
+                              style={[styles.tableHeadCell, styles.colName]}
+                            >
+                              PATIENT COUNT
+                            </Text>
+                            <Text
+                              style={[styles.tableHeadCell, styles.colDept]}
+                            >
+                              DEPARTMENT
+                            </Text>
+                            <Text
+                              style={[styles.tableHeadCell, styles.colAction]}
+                            >
+                              ACTION
+                            </Text>
+                            <Text
+                              style={[styles.tableHeadCell, styles.colAction2]}
+                            >
+                              ACTION
+                            </Text>
                           </View>
                           {doctorList.length === 0 ? (
                             <View style={styles.listCenterBox}>
-                              <Text style={styles.listEmptyText}>No doctors found.</Text>
+                              <Text style={styles.listEmptyText}>
+                                No doctors found.
+                              </Text>
                             </View>
                           ) : (
                             doctorList.map((doc, index) => (
@@ -4147,16 +4297,29 @@ const ManualDataIntegration = ({ navigation }) => {
                                   index % 2 === 0 && styles.tableRowEven,
                                 ]}
                               >
-                                <Text style={[styles.tableCell, styles.colId, styles.cellId]}>
+                                <Text
+                                  style={[
+                                    styles.tableCell,
+                                    styles.colId,
+                                    styles.cellId,
+                                  ]}
+                                >
                                   #{index + 1}
                                 </Text>
-                                <Text style={[styles.tableCell, styles.colName]}>
+                                <Text
+                                  style={[styles.tableCell, styles.colName]}
+                                >
                                   {doc.doctorname || doc.name || "—"}
                                 </Text>
-                                <Text style={[styles.tableCell, styles.colName]}>
-                                  {patientCountMap[doc.doctor_id || doc.id] || 0}
+                                <Text
+                                  style={[styles.tableCell, styles.colName]}
+                                >
+                                  {patientCountMap[doc.doctor_id || doc.id] ||
+                                    0}
                                 </Text>
-                                <Text style={[styles.tableCell, styles.colDept]}>
+                                <Text
+                                  style={[styles.tableCell, styles.colDept]}
+                                >
                                   {doc.specialization || doc.department || "—"}
                                 </Text>
                                 <View style={styles.colAction}>
@@ -4173,10 +4336,18 @@ const ManualDataIntegration = ({ navigation }) => {
                                       setShowPatientForm(true);
                                     }}
                                   >
-                                    <Text style={styles.addPatientBtnText}>+ Add Patient</Text>
+                                    <Text style={styles.addPatientBtnText}>
+                                      + Add Patient
+                                    </Text>
                                   </TouchableOpacity>
                                 </View>
-                                <Text style={[styles.tableCell, styles.colAction2, { color: "#9CA3AF" }]}>
+                                <Text
+                                  style={[
+                                    styles.tableCell,
+                                    styles.colAction2,
+                                    { color: "#9CA3AF" },
+                                  ]}
+                                >
                                   —
                                 </Text>
                               </View>
@@ -4197,19 +4368,24 @@ const ManualDataIntegration = ({ navigation }) => {
                           <View style={styles.successIconCircle}>
                             <Text style={styles.successIconCheck}>✓</Text>
                           </View>
-                          <Text style={styles.successText}>Doctor added successfully</Text>
+                          <Text style={styles.successText}>
+                            Doctor added successfully
+                          </Text>
                         </View>
                       )}
 
                       <View style={styles.infoBanner}>
                         <Text style={styles.infoBannerText}>
                           Add doctor one at a time. For each doctor, you can add
-                          their associated patients. Click Save & continue to keep adding.
+                          their associated patients. Click Save & continue to
+                          keep adding.
                         </Text>
                       </View>
 
                       <View style={styles.formSection}>
-                        <Text style={styles.sectionLabel}>Doctor Details :</Text>
+                        <Text style={styles.sectionLabel}>
+                          Doctor Details :
+                        </Text>
 
                         {!!error && (
                           <View style={styles.errorBox}>
@@ -4256,13 +4432,17 @@ const ManualDataIntegration = ({ navigation }) => {
                               </TouchableOpacity>
                               {dropdownOpen && (
                                 <View style={styles.dropdownList}>
-                                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                                  <ScrollView
+                                    style={{ maxHeight: 200 }}
+                                    nestedScrollEnabled
+                                  >
                                     {departments.map((dept) => (
                                       <TouchableOpacity
                                         key={dept}
                                         style={[
                                           styles.dropdownItem,
-                                          form.department === dept && styles.dropdownItemActive,
+                                          form.department === dept &&
+                                            styles.dropdownItemActive,
                                         ]}
                                         onPress={() => {
                                           handleChange("department", dept);
@@ -4272,7 +4452,8 @@ const ManualDataIntegration = ({ navigation }) => {
                                         <Text
                                           style={[
                                             styles.dropdownItemText,
-                                            form.department === dept && styles.dropdownItemTextActive,
+                                            form.department === dept &&
+                                              styles.dropdownItemTextActive,
                                           ]}
                                         >
                                           {dept}
@@ -4295,17 +4476,23 @@ const ManualDataIntegration = ({ navigation }) => {
                               placeholder="e.g. 5 years"
                               placeholderTextColor="#C0C0C0"
                               value={form.experience}
-                              onChangeText={(v) => handleChange("experience", v)}
+                              onChangeText={(v) =>
+                                handleChange("experience", v)
+                              }
                             />
                           </View>
                           <View style={styles.formField}>
-                            <Text style={styles.fieldLabel}>Specialization</Text>
+                            <Text style={styles.fieldLabel}>
+                              Specialization
+                            </Text>
                             <TextInput
                               style={styles.input}
                               placeholder="e.g Interventional Cardiology"
                               placeholderTextColor="#C0C0C0"
                               value={form.specialisation}
-                              onChangeText={(v) => handleChange("specialization", v)}
+                              onChangeText={(v) =>
+                                handleChange("specialization", v)
+                              }
                             />
                           </View>
                         </View>
@@ -4340,7 +4527,10 @@ const ManualDataIntegration = ({ navigation }) => {
 
                         <View style={styles.btnRow}>
                           <TouchableOpacity
-                            style={[styles.saveDoneBtn, isSaving && styles.btnDisabled]}
+                            style={[
+                              styles.saveDoneBtn,
+                              isSaving && styles.btnDisabled,
+                            ]}
                             onPress={handleSaveDone}
                             disabled={isSaving}
                             activeOpacity={0.85}
@@ -4348,14 +4538,21 @@ const ManualDataIntegration = ({ navigation }) => {
                             {isSaving ? (
                               <View style={styles.btnInner}>
                                 <ActivityIndicator color="#fff" size="small" />
-                                <Text style={styles.saveDoneBtnText}>Saving...</Text>
+                                <Text style={styles.saveDoneBtnText}>
+                                  Saving...
+                                </Text>
                               </View>
                             ) : (
-                              <Text style={styles.saveDoneBtnText}>Save & Done</Text>
+                              <Text style={styles.saveDoneBtnText}>
+                                Save & Done
+                              </Text>
                             )}
                           </TouchableOpacity>
                           <TouchableOpacity
-                            style={[styles.saveAnotherBtn, isSaving && styles.btnDisabled]}
+                            style={[
+                              styles.saveAnotherBtn,
+                              isSaving && styles.btnDisabled,
+                            ]}
                             onPress={handleSaveAndRegisterAnother}
                             disabled={isSaving}
                             activeOpacity={0.85}
@@ -4363,7 +4560,9 @@ const ManualDataIntegration = ({ navigation }) => {
                             {isSaving ? (
                               <View style={styles.btnInner}>
                                 <ActivityIndicator color="#fff" size="small" />
-                                <Text style={styles.saveAnotherBtnText}>Saving...</Text>
+                                <Text style={styles.saveAnotherBtnText}>
+                                  Saving...
+                                </Text>
                               </View>
                             ) : (
                               <Text style={styles.saveAnotherBtnText}>
@@ -4377,13 +4576,17 @@ const ManualDataIntegration = ({ navigation }) => {
                           onPress={handleDoneGoToList}
                           activeOpacity={0.85}
                         >
-                          <Text style={styles.doneBtnText}>Done & go to doctor list</Text>
+                          <Text style={styles.doneBtnText}>
+                            Done & go to doctor list
+                          </Text>
                         </TouchableOpacity>
                       </View>
 
                       {savedDoctors.length > 0 && (
                         <View style={styles.savedSection}>
-                          <Text style={styles.savedSectionLabel}>Doctor being Saved</Text>
+                          <Text style={styles.savedSectionLabel}>
+                            Doctor being Saved
+                          </Text>
                           {savedDoctors.map((doc) => (
                             <View key={doc.id} style={styles.doctorCard}>
                               <View style={styles.doctorAvatar}>
@@ -4392,12 +4595,18 @@ const ManualDataIntegration = ({ navigation }) => {
                                 </Text>
                               </View>
                               <View style={styles.doctorInfo}>
-                                <Text style={styles.doctorName}>{doc.name}</Text>
-                                <Text style={styles.doctorDept}>{doc.department}</Text>
+                                <Text style={styles.doctorName}>
+                                  {doc.name}
+                                </Text>
+                                <Text style={styles.doctorDept}>
+                                  {doc.department}
+                                </Text>
                               </View>
                               {doc.status === "linked" && (
                                 <View style={styles.linkedBadge}>
-                                  <Text style={styles.linkedBadgeText}>Linked</Text>
+                                  <Text style={styles.linkedBadgeText}>
+                                    Linked
+                                  </Text>
                                 </View>
                               )}
                             </View>
@@ -4411,7 +4620,9 @@ const ManualDataIntegration = ({ navigation }) => {
                           onPress={handleDoneGoToList}
                           activeOpacity={0.85}
                         >
-                          <Text style={styles.doneBtnText}>Done & go to doctor list</Text>
+                          <Text style={styles.doneBtnText}>
+                            Done & go to doctor list
+                          </Text>
                         </TouchableOpacity>
                       )}
                     </ScrollView>
@@ -4465,7 +4676,9 @@ const ManualDataIntegration = ({ navigation }) => {
                 <View style={styles.successIconCircle}>
                   <Text style={styles.successIconCheck}>✓</Text>
                 </View>
-                <Text style={styles.successText}>Doctor added successfully</Text>
+                <Text style={styles.successText}>
+                  Doctor added successfully
+                </Text>
               </View>
             )}
 
@@ -4477,7 +4690,9 @@ const ManualDataIntegration = ({ navigation }) => {
                     <View style={styles.successIconCircle}>
                       <Text style={styles.successIconCheck}>✓</Text>
                     </View>
-                    <Text style={styles.successText}>Patient added successfully</Text>
+                    <Text style={styles.successText}>
+                      Patient added successfully
+                    </Text>
                   </View>
                 )}
 
@@ -4487,13 +4702,21 @@ const ManualDataIntegration = ({ navigation }) => {
                   </Text>
                 </View>
 
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginBottom: 10,
+                  }}
+                >
                   <Text style={styles.sectionLabel}>
                     Patients for Dr.{" "}
                     {selectedDoctor?.doctorname || selectedDoctor?.name}
                   </Text>
                   <TouchableOpacity onPress={() => setShowPatientForm(false)}>
-                    <Text style={{ color: "#2563EB", fontWeight: "600" }}>Skip</Text>
+                    <Text style={{ color: "#2563EB", fontWeight: "600" }}>
+                      Skip
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
@@ -4504,14 +4727,18 @@ const ManualDataIntegration = ({ navigation }) => {
                   placeholder="Full Name"
                   value={patientForm.fullName}
                   placeholderTextColor="#a3a2a2ff"
-                  onChangeText={(v) => setPatientForm((p) => ({ ...p, fullName: v }))}
+                  onChangeText={(v) =>
+                    setPatientForm((p) => ({ ...p, fullName: v }))
+                  }
                 />
                 <TextInput
                   style={styles.mobileInput}
                   placeholder="Age"
                   value={patientForm.age}
                   placeholderTextColor="#a3a2a2ff"
-                  onChangeText={(v) => setPatientForm((p) => ({ ...p, age: v }))}
+                  onChangeText={(v) =>
+                    setPatientForm((p) => ({ ...p, age: v }))
+                  }
                   keyboardType="numeric"
                 />
                 <TextInput
@@ -4519,14 +4746,18 @@ const ManualDataIntegration = ({ navigation }) => {
                   placeholder="Gender"
                   value={patientForm.gender}
                   placeholderTextColor="#a3a2a2ff"
-                  onChangeText={(v) => setPatientForm((p) => ({ ...p, gender: v }))}
+                  onChangeText={(v) =>
+                    setPatientForm((p) => ({ ...p, gender: v }))
+                  }
                 />
                 <TextInput
                   style={styles.mobileInput}
                   placeholder="Phone Number"
                   value={patientForm.phoneNo}
                   placeholderTextColor="#a3a2a2ff"
-                  onChangeText={(v) => setPatientForm((p) => ({ ...p, phoneNo: v }))}
+                  onChangeText={(v) =>
+                    setPatientForm((p) => ({ ...p, phoneNo: v }))
+                  }
                   keyboardType="phone-pad"
                 />
                 <TextInput
@@ -4534,14 +4765,18 @@ const ManualDataIntegration = ({ navigation }) => {
                   placeholder="Policy Number (optional)"
                   value={patientForm.policyNo}
                   placeholderTextColor="#a3a2a2ff"
-                  onChangeText={(v) => setPatientForm((p) => ({ ...p, policyNo: v }))}
+                  onChangeText={(v) =>
+                    setPatientForm((p) => ({ ...p, policyNo: v }))
+                  }
                 />
                 <TextInput
                   style={styles.mobileInput}
                   placeholder="Insurer (optional)"
                   value={patientForm.insurer}
                   placeholderTextColor="#a3a2a2ff"
-                  onChangeText={(v) => setPatientForm((p) => ({ ...p, insurer: v }))}
+                  onChangeText={(v) =>
+                    setPatientForm((p) => ({ ...p, insurer: v }))
+                  }
                 />
 
                 <TouchableOpacity
@@ -4567,14 +4802,18 @@ const ManualDataIntegration = ({ navigation }) => {
                   placeholder="Diagnosis / Procedure (optional)"
                   value={patientForm.diagnosis}
                   placeholderTextColor="#a3a2a2ff"
-                  onChangeText={(v) => setPatientForm((p) => ({ ...p, diagnosis: v }))}
+                  onChangeText={(v) =>
+                    setPatientForm((p) => ({ ...p, diagnosis: v }))
+                  }
                 />
 
                 {/* ── DOCUMENT UPLOAD ROW (MOBILE) ── */}
                 <View style={{ marginBottom: 16 }}>
                   <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>
                     Upload Documents{" "}
-                    <Text style={{ color: "#9CA3AF", fontWeight: "400" }}>(optional)</Text>
+                    <Text style={{ color: "#9CA3AF", fontWeight: "400" }}>
+                      (optional)
+                    </Text>
                   </Text>
                   {renderDocumentUploadRow(true)}
                 </View>
@@ -4588,7 +4827,14 @@ const ManualDataIntegration = ({ navigation }) => {
                   disabled={isSavingMobile || docsUploading}
                 >
                   {isSavingMobile || docsUploading ? (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        justifyContent: "center",
+                      }}
+                    >
                       <ActivityIndicator color="#fff" size="small" />
                       <Text style={styles.mobileBtnText}>Saving...</Text>
                     </View>
@@ -4606,7 +4852,14 @@ const ManualDataIntegration = ({ navigation }) => {
                   disabled={isSavingMobile || docsUploading}
                 >
                   {isSavingMobile || docsUploading ? (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        justifyContent: "center",
+                      }}
+                    >
                       <ActivityIndicator color="#fff" size="small" />
                       <Text style={styles.mobileBtnText}>Saving...</Text>
                     </View>
@@ -4661,13 +4914,17 @@ const ManualDataIntegration = ({ navigation }) => {
                       </TouchableOpacity>
                       {dropdownOpen && (
                         <View style={styles.dropdownList}>
-                          <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                          <ScrollView
+                            style={{ maxHeight: 200 }}
+                            nestedScrollEnabled
+                          >
                             {departments.map((dept) => (
                               <TouchableOpacity
                                 key={dept}
                                 style={[
                                   styles.dropdownItem,
-                                  form.department === dept && styles.dropdownItemActive,
+                                  form.department === dept &&
+                                    styles.dropdownItemActive,
                                 ]}
                                 onPress={() => {
                                   handleChange("department", dept);
@@ -4677,7 +4934,8 @@ const ManualDataIntegration = ({ navigation }) => {
                                 <Text
                                   style={[
                                     styles.dropdownItemText,
-                                    form.department === dept && styles.dropdownItemTextActive,
+                                    form.department === dept &&
+                                      styles.dropdownItemTextActive,
                                   ]}
                                 >
                                   {dept}
@@ -4747,7 +5005,14 @@ const ManualDataIntegration = ({ navigation }) => {
                   disabled={isSavingMobile}
                 >
                   {isSavingMobile ? (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        justifyContent: "center",
+                      }}
+                    >
                       <ActivityIndicator color="#fff" size="small" />
                       <Text style={styles.mobileBtnText}>Saving...</Text>
                     </View>
@@ -4762,7 +5027,14 @@ const ManualDataIntegration = ({ navigation }) => {
                   disabled={isSavingMobile}
                 >
                   {isSavingMobile ? (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        justifyContent: "center",
+                      }}
+                    >
                       <ActivityIndicator color="#fff" size="small" />
                       <Text style={styles.mobileBtnText}>Saving...</Text>
                     </View>
@@ -4771,7 +5043,10 @@ const ManualDataIntegration = ({ navigation }) => {
                   )}
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.mobilePrimaryBtn} onPress={handleDoneGoToList}>
+                <TouchableOpacity
+                  style={styles.mobilePrimaryBtn}
+                  onPress={handleDoneGoToList}
+                >
                   <Text style={styles.mobileBtnText}>Go to Doctor List</Text>
                 </TouchableOpacity>
 
@@ -4786,7 +5061,9 @@ const ManualDataIntegration = ({ navigation }) => {
                         </View>
                         <View style={{ flexDirection: "column" }}>
                           <Text style={{ fontWeight: "600" }}>{doc.name}</Text>
-                          <Text style={{ color: "#6B7280" }}>{doc.department}</Text>
+                          <Text style={{ color: "#6B7280" }}>
+                            {doc.department}
+                          </Text>
                         </View>
                       </View>
                     ))}
@@ -4794,7 +5071,10 @@ const ManualDataIntegration = ({ navigation }) => {
                 )}
 
                 {savedDoctors.length > 0 && (
-                  <TouchableOpacity style={styles.mobilePrimaryBtn} onPress={handleDoneGoToList}>
+                  <TouchableOpacity
+                    style={styles.mobilePrimaryBtn}
+                    onPress={handleDoneGoToList}
+                  >
                     <Text style={styles.mobileBtnText}>Go to Doctor List</Text>
                   </TouchableOpacity>
                 )}
@@ -4808,7 +5088,9 @@ const ManualDataIntegration = ({ navigation }) => {
                     <Text style={styles.srNo}># Id : {i + 1}</Text>
                     <View style={styles.rowBetween}>
                       <Text style={styles.label}>Doctor Name</Text>
-                      <Text style={styles.value}>{doc.doctorname || doc.name}</Text>
+                      <Text style={styles.value}>
+                        {doc.doctorname || doc.name}
+                      </Text>
                     </View>
                     <View style={styles.rowBetween}>
                       <Text style={styles.label}>Department</Text>
@@ -4846,8 +5128,17 @@ const ManualDataIntegration = ({ navigation }) => {
 
       {/* Calendar Modal */}
       <Modal visible={calendarVisible} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", padding: 20 }}>
-          <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 10 }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.4)",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <View
+            style={{ backgroundColor: "#fff", borderRadius: 12, padding: 10 }}
+          >
             <Calendar
               onDayPress={(day) => {
                 const formatted = formatDate(day.dateString);
@@ -4890,8 +5181,18 @@ const styles = StyleSheet.create({
   },
   main: { flexDirection: "row", height: "100%", zIndex: 2 },
   left: { width: "15%" },
-  right: { width: "85%", padding: 20, zIndex: 3, height: "100%", overflow: "auto" },
-  header: { marginBottom: 16 },
+  right: {
+    width: "85%",
+    padding: 20,
+    zIndex: 3,
+    height: "100%",
+    overflow: "auto",
+  },
+  header: {
+    marginBottom: 0,
+    position: "relative",
+    zIndex: 1000,
+  },
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -4902,7 +5203,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-    marginTop: "4%",
+    marginTop: "0%",
   },
   titleTopSection: {
     height: 56,
@@ -4956,7 +5257,13 @@ const styles = StyleSheet.create({
   stepTextContainer: { flexDirection: "column" },
   stepTitle: { fontSize: 12, fontWeight: "700" },
   stepSubtitle: { fontSize: 10, color: "#9CA3AF", marginTop: 1 },
-  stepConnector: { height: 2, width: 32, marginHorizontal: 8, flexShrink: 0, alignSelf: "center" },
+  stepConnector: {
+    height: 2,
+    width: 32,
+    marginHorizontal: 8,
+    flexShrink: 0,
+    alignSelf: "center",
+  },
   scrollBody: {
     flex: 1,
     borderWidth: 1.5,
@@ -4998,10 +5305,20 @@ const styles = StyleSheet.create({
   },
   errorText: { fontSize: 13, color: "#DC2626" },
   formSection: { width: "100%" },
-  sectionLabel: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 16 },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 16,
+  },
   formRow: { flexDirection: "row", gap: 20, marginBottom: 18 },
   formField: { flex: 1 },
-  fieldLabel: { fontSize: 13, fontWeight: "500", color: "#374151", marginBottom: 6 },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#374151",
+    marginBottom: 6,
+  },
   required: { color: "#EF4444" },
   input: {
     borderWidth: 1,
@@ -5014,7 +5331,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     outlineStyle: "none",
   },
-  dropdownTrigger: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  dropdownTrigger: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   dropdownPlaceholder: { fontSize: 13, color: "#C0C0C0", flex: 1 },
   dropdownSelected: { fontSize: 13, color: "#111827", flex: 1 },
   dropdownArrow: { fontSize: 10, color: "#9CA3AF" },
@@ -5055,7 +5376,12 @@ const styles = StyleSheet.create({
   },
   saveAnotherBtnText: { color: "#fff", fontWeight: "600", fontSize: 14 },
   savedSection: { marginTop: 28, width: "100%" },
-  savedSectionLabel: { fontSize: 13, fontWeight: "500", color: "#9CA3AF", marginBottom: 12 },
+  savedSectionLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#9CA3AF",
+    marginBottom: 12,
+  },
   doctorCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -5129,7 +5455,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
   },
-  tableHeadCell: { fontSize: 11, fontWeight: "700", color: "#6B7280", letterSpacing: 0.5 },
+  tableHeadCell: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6B7280",
+    letterSpacing: 0.5,
+  },
   tableRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -5286,7 +5617,12 @@ const styles = StyleSheet.create({
   },
 
   // ── Excel Upload Shared ──
-  excelUploadHeading: { fontSize: 15, fontWeight: "700", color: "#2563EB", marginBottom: 14 },
+  excelUploadHeading: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#2563EB",
+    marginBottom: 14,
+  },
   excelDropzone: {
     borderWidth: 1.5,
     borderColor: "#93C5FD",
@@ -5302,8 +5638,18 @@ const styles = StyleSheet.create({
   excelUploadIcon: { fontSize: 32, color: "#2563EB", marginBottom: 8 },
   excelDropText: { fontSize: 13, color: "#6B7280", textAlign: "center" },
   excelClickHere: { color: "#2563EB", fontWeight: "700", fontSize: 13 },
-  excelFileName: { marginTop: 10, fontSize: 12, color: "#374151", fontWeight: "500" },
-  excelActionsRow: { flexDirection: "row", alignItems: "flex-start", gap: 16, marginTop: 4 },
+  excelFileName: {
+    marginTop: 10,
+    fontSize: 12,
+    color: "#374151",
+    fontWeight: "500",
+  },
+  excelActionsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 16,
+    marginTop: 4,
+  },
   excelUploadBtn: {
     backgroundColor: "#2563EB",
     paddingVertical: 10,
@@ -5340,7 +5686,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
   },
-  excelSectionTitle: { fontSize: 13, color: "#6B7280", marginBottom: 10, fontStyle: "italic" },
+  excelSectionTitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 10,
+    fontStyle: "italic",
+  },
   excelSuccessBox: {
     borderWidth: 1.5,
     borderColor: "#86EFAC",
@@ -5350,7 +5701,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  excelSuccessCheckmark: { fontSize: 28, color: "#16A34A", fontWeight: "700", marginBottom: 6 },
+  excelSuccessCheckmark: {
+    fontSize: 28,
+    color: "#16A34A",
+    fontWeight: "700",
+    marginBottom: 6,
+  },
   excelSuccessLabel: { fontSize: 16, fontWeight: "700", color: "#16A34A" },
   excelStatsRow: { flexDirection: "row", gap: 12, marginBottom: 14 },
   excelStatCard: {
@@ -5365,8 +5721,18 @@ const styles = StyleSheet.create({
   excelStatCardSuccess: { borderColor: "#86EFAC", backgroundColor: "#F0FDF4" },
   excelStatCardError: { borderColor: "#FECACA", backgroundColor: "#FEF2F2" },
   excelStatNumber: { fontSize: 28, fontWeight: "700", color: "#374151" },
-  excelStatLabel: { fontSize: 12, fontWeight: "500", marginTop: 4, textAlign: "center" },
-  excelEtaNote: { fontSize: 11, color: "#9CA3AF", fontStyle: "italic", marginBottom: 20 },
+  excelStatLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  excelEtaNote: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    fontStyle: "italic",
+    marginBottom: 20,
+  },
   excelSaveDoneBtn: {
     backgroundColor: "#2563EB",
     paddingVertical: 13,
@@ -5378,7 +5744,12 @@ const styles = StyleSheet.create({
   excelUploadAnother: { color: "#2563EB", fontWeight: "600", fontSize: 13 },
 
   // ── Mobile Styling ──
-  mobileStepBar: { flexDirection: "row", justifyContent: "space-around", paddingVertical: 12, backgroundColor: "#fff" },
+  mobileStepBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+  },
   mobileStepItem: { alignItems: "center" },
   mobileStepCircle: {
     width: 26,
@@ -5400,8 +5771,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: "#fff",
   },
-  mobilePrimaryBtn: { backgroundColor: "#2563EB", padding: 14, borderRadius: 8, marginTop: 10 },
-  mobileSecondaryBtn: { backgroundColor: "#22C55E", padding: 14, borderRadius: 8, marginTop: 10 },
+  mobilePrimaryBtn: {
+    backgroundColor: "#2563EB",
+    padding: 14,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  mobileSecondaryBtn: {
+    backgroundColor: "#22C55E",
+    padding: 14,
+    borderRadius: 8,
+    marginTop: 10,
+  },
   mobileBtnText: { color: "#fff", textAlign: "center", fontWeight: "600" },
   mobileDoctorCard: {
     backgroundColor: "#fff",
@@ -5423,7 +5804,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   srNo: { fontSize: 13, color: "#6B7280", marginBottom: 10, fontWeight: "500" },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  rowBetween: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
   label: { fontSize: 14, color: "#6B7280" },
   value: { fontSize: 14, fontWeight: "600", color: "#2563EB" },
   addPatientBtnMobileNew: {
@@ -5436,8 +5821,18 @@ const styles = StyleSheet.create({
   addPatientText: { color: "#fff", fontWeight: "600" },
 
   // ── Mobile Excel Section ──
-  mobileExcelSection: { marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: "#E5E7EB" },
-  mobileExcelTitle: { fontSize: 13, color: "#6B7280", fontStyle: "italic", marginBottom: 8 },
+  mobileExcelSection: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  mobileExcelTitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontStyle: "italic",
+    marginBottom: 8,
+  },
   mobileExcelDropzone: {
     borderWidth: 1.5,
     borderColor: "#93C5FD",
@@ -5488,7 +5883,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 15,
   },
-  mobileSaveDoneBtn: { backgroundColor: "#2563EB", padding: 16, borderRadius: 10, marginTop: 4 },
+  mobileSaveDoneBtn: {
+    backgroundColor: "#2563EB",
+    padding: 16,
+    borderRadius: 10,
+    marginTop: 4,
+  },
 });
 
 export default ManualDataIntegration;

@@ -754,6 +754,8 @@
 //   }
 // }
 
+
+
 /**
  * Medi Assist – Claim Form Part B (hospital section)
  * Pixel-matched to the scanned original.
@@ -1569,7 +1571,7 @@ export async function downloadMediAssistFormB(form, signatureDataUrl = null) {
   }
 
   const { uri } = await Print.printToFileAsync({ html });
-  const destUri = FileSystem.documentDirectory + fileName;
+  const destUri = FileSystem.cacheDirectory + fileName;
   await FileSystem.copyAsync({ from: uri, to: destUri });
   try {
     await FileSystem.deleteAsync(uri, { idempotent: true });
