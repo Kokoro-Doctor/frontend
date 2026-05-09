@@ -1719,12 +1719,9 @@ import { Ionicons } from "@expo/vector-icons";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 
 /* ─────────────────────────────────────────────
-   HELPERS (local copies — no cross-screen dep)
+   HELPERS (delegated to MediAssistMapper)
 ───────────────────────────────────────────── */
-function padChars(s, len) {
-  const t = String(s ?? "");
-  return t.padEnd(len, " ").slice(0, len);
-}
+// padChars is imported from ../../utils/MediAssistMapper and used throughout this file.
 
 /** Returns a blank Form B state. All values empty / false / empty-arrays. */
 function buildInitialFormB() {
@@ -2991,7 +2988,7 @@ export default function MediAssistFormB({ navigation, route }) {
                     <Text style={stylesWeb.outlineTextWeb}>Back to claim analysis</Text>
                   </TouchableOpacity>
                 </View>
-
+               </ScrollView>
               </View>
             </View>
           </View>

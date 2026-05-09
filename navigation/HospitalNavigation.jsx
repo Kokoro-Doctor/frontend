@@ -7,8 +7,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { useRole } from "../contexts/RoleContext";
 import HospitalPortalLandingPage from "../screens/HospitalScreens/HospitalPortalLandingPage";
 import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsuranceClaim";
-// import MediAssistFormA from "../screens/HospitalScreens/MediAssistFormA";
-// import MediAssistFormB from "../screens/HospitalScreens/MediAssistFormB";
+import StarHealthFormA from "../screens/HospitalScreens/StarHealthFormA";
+import MediAssistFormA from "../screens/HospitalScreens/MediAssistFormA";
+import MediAssistFormB from "../screens/HospitalScreens/MediAssistFormB";
 import PostOpCare from "../screens/HospitalScreens/PostOpCare";
 import PostOpCarePrescription from "../screens/HospitalScreens/PostOpCarePrescription";
 import DataIntegrations from "../screens/HospitalScreens/DataIntegrations";
@@ -77,7 +78,12 @@ const HospitalAppNavigation = ({ navigation }) => {
           component={HospitalInsuranceClaim}
           options={{ headerShown: false }}
         />
-        {/* <Stack.Screen
+        <Stack.Screen
+          name="StarHealthFormA"
+          component={StarHealthFormA}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="MediAssistFormA"
           component={MediAssistFormA}
           options={{ headerShown: false }}
@@ -86,7 +92,7 @@ const HospitalAppNavigation = ({ navigation }) => {
           name="MediAssistFormB"
           component={MediAssistFormB}
           options={{ headerShown: false }}
-        /> */}
+        />
         <Stack.Screen
           name="PostOpCare"
           component={PostOpCare}

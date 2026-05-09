@@ -3784,15 +3784,6 @@
 
 // export default HospitalInsuranceClaim;
 
-
-
-
-
-
-
-
-
-
 import React, {
   useState,
   useMemo,
@@ -4494,6 +4485,43 @@ const StructuredPanel = ({ structured, isLoading }) => {
   );
 };
 
+const normalizeCarrierName = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+const isStarHealthCarrier = (value) =>
+  /star\s*health/.test(normalizeCarrierName(value));
+
+const isMediAssistCarrier = (value) =>
+  /medi\s*assist/.test(normalizeCarrierName(value));
+
+const getUpdatedFilesScreen = (analysisData) => {
+  const structuredInsurance = analysisData?.structured_data?.insurance_details;
+  const autofillInsurance = analysisData?.autofill_extracted?.insurance_details;
+  const tpaName =
+    structuredInsurance?.tpa_name || autofillInsurance?.tpa_name || "";
+  const hasTpaName = normalizeCarrierName(tpaName).length > 0;
+  const insuranceCompany =
+    structuredInsurance?.insurance_company ||
+    autofillInsurance?.insurance_company ||
+    "";
+
+  if (!hasTpaName) return "StarHealthFormA";
+  if (isStarHealthCarrier(tpaName)) return "StarHealthFormA";
+  // if (isMediAssistCarrier(tpaName)) return "MediAssistFormA";
+  // if (isStarHealthCarrier(insuranceCompany)) {
+  //   return "StarHealthFormA";
+  // }
+
+  // return "MediAssistFormA";
+  if (isMediAssistCarrier(tpaName)) return "MediAssistCombinedForms";
+  if (isStarHealthCarrier(insuranceCompany)) {
+    return "StarHealthFormA";
+  }
+  return "MediAssistCombinedForms";
+};
+
 const MobileAnalysisView = ({
   structured,
   thinkingTrace,
@@ -4543,13 +4571,15 @@ const MobileAnalysisView = ({
       </View>
 
       {/* Accept Button */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={mav.acceptBtn}
         onPress={() => {
+          const targetScreen = getUpdatedFilesScreen(analysisData);
           trackButton("hospital_insurance_generate_files_button_clicked", {
             source: "insurance_claim_analysis_result",
+            target_screen: targetScreen,
           });
-          navigation.navigate("MediAssistFormA", { analysisData });
+          navigation.navigate(targetScreen, { analysisData });
         }}
       >
         <Text style={mav.acceptText}>Generate Updated Files →</Text>
@@ -4559,6 +4589,19 @@ const MobileAnalysisView = ({
         onPress={() => navigation.navigate("MediAssistFormB", { analysisData })}
       >
         <Text style={mav.acceptText}>Generate Form B (hospital) →</Text>
+      </TouchableOpacity> */}
+      <TouchableOpacity
+        style={mav.acceptBtn}
+        onPress={() => {
+          const targetScreen = getUpdatedFilesScreen(analysisData);
+          trackButton("hospital_insurance_generate_files_button_clicked", {
+            source: "insurance_claim_analysis_result",
+            target_screen: targetScreen,
+          });
+          navigation.navigate(targetScreen, { analysisData });
+        }}
+      >
+        <Text style={mav.acceptText}>Generate Updated Files →</Text>
       </TouchableOpacity>
     </View>
   );
@@ -5019,42 +5062,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   );
 
   // ─── THE KEY CHANGE: Navigate first, THEN call API ──────────────────
-  // const startAnalysis = async () => {
-  //   setCurrentStep(1);
-  //   setIsAnalyzing(true);
-  //   setAnalysisData(null);
-  //   setProcessingStage("uploading");
 
-  //   if (Platform.OS === "web" && width > 1000) {
-  //     Animated.timing(slideAnim, {
-  //       toValue: -cardWidth,
-  //       duration: 500,
-  //       useNativeDriver: true,
-  //     }).start();
-  //   }
-
-  //   const formData = new FormData();
-
-  //   const fieldMap = {
-  //     claim: "claim_form",
-  //     hospital: "hospital_bill",
-  //     prescription: "doctor_prescription",
-  //     insurance: "insurance_savings_breakdown",
-  //   };
-
-  //   for (const [key, backendField] of Object.entries(fieldMap)) {
-  //     const file = uploadSections[key];
-  //     if (!file) continue;
-
-  //     if (Platform.OS === "web") {
-  //       formData.append(backendField, file);
-  //     } else {
-  //       formData.append(backendField, {
-  //         uri: file.uri,
-  //         name: file.name || `${key}.pdf`,
-  //         type: file.mimeType || "application/octet-stream",
-  //       });
-  //     }
   const startAnalysis = async () => {
     setCurrentStep(1);
     setIsAnalyzing(true);
@@ -5074,44 +5082,6 @@ const HospitalInsuranceClaim = ({ navigation }) => {
     // ✅ FIX: use claimDocs when on native, OR when web width < 1000 (mobile web)
     const useMobileFlow = Platform.OS !== "web" || width < 1000;
 
-    // if (useMobileFlow) {
-    //   if (claimDocs.length === 0) {
-    //     setIsAnalyzing(false);
-    //     setCurrentStep(0);
-    //     return;
-    //   }
-
-    //   const file = claimDocs[0];
-
-    //   if (Platform.OS !== "web") {
-    //     // Real native device
-    //     formData.append("claim_form", {
-    //       uri: file.uri,
-    //       name: file.name || "claim.pdf",
-    //       type: file.mimeType || "application/octet-stream",
-    //     });
-    //   } else {
-    //     // Web browser (mobile emulation or real mobile browser)
-    //     formData.append("claim_form", file.file, file.name || "claim.pdf");
-    //   }
-
-    //   if (policyDocs.length > 0) {
-    //     const pfile = policyDocs[0];
-    //     if (Platform.OS !== "web") {
-    //       formData.append("hospital_bill", {
-    //         uri: pfile.uri,
-    //         name: pfile.name || "policy.pdf",
-    //         type: pfile.mimeType || "application/octet-stream",
-    //       });
-    //     } else {
-    //       formData.append(
-    //         "hospital_bill",
-    //         pfile.file,
-    //         pfile.name || "policy.pdf",
-    //       );
-    //     }
-    //   }
-    // }
     if (useMobileFlow) {
       // ✅ Now reads from uploadSections (unified with desktop)
       const fieldMap = {
@@ -5324,73 +5294,6 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   const handleDeleteFile = (index) =>
     setClaimFiles((prev) => prev.filter((_, i) => i !== index));
 
-  // const UploadStepItem = ({
-  //   title,
-  //   subtitle,
-  //   required = false,
-  //   file,
-  //   onUpload,
-  // }) => {
-  //   const isUploaded = !!file;
-
-  //   return (
-  //     <View
-  //       style={[
-  //         styles.stepCard,
-  //         isUploaded && { borderColor: "#16A34A", backgroundColor: "#F0FDF4" },
-  //       ]}
-  //     >
-  //       <View style={{ flexDirection: "row", alignItems: "center" }}>
-  //         <View
-  //           style={[
-  //             styles.iconBox,
-  //             isUploaded && { backgroundColor: "#16A34A" },
-  //           ]}
-  //         >
-  //           {isUploaded ? (
-  //             <Text style={{ color: "#fff" }}>✓</Text>
-  //           ) : (
-  //             <Text style={{ color: "#2563EB" }}>📄</Text>
-  //           )}
-  //         </View>
-
-  //         <View style={{ flex: 1 }}>
-  //           <Text style={styles.stepTitle}>{title}</Text>
-  //           <Text style={styles.stepSub}>{subtitle}</Text>
-  //         </View>
-
-  //         {required && !isUploaded && (
-  //           <View style={styles.requiredBadge}>
-  //             <Text style={styles.requiredText}>Required</Text>
-  //           </View>
-  //         )}
-
-  //         <TouchableOpacity style={styles.uploadBtn} onPress={onUpload}>
-  //           <Text style={styles.uploadBtnText}>
-  //             {isUploaded ? "Uploaded" : "Upload"}
-  //           </Text>
-  //         </TouchableOpacity>
-  //       </View>
-
-  //       {/* Upload Box */}
-  //       {!isUploaded && (
-  //         <TouchableOpacity style={styles.uploadBox} onPress={onUpload}>
-  //           <Text style={{ color: "#64748B" }}>
-  //             Drag to upload (.xlsx or .csv){" "}
-  //             <Text style={{ color: "#2563EB" }}>Click here</Text>
-  //           </Text>
-  //         </TouchableOpacity>
-  //       )}
-
-  //       {/* File Name */}
-  //       {isUploaded && (
-  //         <Text style={{ marginTop: 8, color: "#16A34A", fontSize: 12 }}>
-  //           {file?.name || "File uploaded successfully"}
-  //         </Text>
-  //       )}
-  //     </View>
-  //   );
-  // };
   const UploadStepItem = ({
     title,
     subtitle,
@@ -6040,24 +5943,27 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               Waiting for analysis...
                             </Text>
                           )}
-                          {analysisData && (
+                          {/* {analysisData && (
                             <View style={{ flexDirection: "row", gap: 8 }}>
                               <TouchableOpacity
                                 style={styles.genBtn}
                                 onPress={() =>
-                                  navigation.navigate("MediAssistFormA", {
-                                    analysisData,
-                                  })
+                                  navigation.navigate(
+                                    getUpdatedFilesScreen(analysisData),
+                                    {
+                                      analysisData,
+                                    },
+                                  )
                                 }
                               >
                                 <Text style={styles.genBtnText}>
-                                  Generate updated files →
+                                  Generate Form A →
                                 </Text>
                               </TouchableOpacity>
                               <TouchableOpacity
                                 style={[
                                   styles.genBtn,
-                                  { backgroundColor: "#2E7D32" },
+                                  { backgroundColor: "#f2f5f6ff" },
                                 ]}
                                 onPress={() =>
                                   navigation.navigate("MediAssistFormB", {
@@ -6066,7 +5972,33 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                 }
                               >
                                 <Text style={styles.genBtnText}>
-                                  Generate Form B (hospital) →
+                                  Generate Form B →
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          )} */}
+                          {analysisData && (
+                            <View style={{ flexDirection: "row", gap: 8 }}>
+                              <TouchableOpacity
+                                style={styles.genBtn}
+                                onPress={() => {
+                                  const targetScreen =
+                                    getUpdatedFilesScreen(analysisData);
+                                  trackButton(
+                                    "hospital_insurance_generate_files_button_clicked",
+                                    {
+                                      source:
+                                        "insurance_claim_analysis_result_web",
+                                      target_screen: targetScreen,
+                                    },
+                                  );
+                                  navigation.navigate(targetScreen, {
+                                    analysisData,
+                                  });
+                                }}
+                              >
+                                <Text style={styles.genBtnText}>
+                                  Generate Updated Files →
                                 </Text>
                               </TouchableOpacity>
                             </View>
