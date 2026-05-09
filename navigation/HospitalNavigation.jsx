@@ -21,6 +21,7 @@ import SignatureScreen from "../screens/HospitalScreens/SignatureScreen";
 import HospitalDashboard from "../screens/HospitalScreens/HospitalDashboard";
 import PARequests from "../screens/HospitalScreens/PARequests";
 import HospitalPatientManagement from "../screens/HospitalScreens/HospitalPatientManagement";
+import MediAssistCombinedForms from "../screens/HospitalScreens/MediAssistCombinedForms";
 
 const Stack = createNativeStackNavigator();
 
@@ -145,6 +146,11 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="HospitalPatientManagement"
           component={HospitalPatientManagement}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="MediAssistCombinedForms"
+          component={MediAssistCombinedForms}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

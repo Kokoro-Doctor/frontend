@@ -94,7 +94,8 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "WelcomeHospital",
     "HospitalPortalLandingPage",
     "HospitalPatientManagement",
-    "StarHealthFormA",
+    "StarHealthFormA",,
+    "MediAssistCombinedForms",
   ];
   const shownScreensMobile = ["LandingPage"];
 

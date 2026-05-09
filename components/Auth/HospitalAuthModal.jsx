@@ -21,6 +21,40 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // const handleSignIn = async () => {
+  //   setError("");
+  //   if (!hospitalId.trim()) {
+  //     setError("Please enter Hospital ID");
+  //     return;
+  //   }
+  //   if (!apiKey.trim()) {
+  //     setError("Please enter your API key");
+  //     return;
+  //   }
+
+  //   setIsLoading(true);
+  //   try {
+  //     const { hospital } = await hospitalLogin(hospitalId.trim(), apiKey);
+  //     const session = {
+  //       hospital_id: hospital.hospital_id,
+  //       api_key: apiKey,
+  //       name: hospital.name,
+  //     };
+  //     // await AsyncStorage.setItem(HOSPITAL_SESSION_KEY, JSON.stringify(session));
+  //     // onRequestClose();
+  //     // if (onSuccess) {
+  //     //   onSuccess(session);
+  //     // }
+  //     await AsyncStorage.setItem(HOSPITAL_SESSION_KEY, JSON.stringify(session));
+  //     if (onSuccess) {
+  //       onSuccess(session); // onSuccess in HeaderLoginSignUp already closes modal first
+  //     }
+  //   } catch (err) {
+  //     setError(err?.message || "Sign in failed");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
   const handleSignIn = async () => {
     setError("");
     if (!hospitalId.trim()) {
@@ -34,20 +68,27 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
 
     setIsLoading(true);
     try {
-      const { hospital } = await hospitalLogin(hospitalId.trim(), apiKey);
+      const data = await hospitalLogin(hospitalId.trim(), apiKey);
+      const { hospital } = data;
+
       const session = {
         hospital_id: hospital.hospital_id,
         api_key: apiKey,
         name: hospital.name,
       };
-      // await AsyncStorage.setItem(HOSPITAL_SESSION_KEY, JSON.stringify(session));
-      // onRequestClose();
-      // if (onSuccess) {
-      //   onSuccess(session);
-      // }
+
+      // Store in AsyncStorage (mobile)
       await AsyncStorage.setItem(HOSPITAL_SESSION_KEY, JSON.stringify(session));
+
+      // Store in localStorage (web) — this is what ManualDataIntegration reads
+      if (Platform.OS === "web") {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("hospital_id", hospital.hospital_id);
+        localStorage.setItem("hospital_name", hospital.name || "");
+      }
+
       if (onSuccess) {
-        onSuccess(session); // onSuccess in HeaderLoginSignUp already closes modal first
+        onSuccess(session);
       }
     } catch (err) {
       setError(err?.message || "Sign in failed");
