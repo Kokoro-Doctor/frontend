@@ -699,6 +699,35 @@ const StructuredPanel = ({ structured, isLoading }) => {
   );
 };
 
+const normalizeCarrierName = (value) => String(value ?? "").trim().toLowerCase();
+
+const isStarHealthCarrier = (value) =>
+  /star\s*health/.test(normalizeCarrierName(value));
+
+const isMediAssistCarrier = (value) =>
+  /medi\s*assist/.test(normalizeCarrierName(value));
+
+const getUpdatedFilesScreen = (analysisData) => {
+  const structuredInsurance = analysisData?.structured_data?.insurance_details;
+  const autofillInsurance = analysisData?.autofill_extracted?.insurance_details;
+  const tpaName =
+    structuredInsurance?.tpa_name || autofillInsurance?.tpa_name || "";
+  const hasTpaName = normalizeCarrierName(tpaName).length > 0;
+  const insuranceCompany =
+    structuredInsurance?.insurance_company ||
+    autofillInsurance?.insurance_company ||
+    "";
+
+  if (!hasTpaName) return "StarHealthFormA";
+  if (isStarHealthCarrier(tpaName)) return "StarHealthFormA";
+  if (isMediAssistCarrier(tpaName)) return "MediAssistFormA";
+  if (isStarHealthCarrier(insuranceCompany)) {
+    return "StarHealthFormA";
+  }
+
+  return "MediAssistFormA";
+};
+
 const MobileAnalysisView = ({
   structured,
   thinkingTrace,
@@ -751,10 +780,12 @@ const MobileAnalysisView = ({
       <TouchableOpacity
         style={mav.acceptBtn}
         onPress={() => {
+          const targetScreen = getUpdatedFilesScreen(analysisData);
           trackButton("hospital_insurance_generate_files_button_clicked", {
             source: "insurance_claim_analysis_result",
+            target_screen: targetScreen,
           });
-          navigation.navigate("MediAssistFormA", { analysisData });
+          navigation.navigate(targetScreen, { analysisData });
         }}
       >
         <Text style={mav.acceptText}>Generate Updated Files →</Text>
@@ -2250,9 +2281,12 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                               <TouchableOpacity
                                 style={styles.genBtn}
                                 onPress={() =>
-                                  navigation.navigate("MediAssistFormA", {
-                                    analysisData,
-                                  })
+                                  navigation.navigate(
+                                    getUpdatedFilesScreen(analysisData),
+                                    {
+                                      analysisData,
+                                    },
+                                  )
                                 }
                               >
                                 <Text style={styles.genBtnText}>

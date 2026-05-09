@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useRole } from "../contexts/RoleContext";
 import HospitalPortalLandingPage from "../screens/HospitalScreens/HospitalPortalLandingPage";
 import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsuranceClaim";
+import StarHealthFormA from "../screens/HospitalScreens/StarHealthFormA";
 import MediAssistFormA from "../screens/HospitalScreens/MediAssistFormA";
 import MediAssistFormB from "../screens/HospitalScreens/MediAssistFormB";
 import PostOpCare from "../screens/HospitalScreens/PostOpCare";
@@ -74,6 +75,11 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="HospitalInsuranceClaim"
           component={HospitalInsuranceClaim}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="StarHealthFormA"
+          component={StarHealthFormA}
           options={{ headerShown: false }}
         />
         <Stack.Screen
