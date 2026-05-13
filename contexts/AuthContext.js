@@ -443,6 +443,26 @@ import mixpanel from "../utils/Mixpanel";
 
 export const AuthContext = createContext();
 
+// ─── JWT helpers (client-side; no signature verification needed) ──────────────
+
+const isHospitalTokenValid = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload.exp === 'number' && payload.exp > Date.now() / 1000;
+  } catch {
+    return false;
+  }
+};
+
+const clearHospitalSessionStorage = async () => {
+  await AsyncStorage.multiRemove(['hospital_session', 'hospital_token', 'userRole']);
+  if (Platform.OS === 'web') {
+    ['token', 'hospital_id', 'hospital_name', 'user_role'].forEach((k) =>
+      localStorage.removeItem(k)
+    );
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
@@ -459,21 +479,35 @@ export const AuthProvider = ({ children }) => {
           const hospitalName = localStorage.getItem("hospital_name");
 
           if (token && hospitalId && userRole === "hospital") {
-            setUser({ name: hospitalName, hospitalId });
-            setRole("hospital");
-            setIsLoading(false);
-            return; // skip restoreUserState for hospital users
+            if (!isHospitalTokenValid(token)) {
+              console.log("[AuthContext] Hospital JWT expired — clearing session");
+              await clearHospitalSessionStorage();
+              // fall through to regular user restore
+            } else {
+              setUser({ name: hospitalName, hospitalId });
+              setRole("hospital");
+              setIsLoading(false);
+              return;
+            }
           }
         } else {
           // ── Hospital session restore (mobile) ──
           const sessionRaw = await AsyncStorage.getItem("hospital_session");
           const savedRole = await AsyncStorage.getItem("userRole");
+          const token = await AsyncStorage.getItem("hospital_token");
+
           if (sessionRaw && savedRole === "hospital") {
-            const session = JSON.parse(sessionRaw);
-            setUser({ name: session.name, hospitalId: session.hospital_id });
-            setRole("hospital");
-            setIsLoading(false);
-            return;
+            if (!token || !isHospitalTokenValid(token)) {
+              console.log("[AuthContext] Hospital JWT expired or missing — clearing session");
+              await clearHospitalSessionStorage();
+              // fall through to regular user restore
+            } else {
+              const session = JSON.parse(sessionRaw);
+              setUser({ name: session.name, hospitalId: session.hospital_id });
+              setRole("hospital");
+              setIsLoading(false);
+              return;
+            }
           }
         }
 
@@ -537,17 +571,19 @@ export const AuthProvider = ({ children }) => {
 
   // ─── Shared: persist hospital session after login OR signup ──────────────────
   // Expects data shape: { token, hospital: { hospital_id, name, ... } }
-  const syncHospitalSession = async (data, rawApiKey) => {
+  const syncHospitalSession = async (data) => {
     const { hospital, token } = data;
 
     const session = {
       hospital_id: hospital.hospital_id,
-      api_key: rawApiKey,
       name: hospital.name,
     };
 
     await AsyncStorage.setItem("hospital_session", JSON.stringify(session));
     await AsyncStorage.setItem("userRole", "hospital");
+
+    // Persist token for mobile authenticated requests
+    if (token) await AsyncStorage.setItem("hospital_token", token);
 
     if (Platform.OS === "web") {
       if (token) localStorage.setItem("token", token);
@@ -563,10 +599,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ─── Hospital Login ───────────────────────────────────────────────────────────
-  const hospitalLoginHandler = async (hospitalId, apiKey) => {
+  const hospitalLoginHandler = async (identifier, password) => {
     try {
-      const data = await hospitalLogin(hospitalId, apiKey);
-      const session = await syncHospitalSession(data, apiKey);
+      const data = await hospitalLogin(identifier, password);
+      const session = await syncHospitalSession(data);
 
       mixpanel.track("Hospital Logged In", {
         hospital_id: data.hospital.hospital_id,
@@ -583,10 +619,10 @@ export const AuthProvider = ({ children }) => {
 
   // ─── Hospital Signup ──────────────────────────────────────────────────────────
   const hospitalSignupHandler = async (payload) => {
-    // payload: { name, api_key, email?, address?, city?, state?, contact_number? }
+    // payload: { name, password, email?, contact_number?, address?, city?, state? }
     try {
       const data = await hospitalSignup(payload);
-      const session = await syncHospitalSession(data, payload.api_key);
+      const session = await syncHospitalSession(data);
 
       // 🔥 Track successful hospital signup
       mixpanel.track("Hospital Signed Up", {
@@ -791,16 +827,7 @@ export const AuthProvider = ({ children }) => {
       await resetChatCount();
       setUser(null);
       setRole(null);
-      await AsyncStorage.removeItem("userRole");
-      await AsyncStorage.removeItem("hospital_session");
-
-      // Clear web localStorage for hospital
-      if (Platform.OS === "web") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("hospital_id");
-        localStorage.removeItem("hospital_name");
-        localStorage.removeItem("user_role");
-      }
+      await clearHospitalSessionStorage();
 
       mixpanel.reset();
     } catch (error) {

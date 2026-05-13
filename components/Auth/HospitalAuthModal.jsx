@@ -275,7 +275,7 @@ import { useAuth } from "../../contexts/AuthContext";
 export const HOSPITAL_SESSION_KEY = "hospital_session";
 
 // ─── Reusable labeled input ───────────────────────────────────────────────────
-const Field = ({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType, editable }) => (
+const Field = ({ label, value, onChangeText, placeholder, keyboardType, editable }) => (
   <View style={{ marginBottom: 14 }}>
     <Text style={styles.label}>{label}</Text>
     <TextInput
@@ -287,11 +287,41 @@ const Field = ({ label, value, onChangeText, placeholder, secureTextEntry, keybo
       editable={editable !== false}
       autoCapitalize="none"
       autoCorrect={false}
-      secureTextEntry={!!secureTextEntry}
       keyboardType={keyboardType || "default"}
     />
   </View>
 );
+
+// ─── Password input with eye toggle ──────────────────────────────────────────
+const PasswordField = ({ label, value, onChangeText, placeholder, editable }) => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.passwordRow}>
+        <TextInput
+          style={styles.passwordInput}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#999"
+          editable={editable !== false}
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry={!visible}
+        />
+        <TouchableOpacity
+          style={styles.eyeButton}
+          onPress={() => setVisible((v) => !v)}
+          disabled={editable === false}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.eyeText}>{visible ? "Hide" : "Show"}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
@@ -302,24 +332,24 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
   const [error, setError]       = useState("");
 
   // Sign-in state
-  const [hospitalId, setHospitalId] = useState("");
-  const [apiKey, setApiKey]         = useState("");
+  const [identifier, setIdentifier] = useState(""); // email or mobile
+  const [signinPassword, setSigninPassword] = useState("");
 
   // Sign-up state
   const [name, setName]               = useState("");
   const [email, setEmail]             = useState("");
-  const [password, setPassword]       = useState(""); // sent as api_key
+  const [password, setPassword]       = useState("");
+  const [contactNumber, setContactNumber] = useState("");
   const [address, setAddress]         = useState("");
   const [city, setCity]               = useState("");
   const [stateVal, setStateVal]       = useState("");
-  const [contactNumber, setContactNumber] = useState("");
 
   const clearError = () => setError("");
 
   const resetFields = () => {
-    setHospitalId(""); setApiKey("");
+    setIdentifier(""); setSigninPassword("");
     setName(""); setEmail(""); setPassword("");
-    setAddress(""); setCity(""); setStateVal(""); setContactNumber("");
+    setContactNumber(""); setAddress(""); setCity(""); setStateVal("");
     setError("");
   };
 
@@ -328,12 +358,12 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
   // ── Sign In ───────────────────────────────────────────────────────────────
   const handleSignIn = async () => {
     clearError();
-    if (!hospitalId.trim()) return setError("Hospital ID is required.");
-    if (!apiKey.trim())     return setError("API key is required.");
+    if (!identifier.trim())      return setError("Email or mobile number is required.");
+    if (!signinPassword.trim())  return setError("Password is required.");
 
     setIsLoading(true);
     try {
-      const session = await hospitalLogin(hospitalId.trim(), apiKey.trim());
+      const session = await hospitalLogin(identifier.trim(), signinPassword.trim());
       onSuccess?.(session);
     } catch (err) {
       setError(err?.message || "Sign in failed.");
@@ -345,19 +375,20 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
   // ── Sign Up ───────────────────────────────────────────────────────────────
   const handleSignUp = async () => {
     clearError();
-    if (!name.trim())     return setError("Hospital name is required.");
-    if (!password.trim()) return setError("API key is required.");
+    if (!name.trim())                                return setError("Hospital name is required.");
+    if (!password.trim())                            return setError("Password is required.");
+    if (!email.trim() && !contactNumber.trim())      return setError("At least one of email or contact number is required.");
 
     setIsLoading(true);
     try {
       const session = await hospitalSignup({
         name:           name.trim(),
-        api_key:        password.trim(),
+        password:       password.trim(),
         email:          email.trim(),
+        contact_number: contactNumber.trim(),
         address:        address.trim(),
         city:           city.trim(),
         state:          stateVal.trim(),
-        contact_number: contactNumber.trim(),
       });
       onSuccess?.(session);
     } catch (err) {
@@ -398,20 +429,21 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
           >
             <Text style={styles.subtitle}>
               {isSignIn
-                ? "Enter your credentials to access the upload portal."
-                : "Register your hospital to get started."}
+                ? "Enter your email or mobile number and password."
+                : "Register your hospital. Provide at least one of email or contact number."}
             </Text>
 
             {/* ── Sign In fields ── */}
             {isSignIn && (
               <>
-                <Field label="Hospital ID" value={hospitalId}
-                  onChangeText={(t) => { setHospitalId(t); clearError(); }}
-                  placeholder="e.g. HOSP_001" editable={!isLoading} />
-                <Field label="API Key" value={apiKey}
-                  onChangeText={(t) => { setApiKey(t); clearError(); }}
-                  placeholder="Enter your API key"
-                  secureTextEntry editable={!isLoading} />
+                <Field label="Email or Mobile Number" value={identifier}
+                  onChangeText={(t) => { setIdentifier(t); clearError(); }}
+                  placeholder="contact@hospital.com or +919876543210"
+                  keyboardType="email-address" editable={!isLoading} />
+                <PasswordField label="Password" value={signinPassword}
+                  onChangeText={(t) => { setSigninPassword(t); clearError(); }}
+                  placeholder="Enter your password"
+                  editable={!isLoading} />
               </>
             )}
 
@@ -421,14 +453,18 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
                 <Field label="Hospital Name *" value={name}
                   onChangeText={(t) => { setName(t); clearError(); }}
                   placeholder="e.g. City General Hospital" editable={!isLoading} />
+                <PasswordField label="Password *" value={password}
+                  onChangeText={(t) => { setPassword(t); clearError(); }}
+                  placeholder="Create a secure password"
+                  editable={!isLoading} />
                 <Field label="Email" value={email}
                   onChangeText={(t) => { setEmail(t); clearError(); }}
                   placeholder="contact@hospital.com"
                   keyboardType="email-address" editable={!isLoading} />
-                <Field label="API Key (Password) *" value={password}
-                  onChangeText={(t) => { setPassword(t); clearError(); }}
-                  placeholder="Create a secure API key"
-                  secureTextEntry editable={!isLoading} />
+                <Field label="Contact Number" value={contactNumber}
+                  onChangeText={(t) => { setContactNumber(t); clearError(); }}
+                  placeholder="+919587733170"
+                  keyboardType="phone-pad" editable={!isLoading} />
                 <Field label="Address" value={address}
                   onChangeText={(t) => { setAddress(t); clearError(); }}
                   placeholder="123 Main Street" editable={!isLoading} />
@@ -438,10 +474,6 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
                 <Field label="State" value={stateVal}
                   onChangeText={(t) => { setStateVal(t); clearError(); }}
                   placeholder="Maharashtra" editable={!isLoading} />
-                <Field label="Contact Number" value={contactNumber}
-                  onChangeText={(t) => { setContactNumber(t); clearError(); }}
-                  placeholder="+919587733170"
-                  keyboardType="phone-pad" editable={!isLoading} />
               </>
             )}
 
@@ -549,6 +581,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#1e293b",
     backgroundColor: "#fafafa",
+  },
+  passwordRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    backgroundColor: "#fafafa",
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: "#1e293b",
+  },
+  eyeButton: {
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    ...Platform.select({ web: { cursor: "pointer" } }),
+  },
+  eyeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748b",
   },
   errorBox: {
     backgroundColor: "#fef2f2",
