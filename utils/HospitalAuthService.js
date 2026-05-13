@@ -1,124 +1,53 @@
-// import { API_URL } from "../env-vars";
-
-// const HOSPITALS_API = `${API_URL}/hospitals`;
-
-// export const hospitalLogin = async (hospitalId, apiKey) => {
-//   const response = await fetch(`${HOSPITALS_API}/login`, {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({
-//       hospital_id: hospitalId.trim(),
-//       api_key: apiKey,
-//     }),
-//   });
-
-//   if (!response.ok) {
-//     const errData = await response.json().catch(() => ({}));
-//     const message =
-//       errData.detail || errData.message || response.statusText || "Login failed";
-//     throw new Error(message);
-//   }
-
-//   const data = await response.json();
-
-//   // ── Store token and hospital_id for all subsequent authenticated requests ──
-//   if (data.token) {
-//     localStorage.setItem("token", data.token);
-//   }
-//   if (data.hospital?.hospital_id) {
-//     localStorage.setItem("hospital_id", data.hospital.hospital_id);
-//   }
-
-//   return data;
-// };
-
-
 import { API_URL } from "../env-vars";
 
 const HOSPITALS_API = `${API_URL}/hospitals`;
 
-export const hospitalLogin = async (hospitalId, apiKey) => {
+// POST /hospitals/login
+// Body: { identifier: "<email_or_mobile>", password: "<password>" }
+export const hospitalLogin = async (identifier, password) => {
   const response = await fetch(`${HOSPITALS_API}/login`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      hospital_id: hospitalId.trim(),
-      api_key: apiKey,
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier: identifier.trim(), password }),
   });
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
-    const message =
-      errData.detail || errData.message || response.statusText || "Login failed";
-    throw new Error(message);
+    throw new Error(errData.detail || errData.message || response.statusText || "Login failed");
   }
 
   const data = await response.json();
 
-  // ── Store token and hospital_id for all subsequent authenticated requests ──
-  if (data.token) {
-    localStorage.setItem("token", data.token);
-  }
-  if (data.hospital?.hospital_id) {
-    localStorage.setItem("hospital_id", data.hospital.hospital_id);
-  }
+  if (data.token) localStorage.setItem("token", data.token);
+  if (data.hospital?.hospital_id) localStorage.setItem("hospital_id", data.hospital.hospital_id);
 
   return data;
 };
 
-// POST /hospitals/create
-// Required: name, api_key
-// Optional: address, city, state, contact_number, email
-// Response: { token, hospital: { hospital_id, name, ... } }
-export const hospitalSignup = async ({
-  name,
-  api_key,
-  email,
-  address,
-  city,
-  state,
-  contact_number,
-}) => {
-  // Only send optional fields if they have a value
+// POST /hospitals/signup
+// Required: name, password, and at least one of email / contact_number
+// Optional: address, city, state
+export const hospitalSignup = async ({ name, password, email, contact_number, address, city, state }) => {
   const payload = {
     name: name.trim(),
-    api_key: api_key.trim(),
+    password: password.trim(),
     ...(email?.trim()          && { email: email.trim() }),
+    ...(contact_number?.trim() && { contact_number: contact_number.trim() }),
     ...(address?.trim()        && { address: address.trim() }),
     ...(city?.trim()           && { city: city.trim() }),
     ...(state?.trim()          && { state: state.trim() }),
-    ...(contact_number?.trim() && { contact_number: contact_number.trim() }),
   };
 
-  const response = await fetch(`${HOSPITALS_API}/create`, {
+  const response = await fetch(`${HOSPITALS_API}/signup`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
-    const message =
-      errData.detail || errData.message || response.statusText || "Signup failed";
-    throw new Error(message);
+    throw new Error(errData.detail || errData.message || response.statusText || "Signup failed");
   }
 
-  const data = await response.json();
-
-  // ── Store token and hospital_id for all subsequent authenticated requests ──
-  if (data.token) {
-    localStorage.setItem("token", data.token);
-  }
-  if (data.hospital?.hospital_id) {
-    localStorage.setItem("hospital_id", data.hospital.hospital_id);
-  }
-
-  return data;
+  return await response.json();
 };
