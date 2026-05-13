@@ -3821,8 +3821,7 @@ import mixpanel, { trackButton } from "../../utils/Mixpanel";
 
 const ProcessingView = ({ stage, flow }) => {
   const pulse = useRef(new Animated.Value(0.3)).current;
-  const isAutofillFlow =
-    flow === "autofill" || flow === "stored_autofill";
+  const isAutofillFlow = flow === "autofill" || flow === "stored_autofill";
 
   useEffect(() => {
     const anim = Animated.loop(
@@ -5044,6 +5043,14 @@ const HospitalInsuranceClaim = ({ navigation }) => {
     hospital: null,
     claim: null,
   });
+  const [selectedInsurer, setSelectedInsurer] = useState(null);
+  const [insurerDropdownOpen, setInsurerDropdownOpen] = useState(false);
+
+  const insurerList = [
+    { id: "star_health", name: "Star Health" },
+    { id: "medi_assist", name: "Medi Assist" },
+    { id: "others", name: "Others" },
+  ];
   const isAnyUploaded = Object.values(uploadSections).some(Boolean);
 
   // ✅ Required document check
@@ -5322,97 +5329,97 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   };
 
   const handlePatientSelect = async (patient) => {
-  setSelectedPatient(patient);
-  setPatientDropdownOpen(false);
+    setSelectedPatient(patient);
+    setPatientDropdownOpen(false);
 
-  // Step 2 pe le jao aur loading shuru karo
-  setCurrentStep(1);
-  setIsAnalyzing(true);
-  setAnalysisData(null);
-  setProcessingStage("uploading");
+    // Step 2 pe le jao aur loading shuru karo
+    setCurrentStep(1);
+    setIsAnalyzing(true);
+    setAnalysisData(null);
+    setProcessingStage("uploading");
 
-  // Web desktop pe slide animation
-  if (Platform.OS === "web" && width > 1000) {
-    Animated.timing(slideAnim, {
-      toValue: -cardWidth,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }
-
-  // Stage timers — stored autofill fast hota hai, shorter timings
-  const t1 = setTimeout(() => setProcessingStage("ocr"), 1500);
-  const t2 = setTimeout(() => setProcessingStage("extracting"), 3500);
-  const t3 = setTimeout(() => setProcessingStage("filling"), 7000);
-  const t4 = setTimeout(() => setProcessingStage("calculating"), 11000);
-
-  try {
-    let token = null;
-    if (Platform.OS === "web") {
-      token = localStorage.getItem("token");
-    } else {
-      token = await AsyncStorage.getItem("@token").catch(() => null);
+    // Web desktop pe slide animation
+    if (Platform.OS === "web" && width > 1000) {
+      Animated.timing(slideAnim, {
+        toValue: -cardWidth,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
     }
 
-    const res = await fetch(
-      `${API_URL}/medilocker/users/${patient.user_id}/insurance/autofill-stored`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-          "Content-Type": "application/json",
+    // Stage timers — stored autofill fast hota hai, shorter timings
+    const t1 = setTimeout(() => setProcessingStage("ocr"), 1500);
+    const t2 = setTimeout(() => setProcessingStage("extracting"), 3500);
+    const t3 = setTimeout(() => setProcessingStage("filling"), 7000);
+    const t4 = setTimeout(() => setProcessingStage("calculating"), 11000);
+
+    try {
+      let token = null;
+      if (Platform.OS === "web") {
+        token = localStorage.getItem("token");
+      } else {
+        token = await AsyncStorage.getItem("@token").catch(() => null);
+      }
+
+      const res = await fetch(
+        `${API_URL}/medilocker/users/${patient.user_id}/insurance/autofill-stored`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+            "Content-Type": "application/json",
+          },
         },
+      );
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => null);
+        console.error("autofill-stored failed:", res.status, text);
+        if (res.status === 504) {
+          Alert.alert(
+            "Timeout",
+            "Server took too long. Patient documents may still be processing. Try again in a moment.",
+          );
+        } else if (res.status === 404) {
+          Alert.alert(
+            "No documents found",
+            `No uploaded documents found for ${patient.name}. Ask them to upload documents via the patient app first.`,
+          );
+        }
+        throw new Error(text || `autofill-stored failed: ${res.status}`);
       }
-    );
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => null);
-      console.error("autofill-stored failed:", res.status, text);
-      if (res.status === 504) {
-        Alert.alert(
-          "Timeout",
-          "Server took too long. Patient documents may still be processing. Try again in a moment.",
-        );
-      } else if (res.status === 404) {
-        Alert.alert(
-          "No documents found",
-          `No uploaded documents found for ${patient.name}. Ask them to upload documents via the patient app first.`,
-        );
+      const data = await res.json();
+
+      if (data?.error) {
+        console.error("Backend error:", data.error);
+        Alert.alert("Analysis error", data.error);
+        return;
       }
-      throw new Error(text || `autofill-stored failed: ${res.status}`);
+
+      setAnalysisData(data);
+      trackButton("hospital_insurance_stored_autofill_success", {
+        source: "patient_select_dropdown",
+        user_id: patient.user_id,
+        documents_processed: data.documents_processed?.join(", ") || "",
+      });
+    } catch (err) {
+      console.error("handlePatientSelect error:", err);
+      setCurrentStep(0);
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } finally {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      setIsAnalyzing(false);
+      setProcessingStage("");
     }
-
-    const data = await res.json();
-
-    if (data?.error) {
-      console.error("Backend error:", data.error);
-      Alert.alert("Analysis error", data.error);
-      return;
-    }
-
-    setAnalysisData(data);
-    trackButton("hospital_insurance_stored_autofill_success", {
-      source: "patient_select_dropdown",
-      user_id: patient.user_id,
-      documents_processed: data.documents_processed?.join(", ") || "",
-    });
-  } catch (err) {
-    console.error("handlePatientSelect error:", err);
-    setCurrentStep(0);
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  } finally {
-    clearTimeout(t1);
-    clearTimeout(t2);
-    clearTimeout(t3);
-    clearTimeout(t4);
-    setIsAnalyzing(false);
-    setProcessingStage("");
-  }
-};
+  };
 
   const openAiModal = () => {
     setAiAnalysisModalOpen(true);
@@ -5654,134 +5661,317 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                         </TouchableOpacity>
 
                         {patientDropdownOpen && Platform.OS === "web" && (
-                  <View
-                    style={{
-                      position: "fixed",
-                      top: 88,
-                      left: "50%",
-                      marginLeft: -190,
-                      width: 380,
-                      maxHeight: 360,
-                      backgroundColor: "#ffffff",
-                      borderRadius: 12,
-                      borderWidth: 1.5,
-                      borderColor: "#CBD5E1",
-                      zIndex: 99999,
-                      shadowColor: "#000",
-                      shadowOpacity: 0.18,
-                      shadowRadius: 20,
-                      shadowOffset: { width: 0, height: 8 },
-                      overflow: "hidden",
-                    }}
-                  >
-                    {/* Header */}
-                    <View
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        backgroundColor: "#F8FAFC",
-                        borderBottomWidth: 1,
-                        borderBottomColor: "#E2E8F0",
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={{ fontSize: 11, color: "#64748B", fontWeight: "700", letterSpacing: 0.8 }}>
-                        SELECT PATIENT
-                      </Text>
-                      <TouchableOpacity onPress={() => setPatientDropdownOpen(false)}>
-                        <Feather name="x" size={14} color="#94A3B8" />
-                      </TouchableOpacity>
-                    </View>
-
-                    {patientLoading ? (
-                      <View style={{ padding: 28, alignItems: "center", backgroundColor: "#fff" }}>
-                        <ActivityIndicator size="small" color="#2563EB" />
-                        <Text style={{ color: "#64748B", fontSize: 13, marginTop: 10 }}>
-                          Loading patients...
-                        </Text>
-                      </View>
-                    ) : patientList.length === 0 ? (
-                      <View style={{ padding: 28, alignItems: "center", backgroundColor: "#fff" }}>
-                        <Feather name="users" size={28} color="#CBD5E1" />
-                        <Text style={{ color: "#94A3B8", fontSize: 13, marginTop: 10 }}>
-                          No patients found
-                        </Text>
-                      </View>
-                    ) : (
-                      <ScrollView
-                        style={{ backgroundColor: "#ffffff" }}
-                        showsVerticalScrollIndicator
-                      >
-                        {patientList.map((p, i) => (
-                          <TouchableOpacity
-                            key={p.user_id || i}
-                            onPress={() => {
-                              console.log("Patient clicked:", p.name, p.user_id);
-                              handlePatientSelect(p);
-                            }}
+                          <View
                             style={{
-                              paddingHorizontal: 16,
-                              paddingVertical: 13,
-                              borderBottomWidth: i < patientList.length - 1 ? 1 : 0,
-                              borderBottomColor: "#F1F5F9",
-                              backgroundColor:
-                                selectedPatient?.user_id === p.user_id
-                                  ? "#EFF6FF"
-                                  : "#ffffff",
-                              flexDirection: "row",
-                              alignItems: "center",
-                              justifyContent: "space-between",
+                              position: "fixed",
+                              top: 88,
+                              left: "50%",
+                              marginLeft: -190,
+                              width: 380,
+                              maxHeight: 360,
+                              backgroundColor: "#ffffff",
+                              borderRadius: 12,
+                              borderWidth: 1.5,
+                              borderColor: "#CBD5E1",
+                              zIndex: 99999,
+                              shadowColor: "#000",
+                              shadowOpacity: 0.18,
+                              shadowRadius: 20,
+                              shadowOffset: { width: 0, height: 8 },
+                              overflow: "hidden",
                             }}
                           >
-                            <Text
+                            {/* Header */}
+                            <View
                               style={{
-                                fontSize: 14,
-                                fontWeight: "600",
-                                color: "#0F172A",
-                                flex: 1,
-                                marginRight: 10,
+                                paddingHorizontal: 16,
+                                paddingVertical: 12,
+                                backgroundColor: "#F8FAFC",
+                                borderBottomWidth: 1,
+                                borderBottomColor: "#E2E8F0",
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                alignItems: "center",
                               }}
-                              numberOfLines={1}
                             >
-                              {p.name || "Unknown"}
-                            </Text>
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                              {p.age ? (
-                                <Text style={{
-                                  fontSize: 11, color: "#ffffff",
-                                  backgroundColor: "#2563EB",
-                                  paddingHorizontal: 6, paddingVertical: 2,
-                                  borderRadius: 4, fontWeight: "600",
-                                  overflow: "hidden",
-                                }}>
-                                  {p.age}y
-                                </Text>
-                              ) : null}
-                              {p.gender ? (
-                                <Text style={{
-                                  fontSize: 11, color: "#059669",
-                                  backgroundColor: "#DCFCE7",
-                                  paddingHorizontal: 6, paddingVertical: 2,
-                                  borderRadius: 4, fontWeight: "600",
-                                  overflow: "hidden",
-                                }}>
-                                  {p.gender.charAt(0).toUpperCase()}
-                                </Text>
-                              ) : null}
-                              {p.phoneNumber ? (
-                                <Text style={{ fontSize: 11, color: "#64748B" }}>
-                                  {p.phoneNumber}
-                                </Text>
-                              ) : null}
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  color: "#64748B",
+                                  fontWeight: "700",
+                                  letterSpacing: 0.8,
+                                }}
+                              >
+                                SELECT PATIENT
+                              </Text>
+                              <TouchableOpacity
+                                onPress={() => setPatientDropdownOpen(false)}
+                              >
+                                <Feather name="x" size={14} color="#94A3B8" />
+                              </TouchableOpacity>
                             </View>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    )}
-                  </View>
-                )}
+
+                            {patientLoading ? (
+                              <View
+                                style={{
+                                  padding: 28,
+                                  alignItems: "center",
+                                  backgroundColor: "#fff",
+                                }}
+                              >
+                                <ActivityIndicator
+                                  size="small"
+                                  color="#2563EB"
+                                />
+                                <Text
+                                  style={{
+                                    color: "#64748B",
+                                    fontSize: 13,
+                                    marginTop: 10,
+                                  }}
+                                >
+                                  Loading patients...
+                                </Text>
+                              </View>
+                            ) : patientList.length === 0 ? (
+                              <View
+                                style={{
+                                  padding: 28,
+                                  alignItems: "center",
+                                  backgroundColor: "#fff",
+                                }}
+                              >
+                                <Feather
+                                  name="users"
+                                  size={28}
+                                  color="#CBD5E1"
+                                />
+                                <Text
+                                  style={{
+                                    color: "#94A3B8",
+                                    fontSize: 13,
+                                    marginTop: 10,
+                                  }}
+                                >
+                                  No patients found
+                                </Text>
+                              </View>
+                            ) : (
+                              <ScrollView
+                                style={{ backgroundColor: "#ffffff" }}
+                                showsVerticalScrollIndicator
+                              >
+                                {patientList.map((p, i) => (
+                                  <TouchableOpacity
+                                    key={p.user_id || i}
+                                    onPress={() => {
+                                      console.log(
+                                        "Patient clicked:",
+                                        p.name,
+                                        p.user_id,
+                                      );
+                                      handlePatientSelect(p);
+                                    }}
+                                    style={{
+                                      paddingHorizontal: 16,
+                                      paddingVertical: 13,
+                                      borderBottomWidth:
+                                        i < patientList.length - 1 ? 1 : 0,
+                                      borderBottomColor: "#F1F5F9",
+                                      backgroundColor:
+                                        selectedPatient?.user_id === p.user_id
+                                          ? "#EFF6FF"
+                                          : "#ffffff",
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        fontSize: 14,
+                                        fontWeight: "600",
+                                        color: "#0F172A",
+                                        flex: 1,
+                                        marginRight: 10,
+                                      }}
+                                      numberOfLines={1}
+                                    >
+                                      {p.name || "Unknown"}
+                                    </Text>
+                                    <View
+                                      style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        gap: 6,
+                                      }}
+                                    >
+                                      {p.age ? (
+                                        <Text
+                                          style={{
+                                            fontSize: 11,
+                                            color: "#ffffff",
+                                            backgroundColor: "#2563EB",
+                                            paddingHorizontal: 6,
+                                            paddingVertical: 2,
+                                            borderRadius: 4,
+                                            fontWeight: "600",
+                                            overflow: "hidden",
+                                          }}
+                                        >
+                                          {p.age}y
+                                        </Text>
+                                      ) : null}
+                                      {p.gender ? (
+                                        <Text
+                                          style={{
+                                            fontSize: 11,
+                                            color: "#059669",
+                                            backgroundColor: "#DCFCE7",
+                                            paddingHorizontal: 6,
+                                            paddingVertical: 2,
+                                            borderRadius: 4,
+                                            fontWeight: "600",
+                                            overflow: "hidden",
+                                          }}
+                                        >
+                                          {p.gender.charAt(0).toUpperCase()}
+                                        </Text>
+                                      ) : null}
+                                      {p.phoneNumber ? (
+                                        <Text
+                                          style={{
+                                            fontSize: 11,
+                                            color: "#64748B",
+                                          }}
+                                        >
+                                          {p.phoneNumber}
+                                        </Text>
+                                      ) : null}
+                                    </View>
+                                  </TouchableOpacity>
+                                ))}
+                              </ScrollView>
+                            )}
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Insurer Dropdown wrapper — same pattern as Select Patient button wrapper */}
+                      <View
+                        style={{
+                          position: "relative",
+                          zIndex: 999998,
+                          elevation: 999998,
+                          overflow: "visible",
+                          marginLeft: 8,
+                        }}
+                      >
+                        <TouchableOpacity
+                          style={styles.backBtn}
+                          onPress={() => {
+                            setInsurerDropdownOpen((prev) => !prev);
+                            setPatientDropdownOpen(false);
+                          }}
+                        >
+                          <Text style={styles.backBtnText}>
+                            {selectedInsurer
+                              ? `${selectedInsurer.name} ▾`
+                              : "Insurer ▾"}
+                          </Text>
+                        </TouchableOpacity>
+
+                        {insurerDropdownOpen && (
+                          <View
+                            style={{
+                              position: "absolute",
+                              top: 36, // ← button height + small gap
+                              left: 0, // ← aligns with button's left edge
+                              width: 200,
+                              backgroundColor: "#ffffff",
+                              borderRadius: 12,
+                              borderWidth: 1.5,
+                              borderColor: "#CBD5E1",
+                              zIndex: 99998,
+                              shadowColor: "#000",
+                              shadowOpacity: 0.18,
+                              shadowRadius: 20,
+                              shadowOffset: { width: 0, height: 8 },
+                              overflow: "hidden",
+                            }}
+                          >
+                            {/* Header */}
+                            <View
+                              style={{
+                                paddingHorizontal: 16,
+                                paddingVertical: 12,
+                                backgroundColor: "#F8FAFC",
+                                borderBottomWidth: 1,
+                                borderBottomColor: "#E2E8F0",
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 11,
+                                  color: "#64748B",
+                                  fontWeight: "700",
+                                  letterSpacing: 0.8,
+                                }}
+                              >
+                                SELECT INSURER
+                              </Text>
+                              <TouchableOpacity
+                                onPress={() => setInsurerDropdownOpen(false)}
+                              >
+                                <Feather name="x" size={14} color="#94A3B8" />
+                              </TouchableOpacity>
+                            </View>
+
+                            {insurerList.map((ins, i) => (
+                              <TouchableOpacity
+                                key={ins.id}
+                                onPress={() => {
+                                  setSelectedInsurer(ins);
+                                  setInsurerDropdownOpen(false);
+                                }}
+                                style={{
+                                  paddingHorizontal: 16,
+                                  paddingVertical: 13,
+                                  borderBottomWidth:
+                                    i < insurerList.length - 1 ? 1 : 0,
+                                  borderBottomColor: "#F1F5F9",
+                                  backgroundColor:
+                                    selectedInsurer?.id === ins.id
+                                      ? "#EFF6FF"
+                                      : "#ffffff",
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: "600",
+                                    color: "#0F172A",
+                                  }}
+                                >
+                                  {ins.name}
+                                </Text>
+                                {selectedInsurer?.id === ins.id && (
+                                  <Feather
+                                    name="check"
+                                    size={14}
+                                    color="#2563EB"
+                                  />
+                                )}
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
                       </View>
                     </View>
                   </View>
@@ -6367,136 +6557,206 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
 
-              {patientDropdownOpen && (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 38,
-                    left: 0,
-                    width: 260,
-                    backgroundColor: "#fff",
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    borderColor: "#E2E8F0",
-                    zIndex: 9999,
-                    elevation: 10,
-                    maxHeight: 280,
-                    overflow: "hidden",
-                  }}
-                >
-                  {patientLoading ? (
-                    <View style={{ padding: 20, alignItems: "center" }}>
-                      <ActivityIndicator size="small" color="#2563EB" />
-                      <Text
-                        style={{ color: "#64748B", fontSize: 13, marginTop: 8 }}
-                      >
-                        Loading patients...
-                      </Text>
-                    </View>
-                  ) : patientList.length === 0 ? (
-                    <View style={{ padding: 16 }}>
-                      <Text
-                        style={{
-                          color: "#94A3B8",
-                          fontSize: 13,
-                          textAlign: "center",
-                        }}
-                      >
-                        No patients found
-                      </Text>
-                    </View>
-                  ) : (
-                    <ScrollView style={{ maxHeight: 260 }}>
-                      {patientList.map((p, i) => (
-                        <TouchableOpacity
-                          key={p.user_id || i}
-                          onPress={() => handlePatientSelect(p)}
+                {patientDropdownOpen && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 38,
+                      left: 0,
+                      width: 260,
+                      backgroundColor: "#fff",
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: "#E2E8F0",
+                      zIndex: 9999,
+                      elevation: 10,
+                      maxHeight: 280,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {patientLoading ? (
+                      <View style={{ padding: 20, alignItems: "center" }}>
+                        <ActivityIndicator size="small" color="#2563EB" />
+                        <Text
                           style={{
-                            paddingHorizontal: 14,
-                            paddingVertical: 12,
-                            borderBottomWidth:
-                              i < patientList.length - 1 ? 1 : 0,
-                            borderBottomColor: "#E2E8F0",
-                            backgroundColor:
-                              selectedPatient?.user_id === p.user_id
-                                ? "#EFF6FF"
-                                : "#fff",
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "space-between",
+                            color: "#64748B",
+                            fontSize: 13,
+                            marginTop: 8,
                           }}
                         >
-                          {/* Left: Name */}
-                          <Text
+                          Loading patients...
+                        </Text>
+                      </View>
+                    ) : patientList.length === 0 ? (
+                      <View style={{ padding: 16 }}>
+                        <Text
+                          style={{
+                            color: "#94A3B8",
+                            fontSize: 13,
+                            textAlign: "center",
+                          }}
+                        >
+                          No patients found
+                        </Text>
+                      </View>
+                    ) : (
+                      <ScrollView style={{ maxHeight: 260 }}>
+                        {patientList.map((p, i) => (
+                          <TouchableOpacity
+                            key={p.user_id || i}
+                            onPress={() => handlePatientSelect(p)}
                             style={{
-                              fontSize: 14,
-                              fontWeight: "600",
-                              color: "#0F172A",
-                              flex: 1,
-                              marginRight: 8,
-                            }}
-                            numberOfLines={1}
-                          >
-                            {p.name || "Unknown"}
-                          </Text>
-
-                          {/* Right: age · gender · phone in a row */}
-                          <View
-                            style={{
+                              paddingHorizontal: 14,
+                              paddingVertical: 12,
+                              borderBottomWidth:
+                                i < patientList.length - 1 ? 1 : 0,
+                              borderBottomColor: "#E2E8F0",
+                              backgroundColor:
+                                selectedPatient?.user_id === p.user_id
+                                  ? "#EFF6FF"
+                                  : "#fff",
                               flexDirection: "row",
                               alignItems: "center",
-                              gap: 6,
+                              justifyContent: "space-between",
                             }}
                           >
-                            {p.age ? (
-                              <Text
-                                style={{
-                                  fontSize: 11,
-                                  color: "#fff",
-                                  backgroundColor: "#2563EB",
-                                  paddingHorizontal: 6,
-                                  paddingVertical: 2,
-                                  borderRadius: 4,
-                                  fontWeight: "600",
-                                  overflow: "hidden",
-                                }}
-                              >
-                                {p.age}y
-                              </Text>
-                            ) : null}
-                            {p.gender ? (
-                              <Text
-                                style={{
-                                  fontSize: 11,
-                                  color: "#059669",
-                                  backgroundColor: "#DCFCE7",
-                                  paddingHorizontal: 6,
-                                  paddingVertical: 2,
-                                  borderRadius: 4,
-                                  fontWeight: "600",
-                                  overflow: "hidden",
-                                }}
-                              >
-                                {p.gender.charAt(0).toUpperCase()}
-                              </Text>
-                            ) : null}
-                            {p.phoneNumber ? (
-                              <Text
-                                style={{
-                                  fontSize: 11,
-                                  color: "#64748B",
-                                }}
-                              >
-                                {p.phoneNumber}
-                              </Text>
-                            ) : null}
-                          </View>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  )}
-                </View>
-              )}
+                            {/* Left: Name */}
+                            <Text
+                              style={{
+                                fontSize: 14,
+                                fontWeight: "600",
+                                color: "#0F172A",
+                                flex: 1,
+                                marginRight: 8,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {p.name || "Unknown"}
+                            </Text>
+
+                            {/* Right: age · gender · phone in a row */}
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              {p.age ? (
+                                <Text
+                                  style={{
+                                    fontSize: 11,
+                                    color: "#fff",
+                                    backgroundColor: "#2563EB",
+                                    paddingHorizontal: 6,
+                                    paddingVertical: 2,
+                                    borderRadius: 4,
+                                    fontWeight: "600",
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  {p.age}y
+                                </Text>
+                              ) : null}
+                              {p.gender ? (
+                                <Text
+                                  style={{
+                                    fontSize: 11,
+                                    color: "#059669",
+                                    backgroundColor: "#DCFCE7",
+                                    paddingHorizontal: 6,
+                                    paddingVertical: 2,
+                                    borderRadius: 4,
+                                    fontWeight: "600",
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  {p.gender.charAt(0).toUpperCase()}
+                                </Text>
+                              ) : null}
+                              {p.phoneNumber ? (
+                                <Text
+                                  style={{
+                                    fontSize: 11,
+                                    color: "#64748B",
+                                  }}
+                                >
+                                  {p.phoneNumber}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
+                )}
+              </View>
+              {/* ── Insurer Dropdown — Mobile ── */}
+              <View style={{ position: "relative", marginLeft: 8 }}>
+                <TouchableOpacity
+                  style={m.selectBtn}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  onPress={() => setInsurerDropdownOpen((prev) => !prev)}
+                >
+                  <Text style={m.selectText}>
+                    {selectedInsurer
+                      ? `${selectedInsurer.name} ▾`
+                      : "Insurer ▾"}
+                  </Text>
+                </TouchableOpacity>
+
+                {insurerDropdownOpen && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 38,
+                      left: 0,
+                      width: 180,
+                      backgroundColor: "#fff",
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: "#E2E8F0",
+                      zIndex: 9998,
+                      elevation: 9,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {insurerList.map((ins, i) => (
+                      <TouchableOpacity
+                        key={ins.id}
+                        onPress={() => {
+                          setSelectedInsurer(ins);
+                          setInsurerDropdownOpen(false);
+                        }}
+                        style={{
+                          paddingHorizontal: 14,
+                          paddingVertical: 12,
+                          borderBottomWidth: i < insurerList.length - 1 ? 1 : 0,
+                          borderBottomColor: "#E2E8F0",
+                          backgroundColor:
+                            selectedInsurer?.id === ins.id ? "#EFF6FF" : "#fff",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "600",
+                            color: "#0F172A",
+                          }}
+                        >
+                          {ins.name}
+                        </Text>
+                        {selectedInsurer?.id === ins.id && (
+                          <Feather name="check" size={14} color="#2563EB" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
 
@@ -8002,5 +8262,6 @@ const mav = StyleSheet.create({
     fontSize: 14,
   },
 });
+
 
 export default HospitalInsuranceClaim;
