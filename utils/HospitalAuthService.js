@@ -18,6 +18,8 @@ export const hospitalLogin = async (identifier, password) => {
 
   const data = await response.json();
 
+  // Eagerly cache token + hospital_id so any code that reads localStorage
+  // directly (e.g. ManualDataIntegration) has them immediately.
   if (data.token) localStorage.setItem("token", data.token);
   if (data.hospital?.hospital_id) localStorage.setItem("hospital_id", data.hospital.hospital_id);
 
@@ -49,5 +51,12 @@ export const hospitalSignup = async ({ name, password, email, contact_number, ad
     throw new Error(errData.detail || errData.message || response.statusText || "Signup failed");
   }
 
-  return await response.json();
+  const data = await response.json();
+
+  // Signup now returns a JWT so the hospital is authenticated immediately.
+  // Cache it eagerly so any code that reads localStorage directly has it right away.
+  if (data.token) localStorage.setItem("token", data.token);
+  if (data.hospital?.hospital_id) localStorage.setItem("hospital_id", data.hospital.hospital_id);
+
+  return data;
 };
