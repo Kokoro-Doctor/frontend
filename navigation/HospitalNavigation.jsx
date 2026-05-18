@@ -22,6 +22,8 @@ import HospitalDashboard from "../screens/HospitalScreens/HospitalDashboard";
 import PARequests from "../screens/HospitalScreens/PARequests";
 import HospitalPatientManagement from "../screens/HospitalScreens/HospitalPatientManagement";
 import MediAssistCombinedForms from "../screens/HospitalScreens/MediAssistCombinedForms";
+import PreAuthMediAssistCombinedForms from "../screens/HospitalScreens/PreAuthMediAssistCombinedForms";
+import MediAssistFormAContent from "../screens/HospitalScreens/PreAuthMediAssistFormA";
 
 const Stack = createNativeStackNavigator();
 
@@ -153,6 +155,17 @@ const HospitalAppNavigation = ({ navigation }) => {
           component={MediAssistCombinedForms}
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+          name="PreAuthMediAssistCombinedForms"
+          component={PreAuthMediAssistCombinedForms}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PreAuthMediAssistFormsA"
+          component={MediAssistFormAContent}
+          options={{ headerShown: false }}
+        />
+
       </Stack.Navigator>
     </HeaderButtonsProvider>
   );
