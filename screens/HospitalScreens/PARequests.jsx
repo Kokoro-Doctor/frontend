@@ -10,6 +10,7 @@ import {
   TextInput,
   ImageBackground,
   Animated,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,6 +18,7 @@ import { Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { API_URL } from "../../env-vars";
+import PreAuthMediAssistCombinedForms from "../../screens/HospitalScreens/PreAuthMediAssistCombinedForms";
 
 // ─── STEPS ────────────────────────────────────────────────────────────────────
 const STEPS = [
@@ -34,41 +36,41 @@ const URGENCY_OPTIONS = [
 ];
 
 // ─── DEFAULT CODES ────────────────────────────────────────────────────────────
-const ALL_DIAGNOSIS_CODES = [
-  {
-    id: "K63.5",
-    label: "Polyp of colon",
-    ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
-  },
-  {
-    id: "Z12.11",
-    label: "Encounter for screening for malignant neoplasm of colon",
-    ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
-  },
-  {
-    id: "I25.10",
-    label: "Atherosclerotic heart disease of native coronary artery",
-    ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
-  },
-  {
-    id: "J18.9",
-    label: "Pneumonia, unspecified organism",
-    ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
-  },
-  {
-    id: "E11.9",
-    label: "Type 2 diabetes mellitus without complications",
-    ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
-  },
-];
+// const ALL_DIAGNOSIS_CODES = [
+//   {
+//     id: "K63.5",
+//     label: "Polyp of colon",
+//     ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
+//   },
+//   {
+//     id: "Z12.11",
+//     label: "Encounter for screening for malignant neoplasm of colon",
+//     ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
+//   },
+//   {
+//     id: "I25.10",
+//     label: "Atherosclerotic heart disease of native coronary artery",
+//     ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
+//   },
+//   {
+//     id: "J18.9",
+//     label: "Pneumonia, unspecified organism",
+//     ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
+//   },
+//   {
+//     id: "E11.9",
+//     label: "Type 2 diabetes mellitus without complications",
+//     ref: "Ref: TX-I-EX-H-CC-EOC-26 v2024.1, Covered Services · Claims Coding Requirements, Page 44",
+//   },
+// ];
 
-const ALL_PROCEDURE_CODES = [
-  { id: "45380", label: "Colonoscopy with biopsy" },
-  { id: "45385", label: "Colonoscopy with polypectomy" },
-  { id: "93510", label: "Left heart catheterization" },
-  { id: "27447", label: "Total knee arthroplasty" },
-  { id: "61510", label: "Craniotomy, trephination, bone flap craniotomy" },
-];
+// const ALL_PROCEDURE_CODES = [
+//   { id: "45380", label: "Colonoscopy with biopsy" },
+//   { id: "45385", label: "Colonoscopy with polypectomy" },
+//   { id: "93510", label: "Left heart catheterization" },
+//   { id: "27447", label: "Total knee arthroplasty" },
+//   { id: "61510", label: "Craniotomy, trephination, bone flap craniotomy" },
+// ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SHARED SUB-COMPONENTS
@@ -654,6 +656,145 @@ const ServiceInfoForm = ({
   );
 };
 
+// const MedicalCodesForm = ({
+//   diagnosisCodes,
+//   procedureCodes,
+//   setDiagnosisCodes,
+//   setProcedureCodes,
+//   onNext,
+//   onPrevious,
+// }) => {
+//   const [clinicalNotes, setClinicalNotes] = useState(
+//     "Patient with chest pain and positive stress test. Cardiac catheterization recommended to evaluate coronary artery disease and determine need for intervention.",
+//   );
+//   const [diagSearch, setDiagSearch] = useState("");
+//   const [cptSearch, setCptSearch] = useState("");
+
+//   const removeDiagnosis = (id) =>
+//     setDiagnosisCodes((prev) => prev.filter((c) => c.id !== id));
+//   const removeProcedure = (id) =>
+//     setProcedureCodes((prev) => prev.filter((c) => c.id !== id));
+
+//   return (
+//     <View style={mc.container}>
+//       <Text style={mc.sectionTitle}>Medical Codes</Text>
+//       <View style={mc.resourcesCard}>
+//         <View style={mc.resourcesLeft}>
+//           <View style={mc.resourcesIconBox}>
+//             <Feather name="book-open" size={14} color="#2563EB" />
+//           </View>
+//           <Text style={mc.resourcesTitle}>Official Code Resources</Text>
+//         </View>
+//         <StatusBadge status="Eligible" />
+//       </View>
+//       <View style={mc.resourcesLinksRow}>
+//         {["CMS ICD-10 Codes", "CMS ICD-10 CM", "AMA CPT Codes"].map((link) => (
+//           <TouchableOpacity key={link} style={mc.resourceLink}>
+//             <Text style={mc.resourceLinkText}>{link}</Text>
+//             <Feather
+//               name="external-link"
+//               size={11}
+//               color="#2563EB"
+//               style={{ marginLeft: 3 }}
+//             />
+//           </TouchableOpacity>
+//         ))}
+//       </View>
+//       <View style={mc.field}>
+//         <Text style={mc.fieldLabel}>
+//           Clinical notes{" "}
+//           <Text style={mc.fieldLabelLight}>(for AI Code Suggestion)</Text>
+//         </Text>
+//         <TextInput
+//           style={mc.clinicalTextArea}
+//           value={clinicalNotes}
+//           onChangeText={setClinicalNotes}
+//           multiline
+//           numberOfLines={4}
+//           placeholderTextColor="#9CA3AF"
+//           placeholder="Describe patient's condition..."
+//         />
+//       </View>
+//       <TouchableOpacity style={mc.aiBtn}>
+//         <Feather name="zap" size={15} color="#fff" style={{ marginRight: 8 }} />
+//         <Text style={mc.aiBtnText}>AI Suggested ICD Codes</Text>
+//       </TouchableOpacity>
+//       <View style={mc.field}>
+//         <View style={mc.codeHeaderRow}>
+//           <Text style={mc.fieldLabel}>
+//             Diagnosis Codes (ICD-10) <Text style={{ color: "#DC2626" }}>*</Text>
+//           </Text>
+//           <TouchableOpacity style={mc.refLink}>
+//             <Text style={mc.refLinkText}>CMS Reference</Text>
+//             <Feather
+//               name="external-link"
+//               size={11}
+//               color="#2563EB"
+//               style={{ marginLeft: 3 }}
+//             />
+//           </TouchableOpacity>
+//         </View>
+//         <View style={mc.searchBox}>
+//           <Feather
+//             name="search"
+//             size={13}
+//             color="#9CA3AF"
+//             style={{ marginRight: 8 }}
+//           />
+//           <TextInput
+//             style={mc.searchInput}
+//             value={diagSearch}
+//             onChangeText={setDiagSearch}
+//             placeholder="Search ICD-10"
+//             placeholderTextColor="#9CA3AF"
+//           />
+//         </View>
+//         <CodeList codes={diagnosisCodes} onRemove={removeDiagnosis} />
+//       </View>
+//       <View style={mc.field}>
+//         <View style={mc.codeHeaderRow}>
+//           <Text style={mc.fieldLabel}>Procedure Codes (CPT)</Text>
+//           <TouchableOpacity style={mc.refLink}>
+//             <Text style={mc.refLinkText}>AMA Reference</Text>
+//             <Feather
+//               name="external-link"
+//               size={11}
+//               color="#2563EB"
+//               style={{ marginLeft: 3 }}
+//             />
+//           </TouchableOpacity>
+//         </View>
+//         <View style={mc.searchBox}>
+//           <Feather
+//             name="search"
+//             size={13}
+//             color="#9CA3AF"
+//             style={{ marginRight: 8 }}
+//           />
+//           <TextInput
+//             style={mc.searchInput}
+//             value={cptSearch}
+//             onChangeText={setCptSearch}
+//             placeholder="Search CPT codes..."
+//             placeholderTextColor="#9CA3AF"
+//           />
+//         </View>
+//         <CodeList codes={procedureCodes} onRemove={removeProcedure} />
+//       </View>
+//       <View style={mc.btnRow}>
+//         <TouchableOpacity style={mc.prevBtn} onPress={onPrevious}>
+//           <Feather name="arrow-left" size={14} color="#374151" />
+//           <Text style={mc.prevText}>Previous</Text>
+//         </TouchableOpacity>
+//         <TouchableOpacity style={mc.nextBtn} onPress={onNext}>
+//           <Text style={mc.nextText}>Next</Text>
+//           <Feather name="arrow-right" size={14} color="#fff" />
+//         </TouchableOpacity>
+//       </View>
+//     </View>
+//   );
+// };
+
 const MedicalCodesForm = ({
   diagnosisCodes,
   procedureCodes,
@@ -661,10 +802,11 @@ const MedicalCodesForm = ({
   setProcedureCodes,
   onNext,
   onPrevious,
+  onAiSuggest, // ← new
+  aiLoading, // ← new
+  aiError, // ← new
 }) => {
-  const [clinicalNotes, setClinicalNotes] = useState(
-    "Patient with chest pain and positive stress test. Cardiac catheterization recommended to evaluate coronary artery disease and determine need for intervention.",
-  );
+  const [clinicalNotes, setClinicalNotes] = useState("");
   const [diagSearch, setDiagSearch] = useState("");
   const [cptSearch, setCptSearch] = useState("");
 
@@ -673,9 +815,23 @@ const MedicalCodesForm = ({
   const removeProcedure = (id) =>
     setProcedureCodes((prev) => prev.filter((c) => c.id !== id));
 
+  // Filter codes by search
+  const filteredDiag = diagnosisCodes.filter(
+    (c) =>
+      c.id.toLowerCase().includes(diagSearch.toLowerCase()) ||
+      c.label.toLowerCase().includes(diagSearch.toLowerCase()),
+  );
+  const filteredCpt = procedureCodes.filter(
+    (c) =>
+      c.id.toLowerCase().includes(cptSearch.toLowerCase()) ||
+      c.label.toLowerCase().includes(cptSearch.toLowerCase()),
+  );
+
   return (
     <View style={mc.container}>
       <Text style={mc.sectionTitle}>Medical Codes</Text>
+
+      {/* Resources card */}
       <View style={mc.resourcesCard}>
         <View style={mc.resourcesLeft}>
           <View style={mc.resourcesIconBox}>
@@ -698,6 +854,8 @@ const MedicalCodesForm = ({
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Clinical Notes */}
       <View style={mc.field}>
         <Text style={mc.fieldLabel}>
           Clinical notes{" "}
@@ -710,13 +868,40 @@ const MedicalCodesForm = ({
           multiline
           numberOfLines={4}
           placeholderTextColor="#9CA3AF"
-          placeholder="Describe patient's condition..."
+          placeholder="Describe patient's condition, symptoms, and planned procedures..."
         />
       </View>
-      <TouchableOpacity style={mc.aiBtn}>
+
+      {/* AI Button */}
+      <TouchableOpacity
+        style={[mc.aiBtn, aiLoading && { opacity: 0.6 }]}
+        // onPress={() => onAiSuggest(clinicalNotes)}
+        onPress={() => {
+          if (!clinicalNotes?.trim()) {
+            Alert.alert(
+              "Clinical Notes Required",
+              "Please describe the patient's condition before generating codes.",
+            );
+            return;
+          }
+          onAiSuggest(clinicalNotes);
+        }}
+        disabled={aiLoading}
+      >
         <Feather name="zap" size={15} color="#fff" style={{ marginRight: 8 }} />
-        <Text style={mc.aiBtnText}>AI Suggested ICD Codes</Text>
+        <Text style={mc.aiBtnText}>
+          {aiLoading ? "Generating Codes..." : "AI Suggested ICD Codes"}
+        </Text>
       </TouchableOpacity>
+
+      {/* AI error */}
+      {aiError && (
+        <Text style={{ color: "#DC2626", fontSize: 12, marginBottom: 12 }}>
+          {aiError}
+        </Text>
+      )}
+
+      {/* Diagnosis Codes */}
       <View style={mc.field}>
         <View style={mc.codeHeaderRow}>
           <Text style={mc.fieldLabel}>
@@ -747,8 +932,18 @@ const MedicalCodesForm = ({
             placeholderTextColor="#9CA3AF"
           />
         </View>
-        <CodeList codes={diagnosisCodes} onRemove={removeDiagnosis} />
+        {filteredDiag.length > 0 ? (
+          <CodeList codes={filteredDiag} onRemove={removeDiagnosis} />
+        ) : (
+          <View style={mc.emptyCodesBox}>
+            <Text style={mc.emptyCodesText}>
+              No diagnosis codes yet. Use AI Suggest or add manually.
+            </Text>
+          </View>
+        )}
       </View>
+
+      {/* Procedure Codes */}
       <View style={mc.field}>
         <View style={mc.codeHeaderRow}>
           <Text style={mc.fieldLabel}>Procedure Codes (CPT)</Text>
@@ -777,8 +972,17 @@ const MedicalCodesForm = ({
             placeholderTextColor="#9CA3AF"
           />
         </View>
-        <CodeList codes={procedureCodes} onRemove={removeProcedure} />
+        {filteredCpt.length > 0 ? (
+          <CodeList codes={filteredCpt} onRemove={removeProcedure} />
+        ) : (
+          <View style={mc.emptyCodesBox}>
+            <Text style={mc.emptyCodesText}>
+              No procedure codes yet. Use AI Suggest to generate.
+            </Text>
+          </View>
+        )}
       </View>
+
       <View style={mc.btnRow}>
         <TouchableOpacity style={mc.prevBtn} onPress={onPrevious}>
           <Feather name="arrow-left" size={14} color="#374151" />
@@ -1083,14 +1287,13 @@ const PARequests = ({ navigation }) => {
   const [updateError, setUpdateError] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [doctorsLoading, setDoctorsLoading] = useState(false);
+  const [diagnosisSummary, setDiagnosisSummary] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   // ── Lifted state: shared between Step 3 → Step 4 ──────────────────────────
-  const [diagnosisCodes, setDiagnosisCodes] = useState(
-    ALL_DIAGNOSIS_CODES.slice(0, 2),
-  );
-  const [procedureCodes, setProcedureCodes] = useState(
-    ALL_PROCEDURE_CODES.slice(0, 2),
-  );
+  const [diagnosisCodes, setDiagnosisCodes] = useState([]); // ✅ start empty, filled from API
+  const [procedureCodes, setProcedureCodes] = useState([]); // ✅ start empty, filled from AI suggest
 
   const slideAnim = useRef(new Animated.Value(0)).current;
   const slideAnimMob = useRef(new Animated.Value(0)).current;
@@ -1107,14 +1310,126 @@ const PARequests = ({ navigation }) => {
 
   // const handleSelectPatient = (patient, animRef) => {
   //   setSelectedPatient(patient);
+  //   fetchDoctorsForPatient(patient.memberId); // memberId = user_id from API
   //   setCurrentStep(2);
   //   animateSlide(animRef, "right");
   // };
-  const handleSelectPatient = (patient, animRef) => {
+  const handleSelectPatient = async (patient, animRef) => {
     setSelectedPatient(patient);
-    fetchDoctorsForPatient(patient.memberId); // memberId = user_id from API
+    fetchDoctorsForPatient(patient.memberId);
+
+    // Fetch diagnosis summary and pre-populate codes
+    const summary = await fetchDiagnosisSummary(patient.user_id);
+    setDiagnosisSummary(summary);
+
+    if (summary) {
+      const newDiagCodes = [];
+
+      if (summary.primary_icd_code && summary.primary_diagnosis) {
+        newDiagCodes.push({
+          id: summary.primary_icd_code,
+          label: summary.primary_diagnosis,
+          ref: `Auto-populated from Medilocker · Updated ${
+            summary.diagnosis_updated_at
+              ? new Date(summary.diagnosis_updated_at).toLocaleDateString()
+              : "—"
+          }`,
+        });
+      }
+
+      if (summary.additional_icd_code && summary.additional_diagnosis) {
+        newDiagCodes.push({
+          id: summary.additional_icd_code,
+          label: summary.additional_diagnosis,
+          ref: `Auto-populated from Medilocker · Updated ${
+            summary.diagnosis_updated_at
+              ? new Date(summary.diagnosis_updated_at).toLocaleDateString()
+              : "—"
+          }`,
+        });
+      }
+
+      // Only replace if we actually got codes back
+      if (newDiagCodes.length > 0) {
+        setDiagnosisCodes(newDiagCodes);
+      } else {
+        setDiagnosisCodes([]); // no hardcoded fallback
+      }
+    } else {
+      setDiagnosisCodes([]); // no diagnosis data yet
+    }
+
+    setProcedureCodes([]); // no hardcoded CPT codes
     setCurrentStep(2);
     animateSlide(animRef, "right");
+  };
+
+  const handleAiSuggestCodes = async (clinicalNotes) => {
+    setAiLoading(true);
+    setAiError(null);
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        setAiError("Not authenticated.");
+        return;
+      }
+
+      if (!selectedPatient?.user_id) {
+        setAiError("No patient selected.");
+        return;
+      }
+
+      console.log("[AI Suggest] Calling backend with:", {
+        user_id: selectedPatient.user_id,
+        clinical_notes: clinicalNotes,
+        service_type: serviceFormData.serviceType || "",
+      });
+
+      const res = await fetch(`${API_URL}/hospitals/ai/suggest-codes`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: selectedPatient.user_id,
+          clinical_notes: clinicalNotes?.trim() || "",
+          service_type: serviceFormData.serviceType || "",
+        }),
+      });
+
+      console.log("[AI Suggest] Response status:", res.status);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error("[AI Suggest] Backend error:", errData);
+        setAiError(errData.message || `Server error ${res.status}`);
+        return;
+      }
+
+      const parsed = await res.json();
+      console.log("[AI Suggest] Success:", parsed);
+
+      if (parsed.diagnosisCodes?.length > 0) {
+        setDiagnosisCodes(parsed.diagnosisCodes);
+      }
+      if (parsed.procedureCodes?.length > 0) {
+        setProcedureCodes(parsed.procedureCodes);
+      }
+
+      if (!parsed.diagnosisCodes?.length && !parsed.procedureCodes?.length) {
+        setAiError(
+          "No codes returned. Try adding more detail to clinical notes.",
+        );
+      }
+    } catch (err) {
+      console.error("[AI Suggest] Network error:", err);
+      setAiError("Network error. Check your connection and try again.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleNext = (animRef) => {
@@ -1174,36 +1489,36 @@ const PARequests = ({ navigation }) => {
   //   };
   // };
   const mapApiPatient = (apiPatient) => {
-  // API returns nested: { user: {...}, relations: [...] }
-  const p = apiPatient.user || apiPatient; // unwrap nested user object
+    // API returns nested: { user: {...}, relations: [...] }
+    const p = apiPatient.user || apiPatient; // unwrap nested user object
 
-  const id = p.user_id || p.id || p._id;
-  const rawName = p.name || p.patient_name || p.full_name || `Patient-${id}`;
+    const id = p.user_id || p.id || p._id;
+    const rawName = p.name || p.patient_name || p.full_name || `Patient-${id}`;
 
-  const { initials, color, textColor } = getAvatarProps(rawName);
-  return {
-    id: id,
-    user_id: id,
-    name: rawName,
-    age: p.age ?? "—",
-    gender: p.gender || "—",
-    procedure: p.procedure || "—",
-    status: p.status || "Eligible",
-    initials,
-    color,
-    textColor,
-    insurer: p.insurer || p.insurance_provider || "—",
-    memberId: p.member_id || p.user_id || id,
-    policyId: p.policy_id || `POL-${id}`,
-    policyVersion: p.policy_version || "2024.1",
-    provider: p.provider || "—",
-    providerNPI: p.provider_npi || "—",
-    providerOrg: p.provider_org || "—",
-    service: p.service || p.procedure || "—",
-    phoneNumber: p.phoneNumber || p.phone_number || "—",
-    hospitalName: p.hospital_name || "—",
+    const { initials, color, textColor } = getAvatarProps(rawName);
+    return {
+      id: id,
+      user_id: id,
+      name: rawName,
+      age: p.age ?? "—",
+      gender: p.gender || "—",
+      procedure: p.procedure || "—",
+      status: p.status || "Eligible",
+      initials,
+      color,
+      textColor,
+      insurer: p.insurer || p.insurance_provider || "—",
+      memberId: p.member_id || p.user_id || id,
+      policyId: p.policy_id || `POL-${id}`,
+      policyVersion: p.policy_version || "2024.1",
+      provider: p.provider || "—",
+      providerNPI: p.provider_npi || "—",
+      providerOrg: p.provider_org || "—",
+      service: p.service || p.procedure || "—",
+      phoneNumber: p.phoneNumber || p.phone_number || "—",
+      hospitalName: p.hospital_name || "—",
+    };
   };
-};
 
   const fetchPatients = useCallback(async (cursor = null) => {
     try {
@@ -1294,6 +1609,8 @@ const PARequests = ({ navigation }) => {
       if (patientData.doctorId)
         formData.append("doctor_id", patientData.doctorId);
 
+      console.log("formdata:", formData);
+
       const res = await fetch(`${API_URL}/hospitals/staff/update_patient`, {
         method: "POST",
         headers: {
@@ -1312,6 +1629,7 @@ const PARequests = ({ navigation }) => {
       }
 
       const data = await res.json();
+      console.log("Update_patient_response :", data);
       return { success: true, data };
     } catch (err) {
       console.error("updatePatient error:", err);
@@ -1354,6 +1672,29 @@ const PARequests = ({ navigation }) => {
       console.error("fetchDoctors error:", err);
     } finally {
       setDoctorsLoading(false);
+    }
+  }, []);
+
+  const fetchDiagnosisSummary = useCallback(async (userId) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const res = await fetch(
+        `${API_URL}/hospitals/users/${userId}/diagnosis-summary`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      if (res.status === 404) {
+        console.log("[DiagnosisSummary] No diagnosis data for user:", userId);
+        return null;
+      }
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      console.log("[DiagnosisSummary] Response:", data);
+      return data;
+    } catch (err) {
+      console.error("[DiagnosisSummary] error:", err);
+      return null;
     }
   }, []);
 
@@ -1499,6 +1840,29 @@ const PARequests = ({ navigation }) => {
     </Animated.View>
   );
 
+  // const renderStep3 = (animRef, isMobile) => (
+  //   <Animated.View style={{ transform: [{ translateX: animRef }] }}>
+  //     {selectedPatient && (
+  //       <View
+  //         style={
+  //           isMobile
+  //             ? { paddingHorizontal: 16, paddingTop: 12 }
+  //             : { marginBottom: 4 }
+  //         }
+  //       >
+  //         <SelectedPatientCard patient={selectedPatient} />
+  //       </View>
+  //     )}
+  //     <MedicalCodesForm
+  //       diagnosisCodes={diagnosisCodes}
+  //       procedureCodes={procedureCodes}
+  //       setDiagnosisCodes={setDiagnosisCodes}
+  //       setProcedureCodes={setProcedureCodes}
+  //       onNext={() => handleNext(animRef)}
+  //       onPrevious={() => handlePrevious(animRef)}
+  //     />
+  //   </Animated.View>
+  // );
   const renderStep3 = (animRef, isMobile) => (
     <Animated.View style={{ transform: [{ translateX: animRef }] }}>
       {selectedPatient && (
@@ -1519,6 +1883,9 @@ const PARequests = ({ navigation }) => {
         setProcedureCodes={setProcedureCodes}
         onNext={() => handleNext(animRef)}
         onPrevious={() => handlePrevious(animRef)}
+        onAiSuggest={handleAiSuggestCodes} // ← new
+        aiLoading={aiLoading} // ← new
+        aiError={aiError} // ← new
       />
     </Animated.View>
   );
@@ -1547,6 +1914,8 @@ const PARequests = ({ navigation }) => {
                 : undefined,
             insurer: serviceFormData.insurer,
             urgencyLevel: serviceFormData.urgencyLevel,
+            doctorId: serviceFormData.doctorId, // ✅ ADD THIS
+            policyNumber: selectedPatient.policyNumber, // ✅ ADD THIS if needed
           });
 
           setUpdateLoading(false);
@@ -1561,11 +1930,21 @@ const PARequests = ({ navigation }) => {
     </Animated.View>
   );
 
+  const renderStep5 = (animRef) => (
+    <Animated.View style={{ transform: [{ translateX: animRef }] }}>
+      <PreAuthMediAssistCombinedForms
+        navigation={navigation}
+        route={{ params: { analysisData: null } }}
+      />
+    </Animated.View>
+  );
+
   const renderCurrentStep = (animRef, isMobile) => {
     if (currentStep === 1) return renderStep1(animRef, isMobile);
     if (currentStep === 2) return renderStep2(animRef, isMobile);
     if (currentStep === 3) return renderStep3(animRef, isMobile);
     if (currentStep === 4) return renderStep4(animRef, isMobile);
+    if (currentStep === 5) return renderStep5(animRef); // ← add this
     return null;
   };
 
@@ -1608,14 +1987,23 @@ const PARequests = ({ navigation }) => {
                           Create a new prior authorization request
                         </Text>
                       </View>
-                      <TouchableOpacity style={web.backBtn}>
+                      <TouchableOpacity
+                        style={web.backBtn}
+                        onPress={() => {
+                          if (currentStep === 5) {
+                            setCurrentStep(1);
+                          } else {
+                            navigation.goBack();
+                          }
+                        }}
+                      >
                         <Feather
                           name="arrow-left"
                           size={14}
                           color="#374151"
                           style={{ marginRight: 6 }}
                         />
-                        <Text style={web.backBtnText}>Back to home</Text>
+                        <Text style={web.backBtnText}>Back</Text>
                       </TouchableOpacity>
                     </View>
                     <WebStepper currentStep={currentStep} />
@@ -1720,6 +2108,20 @@ const ms = StyleSheet.create({
   },
   line: { flex: 1, height: 2, backgroundColor: "#E5E7EB", marginBottom: 14 },
   lineDone: { backgroundColor: "#16A34A" },
+  // Add inside mc StyleSheet:
+  emptyCodesBox: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
+    backgroundColor: "#FAFAFA",
+  },
+  emptyCodesText: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    textAlign: "center",
+  },
 });
 
 const pr = StyleSheet.create({
@@ -2329,7 +2731,7 @@ const web = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
-    marginTop: "2%",
+    marginTop: "0%",
   },
   pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
   pageSub: { fontSize: 13, color: "#6B7280", marginTop: 2 },
