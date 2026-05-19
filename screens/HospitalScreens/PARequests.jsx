@@ -35,6 +35,209 @@ const URGENCY_OPTIONS = [
   { label: "Emergent", value: "Emergent" },
 ];
 
+const isFormValuePresent = (value) => {
+  if (value == null) return false;
+  const text = String(value).trim();
+  return text !== "" && text !== "—" && text !== "-";
+};
+
+const firstFilled = (...values) =>
+  values.find((value) => isFormValuePresent(value)) ?? "";
+
+const rawPatientFrom = (patient) =>
+  patient?.rawPatient || patient?.user || patient || {};
+
+const buildPreAuthAnalysisData = ({
+  patient,
+  updatedUser,
+  diagnosisSummary,
+  diagnosisCodes,
+  procedureCodes,
+  serviceFormData,
+}) => {
+  const selectedRaw = rawPatientFrom(patient);
+  const selected = patient || {};
+  const user = { ...selectedRaw, ...(updatedUser || {}) };
+  const diagCodes = Array.isArray(diagnosisCodes) ? diagnosisCodes : [];
+  const procCodes = Array.isArray(procedureCodes) ? procedureCodes : [];
+  const service = serviceFormData || {};
+
+  const patientName = firstFilled(
+    user.name,
+    selected.name,
+    user.patient_name,
+    user.full_name,
+  );
+  const insurer = firstFilled(
+    service.insurer,
+    user.insurer,
+    user.insurance_provider,
+    selected.insurer,
+  );
+  const policyNumber = firstFilled(
+    user.policy_number,
+    user.policyNumber,
+    selected.policyNumber,
+    selected.policyId,
+    user.policy_id,
+  );
+  const memberId = firstFilled(
+    user.member_id,
+    user.memberId,
+    selected.memberId,
+    user.user_id,
+    selected.user_id,
+  );
+  const primaryDiagnosis = firstFilled(
+    diagnosisSummary?.primary_diagnosis,
+    user.primary_diagnosis,
+    diagCodes[0]?.label,
+    selected.procedure,
+    service.serviceType,
+  );
+  const primaryIcdCode = firstFilled(
+    diagnosisSummary?.primary_icd_code,
+    user.primary_icd_code,
+    diagCodes[0]?.id,
+  );
+  const additionalDiagnosis = firstFilled(
+    diagnosisSummary?.additional_diagnosis,
+    user.additional_diagnosis,
+    diagCodes[1]?.label,
+  );
+  const additionalIcdCode = firstFilled(
+    diagnosisSummary?.additional_icd_code,
+    user.additional_icd_code,
+    diagCodes[1]?.id,
+  );
+  const serviceType = firstFilled(
+    service.serviceType,
+    selected.service,
+    selected.procedure,
+    procCodes[0]?.label,
+  );
+  const urgencyLevel = firstFilled(service.urgencyLevel, "Routine");
+  const isEmergency = String(urgencyLevel).toLowerCase() === "emergent";
+  const hospitalName = firstFilled(user.hospital_name, selected.hospitalName);
+  const doctorName = firstFilled(
+    service.provider,
+    user.provider,
+    user.doctor_name,
+    selected.provider,
+  );
+  const claimedAmount = firstFilled(
+    user.claimed_amount,
+    user.bill_amount,
+    user.estimated_amount,
+    service.estimatedAmount,
+  );
+
+  return {
+    flow: "preauth_patient",
+    patient_data: user,
+    preauth_context: {
+      urgencyLevel,
+      serviceType,
+      diagnosisCodes: diagCodes,
+      procedureCodes: procCodes,
+    },
+    structured_data: {
+      source_filename: `PreAuth_MediAssist_${patientName || "Patient"}.pdf`,
+      patient_details: {
+        name: patientName,
+        age: firstFilled(user.age, selected.age),
+        gender: firstFilled(user.gender, selected.gender),
+        phone: firstFilled(
+          user.phone,
+          user.phoneNumber,
+          user.phone_number,
+          selected.phoneNumber,
+        ),
+        phone_secondary: firstFilled(
+          user.phone_secondary,
+          user.alt_phone,
+          user.alternate_phone,
+        ),
+        email: firstFilled(user.email),
+        date_of_birth: firstFilled(user.date_of_birth, user.dob),
+        address: firstFilled(user.address, user.full_address),
+        city: firstFilled(user.city),
+        state: firstFilled(user.state),
+        pin_code: firstFilled(user.pin_code, user.pincode, user.zip),
+        relationship_to_insured: firstFilled(
+          user.relationship_to_insured,
+          user.relationship,
+        ),
+        occupation: firstFilled(user.occupation),
+        employee_id: firstFilled(user.employee_id),
+      },
+      insurance_details: {
+        policy_number: policyNumber,
+        insurance_company: insurer,
+        tpa_name: firstFilled(
+          user.tpa_name,
+          user.tpa,
+          String(insurer).toLowerCase().includes("medi") ? "Medi Assist" : "",
+        ),
+        insurer_id_card: memberId,
+        certificate_number: firstFilled(user.certificate_number, memberId),
+        employee_id: firstFilled(user.employee_id),
+      },
+      hospital_details: {
+        hospital_name: hospitalName,
+        hospital_id: firstFilled(user.hospital_id),
+        hospital_city: firstFilled(user.hospital_city, user.city),
+        hospital_state: firstFilled(user.hospital_state, user.state),
+        hospital_phone: firstFilled(user.hospital_phone),
+        hospital_email: firstFilled(user.hospital_email),
+        treating_doctor: doctorName,
+        doctor_phone: firstFilled(
+          user.doctor_phone,
+          user.treating_doctor_phone,
+        ),
+        admission_type: isEmergency ? "emergency" : "planned",
+        type_of_admission: isEmergency ? "emergency" : "planned",
+        pre_auth_obtained: "no",
+        room_category: firstFilled(user.room_category, user.room_type),
+      },
+      diagnosis_and_procedures: {
+        primary_diagnosis: primaryDiagnosis,
+        primary_icd_code: primaryIcdCode,
+        additional_diagnosis: additionalDiagnosis,
+        additional_icd_code: additionalIcdCode,
+        procedure_1: firstFilled(procCodes[0]?.label, serviceType),
+        procedure_1_icd_pcs: firstFilled(procCodes[0]?.id),
+        procedure_2: firstFilled(procCodes[1]?.label),
+        procedure_2_icd_pcs: firstFilled(procCodes[1]?.id),
+        procedure_3: firstFilled(procCodes[2]?.label),
+        procedure_3_icd_pcs: firstFilled(procCodes[2]?.id),
+        procedure_details: serviceType,
+        hospitalization_cause: primaryDiagnosis,
+        proposed_line_surgical_management: procCodes.length > 0,
+        proposed_line_medical_management: procCodes.length === 0,
+        is_planned_hospitalization: !isEmergency,
+        is_emergency_hospitalization: isEmergency,
+      },
+      claim_details: {
+        claimed_amount: claimedAmount,
+        bill_amount: claimedAmount,
+      },
+      bank_details: {
+        pan: firstFilled(user.pan),
+        account_number: firstFilled(user.account_number),
+        bank_name: firstFilled(user.bank_name, user.bank_name_branch),
+        branch: firstFilled(user.branch),
+        ifsc_code: firstFilled(user.ifsc_code),
+        account_holder: firstFilled(user.account_holder, patientName),
+      },
+      document_metadata: {
+        document_date: new Date().toISOString(),
+        source: "hospital-preauth",
+      },
+    },
+  };
+};
+
 // ─── DEFAULT CODES ────────────────────────────────────────────────────────────
 // const ALL_DIAGNOSIS_CODES = [
 //   {
@@ -906,8 +1109,7 @@ const MedicalCodesForm = ({
         ) : (
           <View style={mc.emptyCodesBox}>
             <Text style={mc.emptyCodesText}>
-              No diagnosis codes yet. Click &quot;AI Suggested ICD Codes&quot; to fetch
-              from patient documents.
+              No diagnosis codes yet. Use AI Suggest or add manually.
             </Text>
           </View>
         )}
@@ -947,8 +1149,8 @@ const MedicalCodesForm = ({
         ) : (
           <View style={mc.emptyCodesBox}>
             <Text style={mc.emptyCodesText}>
-              No procedure codes yet. Click &quot;AI Suggested ICD Codes&quot; to fetch
-              from patient documents.
+              No procedure codes yet. Click &quot;AI Suggested ICD Codes&quot;
+              to fetch from patient documents.
             </Text>
           </View>
         )}
@@ -1254,6 +1456,7 @@ const PARequests = ({ navigation }) => {
   const [patientsError, setPatientsError] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [serviceFormData, setServiceFormData] = useState({});
+  const [preAuthAnalysisData, setPreAuthAnalysisData] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateError, setUpdateError] = useState(null);
   const [doctors, setDoctors] = useState([]);
@@ -1331,10 +1534,7 @@ const PARequests = ({ navigation }) => {
 
   const handleSelectPatient = async (patient, animRef) => {
     setSelectedPatient(patient);
-    console.log(
-      "[SELECTED PATIENT FULL DATA]",
-      JSON.stringify(patient, null, 2),
-    );
+    setPreAuthAnalysisData(null);
     fetchDoctorsForPatient(patient.memberId);
 
     // Fetch both sources in parallel
@@ -1517,7 +1717,7 @@ const PARequests = ({ navigation }) => {
   };
 
   // Helper: build initials + avatar color from name
-  const getAvatarProps = (name = "") => {
+  const getAvatarProps = useCallback((name = "") => {
     const parts = name.trim().split(" ");
     const initials =
       parts.length >= 2
@@ -1534,7 +1734,7 @@ const PARequests = ({ navigation }) => {
     // Pick color deterministically based on first char
     const idx = (name.charCodeAt(0) || 0) % COLORS.length;
     return { initials, ...COLORS[idx] };
-  };
+  }, []);
 
   // Map raw API patient → shape your UI expects
   // const mapApiPatient = (apiPatient) => {
@@ -1561,154 +1761,118 @@ const PARequests = ({ navigation }) => {
   //     hospitalName: apiPatient.hospital_name || "—",
   //   };
   // };
-  // const mapApiPatient = (apiPatient) => {
-  //   // API returns nested: { user: {...}, relations: [...] }
-  //   const p = apiPatient.user || apiPatient; // unwrap nested user object
-
-  //   const id = p.user_id || p.id || p._id;
-  //   const rawName = p.name || p.patient_name || p.full_name || `Patient-${id}`;
-
-  //   const { initials, color, textColor } = getAvatarProps(rawName);
-  //   return {
-  //     id: id,
-  //     user_id: id,
-  //     name: rawName,
-  //     age: p.age ?? "—",
-  //     gender: p.gender || "—",
-  //     procedure: p.procedure || "—",
-  //     status: p.status || "Eligible",
-  //     initials,
-  //     color,
-  //     textColor,
-  //     insurer: p.insurer || p.insurance_provider || "—",
-  //     memberId: p.member_id || p.user_id || id,
-  //     policyId: p.policy_id || `POL-${id}`,
-  //     policyVersion: p.policy_version || "2024.1",
-  //     provider: p.provider || "—",
-  //     providerNPI: p.provider_npi || "—",
-  //     providerOrg: p.provider_org || "—",
-  //     service: p.service || p.procedure || "—",
-  //     phoneNumber: p.phoneNumber || p.phone_number || "—",
-  //     hospitalName: p.hospital_name || "—",
-  //   };
-  // };
   const mapApiPatient = (apiPatient) => {
     // API returns nested: { user: {...}, relations: [...] }
-    const p = apiPatient.user || apiPatient;
+    const p = apiPatient.user || apiPatient; // unwrap nested user object
 
-    const id = p.user_id || p.id || p._id;
+      const id = p.user_id || p.id || p._id;
+      const rawName =
+        p.name || p.patient_name || p.full_name || `Patient-${id}`;
+      const policyNumber = firstFilled(
+        p.policy_number,
+        p.policyNumber,
+        p.policy_id,
+      );
+      const memberId = firstFilled(p.member_id, p.memberId, p.user_id, id);
 
-    const rawName = p.name || p.patient_name || p.full_name || `Patient-${id}`;
+      const { initials, color, textColor } = getAvatarProps(rawName);
+      return {
+        ...p,
+        id: id,
+        user_id: id,
+        rawPatient: p,
+        name: rawName,
+        age: p.age ?? "—",
+        gender: p.gender || "—",
+        procedure:
+          p.procedure ||
+          p.service ||
+          p.service_type ||
+          p.primary_diagnosis ||
+          "—",
+        status: p.status || "Eligible",
+        initials,
+        color,
+        textColor,
+        insurer: p.insurer || p.insurance_provider || "—",
+        memberId: memberId || id,
+        policyId: policyNumber || p.policy_id || `POL-${id}`,
+        policyNumber,
+        policyVersion: p.policy_version || "2024.1",
+        provider: p.provider || "—",
+        providerNPI: p.provider_npi || "—",
+        providerOrg: p.provider_org || "—",
+        service: p.service || p.procedure || "—",
+        phoneNumber: p.phoneNumber || p.phone_number || "—",
+        hospitalName: p.hospital_name || "—",
+      };
+    },
+    [getAvatarProps],
+  );
 
-    const { initials, color, textColor } = getAvatarProps(rawName);
+  const fetchPatients = useCallback(
+    async (cursor = null) => {
+      try {
+        setPatientsLoading(true);
+        setPatientsError(null);
 
-    return {
-      // ✅ Preserve COMPLETE backend payload
-      ...apiPatient,
+        // Get token + hospital_id stored at login
+        const token = await AsyncStorage.getItem("token");
+        const hospitalId = await AsyncStorage.getItem("hospital_id");
 
-      // ✅ Preserve nested user payload too
-      ...p,
+        // ADD THESE:
+        console.log("TOKEN:", token);
+        console.log("HOSPITAL_ID:", hospitalId);
 
-      // ✅ UI-friendly normalized fields
-      id: id,
-      user_id: id,
+        if (!token || !hospitalId) {
+          setPatientsError("Not authenticated. Please log in again.");
+          return;
+        }
 
-      name: rawName,
+        const params = new URLSearchParams({ limit: "50" });
+        if (cursor) params.append("cursor", cursor);
 
-      age: p.age ?? "—",
-
-      gender: p.gender || "—",
-
-      procedure: p.procedure || "—",
-
-      status: p.status || "Eligible",
-
-      initials,
-      color,
-      textColor,
-
-      insurer: p.insurer || p.insurance_provider || "—",
-
-      memberId: p.member_id || p.user_id || id,
-
-      policyId: p.policy_id || `POL-${id}`,
-
-      policyVersion: p.policy_version || "2024.1",
-
-      provider: p.provider || "—",
-
-      providerNPI: p.provider_npi || "—",
-
-      providerOrg: p.provider_org || "—",
-
-      service: p.service || p.procedure || "—",
-
-      phoneNumber: p.phoneNumber || p.phone_number || "—",
-
-      hospitalName: p.hospital_name || "—",
-    };
-  };
-
-  const fetchPatients = useCallback(async (cursor = null) => {
-    try {
-      setPatientsLoading(true);
-      setPatientsError(null);
-
-      // Get token + hospital_id stored at login
-      const token = await AsyncStorage.getItem("token");
-      const hospitalId = await AsyncStorage.getItem("hospital_id");
-
-      // ADD THESE:
-      console.log("TOKEN:", token);
-      console.log("HOSPITAL_ID:", hospitalId);
-
-      if (!token || !hospitalId) {
-        setPatientsError("Not authenticated. Please log in again.");
-        return;
-      }
-
-      const params = new URLSearchParams({ limit: "50" });
-      if (cursor) params.append("cursor", cursor);
-
-      const res = await fetch(
-        `${API_URL}/hospitals/${hospitalId}/patients?limit=50`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+        const res = await fetch(
+          `${API_URL}/hospitals/${hospitalId}/patients?limit=50`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           },
-        },
-      );
+        );
 
-      if (res.status === 403) {
-        setPatientsError("Access denied. Hospital account may be disabled.");
-        return;
+        if (res.status === 403) {
+          setPatientsError("Access denied. Hospital account may be disabled.");
+          return;
+        }
+
+        if (!res.ok) {
+          setPatientsError(`Failed to load patients (${res.status})`);
+          return;
+        }
+
+        const data = await res.json();
+        console.log("FULL API RESPONSE:", JSON.stringify(data, null, 2));
+        console.log(
+          "FIRST PATIENT RAW:",
+          JSON.stringify(data.patients?.[0], null, 2),
+        );
+        const mapped = (data.patients || []).map(mapApiPatient);
+
+        // If paginating, append; otherwise replace
+        setPatients((prev) => (cursor ? [...prev, ...mapped] : mapped));
+        setNextCursor(data.next_cursor || null);
+      } catch (err) {
+        setPatientsError("Network error. Please check your connection.");
+        console.error("fetchPatients error:", err);
+      } finally {
+        setPatientsLoading(false);
       }
-
-      if (!res.ok) {
-        setPatientsError(`Failed to load patients (${res.status})`);
-        return;
-      }
-
-      const data = await res.json();
-      console.log("FULL API RESPONSE:", JSON.stringify(data, null, 2));
-      console.log(
-        "FIRST PATIENT RAW:",
-        JSON.stringify(data.patients?.[0], null, 2),
-      );
-      const mapped = (data.patients || []).map(mapApiPatient);
-
-      // If paginating, append; otherwise replace
-      setPatients((prev) => (cursor ? [...prev, ...mapped] : mapped));
-      setNextCursor(data.next_cursor || null);
-    } catch (err) {
-      setPatientsError("Network error. Please check your connection.");
-      console.error("fetchPatients error:", err);
-    } finally {
-      setPatientsLoading(false);
-    }
-  }, []);
+    },
+    [mapApiPatient],
+  );
 
   useEffect(() => {
     fetchPatients();
@@ -2122,6 +2286,17 @@ const PARequests = ({ navigation }) => {
           setUpdateLoading(false);
 
           if (result.success) {
+            const updatedUser = result.data?.user || null;
+            setPreAuthAnalysisData(
+              buildPreAuthAnalysisData({
+                patient: selectedPatient,
+                updatedUser,
+                diagnosisSummary,
+                diagnosisCodes,
+                procedureCodes,
+                serviceFormData,
+              }),
+            );
             handleNext(animRef); // advance to Step 5
           } else {
             setUpdateError(result.error || "Failed to submit. Try again.");
@@ -2131,14 +2306,27 @@ const PARequests = ({ navigation }) => {
     </Animated.View>
   );
 
-  const renderStep5 = (animRef) => (
-    <Animated.View style={{ transform: [{ translateX: animRef }] }}>
-      <PreAuthMediAssistCombinedForms
-        navigation={navigation}
-        route={{ params: { analysisData: null } }}
-      />
-    </Animated.View>
-  );
+  const renderStep5 = (animRef) => {
+    const analysisData =
+      preAuthAnalysisData ||
+      buildPreAuthAnalysisData({
+        patient: selectedPatient,
+        updatedUser: selectedPatient?.rawPatient,
+        diagnosisSummary,
+        diagnosisCodes,
+        procedureCodes,
+        serviceFormData,
+      });
+
+    return (
+      <Animated.View style={{ transform: [{ translateX: animRef }] }}>
+        <PreAuthMediAssistCombinedForms
+          navigation={navigation}
+          route={{ params: { analysisData } }}
+        />
+      </Animated.View>
+    );
+  };
 
   const renderCurrentStep = (animRef, isMobile) => {
     if (currentStep === 1) return renderStep1(animRef, isMobile);

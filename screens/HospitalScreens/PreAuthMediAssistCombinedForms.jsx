@@ -35,7 +35,6 @@ import MediAssistFormBContent from "../../components/HospitalPortalComponent/Med
 import {
   mapToFormA,
   mapToFormB,
-  padChars,
 } from "../../utils/PreAuthMediAssistMapper";
 import {
   downloadMediAssistFormA,
@@ -213,7 +212,7 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
       </TouchableOpacity>
 
       {/* Download current form */}
-      {/* <TouchableOpacity
+      <TouchableOpacity
         style={[
           styles.navBtn,
           styles.navBtnPrimary,
@@ -229,7 +228,7 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
             Download Form {STEPS[currentStep].key}
           </Text>
         )}
-      </TouchableOpacity> */}
+      </TouchableOpacity>
 
       {/* Next */}
       <TouchableOpacity
@@ -416,7 +415,7 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
                           <ActivityIndicator size="small" color="#fff" />
                         ) : (
                           <Text style={stylesWeb.primaryTextWeb}>
-                            Download updated claim
+                            Download Form {STEPS[currentStep].key}
                           </Text>
                         )}
                       </TouchableOpacity>
