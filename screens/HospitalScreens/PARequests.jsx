@@ -802,11 +802,10 @@ const MedicalCodesForm = ({
   setProcedureCodes,
   onNext,
   onPrevious,
-  onAiSuggest, // ← new
-  aiLoading, // ← new
-  aiError, // ← new
+  onAiSuggest,
+  aiLoading,
+  aiError,
 }) => {
-  const [clinicalNotes, setClinicalNotes] = useState("");
   const [diagSearch, setDiagSearch] = useState("");
   const [cptSearch, setCptSearch] = useState("");
 
@@ -815,7 +814,6 @@ const MedicalCodesForm = ({
   const removeProcedure = (id) =>
     setProcedureCodes((prev) => prev.filter((c) => c.id !== id));
 
-  // Filter codes by search
   const filteredDiag = diagnosisCodes.filter(
     (c) =>
       c.id.toLowerCase().includes(diagSearch.toLowerCase()) ||
@@ -831,7 +829,6 @@ const MedicalCodesForm = ({
     <View style={mc.container}>
       <Text style={mc.sectionTitle}>Medical Codes</Text>
 
-      {/* Resources card */}
       <View style={mc.resourcesCard}>
         <View style={mc.resourcesLeft}>
           <View style={mc.resourcesIconBox}>
@@ -855,46 +852,18 @@ const MedicalCodesForm = ({
         ))}
       </View>
 
-      {/* Clinical Notes */}
-      <View style={mc.field}>
-        <Text style={mc.fieldLabel}>
-          Clinical notes{" "}
-          <Text style={mc.fieldLabelLight}>(for AI Code Suggestion)</Text>
-        </Text>
-        <TextInput
-          style={mc.clinicalTextArea}
-          value={clinicalNotes}
-          onChangeText={setClinicalNotes}
-          multiline
-          numberOfLines={4}
-          placeholderTextColor="#9CA3AF"
-          placeholder="Describe patient's condition, symptoms, and planned procedures..."
-        />
-      </View>
-
-      {/* AI Button */}
+      {/* AI Button — no clinical notes needed */}
       <TouchableOpacity
         style={[mc.aiBtn, aiLoading && { opacity: 0.6 }]}
-        // onPress={() => onAiSuggest(clinicalNotes)}
-        onPress={() => {
-          if (!clinicalNotes?.trim()) {
-            Alert.alert(
-              "Clinical Notes Required",
-              "Please describe the patient's condition before generating codes.",
-            );
-            return;
-          }
-          onAiSuggest(clinicalNotes);
-        }}
+        onPress={() => onAiSuggest()}
         disabled={aiLoading}
       >
         <Feather name="zap" size={15} color="#fff" style={{ marginRight: 8 }} />
         <Text style={mc.aiBtnText}>
-          {aiLoading ? "Generating Codes..." : "AI Suggested ICD Codes"}
+          {aiLoading ? "Fetching Codes..." : "AI Suggested ICD Codes"}
         </Text>
       </TouchableOpacity>
 
-      {/* AI error */}
       {aiError && (
         <Text style={{ color: "#DC2626", fontSize: 12, marginBottom: 12 }}>
           {aiError}
@@ -937,7 +906,8 @@ const MedicalCodesForm = ({
         ) : (
           <View style={mc.emptyCodesBox}>
             <Text style={mc.emptyCodesText}>
-              No diagnosis codes yet. Use AI Suggest or add manually.
+              No diagnosis codes yet. Click &quot;AI Suggested ICD Codes&quot; to fetch
+              from patient documents.
             </Text>
           </View>
         )}
@@ -977,7 +947,8 @@ const MedicalCodesForm = ({
         ) : (
           <View style={mc.emptyCodesBox}>
             <Text style={mc.emptyCodesText}>
-              No procedure codes yet. Use AI Suggest to generate.
+              No procedure codes yet. Click &quot;AI Suggested ICD Codes&quot; to fetch
+              from patient documents.
             </Text>
           </View>
         )}
@@ -1308,63 +1279,114 @@ const PARequests = ({ navigation }) => {
     }).start();
   };
 
-  // const handleSelectPatient = (patient, animRef) => {
+  // const handleSelectPatient = async (patient, animRef) => {
   //   setSelectedPatient(patient);
-  //   fetchDoctorsForPatient(patient.memberId); // memberId = user_id from API
+  //   fetchDoctorsForPatient(patient.memberId);
+
+  //   // Fetch diagnosis summary and pre-populate codes
+  //   const summary = await fetchDiagnosisSummary(patient.user_id);
+  //   setDiagnosisSummary(summary);
+
+  //   if (summary) {
+  //     const newDiagCodes = [];
+
+  //     if (summary.primary_icd_code && summary.primary_diagnosis) {
+  //       newDiagCodes.push({
+  //         id: summary.primary_icd_code,
+  //         label: summary.primary_diagnosis,
+  //         ref: `Auto-populated from Medilocker · Updated ${
+  //           summary.diagnosis_updated_at
+  //             ? new Date(summary.diagnosis_updated_at).toLocaleDateString()
+  //             : "—"
+  //         }`,
+  //       });
+  //     }
+
+  //     if (summary.additional_icd_code && summary.additional_diagnosis) {
+  //       newDiagCodes.push({
+  //         id: summary.additional_icd_code,
+  //         label: summary.additional_diagnosis,
+  //         ref: `Auto-populated from Medilocker · Updated ${
+  //           summary.diagnosis_updated_at
+  //             ? new Date(summary.diagnosis_updated_at).toLocaleDateString()
+  //             : "—"
+  //         }`,
+  //       });
+  //     }
+
+  //     // Only replace if we actually got codes back
+  //     if (newDiagCodes.length > 0) {
+  //       setDiagnosisCodes(newDiagCodes);
+  //     } else {
+  //       setDiagnosisCodes([]); // no hardcoded fallback
+  //     }
+  //   } else {
+  //     setDiagnosisCodes([]); // no diagnosis data yet
+  //   }
+
+  //   setProcedureCodes([]); // no hardcoded CPT codes
   //   setCurrentStep(2);
   //   animateSlide(animRef, "right");
   // };
+
   const handleSelectPatient = async (patient, animRef) => {
     setSelectedPatient(patient);
+    console.log(
+      "[SELECTED PATIENT FULL DATA]",
+      JSON.stringify(patient, null, 2),
+    );
     fetchDoctorsForPatient(patient.memberId);
 
-    // Fetch diagnosis summary and pre-populate codes
-    const summary = await fetchDiagnosisSummary(patient.user_id);
+    // Fetch both sources in parallel
+    const [summary, autofillCodes] = await Promise.all([
+      fetchDiagnosisSummary(patient.user_id),
+      fetchInsuranceAutofillCodes(patient.user_id),
+    ]);
+
     setDiagnosisSummary(summary);
 
-    if (summary) {
-      const newDiagCodes = [];
+    const newDiagCodes = [];
 
-      if (summary.primary_icd_code && summary.primary_diagnosis) {
-        newDiagCodes.push({
-          id: summary.primary_icd_code,
-          label: summary.primary_diagnosis,
-          ref: `Auto-populated from Medilocker · Updated ${
-            summary.diagnosis_updated_at
-              ? new Date(summary.diagnosis_updated_at).toLocaleDateString()
-              : "—"
-          }`,
-        });
-      }
-
-      if (summary.additional_icd_code && summary.additional_diagnosis) {
-        newDiagCodes.push({
-          id: summary.additional_icd_code,
-          label: summary.additional_diagnosis,
-          ref: `Auto-populated from Medilocker · Updated ${
-            summary.diagnosis_updated_at
-              ? new Date(summary.diagnosis_updated_at).toLocaleDateString()
-              : "—"
-          }`,
-        });
-      }
-
-      // Only replace if we actually got codes back
-      if (newDiagCodes.length > 0) {
-        setDiagnosisCodes(newDiagCodes);
-      } else {
-        setDiagnosisCodes([]); // no hardcoded fallback
-      }
-    } else {
-      setDiagnosisCodes([]); // no diagnosis data yet
+    // Source 1: diagnosis-summary
+    if (summary?.primary_icd_code && summary?.primary_diagnosis) {
+      newDiagCodes.push({
+        id: summary.primary_icd_code,
+        label: summary.primary_diagnosis,
+        ref: `Auto-populated from Medilocker · Updated ${
+          summary.diagnosis_updated_at
+            ? new Date(summary.diagnosis_updated_at).toLocaleDateString()
+            : "—"
+        }`,
+      });
+    }
+    if (summary?.additional_icd_code && summary?.additional_diagnosis) {
+      newDiagCodes.push({
+        id: summary.additional_icd_code,
+        label: summary.additional_diagnosis,
+        ref: `Auto-populated from Medilocker · Updated ${
+          summary.diagnosis_updated_at
+            ? new Date(summary.diagnosis_updated_at).toLocaleDateString()
+            : "—"
+        }`,
+      });
     }
 
-    setProcedureCodes([]); // no hardcoded CPT codes
+    // Source 2: insurance autofill — merge, skip duplicates by id
+    const existingIds = new Set(newDiagCodes.map((c) => c.id));
+    for (const code of autofillCodes) {
+      if (!existingIds.has(code.id)) {
+        newDiagCodes.push(code);
+        existingIds.add(code.id);
+      }
+    }
+
+    setDiagnosisCodes(newDiagCodes.length > 0 ? newDiagCodes : []);
+    setProcedureCodes([]);
     setCurrentStep(2);
     animateSlide(animRef, "right");
   };
 
-  const handleAiSuggestCodes = async (clinicalNotes) => {
+  const handleAiSuggestCodes = async () => {
     setAiLoading(true);
     setAiError(null);
 
@@ -1381,49 +1403,100 @@ const PARequests = ({ navigation }) => {
         return;
       }
 
-      console.log("[AI Suggest] Calling backend with:", {
-        user_id: selectedPatient.user_id,
-        clinical_notes: clinicalNotes,
-        service_type: serviceFormData.serviceType || "",
-      });
-
-      const res = await fetch(`${API_URL}/hospitals/ai/suggest-codes`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+      const res = await fetch(
+        `${API_URL}/medilocker/users/${selectedPatient.user_id}/insurance/autofill-stored`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-        body: JSON.stringify({
-          user_id: selectedPatient.user_id,
-          clinical_notes: clinicalNotes?.trim() || "",
-          service_type: serviceFormData.serviceType || "",
-        }),
-      });
-
-      console.log("[AI Suggest] Response status:", res.status);
+      );
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        console.error("[AI Suggest] Backend error:", errData);
-        setAiError(errData.message || `Server error ${res.status}`);
+        if (res.status === 404) {
+          setAiError(
+            "No uploaded documents found for this patient. Ask them to upload documents via the patient app first.",
+          );
+        } else {
+          setAiError(errData.message || `Server error ${res.status}`);
+        }
         return;
       }
 
-      const parsed = await res.json();
-      console.log("[AI Suggest] Success:", parsed);
+      const data = await res.json();
+      const diagnosisAndProcs =
+        data?.autofill_extracted?.diagnosis_and_procedures || {};
+      const newDiagCodes = [];
 
-      if (parsed.diagnosisCodes?.length > 0) {
-        setDiagnosisCodes(parsed.diagnosisCodes);
-      }
-      if (parsed.procedureCodes?.length > 0) {
-        setProcedureCodes(parsed.procedureCodes);
+      if (
+        diagnosisAndProcs.primary_icd_code &&
+        diagnosisAndProcs.primary_diagnosis
+      ) {
+        newDiagCodes.push({
+          id: diagnosisAndProcs.primary_icd_code,
+          label: diagnosisAndProcs.primary_diagnosis,
+          ref: "Extracted from patient documents via Kokoro AI",
+        });
       }
 
-      if (!parsed.diagnosisCodes?.length && !parsed.procedureCodes?.length) {
+      if (
+        diagnosisAndProcs.additional_icd_code &&
+        diagnosisAndProcs.additional_diagnosis
+      ) {
+        newDiagCodes.push({
+          id: diagnosisAndProcs.additional_icd_code,
+          label: diagnosisAndProcs.additional_diagnosis,
+          ref: "Extracted from patient documents via Kokoro AI",
+        });
+      }
+
+      if (Array.isArray(diagnosisAndProcs.icd_codes)) {
+        for (const code of diagnosisAndProcs.icd_codes) {
+          const id = code?.code || code?.icd_code || code?.id || code;
+          const label =
+            code?.description || code?.diagnosis || code?.label || id;
+          if (id && typeof id === "string") {
+            newDiagCodes.push({
+              id,
+              label,
+              ref: "Extracted from patient documents via Kokoro AI",
+            });
+          }
+        }
+      }
+
+      const newProcCodes = [];
+      if (Array.isArray(diagnosisAndProcs.cpt_codes)) {
+        for (const code of diagnosisAndProcs.cpt_codes) {
+          const id = code?.code || code?.cpt_code || code?.id || code;
+          const label =
+            code?.description || code?.procedure || code?.label || id;
+          if (id && typeof id === "string") {
+            newProcCodes.push({ id, label });
+          }
+        }
+      }
+
+      const existingDiagIds = new Set(diagnosisCodes.map((c) => c.id));
+      const freshDiag = newDiagCodes.filter((c) => !existingDiagIds.has(c.id));
+
+      const existingProcIds = new Set(procedureCodes.map((c) => c.id));
+      const freshProc = newProcCodes.filter((c) => !existingProcIds.has(c.id));
+
+      if (newDiagCodes.length === 0 && newProcCodes.length === 0) {
         setAiError(
-          "No codes returned. Try adding more detail to clinical notes.",
+          "No ICD codes found in patient documents. Ensure the patient has uploaded discharge summary or claim documents.",
         );
+        return;
       }
+
+      if (newDiagCodes.length > 0)
+        setDiagnosisCodes([...diagnosisCodes, ...freshDiag]);
+      if (newProcCodes.length > 0)
+        setProcedureCodes([...procedureCodes, ...freshProc]);
     } catch (err) {
       console.error("[AI Suggest] Network error:", err);
       setAiError("Network error. Check your connection and try again.");
@@ -1488,34 +1561,90 @@ const PARequests = ({ navigation }) => {
   //     hospitalName: apiPatient.hospital_name || "—",
   //   };
   // };
+  // const mapApiPatient = (apiPatient) => {
+  //   // API returns nested: { user: {...}, relations: [...] }
+  //   const p = apiPatient.user || apiPatient; // unwrap nested user object
+
+  //   const id = p.user_id || p.id || p._id;
+  //   const rawName = p.name || p.patient_name || p.full_name || `Patient-${id}`;
+
+  //   const { initials, color, textColor } = getAvatarProps(rawName);
+  //   return {
+  //     id: id,
+  //     user_id: id,
+  //     name: rawName,
+  //     age: p.age ?? "—",
+  //     gender: p.gender || "—",
+  //     procedure: p.procedure || "—",
+  //     status: p.status || "Eligible",
+  //     initials,
+  //     color,
+  //     textColor,
+  //     insurer: p.insurer || p.insurance_provider || "—",
+  //     memberId: p.member_id || p.user_id || id,
+  //     policyId: p.policy_id || `POL-${id}`,
+  //     policyVersion: p.policy_version || "2024.1",
+  //     provider: p.provider || "—",
+  //     providerNPI: p.provider_npi || "—",
+  //     providerOrg: p.provider_org || "—",
+  //     service: p.service || p.procedure || "—",
+  //     phoneNumber: p.phoneNumber || p.phone_number || "—",
+  //     hospitalName: p.hospital_name || "—",
+  //   };
+  // };
   const mapApiPatient = (apiPatient) => {
     // API returns nested: { user: {...}, relations: [...] }
-    const p = apiPatient.user || apiPatient; // unwrap nested user object
+    const p = apiPatient.user || apiPatient;
 
     const id = p.user_id || p.id || p._id;
+
     const rawName = p.name || p.patient_name || p.full_name || `Patient-${id}`;
 
     const { initials, color, textColor } = getAvatarProps(rawName);
+
     return {
+      // ✅ Preserve COMPLETE backend payload
+      ...apiPatient,
+
+      // ✅ Preserve nested user payload too
+      ...p,
+
+      // ✅ UI-friendly normalized fields
       id: id,
       user_id: id,
+
       name: rawName,
+
       age: p.age ?? "—",
+
       gender: p.gender || "—",
+
       procedure: p.procedure || "—",
+
       status: p.status || "Eligible",
+
       initials,
       color,
       textColor,
+
       insurer: p.insurer || p.insurance_provider || "—",
+
       memberId: p.member_id || p.user_id || id,
+
       policyId: p.policy_id || `POL-${id}`,
+
       policyVersion: p.policy_version || "2024.1",
+
       provider: p.provider || "—",
+
       providerNPI: p.provider_npi || "—",
+
       providerOrg: p.provider_org || "—",
+
       service: p.service || p.procedure || "—",
+
       phoneNumber: p.phoneNumber || p.phone_number || "—",
+
       hospitalName: p.hospital_name || "—",
     };
   };
@@ -1695,6 +1824,78 @@ const PARequests = ({ navigation }) => {
     } catch (err) {
       console.error("[DiagnosisSummary] error:", err);
       return null;
+    }
+  }, []);
+
+  const fetchInsuranceAutofillCodes = useCallback(async (userId) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const res = await fetch(
+        `${API_URL}/medilocker/users/${userId}/insurance/autofill-stored`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      if (!res.ok) {
+        console.log("[AutofillCodes] Non-OK response:", res.status);
+        return [];
+      }
+
+      const data = await res.json();
+      console.log(
+        "[AutofillCodes] Raw response:",
+        JSON.stringify(data, null, 2),
+      );
+
+      // Handle multiple possible shapes defensively
+      let codes = [];
+
+      // Shape 1: { icd_codes: [{code, description}, ...] }
+      if (Array.isArray(data.icd_codes)) {
+        codes = data.icd_codes.map((c) => ({
+          id: c.code || c.icd_code || c.id,
+          label: c.description || c.diagnosis || c.label || "",
+          ref: "Auto-populated from Insurance Autofill",
+        }));
+      }
+      // Shape 2: { diagnosis_codes: [{icd_code, diagnosis_label}, ...] }
+      else if (Array.isArray(data.diagnosis_codes)) {
+        codes = data.diagnosis_codes.map((c) => ({
+          id: c.icd_code || c.code || c.id,
+          label: c.diagnosis_label || c.description || c.label || "",
+          ref: "Auto-populated from Insurance Autofill",
+        }));
+      }
+      // Shape 3: flat array [{ icd_code, label }, ...]
+      else if (Array.isArray(data)) {
+        codes = data.map((c) => ({
+          id: c.icd_code || c.code || c.id,
+          label: c.diagnosis_label || c.description || c.label || "",
+          ref: "Auto-populated from Insurance Autofill",
+        }));
+      }
+      // Shape 4: single object with primary/additional (same as diagnosis-summary)
+      else if (data.primary_icd_code) {
+        if (data.primary_icd_code && data.primary_diagnosis) {
+          codes.push({
+            id: data.primary_icd_code,
+            label: data.primary_diagnosis,
+            ref: "Auto-populated from Insurance Autofill",
+          });
+        }
+        if (data.additional_icd_code && data.additional_diagnosis) {
+          codes.push({
+            id: data.additional_icd_code,
+            label: data.additional_diagnosis,
+            ref: "Auto-populated from Insurance Autofill",
+          });
+        }
+      }
+
+      // Filter out any entries where id is missing/null
+      return codes.filter((c) => c.id);
+    } catch (err) {
+      console.error("[AutofillCodes] error:", err);
+      return [];
     }
   }, []);
 
