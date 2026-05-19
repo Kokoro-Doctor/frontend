@@ -1761,9 +1761,10 @@ const PARequests = ({ navigation }) => {
   //     hospitalName: apiPatient.hospital_name || "—",
   //   };
   // };
-  const mapApiPatient = (apiPatient) => {
-    // API returns nested: { user: {...}, relations: [...] }
-    const p = apiPatient.user || apiPatient; // unwrap nested user object
+  const mapApiPatient = useCallback(
+    (apiPatient) => {
+      // API returns nested: { user: {...}, relations: [...] }
+      const p = apiPatient.user || apiPatient; // unwrap nested user object
 
       const id = p.user_id || p.id || p._id;
       const rawName =
