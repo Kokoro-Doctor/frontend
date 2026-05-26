@@ -11,7 +11,13 @@
  *    and passed down as props — the child components are purely presentational
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import {
   ImageBackground,
   StyleSheet,
@@ -27,13 +33,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { WebView } from "react-native-webview";
 
 // ── Form content components ──────────────────────────────────────────────────
 import MediAssistFormAContent from "../../components/HospitalPortalComponent/MediAssistFormA";
 import MediAssistFormBContent from "../../components/HospitalPortalComponent/MediAssistFormB";
 
 // ── Mappers & download utils ─────────────────────────────────────────────────
-import { mapToFormA, mapToFormB, padChars } from "../../utils/MediAssistMapper";
+import { mapToFormA, mapToFormB } from "../../utils/MediAssistMapper";
+import { mapToDischargeSummary } from "../../utils/DischargeMapper";
 import {
   downloadMediAssistFormA,
   generateMediAssistFormAHTML,
@@ -42,6 +50,10 @@ import {
   downloadMediAssistFormB,
   generateMediAssistFormBHTML,
 } from "../../utils/MediAssistFormB";
+import {
+  downloadInsuranceClaim as downloadDischargeSummary,
+  generateInsuranceFormHTML as generateDischargeSummaryHTML,
+} from "../../utils/DischargeSummary";
 
 // ── Layout components ─────────────────────────────────────────────────────────
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
@@ -53,6 +65,7 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 const STEPS = [
   { key: "A", label: "Form A", sub: "Insured section" },
   { key: "B", label: "Form B", sub: "Hospital section" },
+  { key: "DS", label: "Discharge Summary", sub: "Claim summary" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,9 +74,11 @@ const STEPS = [
 export default function MediAssistCombinedForms({ navigation, route }) {
   const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
+  const dischargeSummaryIframeRef = useRef(null);
 
   // ── Step state ─────────────────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState(0); // 0 = Form A, 1 = Form B
+  const isDischargeSummaryStep = currentStep === 2;
 
   // ── Form A state ───────────────────────────────────────────────────────────
   const formASeed = useMemo(() => mapToFormA(analysisData), [analysisData]);
@@ -119,8 +134,74 @@ export default function MediAssistCombinedForms({ navigation, route }) {
     });
   }, []);
 
+  const dischargeSummarySeed = useMemo(
+    () => mapToDischargeSummary(analysisData),
+    [analysisData],
+  );
+  const [dischargeSummaryForm, setDischargeSummaryForm] = useState(
+    () => dischargeSummarySeed,
+  );
+  const [dischargeSummaryEditedHtml, setDischargeSummaryEditedHtml] =
+    useState(null);
+
+  useEffect(() => {
+    setDischargeSummaryForm(dischargeSummarySeed);
+  }, [dischargeSummarySeed]);
+
+  useEffect(() => {
+    setDischargeSummaryEditedHtml(null);
+  }, [dischargeSummarySeed]);
+
   // ── Download ───────────────────────────────────────────────────────────────
   const [isDownloading, setIsDownloading] = useState(false);
+
+  const buildDocumentHtml = useCallback((doc) => {
+    if (!doc?.documentElement) return null;
+    const clone = doc.documentElement.cloneNode(true);
+    const sourceInputs = doc.querySelectorAll("input");
+    const clonedInputs = clone.querySelectorAll("input");
+
+    sourceInputs.forEach((input, index) => {
+      const clonedInput = clonedInputs[index];
+      if (!clonedInput) return;
+
+      if (input.type === "checkbox" || input.type === "radio") {
+        if (input.checked) clonedInput.setAttribute("checked", "");
+        else clonedInput.removeAttribute("checked");
+      } else {
+        clonedInput.setAttribute("value", input.value ?? "");
+      }
+    });
+
+    const sourceTextareas = doc.querySelectorAll("textarea");
+    const clonedTextareas = clone.querySelectorAll("textarea");
+    sourceTextareas.forEach((textarea, index) => {
+      const clonedTextarea = clonedTextareas[index];
+      if (clonedTextarea) clonedTextarea.textContent = textarea.value ?? "";
+    });
+
+    const sourceSelects = doc.querySelectorAll("select");
+    const clonedSelects = clone.querySelectorAll("select");
+    sourceSelects.forEach((select, index) => {
+      const clonedSelect = clonedSelects[index];
+      if (!clonedSelect) return;
+      Array.from(clonedSelect.options).forEach((option, optionIndex) => {
+        option.selected = select.options[optionIndex]?.selected ?? false;
+        if (option.selected) option.setAttribute("selected", "");
+        else option.removeAttribute("selected");
+      });
+    });
+
+    return `<!DOCTYPE html>\n${clone.outerHTML}`;
+  }, []);
+
+  const getDischargeSummaryHtmlOverride = useCallback(() => {
+    if (Platform.OS === "web") {
+      const iframeDoc = dischargeSummaryIframeRef.current?.contentDocument;
+      return buildDocumentHtml(iframeDoc) || dischargeSummaryEditedHtml;
+    }
+    return dischargeSummaryEditedHtml;
+  }, [buildDocumentHtml, dischargeSummaryEditedHtml]);
 
   const handleDownload = async () => {
     if (isDownloading) return;
@@ -128,8 +209,14 @@ export default function MediAssistCombinedForms({ navigation, route }) {
     try {
       if (currentStep === 0) {
         await downloadMediAssistFormA(formA, signatureA);
-      } else {
+      } else if (currentStep === 1) {
         await downloadMediAssistFormB(formB, signatureB);
+      } else {
+        await downloadDischargeSummary(
+          dischargeSummaryForm,
+          null,
+          getDischargeSummaryHtmlOverride(),
+        );
       }
     } catch {
       Alert.alert(
@@ -150,16 +237,27 @@ export default function MediAssistCombinedForms({ navigation, route }) {
     () => generateMediAssistFormBHTML(formB, signatureB),
     [formB, signatureB],
   );
+  const htmlPreviewDischarge = useMemo(
+    () => generateDischargeSummaryHTML(dischargeSummaryForm),
+    [dischargeSummaryForm],
+  );
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const isFirst = currentStep === 0;
   const isLast = currentStep === STEPS.length - 1;
-  const activePreview = currentStep === 0 ? previewA : previewB;
-  const activeHtml = currentStep === 0 ? htmlPreviewA : htmlPreviewB;
+  const activeStep = STEPS[currentStep];
+  const activePreview =
+    currentStep === 0 ? previewA : currentStep === 1 ? previewB : true;
+  const activeHtml =
+    currentStep === 0
+      ? htmlPreviewA
+      : currentStep === 1
+        ? htmlPreviewB
+        : htmlPreviewDischarge;
 
   const togglePreview = () => {
     if (currentStep === 0) setPreviewA((p) => !p);
-    else setPreviewB((p) => !p);
+    else if (currentStep === 1) setPreviewB((p) => !p);
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -172,24 +270,18 @@ export default function MediAssistCombinedForms({ navigation, route }) {
       <StepConnector />
       {/* Analysis step — always done */}
       <StepItem label="Full Case Analysis" sub="Analyze Reports" done />
-      <StepConnector />
-      {/* Form A */}
-      <StepItem
-        label="Form A"
-        sub="Insured section"
-        done={currentStep > 0}
-        active={currentStep === 0}
-        number={3}
-      />
-      <StepConnector />
-      {/* Form B */}
-      <StepItem
-        label="Form B"
-        sub="Hospital section"
-        done={false}
-        active={currentStep === 1}
-        number={4}
-      />
+      {STEPS.map((step, index) => (
+        <React.Fragment key={step.key}>
+          <StepConnector />
+          <StepItem
+            label={step.label}
+            sub={step.sub}
+            done={currentStep > index}
+            active={currentStep === index}
+            number={index + 3}
+          />
+        </React.Fragment>
+      ))}
     </View>
   );
 
@@ -234,29 +326,49 @@ export default function MediAssistCombinedForms({ navigation, route }) {
   // ─────────────────────────────────────────────────────────────────────────
   //  FORM TABS (pill switcher)
   // ─────────────────────────────────────────────────────────────────────────
-  const FormTabs = () => (
-    <View style={styles.tabRow}>
-      {STEPS.map((step, i) => (
-        <TouchableOpacity
-          key={step.key}
-          style={[styles.tab, currentStep === i && styles.tabActive]}
-          onPress={() => setCurrentStep(i)}
-        >
-          <Text
-            style={[styles.tabText, currentStep === i && styles.tabTextActive]}
-          >
-            {step.label}
-          </Text>
-          <Text
-            style={[styles.tabSub, currentStep === i && styles.tabSubActive]}
-          >
-            {step.sub}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+  const FormTabs = () => {
+    const TAB_ORDER = [2, 0, 1];
+    // 2 = Discharge Summary
+    // 0 = Form A
+    // 1 = Form B
 
+    return (
+      <View style={styles.tabRow}>
+        {TAB_ORDER.map((stepIndex) => {
+          const step = STEPS[stepIndex];
+
+          return (
+            <TouchableOpacity
+              key={step.key}
+              style={[
+                styles.tab,
+                currentStep === stepIndex && styles.tabActive,
+              ]}
+              onPress={() => setCurrentStep(stepIndex)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  currentStep === stepIndex && styles.tabTextActive,
+                ]}
+              >
+                {step.label}
+              </Text>
+
+              <Text
+                style={[
+                  styles.tabSub,
+                  currentStep === stepIndex && styles.tabSubActive,
+                ]}
+              >
+                {step.sub}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
   // ─────────────────────────────────────────────────────────────────────────
   //  NAV BUTTONS (Prev / Next / Download)
   // ─────────────────────────────────────────────────────────────────────────
@@ -338,16 +450,110 @@ export default function MediAssistCombinedForms({ navigation, route }) {
         />
       );
     }
+    if (currentStep === 1) {
+      return (
+        <MediAssistFormBContent
+          form={formB}
+          setField={setFieldB}
+          setDiagnosis={setDiagnosis}
+          setProcedure={setProcedure}
+          toggleChecklist={toggleChecklist}
+          signatureImage={signatureB}
+          setSignatureImage={setSignatureB}
+          navigation={navigation}
+        />
+      );
+    }
+    return null;
+  };
+
+  const HtmlFormPreview = ({ minHeight = 520, style }) => {
+    if (Platform.OS === "web") {
+      return (
+        <iframe
+          ref={isDischargeSummaryStep ? dischargeSummaryIframeRef : null}
+          srcDoc={activeHtml}
+          style={{
+            width: "100%",
+            border: "none",
+            minHeight,
+            ...style,
+          }}
+          title={`${activeStep.label} Preview`}
+        />
+      );
+    }
     return (
-      <MediAssistFormBContent
-        form={formB}
-        setField={setFieldB}
-        setDiagnosis={setDiagnosis}
-        setProcedure={setProcedure}
-        toggleChecklist={toggleChecklist}
-        signatureImage={signatureB}
-        setSignatureImage={setSignatureB}
-        navigation={navigation}
+      <WebView
+        originWhitelist={["*"]}
+        source={{ html: activeHtml }}
+        injectedJavaScript={
+          isDischargeSummaryStep
+            ? `
+              (function() {
+                function buildHtmlSnapshot() {
+                  var clone = document.documentElement.cloneNode(true);
+                  var sourceInputs = document.querySelectorAll("input");
+                  var clonedInputs = clone.querySelectorAll("input");
+
+                  sourceInputs.forEach(function(input, index) {
+                    var clonedInput = clonedInputs[index];
+                    if (!clonedInput) return;
+
+                    if (input.type === "checkbox" || input.type === "radio") {
+                      if (input.checked) clonedInput.setAttribute("checked", "");
+                      else clonedInput.removeAttribute("checked");
+                    } else {
+                      clonedInput.setAttribute("value", input.value || "");
+                    }
+                  });
+
+                  var sourceTextareas = document.querySelectorAll("textarea");
+                  var clonedTextareas = clone.querySelectorAll("textarea");
+                  sourceTextareas.forEach(function(textarea, index) {
+                    var clonedTextarea = clonedTextareas[index];
+                    if (clonedTextarea) clonedTextarea.textContent = textarea.value || "";
+                  });
+
+                  var sourceSelects = document.querySelectorAll("select");
+                  var clonedSelects = clone.querySelectorAll("select");
+                  sourceSelects.forEach(function(select, index) {
+                    var clonedSelect = clonedSelects[index];
+                    if (!clonedSelect) return;
+                    Array.from(clonedSelect.options).forEach(function(option, optionIndex) {
+                      var selected = !!(select.options[optionIndex] && select.options[optionIndex].selected);
+                      option.selected = selected;
+                      if (selected) option.setAttribute("selected", "");
+                      else option.removeAttribute("selected");
+                    });
+                  });
+
+                  return '<!DOCTYPE html>\\n' + clone.outerHTML;
+                }
+
+                function sendHtml() {
+                  window.ReactNativeWebView.postMessage(buildHtmlSnapshot());
+                }
+                ['input', 'change', 'click', 'keyup', 'blur'].forEach(function(eventName) {
+                  document.addEventListener(eventName, function() {
+                    setTimeout(sendHtml, 0);
+                  }, true);
+                });
+                setTimeout(sendHtml, 0);
+              })();
+              true;
+            `
+            : undefined
+        }
+        onMessage={
+          isDischargeSummaryStep
+            ? (event) => {
+                const html = event?.nativeEvent?.data;
+                if (html) setDischargeSummaryEditedHtml(html);
+              }
+            : undefined
+        }
+        style={[styles.webViewPreview, style, { minHeight }]}
       />
     );
   };
@@ -400,34 +606,45 @@ export default function MediAssistCombinedForms({ navigation, route }) {
                 <View style={styles.claimCard}>
                   {/* FILE HEADER + TABS + EDIT/PREVIEW toggle */}
                   <View style={styles.claimCardHeader}>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <Ionicons
-                        name="document-text"
-                        size={18}
-                        color="#1976D2"
-                      />
-                      <Text style={styles.fileName}>
-                        {analysisData?.structured_data?.source_filename ||
-                          "Insurance_Claim.pdf"}
-                      </Text>
+                    {/* LEFT */}
+                    <View style={styles.headerLeft}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <Ionicons
+                          name="document-text"
+                          size={18}
+                          color="#1976D2"
+                        />
+                        <Text style={styles.fileName}>
+                          {analysisData?.structured_data?.source_filename ||
+                            "Insurance_Claim.pdf"}
+                        </Text>
+                      </View>
                     </View>
 
-                    <FormTabs />
+                    {/* CENTER */}
+                    <View style={styles.headerCenter}>
+                      <FormTabs />
+                    </View>
 
-                    <TouchableOpacity
-                      style={styles.toggleBtn}
-                      onPress={togglePreview}
-                    >
-                      <Text style={styles.toggleBtnText}>
-                        {activePreview ? "Edit Fields" : "Preview"}
-                      </Text>
-                    </TouchableOpacity>
+                    {/* RIGHT */}
+                    <View style={styles.headerRight}>
+                      {!isDischargeSummaryStep && (
+                        <TouchableOpacity
+                          style={styles.toggleBtn}
+                          onPress={togglePreview}
+                        >
+                          <Text style={styles.toggleBtnText}>
+                            {activePreview ? "Edit Fields" : "Preview"}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
 
                   {/* FORM BODY */}
@@ -449,23 +666,30 @@ export default function MediAssistCombinedForms({ navigation, route }) {
                   )} */}
                   <View style={{ flex: 1, flexDirection: "row" }}>
                     {/* LEFT → FORM */}
-                    <View style={{ flex: 3, paddingRight: 10 }}>
-                      {activePreview ? (
-                        <iframe
-                          srcDoc={activeHtml}
-                          style={{
-                            width: "100%",
-                            border: "none",
-                            minHeight: 520,
-                          }}
-                          title={`Form ${STEPS[currentStep].key} Preview`}
-                        />
-                      ) : (
-                        <ScrollView style={{ flex: 1 }}>
-                          <ActiveFormContent />
-                        </ScrollView>
-                      )}
-                    </View>
+                    <View
+  style={{
+    flex: 3,
+    paddingRight: 10,
+    height: "100%",
+  }}
+>
+  {isDischargeSummaryStep || activePreview ? (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ flexGrow: 1 }}
+      showsVerticalScrollIndicator={true}
+    >
+      <HtmlFormPreview minHeight={1400} />
+    </ScrollView>
+  ) : (
+    <ScrollView
+      style={{ flex: 1 }}
+      showsVerticalScrollIndicator={true}
+    >
+      <ActiveFormContent />
+    </ScrollView>
+  )}
+</View>
 
                     {/* RIGHT → BUTTON PANEL */}
                     <View style={stylesWeb.buttonSidePanel}>
@@ -549,22 +773,27 @@ export default function MediAssistCombinedForms({ navigation, route }) {
         </View>
 
         {/* Edit / Preview toggle */}
-        <View style={{ alignItems: "flex-end", marginBottom: 8 }}>
-          <TouchableOpacity style={styles.toggleBtn} onPress={togglePreview}>
-            <Text style={styles.toggleBtnText}>
-              {activePreview ? "Edit Fields" : "Preview"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {!isDischargeSummaryStep && (
+          <View style={{ alignItems: "flex-end", marginBottom: 8 }}>
+            <TouchableOpacity style={styles.toggleBtn} onPress={togglePreview}>
+              <Text style={styles.toggleBtnText}>
+                {activePreview ? "Edit Fields" : "Preview"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Form card */}
         <View style={styles.mobileCard}>
-          {activePreview && Platform.OS === "web" ? (
-            <iframe
-              srcDoc={activeHtml}
-              style={{ width: "100%", border: "none", minHeight: 500 }}
-              title={`Form ${STEPS[currentStep].key} Preview`}
-            />
+          {isDischargeSummaryStep ? (
+            <View style={styles.mobileHtmlPreviewWrap}>
+              <HtmlFormPreview
+                minHeight={900}
+                style={styles.mobileHtmlPreview}
+              />
+            </View>
+          ) : activePreview && Platform.OS === "web" ? (
+            <HtmlFormPreview minHeight={500} />
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator>
               <View style={{ minWidth: 1300 }}>
@@ -697,42 +926,25 @@ const styles = StyleSheet.create({
 
   // ── Claim card ──
   claimCard: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 8,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    flex: 1,
-    overflow: "hidden",
-    display: "flex",
-    flexDirection: "column",
-  },
+  backgroundColor: "#F9FAFB",
+  borderRadius: 8,
+  padding: 14,
+  borderWidth: 1,
+  borderColor: "#E5E7EB",
+  flex: 1,
+  overflow: "visible",
+  display: "flex",
+  flexDirection: "column",
+},
   claimCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     marginBottom: 10,
     flexShrink: 0,
   },
   fileName: { fontSize: 13, color: "#1976D2", fontWeight: "500" },
 
   // ── Form tabs ──
-  tabRow: { flexDirection: "row", gap: 6 },
-  tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#fff",
-    alignItems: "center",
-  },
-  tabActive: { backgroundColor: "#1565C0", borderColor: "#1565C0" },
-  tabText: { fontSize: 12, fontWeight: "600", color: "#374151" },
-  tabTextActive: { color: "#fff" },
-  tabSub: { fontSize: 9, color: "#9CA3AF", marginTop: 1 },
-  tabSubActive: { color: "#BFDBFE" },
-
   // ── Edit/Preview toggle ──
   toggleBtn: {
     paddingHorizontal: 10,
@@ -803,6 +1015,73 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E0E0",
     marginBottom: 16,
+  },
+  mobileHtmlPreviewWrap: {
+    width: "100%",
+    minHeight: 900,
+    overflow: "hidden",
+  },
+  mobileHtmlPreview: {
+    flex: 1,
+  },
+  webViewPreview: {
+    width: "100%",
+    backgroundColor: "#fff",
+  },
+  tabRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  tab: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 110,
+  },
+
+  tabActive: {
+    backgroundColor: "#1565C0",
+    borderColor: "#1565C0",
+  },
+
+  tabText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+  },
+
+  tabTextActive: {
+    color: "#fff",
+  },
+
+  tabSub: {
+    fontSize: 10,
+    color: "#9CA3AF",
+    marginTop: 2,
+  },
+
+  tabSubActive: {
+    color: "#BFDBFE",
+  },
+  headerLeft: {
+    flex: 1,
+  },
+
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  headerRight: {
+    flex: 1,
+    alignItems: "flex-end",
   },
 });
 const stylesWeb = StyleSheet.create({
