@@ -49,8 +49,8 @@ import {
 //  STEP CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 const STEPS = [
-  { key: "A", label: "Form A", sub: "Insured section" },
-  { key: "B", label: "Form B", sub: "Hospital section" },
+  { key: "A", label: "Page 1", sub: "Insured section" },
+  { key: "B", label: "Page 2", sub: "Hospital section" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
