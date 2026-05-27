@@ -145,7 +145,15 @@ export default function MediAssistCombinedForms({ navigation, route }) {
     useState(null);
 
   useEffect(() => {
-    setDischargeSummaryForm(dischargeSummarySeed);
+    // Get the logged-in hospital name from localStorage and add it to the form
+    let formWithHospital = dischargeSummarySeed;
+    if (Platform.OS === "web") {
+      const loggedInHospitalName = localStorage.getItem("hospital_name");
+      if (loggedInHospitalName) {
+        formWithHospital = { ...dischargeSummarySeed, loggedInHospitalName };
+      }
+    }
+    setDischargeSummaryForm(formWithHospital);
   }, [dischargeSummarySeed]);
 
   useEffect(() => {
@@ -667,29 +675,29 @@ export default function MediAssistCombinedForms({ navigation, route }) {
                   <View style={{ flex: 1, flexDirection: "row" }}>
                     {/* LEFT → FORM */}
                     <View
-  style={{
-    flex: 3,
-    paddingRight: 10,
-    height: "100%",
-  }}
->
-  {isDischargeSummaryStep || activePreview ? (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ flexGrow: 1 }}
-      showsVerticalScrollIndicator={true}
-    >
-      <HtmlFormPreview minHeight={1400} />
-    </ScrollView>
-  ) : (
-    <ScrollView
-      style={{ flex: 1 }}
-      showsVerticalScrollIndicator={true}
-    >
-      <ActiveFormContent />
-    </ScrollView>
-  )}
-</View>
+                      style={{
+                        flex: 3,
+                        paddingRight: 10,
+                        height: "100%",
+                      }}
+                    >
+                      {isDischargeSummaryStep || activePreview ? (
+                        <ScrollView
+                          style={{ flex: 1 }}
+                          contentContainerStyle={{ flexGrow: 1 }}
+                          showsVerticalScrollIndicator={true}
+                        >
+                          <HtmlFormPreview minHeight={1400} />
+                        </ScrollView>
+                      ) : (
+                        <ScrollView
+                          style={{ flex: 1 }}
+                          showsVerticalScrollIndicator={true}
+                        >
+                          <ActiveFormContent />
+                        </ScrollView>
+                      )}
+                    </View>
 
                     {/* RIGHT → BUTTON PANEL */}
                     <View style={stylesWeb.buttonSidePanel}>
@@ -926,16 +934,16 @@ const styles = StyleSheet.create({
 
   // ── Claim card ──
   claimCard: {
-  backgroundColor: "#F9FAFB",
-  borderRadius: 8,
-  padding: 14,
-  borderWidth: 1,
-  borderColor: "#E5E7EB",
-  flex: 1,
-  overflow: "visible",
-  display: "flex",
-  flexDirection: "column",
-},
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    flex: 1,
+    overflow: "visible",
+    display: "flex",
+    flexDirection: "column",
+  },
   claimCardHeader: {
     flexDirection: "row",
     alignItems: "center",
