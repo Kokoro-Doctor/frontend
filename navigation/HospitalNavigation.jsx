@@ -10,6 +10,7 @@ import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsurance
 import StarHealthFormA from "../screens/HospitalScreens/StarHealthFormA";
 import MediAssistFormA from "../screens/HospitalScreens/MediAssistFormA";
 import MediAssistFormB from "../screens/HospitalScreens/MediAssistFormB";
+import CareHealthCombinedForms from "../screens/HospitalScreens/CareHealthCombinedForms";
 import PostOpCare from "../screens/HospitalScreens/PostOpCare";
 import PostOpCarePrescription from "../screens/HospitalScreens/PostOpCarePrescription";
 import DataIntegrations from "../screens/HospitalScreens/DataIntegrations";
@@ -153,6 +154,11 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="MediAssistCombinedForms"
           component={MediAssistCombinedForms}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CareHealthCombinedForms"
+          component={CareHealthCombinedForms}
           options={{ headerShown: false }}
         />
         <Stack.Screen

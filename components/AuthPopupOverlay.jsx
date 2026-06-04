@@ -48,6 +48,7 @@ const AuthPopupOverlay = ({ navigationRef, appType }) => {
     "HospitalPortalLandingPage",
     "StarHealthFormA",
     "MediAssistCombinedForms",
+    "CareHealthCombinedForms",
   ];
 
   // Don't show auth popups if:

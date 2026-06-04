@@ -1,0 +1,1083 @@
+/**
+ * CareHealthFormBContent — pure form component (hospital section).
+ * All screen chrome (sidebar, background, card, step bar, buttons)
+ * is intentionally removed. The parent screen owns those.
+ *
+ * Props:
+ *  - form              : object  — form state
+ *  - setField          : (key, value) => void
+ *  - setDiagnosis      : (idx, subKey, value) => void
+ *  - setProcedure      : (idx, subKey, value) => void
+ *  - toggleChecklist   : (idx) => void
+ *  - signatureImage    : string | null
+ *  - setSignatureImage : (uri) => void
+ *  - navigation        : RN navigation object (for SignatureScreen)
+ */
+
+import React from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
+import { padChars } from "../../utils/CareHealthMapper";
+
+// ─── Section labels (static, no reason to be in parent) ───────────────────────
+const DIAG_LABELS = [
+  "i. Primary Diagnosis",
+  "ii. Additional Diagnosis",
+  "iii. Co-morbidities",
+  "iv. Co-morbidities",
+];
+const PROC_LABELS = [
+  "i. Procedure 1:",
+  "ii. Procedure 2:",
+  "iii. Procedure 3:",
+  "iv. Details of Procedure:",
+];
+const CHECKLIST_LEFT = [
+  "Claim Form duly signed",
+  "Original Pre-authorization request",
+  "Copy of the Pre-authorization approval letter",
+  "Copy of Photo ID Card of patient Verified by hospital",
+  "Hospital Discharge summary",
+  "Operation Theatre Notes",
+  "Hospital main bill",
+  "Hospital break-up bill",
+];
+const CHECKLIST_RIGHT = [
+  "Investigation reports",
+  "CT/MRI/USG/HPE Investigation reports",
+  "Doctor's reference slip for investigation",
+  "ECG",
+  "Pharmacy bills",
+  "MLC reports & Police FIR",
+  "Original death summary from hospital where applicable",
+  "Any other, please specify",
+];
+
+// ─── CharBoxRow ────────────────────────────────────────────────────────────────
+function CharBoxRow({
+  length,
+  value,
+  onChange,
+  boxStyle,
+  rowStyle,
+  keyboardType,
+}) {
+  const padded = padChars(value, length);
+  const chars = padded.split("");
+
+  const handleCell = (idx, t) => {
+    const last = (t || "").slice(-1);
+    const nextChar = last === "" || last === " " ? " " : last.toUpperCase();
+    const arr = padChars(value, length).split("");
+    arr[idx] = nextChar;
+    onChange(arr.join(""));
+  };
+
+  return (
+    <View style={rowStyle || styles.boxRow}>
+      {Array.from({ length }).map((_, i) => (
+        <TextInput
+          key={i}
+          style={boxStyle || styles.squareBox}
+          maxLength={1}
+          keyboardType={keyboardType}
+          value={chars[i] === " " ? "" : chars[i]}
+          onChangeText={(t) => handleCell(i, t)}
+        />
+      ))}
+    </View>
+  );
+}
+
+// ─── YesNoRow ──────────────────────────────────────────────────────────────────
+function YesNoRow({ value, onChange }) {
+  return (
+    <View style={styles.inlineRow}>
+      {["yes", "no"].map((v) => (
+        <TouchableOpacity
+          key={v}
+          style={[styles.yesNoBtn, value === v && styles.yesNoBtnActive]}
+          onPress={() => onChange(value === v ? "" : v)}
+        >
+          <Text
+            style={[styles.yesNoText, value === v && styles.yesNoTextActive]}
+          >
+            {v.charAt(0).toUpperCase() + v.slice(1)}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+// ─── NetworkToggle ─────────────────────────────────────────────────────────────
+function NetworkToggle({ value, onChange }) {
+  return (
+    <View style={styles.inlineRow}>
+      {["network", "non_network"].map((v) => (
+        <TouchableOpacity
+          key={v}
+          style={[styles.yesNoBtn, value === v && styles.yesNoBtnActive]}
+          onPress={() => onChange(value === v ? "" : v)}
+        >
+          <Text
+            style={[styles.yesNoText, value === v && styles.yesNoTextActive]}
+          >
+            {v === "network" ? "Network" : "Non Network"}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+// ─── SectionBar ───────────────────────────────────────────────────────────────
+function SectionBar({ label }) {
+  return (
+    <View style={styles.sectionBar}>
+      <View style={styles.sectionLine} />
+      <View style={styles.sectionTextWrap}>
+        <Text style={styles.sectionText}>{label}</Text>
+      </View>
+      <View style={styles.sectionLine} />
+    </View>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
+export default function CareHealthFormBContent({
+  form,
+  setField,
+  setDiagnosis,
+  setProcedure,
+  toggleChecklist,
+  signatureImage,
+  setSignatureImage,
+  navigation,
+}) {
+  return (
+    <ScrollView>
+      <View style={{ padding: 8 }}>
+        {/* ── HEADER ── */}
+        <Text style={styles.formTitle}>CLAIM FORM – PART B</Text>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { textAlign: "center", fontWeight: "400", fontSize: 11 },
+          ]}
+        >
+          TO BE FILLED IN BY THE HOSPITAL
+        </Text>
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION A — DETAILS OF HOSPITAL
+        ══════════════════════════════════════════════════════ */}
+        <View style={styles.dividerRow}>
+          <View style={styles.line} />
+          <Text style={styles.dividerText}>DETAILS OF HOSPITAL</Text>
+          <View style={styles.line} />
+        </View>
+
+        <View style={styles.sectionContainer}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>a) Name of the hospital:</Text>
+              <CharBoxRow
+                length={50}
+                value={form.hospitalName}
+                onChange={(v) => setField("hospitalName", v)}
+              />
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>b) Hospital ID:</Text>
+              <CharBoxRow
+                length={20}
+                value={form.hospitalId}
+                onChange={(v) => setField("hospitalId", v)}
+              />
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>c) Type of Hospital:</Text>
+              <NetworkToggle
+                value={form.hospitalNetwork}
+                onChange={(v) => setField("hospitalNetwork", v)}
+              />
+            </View>
+
+            <Text style={styles.label}>d) Name of treating doctor:</Text>
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.smallLabel}>Surname:</Text>
+                <CharBoxRow
+                  length={18}
+                  value={form.treatingDoctorSurname}
+                  onChange={(v) => setField("treatingDoctorSurname", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.smallLabel}>First:</Text>
+                <CharBoxRow
+                  length={12}
+                  value={form.treatingDoctorFirst}
+                  onChange={(v) => setField("treatingDoctorFirst", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.smallLabel}>Middle:</Text>
+                <CharBoxRow
+                  length={12}
+                  value={form.treatingDoctorMiddle}
+                  onChange={(v) => setField("treatingDoctorMiddle", v)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>e) Qualification:</Text>
+              <TextInput
+                style={styles.longInput}
+                value={form.qualification}
+                onChangeText={(t) => setField("qualification", t)}
+              />
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>f) Reg. No. with State Code:</Text>
+                <CharBoxRow
+                  length={14}
+                  value={form.registrationNoStateCode}
+                  onChange={(v) => setField("registrationNoStateCode", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>g) Phone No.:</Text>
+                <CharBoxRow
+                  length={11}
+                  value={form.phoneNo}
+                  onChange={(v) => setField("phoneNo", v)}
+                />
+              </View>
+            </View>
+          </View>
+          <SectionBar label="SECTION A" />
+        </View>
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION B — DETAILS OF THE PATIENT ADMITTED
+        ══════════════════════════════════════════════════════ */}
+        <View style={styles.dividerRow}>
+          <View style={styles.line} />
+          <Text style={styles.dividerText}>
+            DETAILS OF THE PATIENT ADMITTED
+          </Text>
+          <View style={styles.line} />
+        </View>
+
+        <View style={styles.sectionContainer}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.label}>a) Name of the Patient:</Text>
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.smallLabel}>Surname:</Text>
+                <CharBoxRow
+                  length={18}
+                  value={form.patientSurname}
+                  onChange={(v) => setField("patientSurname", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.smallLabel}>First:</Text>
+                <CharBoxRow
+                  length={16}
+                  value={form.patientFirst}
+                  onChange={(v) => setField("patientFirst", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.smallLabel}>Middle:</Text>
+                <CharBoxRow
+                  length={14}
+                  value={form.patientMiddle}
+                  onChange={(v) => setField("patientMiddle", v)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>b) IP Reg. Number:</Text>
+                <CharBoxRow
+                  length={15}
+                  value={form.ipRegNumber}
+                  onChange={(v) => setField("ipRegNumber", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>c) Gender:</Text>
+                {["male", "female"].map((g) => (
+                  <TouchableOpacity
+                    key={g}
+                    style={[
+                      styles.yesNoBtn,
+                      form.gender === g && styles.yesNoBtnActive,
+                    ]}
+                    onPress={() =>
+                      setField("gender", form.gender === g ? "" : g)
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.yesNoText,
+                        form.gender === g && styles.yesNoTextActive,
+                      ]}
+                    >
+                      {g.charAt(0).toUpperCase() + g.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>d) Age: Years</Text>
+                <CharBoxRow
+                  length={2}
+                  value={form.ageYears}
+                  onChange={(v) => setField("ageYears", v)}
+                  keyboardType="numeric"
+                />
+                <Text style={styles.label}>Months</Text>
+                <CharBoxRow
+                  length={2}
+                  value={form.ageMonths}
+                  onChange={(v) => setField("ageMonths", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>e) Date of birth (DDMMYY):</Text>
+                <CharBoxRow
+                  length={6}
+                  value={form.dob}
+                  onChange={(v) => setField("dob", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>
+                  f) Date of Admission (DDMMYYYY):
+                </Text>
+                <CharBoxRow
+                  length={8}
+                  value={form.admissionDate}
+                  onChange={(v) => setField("admissionDate", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>g) Time (HHMM):</Text>
+                <CharBoxRow
+                  length={4}
+                  value={form.admissionTime}
+                  onChange={(v) => setField("admissionTime", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>
+                  h) Date of Discharge (DDMMYYYY):
+                </Text>
+                <CharBoxRow
+                  length={8}
+                  value={form.dischargeDate}
+                  onChange={(v) => setField("dischargeDate", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>i) Time (HHMM):</Text>
+                <CharBoxRow
+                  length={4}
+                  value={form.dischargeTime}
+                  onChange={(v) => setField("dischargeTime", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>j) Type of Admission:</Text>
+              {[
+                ["emergency", "Emergency"],
+                ["planned", "Planned"],
+                ["day_care", "Day Care"],
+                ["maternity", "Maternity"],
+              ].map(([v, lbl]) => (
+                <TouchableOpacity
+                  key={v}
+                  style={[
+                    styles.yesNoBtn,
+                    form.typeOfAdmission === v && styles.yesNoBtnActive,
+                  ]}
+                  onPress={() =>
+                    setField(
+                      "typeOfAdmission",
+                      form.typeOfAdmission === v ? "" : v,
+                    )
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.yesNoText,
+                      form.typeOfAdmission === v && styles.yesNoTextActive,
+                    ]}
+                  >
+                    {lbl}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>l) Date of Delivery (DDMMYY):</Text>
+                <CharBoxRow
+                  length={6}
+                  value={form.dateOfDelivery}
+                  onChange={(v) => setField("dateOfDelivery", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>m) Gravida Status:</Text>
+                <CharBoxRow
+                  length={4}
+                  value={form.gravidaStatus}
+                  onChange={(v) => setField("gravidaStatus", v)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>Status at discharge:</Text>
+              {[
+                ["home", "Discharge to home"],
+                ["another_hospital", "Another hospital"],
+                ["deceased", "Deceased"],
+              ].map(([v, lbl]) => (
+                <TouchableOpacity
+                  key={v}
+                  style={[
+                    styles.yesNoBtn,
+                    form.dischargeStatus === v && styles.yesNoBtnActive,
+                  ]}
+                  onPress={() =>
+                    setField(
+                      "dischargeStatus",
+                      form.dischargeStatus === v ? "" : v,
+                    )
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.yesNoText,
+                      form.dischargeStatus === v && styles.yesNoTextActive,
+                    ]}
+                  >
+                    {lbl}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>m) Total claimed amount:</Text>
+              <TextInput
+                style={styles.longInput}
+                value={form.totalClaimedAmount}
+                onChangeText={(t) => setField("totalClaimedAmount", t)}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+          <SectionBar label="SECTION B" />
+        </View>
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION C — DETAILS OF AILMENT DIAGNOSED
+        ══════════════════════════════════════════════════════ */}
+        <View style={styles.dividerRow}>
+          <View style={styles.line} />
+          <Text style={styles.dividerText}>
+            DETAILS OF AILMENT DIAGNOSED (PRIMARY)
+          </Text>
+          <View style={styles.line} />
+        </View>
+
+        <View style={styles.sectionContainer}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionSubTitle}>a) Diagnoses (ICD 10)</Text>
+            {form.diagnoses.map((d, i) => (
+              <View key={i} style={styles.icdRow}>
+                <Text style={styles.smallLabel}>{DIAG_LABELS[i]}</Text>
+                <CharBoxRow
+                  length={7}
+                  value={d.icd10}
+                  onChange={(v) => setDiagnosis(i, "icd10", v)}
+                />
+                <TextInput
+                  style={styles.icdDesc}
+                  value={d.description}
+                  onChangeText={(t) => setDiagnosis(i, "description", t)}
+                  placeholder="Description"
+                />
+              </View>
+            ))}
+
+            <Text style={[styles.sectionSubTitle, { marginTop: 8 }]}>
+              b) Procedures (ICD 10 PCS)
+            </Text>
+            {form.procedures.map((p, i) => (
+              <View key={i} style={styles.icdRow}>
+                <Text style={styles.smallLabel}>{PROC_LABELS[i]}</Text>
+                {i < 3 && (
+                  <CharBoxRow
+                    length={7}
+                    value={p.icd10pcs}
+                    onChange={(v) => setProcedure(i, "icd10pcs", v)}
+                  />
+                )}
+                <TextInput
+                  style={styles.icdDesc}
+                  value={p.description}
+                  onChangeText={(t) => setProcedure(i, "description", t)}
+                  placeholder="Description"
+                />
+              </View>
+            ))}
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>c) Pre-authorization obtained:</Text>
+                <YesNoRow
+                  value={form.preAuthObtained}
+                  onChange={(v) => setField("preAuthObtained", v)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>d) Pre-authorization Number:</Text>
+              <CharBoxRow
+                length={18}
+                value={form.preAuthNumber}
+                onChange={(v) => setField("preAuthNumber", v)}
+              />
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>e) If not obtained, reason:</Text>
+              <TextInput
+                style={styles.longInputWide}
+                value={form.preAuthMissingReason}
+                onChangeText={(t) => setField("preAuthMissingReason", t)}
+              />
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>
+                f) Hospitalization due to injury:
+              </Text>
+              <YesNoRow
+                value={form.injuryHospitalization}
+                onChange={(v) => setField("injuryHospitalization", v)}
+              />
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>If Yes, cause:</Text>
+              {[
+                ["injurySelf", "Self-inflicted"],
+                ["injuryRTA", "Road Traffic Accident"],
+                ["injurySubstance", "Substance abuse"],
+              ].map(([k, lbl]) => (
+                <TouchableOpacity
+                  key={k}
+                  style={[styles.yesNoBtn, form[k] && styles.yesNoBtnActive]}
+                  onPress={() => setField(k, !form[k])}
+                >
+                  <Text
+                    style={[
+                      styles.yesNoText,
+                      form[k] && styles.yesNoTextActive,
+                    ]}
+                  >
+                    {lbl}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>Substance test conducted:</Text>
+                <YesNoRow
+                  value={form.substanceTestDone}
+                  onChange={(v) => setField("substanceTestDone", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>Medico legal:</Text>
+                <YesNoRow
+                  value={form.medicoLegal}
+                  onChange={(v) => setField("medicoLegal", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>Reported to police:</Text>
+                <YesNoRow
+                  value={form.reportedPolice}
+                  onChange={(v) => setField("reportedPolice", v)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>v. FIR No.:</Text>
+              <CharBoxRow
+                length={12}
+                value={form.firNumber}
+                onChange={(v) => setField("firNumber", v)}
+              />
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>
+                vi. If not reported to police, reason:
+              </Text>
+              <TextInput
+                style={styles.longInputWide}
+                value={form.firNotReportedReason}
+                onChangeText={(t) => setField("firNotReportedReason", t)}
+              />
+            </View>
+          </View>
+          <SectionBar label="SECTION C" />
+        </View>
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION D — CHECKLIST
+        ══════════════════════════════════════════════════════ */}
+        <View style={styles.dividerRow}>
+          <View style={styles.line} />
+          <Text style={styles.dividerText}>
+            CLAIM DOCUMENTS SUBMITTED - CHECK LIST
+          </Text>
+          <View style={styles.line} />
+        </View>
+
+        <View style={styles.sectionContainer}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.rowWrap}>
+              {/* Left column */}
+              <View style={{ flex: 1 }}>
+                {CHECKLIST_LEFT.map((item, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.checkRow}
+                    onPress={() => toggleChecklist(i)}
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        form.claimDocChecklist[i] && styles.checkboxChecked,
+                      ]}
+                    >
+                      {form.claimDocChecklist[i] && (
+                        <Text style={styles.checkmark}>✓</Text>
+                      )}
+                    </View>
+                    <Text style={styles.checkLabel}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {/* Right column */}
+              <View style={{ flex: 1 }}>
+                {CHECKLIST_RIGHT.map((item, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.checkRow}
+                    onPress={() => toggleChecklist(i + 8)}
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        form.claimDocChecklist[i + 8] && styles.checkboxChecked,
+                      ]}
+                    >
+                      {form.claimDocChecklist[i + 8] && (
+                        <Text style={styles.checkmark}>✓</Text>
+                      )}
+                    </View>
+                    <Text style={styles.checkLabel}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+          <SectionBar label="SECTION D" />
+        </View>
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION E — NON-NETWORK HOSPITAL DETAILS
+        ══════════════════════════════════════════════════════ */}
+        <View style={styles.dividerRow}>
+          <View style={styles.line} />
+          <Text style={styles.dividerText}>
+            NON-NETWORK HOSPITAL DETAILS (ONLY IF APPLICABLE)
+          </Text>
+          <View style={styles.line} />
+        </View>
+
+        <View style={styles.sectionContainer}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>a) Address (line 1):</Text>
+              <CharBoxRow
+                length={45}
+                value={form.nonNetAddress1}
+                onChange={(v) => setField("nonNetAddress1", v)}
+              />
+            </View>
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>Address (line 2):</Text>
+              <CharBoxRow
+                length={50}
+                value={form.nonNetAddress2}
+                onChange={(v) => setField("nonNetAddress2", v)}
+              />
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>City:</Text>
+                <TextInput
+                  style={styles.longInput}
+                  value={form.nonNetCity}
+                  onChangeText={(t) => setField("nonNetCity", t)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>State:</Text>
+                <TextInput
+                  style={styles.longInput}
+                  value={form.nonNetState}
+                  onChangeText={(t) => setField("nonNetState", t)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>Pin Code:</Text>
+                <CharBoxRow
+                  length={6}
+                  value={form.nonNetPin}
+                  onChange={(v) => setField("nonNetPin", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>b) Phone No.:</Text>
+                <CharBoxRow
+                  length={10}
+                  value={form.nonNetPhone}
+                  onChange={(v) => setField("nonNetPhone", v)}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>c) Reg. No. with State Code:</Text>
+              <CharBoxRow
+                length={14}
+                value={form.nonNetRegStateCode}
+                onChange={(v) => setField("nonNetRegStateCode", v)}
+              />
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>d) Hospital PAN:</Text>
+                <CharBoxRow
+                  length={10}
+                  value={form.hospitalPan}
+                  onChange={(v) => setField("hospitalPan", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>e) No. of inpatient beds:</Text>
+                <CharBoxRow
+                  length={5}
+                  value={form.inpatientBeds}
+                  onChange={(v) => setField("inpatientBeds", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>f) Facilities – OT:</Text>
+                <YesNoRow
+                  value={form.facilityOT}
+                  onChange={(v) => setField("facilityOT", v)}
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>ICU:</Text>
+                <YesNoRow
+                  value={form.facilityICU}
+                  onChange={(v) => setField("facilityICU", v)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>g) Others:</Text>
+              <TextInput
+                style={styles.longInputWide}
+                value={form.otherFacilities}
+                onChangeText={(t) => setField("otherFacilities", t)}
+              />
+            </View>
+          </View>
+          <SectionBar label="SECTION E" />
+        </View>
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION F — DECLARATION BY THE HOSPITAL
+        ══════════════════════════════════════════════════════ */}
+        <View style={styles.dividerRow}>
+          <View style={styles.line} />
+          <Text style={styles.dividerText}>DECLARATION BY THE HOSPITAL</Text>
+          <View style={styles.line} />
+        </View>
+
+        <View style={styles.sectionContainer}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.declarationText}>
+              We hereby declare that the information furnished in this Claim
+              Form is true & correct to the best of our knowledge and belief. If
+              we have made any false or untrue statement, suppression or
+              concealment of any material fact, our right to claim under this
+              claim shall be forfeited.
+            </Text>
+
+            <View style={styles.rowWrap}>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>Date (DDMMYYYY):</Text>
+                <CharBoxRow
+                  length={8}
+                  value={form.declarationDate}
+                  onChange={(v) => setField("declarationDate", v)}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.inlineRow}>
+                <Text style={styles.label}>Place:</Text>
+                <TextInput
+                  style={styles.longInput}
+                  value={form.declarationPlace}
+                  onChangeText={(t) => setField("declarationPlace", t)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inlineRow}>
+              <Text style={styles.label}>
+                Signature and Seal of Hospital Authority:
+              </Text>
+              <TouchableOpacity
+                style={styles.signatureBox}
+                onPress={() =>
+                  navigation.navigate("SignatureScreen", {
+                    onSave: (uri) => setSignatureImage(uri),
+                  })
+                }
+                activeOpacity={0.7}
+              >
+                {signatureImage ? (
+                  <Image
+                    source={{ uri: signatureImage }}
+                    style={styles.signatureImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Text style={styles.signaturePlaceholder}>Tap to sign</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+          <SectionBar label="SECTION F" />
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
+// ─── Styles (identical to original) ───────────────────────────────────────────
+const styles = StyleSheet.create({
+  /* Layout */
+  inlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginBottom: 6,
+  },
+  rowWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 6 },
+  sectionContainer: { flexDirection: "row", marginBottom: 4 },
+
+  /* Divider */
+  dividerRow: { flexDirection: "row", alignItems: "center", marginVertical: 6 },
+  line: { flex: 1, height: 1, backgroundColor: "#000" },
+  dividerText: { fontSize: 10, fontWeight: "700", paddingHorizontal: 6 },
+
+  /* Labels */
+  label: { fontSize: 11, marginRight: 6 },
+  smallLabel: { fontSize: 10, marginRight: 4 },
+  sectionSubTitle: { fontSize: 11, fontWeight: "600", marginBottom: 4 },
+
+  /* Section bar */
+  sectionBar: { width: 28, alignItems: "center", marginLeft: 6 },
+  sectionLine: { flex: 1, width: 1, backgroundColor: "#000" },
+  sectionTextWrap: {
+    paddingVertical: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sectionText: {
+    fontSize: 9,
+    fontWeight: "700",
+    transform: [{ rotate: "90deg" }],
+  },
+
+  /* Char boxes */
+  boxRow: { flexDirection: "row", flexWrap: "wrap" },
+  squareBox: {
+    width: 16,
+    height: 18,
+    borderWidth: 1,
+    borderColor: "#999",
+    margin: 1,
+    textAlign: "center",
+    fontSize: 9,
+    padding: 0,
+  },
+
+  /* Text inputs */
+  longInput: {
+    width: 160,
+    height: 20,
+    borderWidth: 1,
+    borderColor: "#999",
+    fontSize: 11,
+    paddingHorizontal: 4,
+  },
+  longInputWide: {
+    width: 260,
+    height: 20,
+    borderWidth: 1,
+    borderColor: "#999",
+    fontSize: 11,
+    paddingHorizontal: 4,
+  },
+
+  /* Yes/No buttons */
+  yesNoBtn: {
+    borderWidth: 1,
+    borderColor: "#999",
+    borderRadius: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginHorizontal: 2,
+  },
+  yesNoBtnActive: { backgroundColor: "#1565C0", borderColor: "#1565C0" },
+  yesNoText: { fontSize: 10, color: "#333" },
+  yesNoTextActive: { color: "#fff" },
+
+  /* ICD row */
+  icdRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginBottom: 4,
+    gap: 4,
+  },
+  icdDesc: {
+    flex: 1,
+    minWidth: 120,
+    height: 20,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    fontSize: 10,
+    paddingHorizontal: 4,
+  },
+
+  /* Checklist */
+  checkRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
+  checkbox: {
+    width: 14,
+    height: 14,
+    borderWidth: 1,
+    borderColor: "#000",
+    marginRight: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxChecked: { backgroundColor: "#1565C0", borderColor: "#1565C0" },
+  checkmark: { color: "#fff", fontSize: 9, lineHeight: 12 },
+  checkLabel: { fontSize: 10, flex: 1 },
+
+  /* Declaration */
+  declarationText: { fontSize: 10, lineHeight: 15, marginBottom: 8 },
+
+  /* Signature */
+  signatureBox: {
+    width: 180,
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  signatureImage: { width: "100%", height: "100%" },
+  signaturePlaceholder: { fontSize: 10, color: "#aaa", fontStyle: "italic" },
+
+  /* Form title */
+  formTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    textAlign: "center",
+    marginBottom: 2,
+  },
+  sectionTitle: { fontSize: 11, textAlign: "center", marginBottom: 10 },
+});
