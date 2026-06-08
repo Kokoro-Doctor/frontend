@@ -8,6 +8,7 @@ import {
   ScrollView,
   Modal,
   Animated,
+  useWindowDimensions,
 } from "react-native";
 import {
   requestAadhaarOtp,
@@ -193,6 +194,103 @@ const InnerStepIndicator = ({ currentStep }) => {
   );
 };
 
+// ─── MOBILE OUTER STEP INDICATOR ──────────────────────────────
+const MobileOuterStepIndicator = ({ currentStep }) => {
+  const steps = [
+    { num: 1, label: "Choose\nMethod" },
+    { num: 2, label: "Patient\nDetails" },
+    { num: 3, label: "Hospital\nInfo" },
+    { num: 4, label: "Confirm\n& Book" },
+  ];
+  return (
+    <View style={moS.container}>
+      {steps.map((step, idx) => {
+        const done = step.num < currentStep;
+        const active = step.num === currentStep;
+        return (
+          <React.Fragment key={step.num}>
+            <View style={moS.stepItem}>
+              <View
+                style={[
+                  moS.circle,
+                  done && moS.circleDone,
+                  active && moS.circleActive,
+                ]}
+              >
+                {done ? (
+                  <Text style={moS.checkmark}>✓</Text>
+                ) : (
+                  <Text style={[moS.circleNum, active && moS.circleNumActive]}>
+                    {step.num}
+                  </Text>
+                )}
+              </View>
+              <Text
+                style={[
+                  moS.label,
+                  active && moS.labelActive,
+                  done && moS.labelDone,
+                ]}
+              >
+                {step.label}
+              </Text>
+            </View>
+            {idx < steps.length - 1 && (
+              <View style={[moS.line, done && moS.lineDone]} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
+};
+
+// ─── MOBILE INNER SUB-STEP INDICATOR ──────────────────────────
+const MobileInnerStepIndicator = ({ currentStep }) => {
+  const steps = [
+    { num: 1, label: "Aadhaar" },
+    { num: 2, label: "OTP" },
+    { num: 3, label: "ABHA\nCreated" },
+  ];
+  return (
+    <View style={miS.wrapper}>
+      {steps.map((step, idx) => {
+        const done = step.num < currentStep;
+        const active = step.num === currentStep;
+        return (
+          <React.Fragment key={step.num}>
+            <View style={miS.item}>
+              <View
+                style={[miS.dot, done && miS.dotDone, active && miS.dotActive]}
+              >
+                {done ? (
+                  <Text style={miS.dotCheck}>✓</Text>
+                ) : (
+                  <Text style={[miS.dotNum, active && miS.dotNumActive]}>
+                    {step.num}
+                  </Text>
+                )}
+              </View>
+              <Text
+                style={[
+                  miS.label,
+                  active && miS.labelActive,
+                  done && miS.labelDone,
+                ]}
+              >
+                {step.label}
+              </Text>
+            </View>
+            {idx < steps.length - 1 && (
+              <View style={[miS.line, done && miS.lineDone]} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
+};
+
 // ─── INLINE SELECT ────────────────────────────────────────────
 const InlineSelect = ({
   label,
@@ -305,6 +403,8 @@ const OtpRow = ({ otp, setOtp, inputRefs }) => {
 };
 
 const ConfirmationModal = ({ visible, data, onClose, onNewRegistration }) => {
+  const { width: modalWidth } = useWindowDimensions();
+  const isModalMobile = modalWidth < 768;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -340,6 +440,7 @@ const ConfirmationModal = ({ visible, data, onClose, onNewRegistration }) => {
         <Animated.View
           style={[
             confS.box,
+            isModalMobile && { width: modalWidth - 32, borderRadius: 12 },
             { opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
@@ -446,6 +547,8 @@ const ConfirmationModal = ({ visible, data, onClose, onNewRegistration }) => {
 //   onFlowComplete   : fn(patientData) — ABHA creation complete, parent next step pe jaaye
 
 const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const [subStep, setSubStep] = useState(1);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -703,7 +806,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //         options={METHODS}
   //         onSelect={setMethod}
   //       />
-  //       <View style={fS.group}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>
   //           AADHAAR NUMBER <Text style={{ color: "#EF4444" }}>*</Text>
   //         </Text>
@@ -716,8 +819,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //       </View>
   //     </View>
 
-  //     <View style={fS.row}>
-  //       <View style={fS.group}>
+  //     <View style={isMobile ? mfS.col : fS.row}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>
   //           Full name <Text style={{ color: "#EF4444" }}>*</Text>
   //         </Text>
@@ -727,7 +830,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //           placeholderTextColor="#9CA3AF"
   //         />
   //       </View>
-  //       <View style={fS.group}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>
   //           Date of birth <Text style={{ color: "#EF4444" }}>*</Text>
   //         </Text>
@@ -747,7 +850,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //         onSelect={() => {}}
   //         placeholder="Select Gender"
   //       />
-  //       <View style={fS.group}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>
   //           Mobile (AADHAAR LINKED) <Text style={{ color: "#EF4444" }}>*</Text>
   //         </Text>
@@ -760,8 +863,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //       </View>
   //     </View>
 
-  //     <View style={fS.row}>
-  //       <View style={fS.group}>
+  //     <View style={isMobile ? mfS.col : fS.row}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>EMAIL</Text>
   //         <TextInput
   //           style={fS.input}
@@ -770,7 +873,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //           keyboardType="email-address"
   //         />
   //       </View>
-  //       <View style={fS.group}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>ABHA ADDRESS</Text>
   //         <TextInput
   //           style={fS.input}
@@ -842,7 +945,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   const renderStep1 = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={s.scroll}
+      contentContainerStyle={isMobile ? s.scrollMobile : s.scroll}
     >
       <View style={s.headerRow}>
         <Text style={s.pageTitle}>Aadhaar-Based ABHA Creation</Text>
@@ -937,9 +1040,16 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         onRequestClose={() => setShowAadhaarOtpModal(false)}
       >
         <View style={s.otpOverlay}>
+          {/* <Animated.View
+            style={[
+              s.otpModalBox,
+              { opacity: otpOpacity, transform: [{ scale: otpScale }] },
+            ]}
+          > */}
           <Animated.View
             style={[
               s.otpModalBox,
+              isMobile && s.otpModalBoxMobile,
               { opacity: otpOpacity, transform: [{ scale: otpScale }] },
             ]}
           >
@@ -1095,7 +1205,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   const renderStep3 = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={s.scroll}
+      contentContainerStyle={isMobile ? s.scrollMobile : s.scroll}
     >
       <Text style={s.pageTitle}>Mobile Number Verification</Text>
 
@@ -1234,8 +1344,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //     <View style={s.sectionDivider} />
   //     <Text style={s.sectionLabel}>Patient Details (from Aadhaar)</Text>
 
-  //     <View style={fS.row}>
-  //       <View style={fS.group}>
+  //     <View style={isMobile ? mfS.col : fS.row}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>Full Name</Text>
   //         <TextInput
   //           style={[fS.input, s.lockedInput]}
@@ -1243,7 +1353,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //           editable={false}
   //         />
   //       </View>
-  //       <View style={fS.group}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>Date of Birth</Text>
   //         <TextInput
   //           style={[fS.input, s.lockedInput]}
@@ -1254,7 +1364,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //     </View>
 
   //     <View style={[fS.row, { zIndex: 40 }]}>
-  //       <View style={fS.group}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>Gender</Text>
   //         <TextInput
   //           style={[fS.input, s.lockedInput]}
@@ -1262,7 +1372,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //           editable={false}
   //         />
   //       </View>
-  //       <View style={fS.group}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>Mobile (Aadhaar Linked)</Text>
   //         <TextInput
   //           style={[fS.input, s.lockedInput]}
@@ -1272,8 +1382,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   //       </View>
   //     </View>
 
-  //     <View style={fS.row}>
-  //       <View style={fS.group}>
+  //     <View style={isMobile ? mfS.col : fS.row}>
+  //       <View style={isMobile ? mfS.col : fS.row}>
   //         <Text style={fS.label}>Email (Optional)</Text>
   //         <TextInput
   //           style={fS.input}
@@ -1543,7 +1653,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   const renderStep5 = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={s.scroll}
+      contentContainerStyle={isMobile ? s.scrollMobile : s.scroll}
     >
       {/* Success banner */}
       <View
@@ -1606,8 +1716,13 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
       </View>
 
       {/* Autofilled form fields */}
-      <View style={fS.row}>
-        <View style={fS.group}>
+      {/* <View style={isMobile ? mfS.col : fS.row}>
+        <View style={isMobile ? mfS.col : fS.row}>
+          <Text style={fS.label}>
+            Full Name <Text style={{ color: "#EF4444" }}>*</Text>
+          </Text> */}
+      <View style={isMobile ? mfS.col : fS.row}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>
             Full Name <Text style={{ color: "#EF4444" }}>*</Text>
           </Text>
@@ -1619,7 +1734,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
             editable={false}
           />
         </View>
-        <View style={fS.group}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>Date of birth</Text>
           <TextInput
             style={[fS.input, s.lockedInput]}
@@ -1631,8 +1746,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         </View>
       </View>
 
-      <View style={fS.row}>
-        <View style={fS.group}>
+      <View style={isMobile ? mfS.col : fS.row}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>Age</Text>
           <TextInput
             style={fS.input}
@@ -1641,7 +1756,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
             keyboardType="numeric"
           />
         </View>
-        <View style={fS.group}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>
             Gender <Text style={{ color: "#EF4444" }}>*</Text>
           </Text>
@@ -1653,8 +1768,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         </View>
       </View>
 
-      <View style={fS.row}>
-        <View style={fS.group}>
+      <View style={isMobile ? mfS.col : fS.row}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>ABHA Number</Text>
           <TextInput
             style={[fS.input, s.lockedInput]}
@@ -1664,7 +1779,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
             editable={false}
           />
         </View>
-        <View style={fS.group}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>
             Mobile <Text style={{ color: "#EF4444" }}>*</Text>
           </Text>
@@ -1689,8 +1804,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         />
       </View>
 
-      <View style={fS.row}>
-        <View style={fS.group}>
+      <View style={isMobile ? mfS.col : fS.row}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>State</Text>
           <TextInput
             style={[fS.input, s.lockedInput]}
@@ -1699,7 +1814,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
             editable={false}
           />
         </View>
-        <View style={fS.group}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>District</Text>
           <TextInput
             style={[fS.input, s.lockedInput]}
@@ -1708,7 +1823,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
             editable={false}
           />
         </View>
-        <View style={fS.group}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>Pin Code</Text>
           <TextInput
             style={[fS.input, s.lockedInput]}
@@ -1719,8 +1834,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         </View>
       </View>
 
-      <View style={fS.row}>
-        <View style={fS.group}>
+      <View style={isMobile ? mfS.col : fS.row}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>Email address</Text>
           <TextInput
             style={[fS.input, s.lockedInput]}
@@ -1730,7 +1845,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
             editable={false}
           />
         </View>
-        <View style={fS.group}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>Emergency contact</Text>
           <TextInput
             style={fS.input}
@@ -1784,7 +1899,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   const renderHospitalInfo = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={s.scroll}
+      contentContainerStyle={isMobile ? s.scrollMobile : s.scroll}
     >
       <Text style={s.pageTitle}>Hospital Details</Text>
 
@@ -1805,8 +1920,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         />
       </View>
 
-      <View style={fS.row}>
-        <View style={fS.group}>
+      <View style={isMobile ? mfS.col : fS.row}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>
             Appointment Date <Text style={{ color: "#EF4444" }}>*</Text>
           </Text>
@@ -1827,8 +1942,8 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         />
       </View>
 
-      <View style={fS.row}>
-        <View style={fS.group}>
+      <View style={isMobile ? mfS.col : fS.row}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>WARD / Room</Text>
           <TextInput
             style={fS.input}
@@ -1838,7 +1953,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
             onChangeText={(v) => setH("ward", v)}
           />
         </View>
-        <View style={fS.group}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>Referral (if any)</Text>
           <TextInput
             style={fS.input}
@@ -1872,7 +1987,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
           options={INSURERS}
           onSelect={(v) => setH("insurer", v)}
         />
-        <View style={fS.group}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>Policy / Member ID</Text>
           <TextInput
             style={fS.input}
@@ -1882,7 +1997,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
             onChangeText={(v) => setH("policyNumber", v)}
           />
         </View>
-        <View style={fS.group}>
+        <View style={isMobile ? mfS.col : fS.row}>
           <Text style={fS.label}>Consultation Fee (₹)</Text>
           <TextInput
             style={fS.input}
@@ -1925,7 +2040,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   const renderConfirmStep = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={s.scroll}
+      contentContainerStyle={isMobile ? s.scrollMobile : s.scroll}
     >
       <Text style={s.pageTitle}>Registration Summary</Text>
 
@@ -2020,10 +2135,20 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   // Replace the return block:
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <OuterStepIndicator currentStep={outerStep} />
+      {isMobile ? (
+        <MobileOuterStepIndicator currentStep={outerStep} />
+      ) : (
+        <OuterStepIndicator currentStep={outerStep} />
+      )}
 
       {/* Inner sub-step bar sirf ABHA creation steps mein dikhao */}
-      {outerStep === 1 && <InnerStepIndicator currentStep={subStep} />}
+      {outerStep === 1 && (
+        isMobile ? (
+          <MobileInnerStepIndicator currentStep={subStep} />
+        ) : (
+          <InnerStepIndicator currentStep={subStep} />
+        )
+      )}
 
       <Animated.View style={{ flex: 1, transform: [{ translateX }] }}>
         {outerStep === 1 && subStep === 1 && renderStep1()}
@@ -2137,7 +2262,6 @@ const iS = StyleSheet.create({
   },
   lineDone: { backgroundColor: "#2563EB" },
 });
-
 const fS = StyleSheet.create({
   group: {
     flex: 1,
@@ -2189,10 +2313,9 @@ const fS = StyleSheet.create({
   },
   row: { flexDirection: "row", gap: 16, overflow: "visible" },
 });
-
 const s = StyleSheet.create({
   scroll: { padding: 24, paddingBottom: 40 },
-
+  scrollMobile: { padding: 16, paddingBottom: 40 },
   // Header
   headerRow: {
     flexDirection: "row",
@@ -2364,6 +2487,11 @@ const s = StyleSheet.create({
     shadowRadius: 24,
     elevation: 30,
   },
+  otpModalBoxMobile: {
+    width: "92%",
+    padding: 20,
+    borderRadius: 12,
+  },
 
   // ABHA Address step
   suggestionRow: { marginBottom: 14 },
@@ -2484,7 +2612,6 @@ const s = StyleSheet.create({
   suggestionTileActive: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" },
   suggestionTileText: { fontSize: 13, fontWeight: "600", color: "#374151" },
 });
-
 const confirmS = StyleSheet.create({
   grid: { flexDirection: "row", gap: 16 },
   col: { flex: 1 },
@@ -2652,6 +2779,103 @@ const confS = StyleSheet.create({
     paddingVertical: 9,
     alignItems: "center",
   },
+});
+// ─── MOBILE OUTER STEP STYLES ─────────────────────────────────
+const moS = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#fff",
+  },
+  stepItem: { alignItems: "center", gap: 4 },
+  circle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  circleDone: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
+  circleActive: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" },
+  circleNum: { fontSize: 10, fontWeight: "600", color: "#9CA3AF" },
+  circleNumActive: { color: "#2563EB" },
+  checkmark: { fontSize: 10, color: "#fff", fontWeight: "700" },
+  label: {
+    fontSize: 9,
+    color: "#9CA3AF",
+    textAlign: "center",
+    marginTop: 3,
+    lineHeight: 12,
+  },
+  labelActive: { color: "#2563EB", fontWeight: "700" },
+  labelDone: { color: "#6B7280" },
+  line: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 4,
+    marginBottom: 16,
+  },
+  lineDone: { backgroundColor: "#2563EB" },
+});
+
+// ─── MOBILE INNER STEP STYLES ─────────────────────────────────
+const miS = StyleSheet.create({
+  wrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#F8FAFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  item: { alignItems: "center", gap: 3 },
+  dot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dotDone: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
+  dotActive: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" },
+  dotCheck: { fontSize: 9, color: "#fff", fontWeight: "700" },
+  dotNum: { fontSize: 9, fontWeight: "600", color: "#9CA3AF" },
+  dotNumActive: { color: "#2563EB" },
+  label: {
+    fontSize: 9,
+    color: "#9CA3AF",
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 12,
+  },
+  labelActive: { color: "#2563EB", fontWeight: "700" },
+  labelDone: { color: "#6B7280" },
+  line: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 4,
+    alignSelf: "center",
+    marginBottom: 14,
+  },
+  lineDone: { backgroundColor: "#2563EB" },
+});
+
+// ─── MOBILE FORM COLUMN (replaces fS.row on mobile) ───────────
+const mfS = StyleSheet.create({
+  col: { flexDirection: "column", gap: 0, overflow: "visible" },
 });
 
 export default AbhaNewPatient;

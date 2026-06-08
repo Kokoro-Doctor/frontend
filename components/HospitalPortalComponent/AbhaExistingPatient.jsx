@@ -8,10 +8,12 @@ import {
   ScrollView,
   Modal,
   Animated,
+  Platform,
 } from "react-native";
 import {
   requestAbhaLoginOtp,
   verifyAbhaLoginOtp,
+  fetchAbhaProfile,
 } from "../../utils/AbhaExistingPatient";
 
 // ─── CONSTANTS ────────────────────────────────────────────────
@@ -27,13 +29,6 @@ const DOCTORS = [
   "Dr. Arjun Mehta",
   "Dr. Kavitha Rao",
   "Dr. Suresh Pillai",
-];
-const TIME_SLOTS = [
-  "09:00–09:30",
-  "09:30–10:00",
-  "10:00–10:30",
-  "10:30–11:00",
-  "11:00–11:30",
 ];
 const CONSULTATION_TYPES = [
   "NEW Patient",
@@ -54,15 +49,73 @@ const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 // ─── STEP INDICATOR ───────────────────────────────────────────
 const StepIndicator = ({ currentStep }) => {
   const steps = [
-    { num: 1, label: "Verify ABHA", sub: "OTP Check" },
-    { num: 2, label: "Patient Details", sub: "Demographics" },
-    { num: 3, label: "Hospital Info", sub: "Dept & Doctor" },
-    { num: 4, label: "Confirm & Book", sub: "Generate Token" },
+    { num: 1, label: "Choose\nmethod", sub: "" },
+    { num: 2, label: "Patient\nDetails", sub: "" },
+    { num: 3, label: "Hospital Info", sub: "" },
+    { num: 4, label: "Confirm &\nBook", sub: "" },
   ];
 
+  // Web: 2 steps only
+  const webSteps = [
+    { num: 1, label: "Verify ABHA", sub: "OTP Check" },
+    { num: 2, label: "Patient & Hospital", sub: "Details & Confirm" },
+  ];
+
+  if (Platform.OS !== "web") {
+    return (
+      <View style={mobileStepS.container}>
+        {steps.map((step, idx) => {
+          const done = step.num < currentStep;
+          const active = step.num === currentStep;
+          return (
+            <React.Fragment key={step.num}>
+              <View style={mobileStepS.stepItem}>
+                <View
+                  style={[
+                    mobileStepS.circle,
+                    done && mobileStepS.circleDone,
+                    active && mobileStepS.circleActive,
+                  ]}
+                >
+                  {done ? (
+                    <Text style={mobileStepS.checkmark}>✓</Text>
+                  ) : (
+                    <Text
+                      style={[
+                        mobileStepS.circleNum,
+                        active && mobileStepS.circleNumActive,
+                      ]}
+                    >
+                      {step.num}
+                    </Text>
+                  )}
+                </View>
+                <Text
+                  style={[
+                    mobileStepS.stepLabel,
+                    (active || done) && mobileStepS.stepLabelActive,
+                  ]}
+                  numberOfLines={2}
+                >
+                  {step.label}
+                </Text>
+              </View>
+              {idx < steps.length - 1 && (
+                <View
+                  style={[mobileStepS.line, done && mobileStepS.lineDone]}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </View>
+    );
+  }
+
+  // Web step indicator (original)
   return (
     <View style={stepS.container}>
-      {steps.map((step, idx) => {
+      {webSteps.map((step, idx) => {
         const done = step.num < currentStep;
         const active = step.num === currentStep;
         return (
@@ -97,7 +150,7 @@ const StepIndicator = ({ currentStep }) => {
                 <Text style={stepS.stepSub}>{step.sub}</Text>
               </View>
             </View>
-            {idx < steps.length - 1 && (
+            {idx < webSteps.length - 1 && (
               <View style={[stepS.line, done && stepS.lineDone]} />
             )}
           </React.Fragment>
@@ -106,44 +159,6 @@ const StepIndicator = ({ currentStep }) => {
     </View>
   );
 };
-
-const stepS = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    backgroundColor: "#fff",
-  },
-  stepItem: { flexDirection: "row", alignItems: "center" },
-  circle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  circleDone: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
-  circleActive: { borderColor: "#2563EB" },
-  circleNum: { fontSize: 12, fontWeight: "600", color: "#9CA3AF" },
-  circleNumActive: { color: "#2563EB" },
-  checkmark: { fontSize: 13, color: "#fff", fontWeight: "700" },
-  stepLabel: { fontSize: 13, fontWeight: "600", color: "#9CA3AF" },
-  stepLabelActive: { color: "#111827" },
-  stepSub: { fontSize: 11, color: "#9CA3AF", marginTop: 1 },
-  line: {
-    flex: 1,
-    height: 1.5,
-    backgroundColor: "#E5E7EB",
-    marginHorizontal: 8,
-  },
-  lineDone: { backgroundColor: "#2563EB" },
-});
 
 // ─── OTP MODAL ────────────────────────────────────────────────
 const OTPModal = ({ visible, onVerify, onCancel, loading, error }) => {
@@ -279,65 +294,53 @@ const OTPModal = ({ visible, onVerify, onCancel, loading, error }) => {
   );
 };
 
-const otpS = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  box: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 32,
-    width: 420,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 30,
-  },
-  title: { fontSize: 17, fontWeight: "700", color: "#111827", marginBottom: 4 },
-  subtitle: { fontSize: 13, color: "#6B7280", marginBottom: 20 },
-  prompt: {
-    fontSize: 14,
-    color: "#374151",
-    fontWeight: "500",
-    marginBottom: 14,
-  },
-  otpRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  otpBox: {
-    width: 48,
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
-    textAlign: "center",
-  },
-  otpBoxFilled: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" },
-  resendRow: { flexDirection: "row", alignItems: "center", marginBottom: 24 },
-  btnRow: { flexDirection: "row", gap: 12, width: "100%" },
-  cancelBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  verifyBtn: {
-    flex: 2,
-    backgroundColor: "#2563EB",
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  verifyBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
-});
+// ─── MOBILE ABHA SELECT ───────────────────────────────────────
+const MobileAbhaSelect = ({ value, options, onSelect, placeholder }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ position: "relative", zIndex: open ? 999 : 1 }}>
+      <TouchableOpacity
+        style={mobileS.selectBtn}
+        onPress={() => setOpen(!open)}
+      >
+        <Text
+          style={{
+            fontSize: 14,
+            color: value ? "#111827" : "#9CA3AF",
+            flex: 1,
+          }}
+        >
+          {value || placeholder}
+        </Text>
+        <Text style={{ color: "#6B7280", fontSize: 13 }}>▾</Text>
+      </TouchableOpacity>
+      {open && (
+        <View style={mobileS.selectMenu}>
+          {options.map((opt) => (
+            <TouchableOpacity
+              key={opt}
+              style={mobileS.selectMenuItem}
+              onPress={() => {
+                onSelect(opt);
+                setOpen(false);
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: value === opt ? "#2563EB" : "#374151",
+                  fontWeight: value === opt ? "700" : "400",
+                }}
+              >
+                {opt}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
 
 // ─── INLINE SELECT ────────────────────────────────────────────
 const InlineSelect = ({
@@ -394,66 +397,6 @@ const InlineSelect = ({
     </View>
   );
 };
-
-const fS = StyleSheet.create({
-  group: {
-    flex: 1,
-    position: "relative",
-    overflow: "visible",
-    marginBottom: 14,
-  },
-  label: { fontSize: 12, color: "#111111", marginBottom: 5, fontWeight: "500" },
-  input: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    fontSize: 13,
-    color: "#080808",
-    backgroundColor: "#fff",
-  },
-  inputDisabled: { backgroundColor: "#F9FAFB", color: "#9CA3AF" },
-  select: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    backgroundColor: "#fff",
-  },
-  menu: {
-    position: "absolute",
-    top: 62,
-    left: 0,
-    right: 0,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    zIndex: 9999,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 20,
-  },
-  menuItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F9FAFB",
-  },
-  row: { flexDirection: "row", gap: 16, overflow: "visible" },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 14,
-    marginTop: 4,
-  },
-});
 
 // ─── CONFIRMATION MODAL ───────────────────────────────────────
 const ConfirmationModal = ({ visible, data, onClose, onNewRegistration }) => {
@@ -592,152 +535,9 @@ const ConfirmationModal = ({ visible, data, onClose, onNewRegistration }) => {
   );
 };
 
-const confS = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  box: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    width: 380,
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 30,
-    elevation: 30,
-    overflow: "hidden",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#1E3A8A",
-    padding: 16,
-  },
-  hospitalName: { fontSize: 13, fontWeight: "700", color: "#fff" },
-  hospitalSub: { fontSize: 11, color: "#BFDBFE", marginTop: 2 },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  tokenRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  tokenLabel: { fontSize: 12, color: "#6B7280", fontWeight: "500" },
-  tokenBadge: {
-    backgroundColor: "#EFF6FF",
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  tokenNum: { fontSize: 20, fontWeight: "700", color: "#1E3A8A" },
-  doctorName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-    paddingHorizontal: 16,
-    marginTop: 10,
-  },
-  doctorSpec: {
-    fontSize: 12,
-    color: "#6B7280",
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  patientRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#F9FAFB",
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-  },
-  avatarSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#DBEAFE",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  avatarText: { fontSize: 13, fontWeight: "700", color: "#1D4ED8" },
-  patientName: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  patientAge: { fontSize: 12, color: "#6B7280", marginTop: 2 },
-  fee: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  phone: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    backgroundColor: "#F9FAFB",
-  },
-  detailsGrid: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    gap: 16,
-  },
-  detailItem: { flex: 1 },
-  detailLabel: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    fontWeight: "500",
-    marginBottom: 4,
-    textTransform: "uppercase",
-  },
-  detailValue: { fontSize: 13, fontWeight: "600", color: "#111827" },
-  abhaBadge: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: "#EFF6FF",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-  },
-  abhaText: { fontSize: 12, color: "#1E40AF", fontWeight: "500" },
-  actions: {
-    flexDirection: "row",
-    gap: 10,
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-  },
-  printBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingVertical: 9,
-    alignItems: "center",
-  },
-  newRegBtn: {
-    flex: 2,
-    backgroundColor: "#2563EB",
-    borderRadius: 8,
-    paddingVertical: 9,
-    alignItems: "center",
-  },
-});
-
 // ─── MAIN: AbhaExistingPatient ────────────────────────────────
 // Props:
-//   onBack : fn — "Back" on step 1 ABHA form → parent card selection pe wapas
+//   onBack : fn — "Back" on step 1 ABHA form → parent card selection
 
 const AbhaExistingPatient = ({ onBack }) => {
   const [step, setStep] = useState(1);
@@ -854,23 +654,148 @@ const AbhaExistingPatient = ({ onBack }) => {
   //   setAbhaVerified(true);
   //   goToStep(2);
   // };
+  // const handleVerifyOtp = async (otpVal) => {
+  //   if (!otpVal || otpVal.length < 6) return;
+  //   setApiError("");
+  //   setVerifyLoading(true);
+  //   try {
+  //     const res = await verifyAbhaLoginOtp({
+  //       txnId,
+  //       otp: otpVal,
+  //       // kokoroJwt: "your_jwt_here",  // agar available ho
+  //     });
+
+  //     const profile = res.abha_profile || {};
+
+  //     // Profile data patient details mein fill karo
+  //     const fetched = {
+  //       fullName:
+  //         `${profile.firstName || ""} ${profile.middleName || ""} ${profile.lastName || ""}`.trim(),
+  //       mobile: profile.mobile || "",
+  //       age: profile.age || "",
+  //       gender:
+  //         profile.gender === "M"
+  //           ? "Male"
+  //           : profile.gender === "F"
+  //             ? "Female"
+  //             : "Other",
+  //       dob: profile.dob || "",
+  //       address: profile.address || "",
+  //       state: profile.stateName || "",
+  //       district: profile.districtName || "",
+  //       pinCode: profile.pinCode || "",
+  //       email: profile.email || "",
+  //       emergencyContact: "",
+  //     };
+
+  //     setVerifiedPatient({
+  //       name: fetched.fullName,
+  //       id: profile.ABHANumber || abhaNumber,
+  //       age: fetched.age,
+  //     });
+  //     setPatientDetails((prev) => ({ ...prev, ...fetched }));
+  //     setVerifiedAbha(profile.ABHANumber || abhaNumber || abhaAddress);
+
+  //     // Tokens save karo agar chahiye: res.tokens.token
+
+  //     setAbhaVerified(true);
+  //     setShowOtp(false);
+  //     goToStep(2);
+  //   } catch (err) {
+  //     setApiError(err.message || "Verification failed. Please try again.");
+  //   } finally {
+  //     setVerifyLoading(false);
+  //   }
+  // };
+  // const handleVerifyOtp = async (otpVal) => {
+  //   if (!otpVal || otpVal.length < 6) return;
+  //   setApiError("");
+  //   setVerifyLoading(true);
+  //   try {
+  //     const res = await verifyAbhaLoginOtp({ txnId, otp: otpVal });
+
+  //     console.log("verify response:", res);
+  //     console.log("abha_number:", res.abha_number);
+  //     console.log("abha_profile:", res.abha_profile);
+
+  //     // Token save karo
+  //     const abhaToken = res.tokens?.token;
+
+  //     // Profile directly available hai ya nahi check karo
+  //     let profile = res.abha_profile || {};
+
+  //     // Agar profile empty hai aur token hai — separate call karo
+  //     if ((!profile || Object.keys(profile).length === 0) && abhaToken) {
+  //       try {
+  //         const profileRes = await fetchAbhaProfile(abhaToken);
+  //         profile = profileRes?.abha_profile || profileRes || {};
+  //         console.log("Fetched profile separately:", profile);
+  //       } catch (profileErr) {
+  //         console.warn("Profile fetch failed:", profileErr.message);
+  //       }
+  //     }
+
+  //     const fetched = {
+  //       fullName:
+  //         `${profile.firstName || ""} ${profile.middleName || ""} ${profile.lastName || ""}`.trim(),
+  //       mobile: profile.mobile || "",
+  //       age: profile.age || "",
+  //       gender:
+  //         profile.gender === "M"
+  //           ? "Male"
+  //           : profile.gender === "F"
+  //             ? "Female"
+  //             : "Other",
+  //       dob: profile.dob || "",
+  //       address: profile.address || "",
+  //       state: profile.stateName || "",
+  //       district: profile.districtName || "",
+  //       pinCode: profile.pinCode || "",
+  //       email: profile.email || "",
+  //       emergencyContact: "",
+  //     };
+
+  //     const abhaNum =
+  //       res.abha_number ||
+  //       profile.ABHANumber ||
+  //       profile.abha_number ||
+  //       abhaNumber ||
+  //       abhaAddress;
+
+  //     setVerifiedPatient({
+  //       name: fetched.fullName || abhaNum,
+  //       id: abhaNum,
+  //       age: fetched.age,
+  //     });
+  //     setPatientDetails((prev) => ({ ...prev, ...fetched }));
+  //     setVerifiedAbha(abhaNum);
+  //     setAbhaVerified(true);
+  //     setShowOtp(false);
+  //     goToStep(2);
+  //   } catch (err) {
+  //     setApiError(err.message || "Verification failed. Please try again.");
+  //   } finally {
+  //     setVerifyLoading(false);
+  //   }
+  // };
   const handleVerifyOtp = async (otpVal) => {
     if (!otpVal || otpVal.length < 6) return;
+
     setApiError("");
     setVerifyLoading(true);
+
     try {
       const res = await verifyAbhaLoginOtp({
         txnId,
         otp: otpVal,
-        // kokoroJwt: "your_jwt_here",  // agar available ho
       });
+
+      console.log("Verify Response:", res);
 
       const profile = res.abha_profile || {};
 
-      // Profile data patient details mein fill karo
       const fetched = {
-        fullName:
-          `${profile.firstName || ""} ${profile.middleName || ""} ${profile.lastName || ""}`.trim(),
+        fullName: `${profile.firstName || ""} ${profile.lastName || ""}`.trim(),
         mobile: profile.mobile || "",
         age: profile.age || "",
         gender:
@@ -888,20 +813,27 @@ const AbhaExistingPatient = ({ onBack }) => {
         emergencyContact: "",
       };
 
+      const abhaNum = profile.ABHANumber || abhaNumber || abhaAddress;
+
       setVerifiedPatient({
-        name: fetched.fullName,
-        id: profile.ABHANumber || abhaNumber,
+        name: fetched.fullName || "Patient",
+        id: abhaNum,
         age: fetched.age,
       });
-      setPatientDetails((prev) => ({ ...prev, ...fetched }));
-      setVerifiedAbha(profile.ABHANumber || abhaNumber || abhaAddress);
 
-      // Tokens save karo agar chahiye: res.tokens.token
+      setPatientDetails((prev) => ({
+        ...prev,
+        ...fetched,
+      }));
 
+      setVerifiedAbha(abhaNum);
       setAbhaVerified(true);
       setShowOtp(false);
+
       goToStep(2);
     } catch (err) {
+      console.error(err);
+
       setApiError(err.message || "Verification failed. Please try again.");
     } finally {
       setVerifyLoading(false);
@@ -912,6 +844,464 @@ const AbhaExistingPatient = ({ onBack }) => {
     inputRange: [-1, 0, 1],
     outputRange: [-60, 0, 60],
   });
+
+  // ─── MOBILE STEP RENDERERS ────────────────────────────────
+
+  const renderMobileStep1 = () => (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={mobileS.pageTitle}>Enter ABHA Number or Address</Text>
+
+      <View style={mobileS.infoAlert}>
+        <Text style={{ fontSize: 12, color: "rgba(77,107,204,1)" }}>
+          🛡 An OTP will be sent to the patient&apos;s ABHA-linked mobile number
+          for identity verification.
+        </Text>
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>ABHA Number (14-digit)*</Text>
+        <TextInput
+          style={mobileS.input}
+          placeholder="12-5968-7894-1234"
+          placeholderTextColor="#9CA3AF"
+          value={abhaNumber}
+          onChangeText={setAbhaNumber}
+          keyboardType="numeric"
+        />
+      </View>
+
+      <View style={mobileS.orRow}>
+        <View style={mobileS.orLine} />
+        <Text style={mobileS.orText}>— OR — ABHA Address</Text>
+        <View style={mobileS.orLine} />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <TextInput
+          style={mobileS.input}
+          placeholder="name@abdm"
+          placeholderTextColor="#9CA3AF"
+          value={abhaAddress}
+          onChangeText={setAbhaAddress}
+        />
+      </View>
+
+      <View style={mobileS.consentRow}>
+        <View style={mobileS.checkbox}>
+          <Text style={{ fontSize: 10, color: "#2563EB" }}>✓</Text>
+        </View>
+        <Text style={{ fontSize: 12, color: "#374151", flex: 1 }}>
+          I confirm the patient has consented to share their ABHA health records
+          with this facility as per{" "}
+          <Text style={{ color: "#2563EB", fontWeight: "600" }}>
+            ABDM guidelines.
+          </Text>
+        </Text>
+      </View>
+
+      {apiError ? (
+        <View style={mobileS.errorBox}>
+          <Text style={{ fontSize: 12, color: "#DC2626" }}>⚠ {apiError}</Text>
+        </View>
+      ) : null}
+
+      <View style={mobileS.footerRow}>
+        <TouchableOpacity style={mobileS.backBtn} onPress={goBack}>
+          <Text style={{ fontSize: 13, color: "#374151" }}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            mobileS.continueBtn,
+            {
+              opacity:
+                (!abhaNumber && !abhaAddress) || sendOtpLoading ? 0.5 : 1,
+            },
+          ]}
+          disabled={sendOtpLoading || (!abhaNumber && !abhaAddress)}
+          // onPress={async () => {
+          //   if (!abhaNumber && !abhaAddress) return;
+          //   setApiError("");
+          //   setSendOtpLoading(true);
+          //   try {
+          //     const res = await requestAbhaLoginOtp(abhaNumber || abhaAddress);
+          //     setTxnId(res.txn_id);
+          //     setShowOtp(true);
+          //   } catch (err) {
+          //     setApiError(
+          //       err.message || "OTP request failed. Please try again.",
+          //     );
+          //   } finally {
+          //     setSendOtpLoading(false);
+          //   }
+          // }}
+          onPress={async () => {
+            if (!abhaNumber && !abhaAddress) return;
+
+            setApiError("");
+            setSendOtpLoading(true);
+
+            try {
+              const res = await requestAbhaLoginOtp(abhaNumber || abhaAddress);
+
+              console.log("OTP Response:", res);
+
+              setTxnId(res.txn_id);
+              setShowOtp(true);
+            } catch (err) {
+              console.error(err);
+
+              setApiError(
+                err.message || "OTP request failed. Please try again.",
+              );
+            } finally {
+              setSendOtpLoading(false);
+            }
+          }}
+        >
+          <Text style={mobileS.continueBtnText}>
+            {sendOtpLoading ? "Sending OTP..." : "Send OTP & Fetch Details ›"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <OTPModal
+        visible={showOtp}
+        onVerify={handleVerifyOtp}
+        onCancel={() => {
+          setShowOtp(false);
+          setApiError("");
+        }}
+        loading={verifyLoading}
+        error={apiError}
+      />
+    </ScrollView>
+  );
+
+  const renderMobileStep2 = () => (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      {/* ABHA verified banner */}
+      {abhaVerified && (
+        <View style={mobileS.verifiedBanner}>
+          <View style={mobileS.verifiedAvatar}>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: "#1D4ED8" }}>
+              {(verifiedPatient?.name || "RS")
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase()}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827" }}>
+              {verifiedPatient?.name}
+            </Text>
+            <Text style={{ fontSize: 11, color: "#6B7280" }}>
+              {verifiedPatient?.id} · Age {verifiedPatient?.age} · CABG
+            </Text>
+          </View>
+          <View style={mobileS.abhaBadge}>
+            <Text style={{ fontSize: 11, color: "#16A34A", fontWeight: "600" }}>
+              ✓ ABHA Verified
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* ── Personal Details ── */}
+      <Text style={mobileS.sectionTitle}>Personal Details</Text>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Full Name *</Text>
+        <TextInput
+          style={[mobileS.input, abhaVerified && mobileS.inputDisabled]}
+          placeholder="Autofilled from ABHA"
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.fullName}
+          onChangeText={(v) => setP("fullName", v)}
+          editable={!abhaVerified}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Date Of Birth</Text>
+        <TextInput
+          style={mobileS.input}
+          placeholder="22/03/1985"
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.dob}
+          onChangeText={(v) => setP("dob", v)}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Age</Text>
+        <TextInput
+          style={mobileS.input}
+          placeholder="40 Years"
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.age}
+          onChangeText={(v) => setP("age", v)}
+          keyboardType="numeric"
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Gender</Text>
+        <MobileAbhaSelect
+          value={patientDetails.gender}
+          options={GENDERS}
+          onSelect={(v) => setP("gender", v)}
+          placeholder="Male"
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Blood Group</Text>
+        <MobileAbhaSelect
+          value={patientDetails.bloodGroup}
+          options={BLOOD_GROUPS}
+          onSelect={(v) => setP("bloodGroup", v)}
+          placeholder="B+"
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Mobile *</Text>
+        <TextInput
+          style={[mobileS.input, abhaVerified && mobileS.inputDisabled]}
+          placeholder="91+ 9874563210"
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.mobile}
+          onChangeText={(v) => setP("mobile", v)}
+          keyboardType="phone-pad"
+          editable={!abhaVerified}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Address</Text>
+        <TextInput
+          style={[mobileS.input, abhaVerified && mobileS.inputDisabled]}
+          placeholder="Sarogini Nagar"
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.address}
+          onChangeText={(v) => setP("address", v)}
+          editable={!abhaVerified}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>State</Text>
+        <TextInput
+          style={[mobileS.input, abhaVerified && mobileS.inputDisabled]}
+          placeholder="Uttar Pradesh"
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.state}
+          onChangeText={(v) => setP("state", v)}
+          editable={!abhaVerified}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>District</Text>
+        <TextInput
+          style={[mobileS.input, abhaVerified && mobileS.inputDisabled]}
+          placeholder="Lucknow"
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.district}
+          onChangeText={(v) => setP("district", v)}
+          editable={!abhaVerified}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Pin Code</Text>
+        <TextInput
+          style={[mobileS.input, abhaVerified && mobileS.inputDisabled]}
+          placeholder="226001"
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.pinCode}
+          onChangeText={(v) => setP("pinCode", v)}
+          keyboardType="numeric"
+          editable={!abhaVerified}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Email Address</Text>
+        <TextInput
+          style={[mobileS.input, abhaVerified && mobileS.inputDisabled]}
+          placeholder="Patient@e..."
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.email}
+          onChangeText={(v) => setP("email", v)}
+          keyboardType="email-address"
+          editable={!abhaVerified}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Emergency Contact</Text>
+        <TextInput
+          style={[mobileS.input, abhaVerified && mobileS.inputDisabled]}
+          placeholder="Auto filled"
+          placeholderTextColor="#9CA3AF"
+          value={patientDetails.emergencyContact}
+          onChangeText={(v) => setP("emergencyContact", v)}
+          keyboardType="phone-pad"
+          editable={!abhaVerified}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Consultation Type *</Text>
+        <MobileAbhaSelect
+          value={patientDetails.consultationType}
+          options={CONSULTATION_TYPES}
+          onSelect={(v) => setP("consultationType", v)}
+          placeholder="Select type"
+        />
+      </View>
+
+      {/* ── Divider ── */}
+      <View
+        style={{ height: 1, backgroundColor: "#E5E7EB", marginVertical: 16 }}
+      />
+
+      {/* ── Hospital Details ── */}
+      <Text style={mobileS.sectionTitle}>Hospital Details</Text>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Department *</Text>
+        <MobileAbhaSelect
+          value={hospitalInfo.department}
+          options={DEPARTMENTS}
+          onSelect={(v) => setH("department", v)}
+          placeholder="Select Department"
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Doctor *</Text>
+        <MobileAbhaSelect
+          value={hospitalInfo.doctor}
+          options={DOCTORS}
+          onSelect={(v) => setH("doctor", v)}
+          placeholder="Select Department"
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Appointment Date *</Text>
+        <TextInput
+          style={mobileS.input}
+          placeholder="25-05-2026"
+          placeholderTextColor="#9CA3AF"
+          value={hospitalInfo.appointmentDate}
+          onChangeText={(v) => setH("appointmentDate", v)}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Time Slot *</Text>
+        <MobileAbhaSelect
+          value={hospitalInfo.timeSlot}
+          options={["09:00–09:30", "09:30–10:00", "10:00–10:30", "10:30–11:00"]}
+          onSelect={(v) => setH("timeSlot", v)}
+          placeholder="Select Department"
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Ward / Room</Text>
+        <TextInput
+          style={mobileS.input}
+          placeholder="e.g. OPD Room 3"
+          placeholderTextColor="#9CA3AF"
+          value={hospitalInfo.ward}
+          onChangeText={(v) => setH("ward", v)}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Referral (If Any)</Text>
+        <MobileAbhaSelect
+          value={hospitalInfo.referral}
+          options={DOCTORS}
+          onSelect={(v) => setH("referral", v)}
+          placeholder="e.g. OPD Room 3"
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>
+          Presenting Symptoms / Chief Complaint *
+        </Text>
+        <TextInput
+          style={[mobileS.input, { height: 80, textAlignVertical: "top" }]}
+          placeholder="Describe"
+          placeholderTextColor="#9CA3AF"
+          multiline
+          value={hospitalInfo.chiefComplaint}
+          onChangeText={(v) => setH("chiefComplaint", v)}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Insurance Provider</Text>
+        <MobileAbhaSelect
+          value={hospitalInfo.insurer}
+          options={INSURERS}
+          onSelect={(v) => setH("insurer", v)}
+          placeholder="None / Self Pay"
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Policy / Member ID</Text>
+        <TextInput
+          style={mobileS.input}
+          placeholder="Policy number"
+          placeholderTextColor="#9CA3AF"
+          value={hospitalInfo.policyNumber}
+          onChangeText={(v) => setH("policyNumber", v)}
+        />
+      </View>
+
+      <View style={mobileS.fieldGroup}>
+        <Text style={mobileS.label}>Consultation FEE (₹)</Text>
+        <TextInput
+          style={mobileS.input}
+          placeholder="500"
+          placeholderTextColor="#9CA3AF"
+          value={hospitalInfo.consultationFee}
+          onChangeText={(v) => setH("consultationFee", v)}
+          keyboardType="numeric"
+        />
+      </View>
+
+      <View style={mobileS.footerRow}>
+        <TouchableOpacity style={mobileS.backBtn} onPress={goBack}>
+          <Text style={{ fontSize: 13, color: "#374151" }}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[mobileS.continueBtn, { backgroundColor: "#16A34A" }]}
+          onPress={() => setShowConfirmModal(true)}
+        >
+          <Text style={mobileS.continueBtnText}>Review & Confirm ›</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
 
   // ── STEP 1: ABHA Input ────────────────────────────────────
   const renderStep1 = () => (
@@ -992,15 +1382,38 @@ const AbhaExistingPatient = ({ onBack }) => {
             },
           ]}
           disabled={sendOtpLoading || (!abhaNumber && !abhaAddress)}
+          // onPress={async () => {
+          //   if (!abhaNumber && !abhaAddress) return;
+          //   setApiError("");
+          //   setSendOtpLoading(true);
+          //   try {
+          //     const res = await requestAbhaLoginOtp(abhaNumber || abhaAddress);
+          //     setTxnId(res.txn_id);
+          //     setShowOtp(true);
+          //   } catch (err) {
+          //     setApiError(
+          //       err.message || "OTP request failed. Please try again.",
+          //     );
+          //   } finally {
+          //     setSendOtpLoading(false);
+          //   }
+          // }}
           onPress={async () => {
             if (!abhaNumber && !abhaAddress) return;
+
             setApiError("");
             setSendOtpLoading(true);
+
             try {
               const res = await requestAbhaLoginOtp(abhaNumber || abhaAddress);
+
+              console.log("OTP Response:", res);
+
               setTxnId(res.txn_id);
               setShowOtp(true);
             } catch (err) {
+              console.error(err);
+
               setApiError(
                 err.message || "OTP request failed. Please try again.",
               );
@@ -1033,7 +1446,6 @@ const AbhaExistingPatient = ({ onBack }) => {
     </ScrollView>
   );
 
-  // ── STEP 2: PATIENT DETAILS ───────────────────────────────
   const renderStep2 = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
@@ -1067,6 +1479,7 @@ const AbhaExistingPatient = ({ onBack }) => {
         </View>
       )}
 
+      {/* ── Patient Details ── */}
       <Text style={fS.sectionTitle}>Personal Details</Text>
 
       <View style={fS.row}>
@@ -1224,23 +1637,12 @@ const AbhaExistingPatient = ({ onBack }) => {
         />
       </View>
 
-      <View style={s.footerRow}>
-        <TouchableOpacity style={s.backBtn} onPress={goBack}>
-          <Text style={{ fontSize: 13, color: "#374151" }}>Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.continueBtn} onPress={() => goToStep(3)}>
-          <Text style={s.continueBtnText}>Continue ›</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
+      {/* ── Divider ── */}
+      <View
+        style={{ height: 1, backgroundColor: "#E5E7EB", marginVertical: 20 }}
+      />
 
-  // ── STEP 3: HOSPITAL INFO ─────────────────────────────────
-  const renderStep3 = () => (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
-    >
+      {/* ── Hospital Info ── */}
       <Text style={fS.sectionTitle}>Hospital Details</Text>
 
       <View style={[fS.row, { zIndex: 50 }]}>
@@ -1275,13 +1677,13 @@ const AbhaExistingPatient = ({ onBack }) => {
             onChangeText={(v) => setH("appointmentDate", v)}
           />
         </View>
-        <InlineSelect
+        {/* <InlineSelect
           label="Time Slot"
           value={hospitalInfo.timeSlot}
           options={TIME_SLOTS}
           onSelect={(v) => setH("timeSlot", v)}
           placeholder="Select"
-        />
+        /> */}
       </View>
 
       <View style={fS.row}>
@@ -1352,89 +1754,16 @@ const AbhaExistingPatient = ({ onBack }) => {
         </View>
       </View>
 
+      {/* ── Footer — Confirm button ── */}
       <View style={s.footerRow}>
         <TouchableOpacity style={s.backBtn} onPress={goBack}>
           <Text style={{ fontSize: 13, color: "#374151" }}>Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.continueBtn} onPress={() => goToStep(4)}>
-          <Text style={s.continueBtnText}>Review & Confirm ›</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
-
-  // ── STEP 4: REVIEW & CONFIRM ──────────────────────────────
-  const renderStep4 = () => (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
-    >
-      <Text style={fS.sectionTitle}>Registration Summary</Text>
-      <View style={s.summaryGrid}>
-        <View style={s.summaryCol}>
-          <Text style={s.summaryColTitle}>Patient Details</Text>
-          <View style={s.summaryBox}>
-            <View style={{ marginBottom: 14 }}>
-              <Text style={s.summaryLabel}>Full Name</Text>
-              <Text style={s.summaryValue}>
-                {patientDetails.fullName || "—"}
-              </Text>
-            </View>
-            <View style={{ marginBottom: 14 }}>
-              <Text style={s.summaryLabel}>Age / Gender</Text>
-              <Text style={s.summaryValue}>
-                {patientDetails.age || "—"} Yrs / {patientDetails.gender}
-              </Text>
-            </View>
-            <View style={{ marginBottom: 14 }}>
-              <Text style={s.summaryLabel}>Mobile</Text>
-              <Text style={s.summaryValue}>{patientDetails.mobile || "—"}</Text>
-            </View>
-            <View>
-              <Text style={s.summaryLabel}>Registration Method</Text>
-              <Text style={s.summaryValue}>ABHA Verified (existing)</Text>
-            </View>
-          </View>
-        </View>
-        <View style={s.summaryCol}>
-          <Text style={s.summaryColTitle}>Hospital INFO</Text>
-          <View style={s.summaryBox}>
-            <View style={{ marginBottom: 14 }}>
-              <Text style={s.summaryLabel}>Department</Text>
-              <Text style={s.summaryValue}>
-                {hospitalInfo.department || "—"}
-              </Text>
-            </View>
-            <View style={{ marginBottom: 14 }}>
-              <Text style={s.summaryLabel}>Doctor</Text>
-              <Text style={s.summaryValue}>{hospitalInfo.doctor || "—"}</Text>
-            </View>
-            <View style={{ marginBottom: 14 }}>
-              <Text style={s.summaryLabel}>Date & Slot</Text>
-              <Text style={s.summaryValue}>
-                {hospitalInfo.appointmentDate} {hospitalInfo.timeSlot}
-              </Text>
-            </View>
-            <View>
-              <Text style={s.summaryLabel}>Consultation Fee</Text>
-              <Text style={s.summaryValue}>
-                ₹ {hospitalInfo.consultationFee || "—"}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-      <View style={[s.footerRow, { marginTop: 24 }]}>
-        <TouchableOpacity style={s.backBtn} onPress={goBack}>
-          <Text style={{ fontSize: 13, color: "#374151", fontWeight: "500" }}>
-            Edit details
-          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.continueBtn, { backgroundColor: "#16A34A" }]}
           onPress={() => setShowConfirmModal(true)}
         >
-          <Text style={s.continueBtnText}>✓ Confirm & Book</Text>
+          <Text style={s.continueBtnText}>✓ Confirm</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -1490,10 +1819,17 @@ const AbhaExistingPatient = ({ onBack }) => {
       <StepIndicator currentStep={step} />
 
       <Animated.View style={{ flex: 1, transform: [{ translateX }] }}>
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
-        {step === 4 && renderStep4()}
+        {Platform.OS !== "web" ? (
+          <>
+            {step === 1 && renderMobileStep1()}
+            {step === 2 && renderMobileStep2()}
+          </>
+        ) : (
+          <>
+            {step === 1 && renderStep1()}
+            {step === 2 && renderStep2()}
+          </>
+        )}
       </Animated.View>
 
       <ConfirmationModal
@@ -1630,5 +1966,500 @@ const s = StyleSheet.create({
   },
   summaryValue: { fontSize: 14, color: "#111827", fontWeight: "600" },
 });
+const confS = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  box: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    width: 380,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 30,
+    elevation: 30,
+    overflow: "hidden",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#1E3A8A",
+    padding: 16,
+  },
+  hospitalName: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  hospitalSub: { fontSize: 11, color: "#BFDBFE", marginTop: 2 },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tokenRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  tokenLabel: { fontSize: 12, color: "#6B7280", fontWeight: "500" },
+  tokenBadge: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  tokenNum: { fontSize: 20, fontWeight: "700", color: "#1E3A8A" },
+  doctorName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+    paddingHorizontal: 16,
+    marginTop: 10,
+  },
+  doctorSpec: {
+    fontSize: 12,
+    color: "#6B7280",
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  patientRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#F9FAFB",
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  avatarSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#DBEAFE",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  avatarText: { fontSize: 13, fontWeight: "700", color: "#1D4ED8" },
+  patientName: { fontSize: 14, fontWeight: "600", color: "#111827" },
+  patientAge: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  fee: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  phone: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    backgroundColor: "#F9FAFB",
+  },
+  detailsGrid: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+    gap: 16,
+  },
+  detailItem: { flex: 1 },
+  detailLabel: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    fontWeight: "500",
+    marginBottom: 4,
+    textTransform: "uppercase",
+  },
+  detailValue: { fontSize: 13, fontWeight: "600", color: "#111827" },
+  abhaBadge: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  abhaText: { fontSize: 12, color: "#1E40AF", fontWeight: "500" },
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  printBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingVertical: 9,
+    alignItems: "center",
+  },
+  newRegBtn: {
+    flex: 2,
+    backgroundColor: "#2563EB",
+    borderRadius: 8,
+    paddingVertical: 9,
+    alignItems: "center",
+  },
+});
+const fS = StyleSheet.create({
+  group: {
+    flex: 1,
+    position: "relative",
+    overflow: "visible",
+    marginBottom: 14,
+  },
+  label: {
+    fontSize: 12,
+    color: "#2a2a2aff",
+    marginBottom: 5,
+    fontWeight: "500",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: "#080808",
+    backgroundColor: "#fff",
+  },
+  inputDisabled: { backgroundColor: "#F9FAFB", color: "#9CA3AF" },
+  select: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: "#fff",
+  },
+  menu: {
+    position: "absolute",
+    top: 62,
+    left: 0,
+    right: 0,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    zIndex: 9999,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 20,
+  },
+  menuItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F9FAFB",
+  },
+  row: { flexDirection: "row", gap: 16, overflow: "visible" },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0c0e12ff",
+    marginBottom: 16,
+    marginTop: 4,
+  },
+});
+const otpS = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  box: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 32,
+    width: 420,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 30,
+  },
+  title: { fontSize: 17, fontWeight: "700", color: "#111827", marginBottom: 4 },
+  subtitle: { fontSize: 13, color: "#6B7280", marginBottom: 20 },
+  prompt: {
+    fontSize: 14,
+    color: "#374151",
+    fontWeight: "500",
+    marginBottom: 14,
+  },
+  otpRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  otpBox: {
+    width: 48,
+    height: 52,
+    borderWidth: 1.5,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#111827",
+    backgroundColor: "#F9FAFB",
+    textAlign: "center",
+  },
+  otpBoxFilled: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" },
+  resendRow: { flexDirection: "row", alignItems: "center", marginBottom: 24 },
+  btnRow: { flexDirection: "row", gap: 12, width: "100%" },
+  cancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  verifyBtn: {
+    flex: 2,
+    backgroundColor: "#2563EB",
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  verifyBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+});
+const stepS = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#fff",
+  },
+  stepItem: { flexDirection: "row", alignItems: "center" },
+  circle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  circleDone: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
+  circleActive: { borderColor: "#2563EB" },
+  circleNum: { fontSize: 12, fontWeight: "600", color: "#9CA3AF" },
+  circleNumActive: { color: "#2563EB" },
+  checkmark: { fontSize: 13, color: "#fff", fontWeight: "700" },
+  stepLabel: { fontSize: 13, fontWeight: "600", color: "#9CA3AF" },
+  stepLabelActive: { color: "#111827" },
+  stepSub: { fontSize: 11, color: "#9CA3AF", marginTop: 1 },
+  line: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 8,
+  },
+  lineDone: { backgroundColor: "#2563EB" },
+});
+// ─── MOBILE ABHA STYLES ───────────────────────────────────────
+const mobileStepS = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#fff",
+  },
+  stepItem: { alignItems: "center", flex: 0 },
+  circle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  circleDone: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
+  circleActive: { borderColor: "#2563EB" },
+  circleNum: { fontSize: 10, fontWeight: "600", color: "#9CA3AF" },
+  circleNumActive: { color: "#2563EB" },
+  checkmark: { fontSize: 11, color: "#fff", fontWeight: "700" },
+  stepLabel: {
+    fontSize: 9,
+    color: "#9CA3AF",
+    textAlign: "center",
+    maxWidth: 52,
+  },
+  stepLabelActive: { color: "#111827", fontWeight: "600" },
+  line: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 4,
+    marginBottom: 14,
+  },
+  lineDone: { backgroundColor: "#2563EB" },
+});
 
+const mobileS = StyleSheet.create({
+  pageTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 14,
+  },
+  infoAlert: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    marginBottom: 16,
+  },
+  fieldGroup: { marginBottom: 14 },
+  label: { fontSize: 13, color: "#111827", fontWeight: "500", marginBottom: 6 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: "#111827",
+    backgroundColor: "#fff",
+  },
+  inputDisabled: { backgroundColor: "#F9FAFB", color: "#9CA3AF" },
+  selectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+  },
+  selectMenu: {
+    position: "absolute",
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    zIndex: 9999,
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+  selectMenuItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F9FAFB",
+  },
+  orRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
+  orLine: { flex: 1, height: 1, backgroundColor: "#E5E7EB" },
+  orText: { fontSize: 12, color: "#9CA3AF", fontWeight: "600" },
+  consentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 16,
+  },
+  checkbox: {
+    width: 16,
+    height: 16,
+    borderWidth: 1.5,
+    borderColor: "#2563EB",
+    borderRadius: 3,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 1,
+  },
+  errorBox: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 12,
+  },
+  backBtn: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  continueBtn: {
+    flex: 1,
+    backgroundColor: "#2563EB",
+    borderRadius: 10,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  continueBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  verifiedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#86EFAC",
+    borderRadius: 10,
+    backgroundColor: "#F0FDF4",
+    padding: 12,
+    marginBottom: 16,
+  },
+  verifiedAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#DBEAFE",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  abhaBadge: {
+    backgroundColor: "#DCFCE7",
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 14,
+    marginTop: 4,
+  },
+});
 export default AbhaExistingPatient;
