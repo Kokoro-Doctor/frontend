@@ -462,25 +462,41 @@ export function generateInsuranceFormHTML(
   logoDataUrl = null,
 ) {
   const f = form || {};
+  const todayDate = new Date().toLocaleDateString("en-GB");
   const signatureHtml = signatureBlockHtml(signatureDataUrl);
   const logoSrc = logoDataUrl || STAR_HEALTH_LOGO_DATA_URI;
-  const hospitalTitle = cleanField(f.hospitalName);
-  const hospitalAddressLine1 =
-    [cleanField(f.hospAddressRow1), cleanField(f.hospAddressRow2)]
-      .filter(Boolean)
-      .join(", ");
-  const hospitalAddressLine2 =
-    [cleanField(f.hospCity), cleanField(f.hospState), cleanField(f.hospPin)]
-      .filter(Boolean)
-      .join(" - ");
+
+  // Use logged-in hospital name, fallback to form hospital name, then to default
+  let hospitalTitle = cleanField(f.loggedInHospitalName || f.hospitalName);
+  if (!hospitalTitle) {
+    // If not logged in and no form hospital name, use placeholder
+    hospitalTitle = "Name of your hospital";
+  }
+  const hospitalAddressLine1 = [
+    cleanField(f.hospAddressRow1),
+    cleanField(f.hospAddressRow2),
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const hospitalAddressLine2 = [
+    cleanField(f.hospCity),
+    cleanField(f.hospState),
+    cleanField(f.hospPin),
+  ]
+    .filter(Boolean)
+    .join(" - ");
   const hospitalPhone = cleanField(f.hospPhone);
   const hospitalEmail = cleanField(f.hospEmail);
-  const documentUhid =
-    cleanField(f.uhidIpdNo || f.ipdNo || f.policyNumber || f.mobilePolicy);
-  const dischargeSummaryId =
-    cleanField(f.dischargeSummaryId || f.summaryId || f.certificateNumber);
-  const documentDate =
-    formatHeaderDate(f.documentDate || f.declarationDate || f.dischargeDate);
+  const documentUhid = cleanField(
+    f.uhidIpdNo || f.ipdNo || f.policyNumber || f.mobilePolicy,
+  );
+  const documentAbhaId = cleanField(f.abhaId);
+  const dischargeSummaryId = cleanField(
+    f.dischargeSummaryId || f.summaryId || f.certificateNumber,
+  );
+  const documentDate = formatHeaderDate(
+    f.documentDate || f.declarationDate || f.dischargeDate,
+  );
   const patientFullName = cleanField(f.hospitalizedName || f.primaryName);
   const patientAgeGender = formatAgeGender(f.ageYears, f.gender);
   const patientAdmissionDate = formatDisplayDate(f.admissionDate);
@@ -591,41 +607,35 @@ export function generateInsuranceFormHTML(
       ? !!f.dischargeDocumentsChecklist[index]
       : index !== 6 && index !== 11 && index !== 13,
   }));
-  const authorizationDoctorName =
-    cleanField(f.doctorAuthorizationName || f.treatingDoctor);
-  const authorizationDoctorRegistration =
-    cleanField(f.doctorRegistrationNumber);
-  const authorizationDepartment =
-    cleanField(f.doctorAuthorizationDepartment || f.department || f.systemOfMedicine);
-  const authorizationDoctorDate =
-    formatDisplayDate(
-      f.doctorAuthorizationDate || f.documentDate || f.dischargeDate,
-    );
-  const authorizationAttendantName =
-    cleanField(
-      f.patientAttendantName || f.hospitalizedName || f.primaryName,
-    );
-  const authorizationAttendantRelation =
-    cleanField(
-      f.patientAttendantRelation || f.relationship || f.relationshipSpecify,
-    );
-  const authorizationAttendantContact =
-    cleanField(
-      f.patientAttendantContact || f.primaryPhone || f.hospPhone,
-    );
-  const authorizationAttendantDate =
-    formatDisplayDate(
-      f.patientAttendantDate || f.documentDate || f.dischargeDate,
-    );
+  const authorizationDoctorName = cleanField(
+    f.doctorAuthorizationName || f.treatingDoctor,
+  );
+  const authorizationDoctorRegistration = cleanField(
+    f.doctorRegistrationNumber,
+  );
+  const authorizationDepartment = cleanField(
+    f.doctorAuthorizationDepartment || f.department || f.systemOfMedicine,
+  );
+  const authorizationDoctorDate = formatDisplayDate(
+    f.doctorAuthorizationDate || f.documentDate || f.dischargeDate,
+  );
+  const authorizationAttendantName = cleanField(
+    f.patientAttendantName || f.hospitalizedName || f.primaryName,
+  );
+  const authorizationAttendantRelation = cleanField(
+    f.patientAttendantRelation || f.relationship || f.relationshipSpecify,
+  );
+  const authorizationAttendantContact = cleanField(
+    f.patientAttendantContact || f.primaryPhone || f.hospPhone,
+  );
+  const authorizationAttendantDate = formatDisplayDate(
+    f.patientAttendantDate || f.documentDate || f.dischargeDate,
+  );
   const footerHospitalName = cleanField(f.footerHospitalName || hospitalTitle);
-  const footerDocumentLine =
-    cleanField(f.footerDocumentLine);
-  const footerGeneratedLine =
-    cleanField(f.footerGeneratedLine);
-  const footerRightLine1 =
-    cleanField(f.footerRightLine1);
-  const footerRightLine2 =
-    cleanField(f.footerRightLine2);
+  const footerDocumentLine = cleanField(f.footerDocumentLine);
+  const footerGeneratedLine = cleanField(f.footerGeneratedLine);
+  const footerRightLine1 = cleanField(f.footerRightLine1);
+  const footerRightLine2 = cleanField(f.footerRightLine2);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -786,13 +796,13 @@ export function generateInsuranceFormHTML(
     display: none;
   }
   .summary-hospital-title {
-  font-size: 10px;
+  font-size: 16px;
   font-weight: bold;
   color: #243f93;
   font-family: Georgia, "Times New Roman", serif;
   margin-bottom: 3px;
   outline: none;
-  min-height: 14px;
+  min-height: 16px;
 }
   .summary-hospital-line {
     font-size: 6.7px;
@@ -1795,7 +1805,7 @@ export function generateInsuranceFormHTML(
   class="summary-hospital-title"
   contenteditable="true"
 >
-  ${hospitalTitle || "APOLLO HOSPITALS ENTERPRISE LTD."}
+  ${hospitalTitle}
 </div>
         <div class="summary-hospital-line">${escHtml(hospitalAddressLine1)}</div>
         <div class="summary-hospital-line">${escHtml(hospitalAddressLine2)}</div>
@@ -1836,9 +1846,19 @@ export function generateInsuranceFormHTML(
   class="summary-meta-value"
   contenteditable="true"
 >
-  ${escHtml(documentDate)}
+  ${escHtml(f.documentDate || todayDate)}
 </div>
       </div>
+      <div class="summary-meta-row">
+  <div class="summary-meta-label">ABHA ID</div>
+
+  <div 
+    class="summary-meta-value"
+    contenteditable="true"
+  >
+    ${documentAbhaId}
+  </div>
+</div>
     </div>
   </div>
   <div class="summary-footer">
@@ -1899,9 +1919,7 @@ export function generateInsuranceFormHTML(
       class="clinical-value"
       contenteditable="true"
     >
-      ${escHtml(
-        f.clinicalHpi || "",
-      )}
+      ${escHtml(f.clinicalHpi || "")}
     </div>
   </div>
 
@@ -2048,9 +2066,7 @@ export function generateInsuranceFormHTML(
         class="clinical-value"
         contenteditable="true"
       >
-        ${escHtml(
-          f.investigationCardiac || "",
-        )}
+        ${escHtml(f.investigationCardiac || "")}
       </div>
     </div>
 
@@ -2071,9 +2087,7 @@ export function generateInsuranceFormHTML(
         class="clinical-value"
         contenteditable="true"
       >
-        ${escHtml(
-          f.investigationEcg || "",
-        )}
+        ${escHtml(f.investigationEcg || "")}
       </div>
     </div>
 
@@ -2093,9 +2107,7 @@ export function generateInsuranceFormHTML(
         class="clinical-value"
         contenteditable="true"
       >
-        ${escHtml(
-          f.investigationEcho || "",
-        )}
+        ${escHtml(f.investigationEcho || "")}
       </div>
     </div>
 
@@ -2115,9 +2127,7 @@ export function generateInsuranceFormHTML(
         class="clinical-value"
         contenteditable="true"
       >
-        ${escHtml(
-          f.investigationAngio || "",
-        )}
+        ${escHtml(f.investigationAngio || "")}
       </div>
     </div>
 
@@ -2136,9 +2146,7 @@ export function generateInsuranceFormHTML(
         class="clinical-value"
         contenteditable="true"
       >
-        ${escHtml(
-          f.investigationOther || "",
-        )}
+        ${escHtml(f.investigationOther || "")}
       </div>
     </div>
 
@@ -2170,9 +2178,7 @@ export function generateInsuranceFormHTML(
       class="clinical-value"
       contenteditable="true"
     >
-      ${escHtml(
-        f.treatmentGiven || "",
-      )}
+      ${escHtml(f.treatmentGiven || "")}
     </div>
 
   </div>
@@ -2221,9 +2227,7 @@ export function generateInsuranceFormHTML(
       contenteditable="true"
       style="margin-bottom:6px;"
     >
-      ${escHtml(
-        f.procedurePerformed || "",
-      )}
+      ${escHtml(f.procedurePerformed || "")}
     </div>
 
     <div
@@ -2288,9 +2292,7 @@ export function generateInsuranceFormHTML(
         class="clinical-value"
         contenteditable="true"
       >
-        ${escHtml(
-          f.surgeonTeam || "",
-        )}
+        ${escHtml(f.surgeonTeam || "")}
       </div>
 
     </div>
@@ -2312,9 +2314,7 @@ export function generateInsuranceFormHTML(
         class="clinical-value"
         contenteditable="true"
       >
-        ${escHtml(
-          f.icuStay || "",
-        )}
+        ${escHtml(f.icuStay || "")}
       </div>
 
     </div>
@@ -2335,9 +2335,7 @@ export function generateInsuranceFormHTML(
         class="clinical-value"
         contenteditable="true"
       >
-        ${escHtml(
-          f.operativeNotes || "",
-        )}
+        ${escHtml(f.operativeNotes || "")}
       </div>
 
     </div>
@@ -2421,9 +2419,7 @@ export function generateInsuranceFormHTML(
         line-height:1.55;
       "
     >
-      ${escHtml(
-        f.hospitalCourseSummary || "",
-      )}
+      ${escHtml(f.hospitalCourseSummary || "")}
     </div>
 
   </div>
@@ -2992,9 +2988,7 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
 
     <div class="claim-ai-text">
-      ${multilineHtml(
-        f.claimAiAssessment || "",
-      )}
+      ${multilineHtml(f.claimAiAssessment || "")}
     </div>
 
   </div>
@@ -3425,4 +3419,3 @@ export async function downloadInsuranceClaim(
     Alert.alert("Saved", `PDF saved to:\n${destUri}`);
   }
 }
-

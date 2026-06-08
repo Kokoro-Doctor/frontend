@@ -1,9 +1,9 @@
 /**
- * MediAssistCombinedForm — single screen that hosts Form A and Form B
+ * CareHealthCombinedForm — single screen that hosts Form A and Form B
  * with Next / Previous navigation between them.
  *
  * Navigate here from HospitalInsuranceClaim with:
- *   navigation.navigate("MediAssistCombinedForm", { analysisData })
+ *   navigation.navigate("CareHealthCombinedForms", { analysisData })
  *
  * State ownership:
  *  - formA / formB live here so both forms survive tab-switches
@@ -36,20 +36,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { WebView } from "react-native-webview";
 
 // ── Form content components ──────────────────────────────────────────────────
-import MediAssistFormAContent from "../../components/HospitalPortalComponent/MediAssistFormA";
-import MediAssistFormBContent from "../../components/HospitalPortalComponent/MediAssistFormB";
+import CareHealthFormAContent from "../../components/HospitalPortalComponent/CareHealthFormA";
+import CareHealthFormBContent from "../../components/HospitalPortalComponent/CareHealthformB";
 
 // ── Mappers & download utils ─────────────────────────────────────────────────
-import { mapToFormA, mapToFormB } from "../../utils/MediAssistMapper";
+import { mapToFormA, mapToFormB } from "../../utils/CareHealthMapper";
 import { mapToDischargeSummary } from "../../utils/DischargeMapper";
 import {
-  downloadMediAssistFormA,
-  generateMediAssistFormAHTML,
-} from "../../utils/MediAssistFormA";
+  downloadCareHealthFormA,
+  generateCareHealthFormAHTML,
+} from "../../utils/CareHealthFormA";
 import {
-  downloadMediAssistFormB,
-  generateMediAssistFormBHTML,
-} from "../../utils/MediAssistFormB";
+  downloadCareHealthFormB,
+  generateCareHealthFormBHTML,
+} from "../../utils/CareHealthFormB";
 import {
   downloadInsuranceClaim as downloadDischargeSummary,
   generateInsuranceFormHTML as generateDischargeSummaryHTML,
@@ -71,7 +71,7 @@ const STEPS = [
 // ─────────────────────────────────────────────────────────────────────────────
 //  MAIN SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
-export default function MediAssistCombinedForms({ navigation, route }) {
+export default function CareHealthCombinedForms({ navigation, route }) {
   const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
   const dischargeSummaryIframeRef = useRef(null);
@@ -216,9 +216,9 @@ export default function MediAssistCombinedForms({ navigation, route }) {
     setIsDownloading(true);
     try {
       if (currentStep === 0) {
-        await downloadMediAssistFormA(formA, signatureA);
+        await downloadCareHealthFormA(formA, signatureA);
       } else if (currentStep === 1) {
-        await downloadMediAssistFormB(formB, signatureB);
+        await downloadCareHealthFormB(formB, signatureB);
       } else {
         await downloadDischargeSummary(
           dischargeSummaryForm,
@@ -238,11 +238,11 @@ export default function MediAssistCombinedForms({ navigation, route }) {
 
   // ── HTML preview (only computed for active form) ───────────────────────────
   const htmlPreviewA = useMemo(
-    () => generateMediAssistFormAHTML(formA, signatureA),
+    () => generateCareHealthFormAHTML(formA, signatureA),
     [formA, signatureA],
   );
   const htmlPreviewB = useMemo(
-    () => generateMediAssistFormBHTML(formB, signatureB),
+    () => generateCareHealthFormBHTML(formB, signatureB),
     [formB, signatureB],
   );
   const htmlPreviewDischarge = useMemo(
@@ -449,7 +449,7 @@ export default function MediAssistCombinedForms({ navigation, route }) {
   const ActiveFormContent = () => {
     if (currentStep === 0) {
       return (
-        <MediAssistFormAContent
+        <CareHealthFormAContent
           form={formA}
           setField={setFieldA}
           signatureImage={signatureA}
@@ -460,7 +460,7 @@ export default function MediAssistCombinedForms({ navigation, route }) {
     }
     if (currentStep === 1) {
       return (
-        <MediAssistFormBContent
+        <CareHealthFormBContent
           form={formB}
           setField={setFieldB}
           setDiagnosis={setDiagnosis}
@@ -590,7 +590,7 @@ export default function MediAssistCombinedForms({ navigation, route }) {
               <View style={styles.card}>
                 {/* CARD HEADER */}
                 <View style={styles.cardTitleRow}>
-                  <Text style={styles.cardTitle}>Medi claim agent</Text>
+                  <Text style={styles.cardTitle}>Care claim agent</Text>
                   <TouchableOpacity
                     style={styles.backBtn}
                     onPress={() => navigation.goBack()}
@@ -762,7 +762,7 @@ export default function MediAssistCombinedForms({ navigation, route }) {
         <HeaderLoginSignUp navigation={navigation} />
       </View>
 
-      <Text style={styles.mobileTitle}>Medi claim agent</Text>
+      <Text style={styles.mobileTitle}>Care claim agent</Text>
 
       {/* Tabs */}
       <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
