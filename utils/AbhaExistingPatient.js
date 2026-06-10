@@ -42,3 +42,26 @@ export const verifyAbhaLoginOtp = async ({ txnId, otp }) => {
 
   return data;
 };
+
+// Fetch live ABHA profile using ABHA user token
+// Fetch live ABHA profile using ABHA number
+export const fetchAbhaProfile = async (abhaToken, abhaNumber) => {
+  const response = await fetch(
+    `${API_URL}/abha/profile?abha_number=${abhaNumber}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-ABHA-Token": `Bearer ${abhaToken}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Failed to fetch ABHA profile");
+  }
+
+  return data;
+};

@@ -9,6 +9,7 @@ import {
   Modal,
   Animated,
   Platform,
+  Alert,
 } from "react-native";
 import {
   requestAbhaLoginOtp,
@@ -535,6 +536,27 @@ const ConfirmationModal = ({ visible, data, onClose, onNewRegistration }) => {
   );
 };
 
+const calculateAge = (dob) => {
+  if (!dob) return "";
+  // handles both "26-11-1989" and "1989-11-26"
+  let day, month, year;
+  if (dob.includes("-") && dob.indexOf("-") === 2) {
+    // DD-MM-YYYY
+    [day, month, year] = dob.split("-").map(Number);
+  } else if (dob.includes("-") && dob.indexOf("-") === 4) {
+    // YYYY-MM-DD
+    [year, month, day] = dob.split("-").map(Number);
+  } else {
+    return "";
+  }
+  const birthDate = new Date(year, month - 1, day);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+  return String(age);
+};
+
 // ─── MAIN: AbhaExistingPatient ────────────────────────────────
 // Props:
 //   onBack : fn — "Back" on step 1 ABHA form → parent card selection
@@ -552,6 +574,7 @@ const AbhaExistingPatient = ({ onBack }) => {
   const [abhaVerified, setAbhaVerified] = useState(false);
   const [verifiedPatient, setVerifiedPatient] = useState(null);
   const [verifiedAbha, setVerifiedAbha] = useState("");
+  const [abhaToken, setAbhaToken] = useState(null);
 
   // Step 2 state
   const [patientDetails, setPatientDetails] = useState({
@@ -592,7 +615,6 @@ const AbhaExistingPatient = ({ onBack }) => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [apiError, setApiError] = useState("");
-
   const [sendOtpLoading, setSendOtpLoading] = useState(false);
 
   // ── Animated step transition ──────────────────────────────
@@ -778,6 +800,151 @@ const AbhaExistingPatient = ({ onBack }) => {
   //     setVerifyLoading(false);
   //   }
   // };
+  // const handleVerifyOtp = async (otpVal) => {
+  //   if (!otpVal || otpVal.length < 6) return;
+
+  //   setApiError("");
+  //   setVerifyLoading(true);
+
+  //   try {
+  //     const res = await verifyAbhaLoginOtp({
+  //       txnId,
+  //       otp: otpVal,
+  //     });
+
+  //     console.log("Verify Response:", res);
+
+  //     const profile = res.abha_profile || {};
+
+  //     const fetched = {
+  //       fullName: `${profile.firstName || ""} ${profile.lastName || ""}`.trim(),
+  //       mobile: profile.mobile || "",
+  //       age: profile.age || "",
+  //       gender:
+  //         profile.gender === "M"
+  //           ? "Male"
+  //           : profile.gender === "F"
+  //             ? "Female"
+  //             : "Other",
+  //       dob: profile.dob || "",
+  //       address: profile.address || "",
+  //       state: profile.stateName || "",
+  //       district: profile.districtName || "",
+  //       pinCode: profile.pinCode || "",
+  //       email: profile.email || "",
+  //       emergencyContact: "",
+  //     };
+
+  //     const abhaNum = profile.ABHANumber || abhaNumber || abhaAddress;
+
+  //     setVerifiedPatient({
+  //       name: fetched.fullName || "Patient",
+  //       id: abhaNum,
+  //       age: fetched.age,
+  //     });
+
+  //     setPatientDetails((prev) => ({
+  //       ...prev,
+  //       ...fetched,
+  //     }));
+
+  //     setVerifiedAbha(abhaNum);
+  //     setAbhaVerified(true);
+  //     setShowOtp(false);
+
+  //     goToStep(2);
+  //   } catch (err) {
+  //     console.error(err);
+
+  //     setApiError(err.message || "Verification failed. Please try again.");
+  //   } finally {
+  //     setVerifyLoading(false);
+  //   }
+  // };
+  // ── DOB → Age helper ─────────────────────────────────────────
+
+  // ── OTP verify + profile fetch ────────────────────────────────
+  // const handleVerifyOtp = async (otpVal) => {
+  //   if (!otpVal || otpVal.length < 6) return;
+
+  //   setApiError("");
+  //   setVerifyLoading(true);
+
+  //   try {
+  //     // Step 1: verify OTP
+  //     const res = await verifyAbhaLoginOtp({ txnId, otp: otpVal });
+  //     console.log("Verify Response:", res);
+
+  //     // Step 2: save ABHA token for downstream use
+  //     const token = res.tokens?.token || null;
+  //     setAbhaToken(token);
+
+  //     // Step 3: get profile — use ABHAProfile from verify response first,
+  //     // if missing or incomplete, call /abha/profile separately
+  //     let profile = res.ABHAProfile || {};
+
+  //     const isProfileEmpty = !profile.firstName && !profile.ABHANumber;
+
+  //     if (isProfileEmpty && token) {
+  //       console.log("ABHAProfile missing — fetching separately...");
+  //       try {
+  //         const profileRes = await fetchAbhaProfile(
+  //           token,
+  //           profile.ABHANumber || abhaNumber || abhaAddress, // ← dynamic, never hardcoded
+  //         );
+  //         profile = profileRes?.abha_profile || profileRes || {};
+  //         console.log("Fetched profile separately:", profile);
+  //       } catch (profileErr) {
+  //         console.warn("Profile fetch failed:", profileErr.message);
+  //       }
+  //     }
+
+  //     // Step 4: map profile fields → patientDetails shape
+  //     const fetched = {
+  //       fullName: [profile.firstName, profile.middleName, profile.lastName]
+  //         .filter(Boolean)
+  //         .join(" ")
+  //         .trim(),
+  //       mobile: profile.mobile || "",
+  //       age: profile.dob ? calculateAge(profile.dob) : "",
+  //       gender:
+  //         profile.gender === "M"
+  //           ? "Male"
+  //           : profile.gender === "F"
+  //             ? "Female"
+  //             : "Other",
+  //       dob: profile.dob || "",
+  //       address: profile.address || "",
+  //       state: profile.stateName || "",
+  //       district: profile.districtName || "",
+  //       pinCode: profile.pinCode || "",
+  //       email: profile.email || "",
+  //       emergencyContact: "",
+  //     };
+
+  //     const abhaNum = profile.ABHANumber || abhaNumber || abhaAddress;
+
+  //     // Step 5: update UI state
+  //     setVerifiedPatient({
+  //       name: fetched.fullName || "Patient",
+  //       id: abhaNum,
+  //       age: fetched.age,
+  //       photo: profile.photo || null, // base64 JPEG, use in <Image> if needed
+  //     });
+
+  //     setPatientDetails((prev) => ({ ...prev, ...fetched }));
+  //     setVerifiedAbha(abhaNum);
+  //     setAbhaVerified(true);
+  //     setShowOtp(false);
+
+  //     goToStep(2);
+  //   } catch (err) {
+  //     console.error(err);
+  //     setApiError(err.message || "Verification failed. Please try again.");
+  //   } finally {
+  //     setVerifyLoading(false);
+  //   }
+  // };
   const handleVerifyOtp = async (otpVal) => {
     if (!otpVal || otpVal.length < 6) return;
 
@@ -785,55 +952,145 @@ const AbhaExistingPatient = ({ onBack }) => {
     setVerifyLoading(true);
 
     try {
-      const res = await verifyAbhaLoginOtp({
-        txnId,
-        otp: otpVal,
-      });
+      // Step 1: verify OTP
+      const res = await verifyAbhaLoginOtp({ txnId, otp: otpVal });
+      console.log("Verify Response:", JSON.stringify(res, null, 2));
 
-      console.log("Verify Response:", res);
+      // Step 2: save token
+      const token = res.tokens?.token || null;
+      setAbhaToken(token);
 
-      const profile = res.abha_profile || {};
+      // Step 3: get profile from verify response
+      // Backend returns ABHAProfile (capital) on verify endpoint
+      let profile = res.ABHAProfile || res.abha_profile || null;
+
+      console.log("Profile from verify:", JSON.stringify(profile, null, 2));
+
+      // Step 4: if profile missing or has no name, call /abha/profile separately
+      const needsFetch = !profile || (!profile.firstName && !profile.lastName);
+
+      if (needsFetch && token) {
+        console.log("Profile incomplete — calling /abha/profile...");
+        try {
+          const abhaNumForFetch =
+            profile?.ABHANumber || abhaNumber || abhaAddress;
+          const profileRes = await fetchAbhaProfile(token, abhaNumForFetch);
+          console.log(
+            "fetchAbhaProfile response:",
+            JSON.stringify(profileRes, null, 2),
+          );
+          // /abha/profile returns { abha_profile: {...} }
+          profile = profileRes?.abha_profile || profileRes || profile;
+        } catch (profileErr) {
+          console.warn("Profile fetch failed:", profileErr.message);
+        }
+      }
+
+      // Safety check — if still no profile at all
+      if (!profile) {
+        setApiError("Could not fetch patient profile. Please try again.");
+        return;
+      }
+
+      console.log(
+        "Final profile being mapped:",
+        JSON.stringify(profile, null, 2),
+      );
+
+      // Step 5: map to UI fields
+      // Both response shapes use same field names inside the profile object
+      // const fullName = [profile.firstName, profile.middleName, profile.lastName]
+      //   .filter(Boolean)
+      //   .join(" ")
+      //   .trim();
+
+      // const gender =
+      //   profile.gender === "M" || profile.gender === "Male"
+      //     ? "Male"
+      //     : profile.gender === "F" || profile.gender === "Female"
+      //       ? "Female"
+      //       : profile.gender
+      //         ? "Other"
+      //         : "Male"; // default
+
+      // const fetched = {
+      //   fullName:   fullName,
+      //   mobile:     profile.mobile     || "",
+      //   age:        profile.dob        ? calculateAge(profile.dob) : "",
+      //   gender:     gender,
+      //   dob:        profile.dob        || "",
+      //   address:    profile.address    || "",
+      //   state:      profile.stateName  || "",
+      //   district:   profile.districtName || "",
+      //   pinCode:    profile.pinCode    || "",
+      //   email:      profile.email      || "",
+      //   emergencyContact: "",
+      // };
+      // Step 5: map to UI fields
+      const fullName = [profile.firstName, profile.middleName, profile.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      const mobile =
+        profile.mobile && !profile.mobile.startsWith("*") ? profile.mobile : "";
+
+      const gender =
+        profile.gender === "M" || profile.gender === "Male"
+          ? "Male"
+          : profile.gender === "F" || profile.gender === "Female"
+            ? "Female"
+            : profile.gender
+              ? "Other"
+              : "Male";
+
+      // ── Build DOB from split fields if combined "dob" not present ──
+      const dob = profile.dob
+        ? profile.dob
+        : profile.dayOfBirth && profile.monthOfBirth && profile.yearOfBirth
+          ? `${String(profile.dayOfBirth).padStart(2, "0")}-${String(profile.monthOfBirth).padStart(2, "0")}-${profile.yearOfBirth}`
+          : "";
+
+      // ── pinCode: API returns "pincode" lowercase ──
+      const pinCode =
+        profile.pinCode || // future-proofing if API fixes casing
+        profile.pincode || // current API response
+        "";
 
       const fetched = {
-        fullName: `${profile.firstName || ""} ${profile.lastName || ""}`.trim(),
-        mobile: profile.mobile || "",
-        age: profile.age || "",
-        gender:
-          profile.gender === "M"
-            ? "Male"
-            : profile.gender === "F"
-              ? "Female"
-              : "Other",
-        dob: profile.dob || "",
+        fullName,
+        mobile,
+        age: dob ? calculateAge(dob) : "",
+        gender,
+        dob,
         address: profile.address || "",
         state: profile.stateName || "",
         district: profile.districtName || "",
-        pinCode: profile.pinCode || "",
+        pinCode, // ← fixed
         email: profile.email || "",
         emergencyContact: "",
       };
 
-      const abhaNum = profile.ABHANumber || abhaNumber || abhaAddress;
+      console.log("Mapped fetched object:", JSON.stringify(fetched, null, 2));
 
+      const abhaNum =
+        profile.ABHANumber || profile.abha_number || abhaNumber || abhaAddress;
+
+      // Step 6: update all UI state
       setVerifiedPatient({
-        name: fetched.fullName || "Patient",
+        name: fetched.fullName || abhaNum || "Patient",
         id: abhaNum,
         age: fetched.age,
+        photo: profile.photo || null,
       });
 
-      setPatientDetails((prev) => ({
-        ...prev,
-        ...fetched,
-      }));
-
+      setPatientDetails((prev) => ({ ...prev, ...fetched }));
       setVerifiedAbha(abhaNum);
       setAbhaVerified(true);
       setShowOtp(false);
-
       goToStep(2);
     } catch (err) {
-      console.error(err);
-
+      console.error("handleVerifyOtp error:", err);
       setApiError(err.message || "Verification failed. Please try again.");
     } finally {
       setVerifyLoading(false);
@@ -1490,7 +1747,7 @@ const AbhaExistingPatient = ({ onBack }) => {
           <TextInput
             style={[fS.input, abhaVerified && fS.inputDisabled]}
             placeholder="Autofilled from ABHA"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#646b71ff"
             value={patientDetails.fullName}
             onChangeText={(v) => setP("fullName", v)}
             editable={!abhaVerified}
@@ -1503,11 +1760,11 @@ const AbhaExistingPatient = ({ onBack }) => {
           <TextInput
             style={[fS.input, abhaVerified && fS.inputDisabled]}
             placeholder="Registered mobile"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#a5aec0ff"
             value={patientDetails.mobile}
             onChangeText={(v) => setP("mobile", v)}
             keyboardType="phone-pad"
-            editable={!abhaVerified}
+            editable={true}
           />
         </View>
       </View>
@@ -1518,7 +1775,7 @@ const AbhaExistingPatient = ({ onBack }) => {
           <TextInput
             style={fS.input}
             placeholder="Years"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#636671ff"
             value={patientDetails.age}
             onChangeText={(v) => setP("age", v)}
             keyboardType="numeric"
@@ -1546,7 +1803,7 @@ const AbhaExistingPatient = ({ onBack }) => {
           <TextInput
             style={fS.input}
             placeholder="dd-mm-yyyy"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#6d737fff"
             value={patientDetails.dob}
             onChangeText={(v) => setP("dob", v)}
           />
@@ -1558,7 +1815,7 @@ const AbhaExistingPatient = ({ onBack }) => {
         <TextInput
           style={[fS.input, abhaVerified && fS.inputDisabled]}
           placeholder="Address auto Filled"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#616771ff"
           value={patientDetails.address}
           onChangeText={(v) => setP("address", v)}
           editable={!abhaVerified}
@@ -1571,7 +1828,7 @@ const AbhaExistingPatient = ({ onBack }) => {
           <TextInput
             style={[fS.input, abhaVerified && fS.inputDisabled]}
             placeholder="Auto filled"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#5c6069ff"
             value={patientDetails.state}
             onChangeText={(v) => setP("state", v)}
             editable={!abhaVerified}
@@ -1582,7 +1839,7 @@ const AbhaExistingPatient = ({ onBack }) => {
           <TextInput
             style={[fS.input, abhaVerified && fS.inputDisabled]}
             placeholder="Auto filled"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#545962ff"
             value={patientDetails.district}
             onChangeText={(v) => setP("district", v)}
             editable={!abhaVerified}
@@ -1593,7 +1850,7 @@ const AbhaExistingPatient = ({ onBack }) => {
           <TextInput
             style={[fS.input, abhaVerified && fS.inputDisabled]}
             placeholder="Auto filled"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#616572ff"
             value={patientDetails.pinCode}
             onChangeText={(v) => setP("pinCode", v)}
             editable={!abhaVerified}
@@ -2117,7 +2374,7 @@ const fS = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: "#2a2a2aff",
+    color: "#111111ff",
     marginBottom: 5,
     fontWeight: "500",
   },
@@ -2131,7 +2388,7 @@ const fS = StyleSheet.create({
     color: "#080808",
     backgroundColor: "#fff",
   },
-  inputDisabled: { backgroundColor: "#F9FAFB", color: "#9CA3AF" },
+  inputDisabled: { backgroundColor: "#F9FAFB", color: "#0f0f11ff" },
   select: {
     flexDirection: "row",
     alignItems: "center",
