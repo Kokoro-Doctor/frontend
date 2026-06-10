@@ -48,16 +48,87 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
     authPopup || {};
 
   // Determine if we're in doctor portal based on prop OR current route
+  // const getCurrentNavigator = () => {
+  //   if (isDoctorPortal) return "doctor";
+
+  //   try {
+  //     const state = navigation.getState();
+
+  //     if (state?.routes) {
+  //       const currentRoute = state.routes[state.index];
+
+  //       // ✅ ADD THIS
+  //       if (currentRoute?.name === "HospitalAppNavigation") {
+  //         return "hospital";
+  //       }
+
+  //       if (currentRoute?.name === "DoctorAppNavigation") {
+  //         return "doctor";
+  //       }
+
+  //       if (currentRoute?.name === "PatientAppNavigation") {
+  //         return "patient";
+  //       }
+
+  //       if (currentRoute?.state?.routes) {
+  //         const nestedRoute =
+  //           currentRoute.state.routes[currentRoute.state.index];
+
+  //         // ✅ ADD THIS
+  //         if (
+  //           nestedRoute?.name === "HospitalPortalLandingPage" ||
+  //           nestedRoute?.name === "HospitalDashboard"
+  //         ) {
+  //           return "hospital";
+  //         }
+
+  //         if (
+  //           nestedRoute?.name === "DoctorPortalLandingPage" ||
+  //           nestedRoute?.name === "Dashboard" ||
+  //           nestedRoute?.name === "DoctorDashboard" ||
+  //           nestedRoute?.name === "DoctorProfile"
+  //         ) {
+  //           return "doctor";
+  //         }
+
+  //         if (
+  //           nestedRoute?.name === "UserDashboard" ||
+  //           nestedRoute?.name === "Medilocker" ||
+  //           nestedRoute?.name === "Doctors"
+  //         ) {
+  //           return "patient";
+  //         }
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.log("Error getting navigator:", error);
+  //   }
+
+  //   // ✅ fallback using role
+  //   if (role === "hospital") return "hospital";
+  //   if (role === "doctor") return "doctor";
+
+  //   return "patient";
+  // };
   const getCurrentNavigator = () => {
     if (isDoctorPortal) return "doctor";
 
     try {
       const state = navigation.getState();
 
+      console.log("FULL NAV STATE =>", JSON.stringify(state, null, 2));
+
       if (state?.routes) {
         const currentRoute = state.routes[state.index];
 
-        // ✅ ADD THIS
+        console.log("CURRENT ROUTE =>", currentRoute?.name);
+        if (
+          currentRoute?.name === "HospitalPortalLandingPage" ||
+          currentRoute?.name === "HospitalDashboard"
+        ) {
+          return "hospital";
+        }
+
         if (currentRoute?.name === "HospitalAppNavigation") {
           return "hospital";
         }
@@ -74,7 +145,8 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
           const nestedRoute =
             currentRoute.state.routes[currentRoute.state.index];
 
-          // ✅ ADD THIS
+          console.log("NESTED ROUTE =>", nestedRoute?.name);
+
           if (
             nestedRoute?.name === "HospitalPortalLandingPage" ||
             nestedRoute?.name === "HospitalDashboard"
@@ -104,7 +176,8 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
       console.log("Error getting navigator:", error);
     }
 
-    // ✅ fallback using role
+    console.log("ROLE FALLBACK =>", role);
+
     if (role === "hospital") return "hospital";
     if (role === "doctor") return "doctor";
 
