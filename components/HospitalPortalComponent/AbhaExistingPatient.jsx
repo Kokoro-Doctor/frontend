@@ -15,6 +15,9 @@ import {
   requestAbhaLoginOtp,
   verifyAbhaLoginOtp,
   fetchAbhaProfile,
+  requestAbhaMobileLoginOtp,
+  verifyAbhaMobileLoginOtp,
+  verifyAbhaMobileUser,
 } from "../../utils/AbhaExistingPatient";
 
 // ─── CONSTANTS ────────────────────────────────────────────────
@@ -294,6 +297,61 @@ const OTPModal = ({ visible, onVerify, onCancel, loading, error }) => {
     </Modal>
   );
 };
+
+const AccountPickerModal = ({
+  visible,
+  accounts,
+  onSelect,
+  onCancel,
+  loading,
+}) => (
+  <Modal
+    transparent
+    animationType="fade"
+    visible={visible}
+    onRequestClose={onCancel}
+  >
+    <View style={otpS.overlay}>
+      <View style={[otpS.box, { width: 380, alignItems: "stretch" }]}>
+        <Text style={otpS.title}>Select ABHA Account</Text>
+        <Text style={otpS.subtitle}>
+          This mobile number is linked to multiple ABHA accounts. Select one to
+          continue.
+        </Text>
+        {accounts.map((acc) => (
+          <TouchableOpacity
+            key={acc.ABHANumber}
+            style={{
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+              borderRadius: 10,
+              padding: 12,
+              marginBottom: 10,
+              opacity: loading ? 0.6 : 1,
+            }}
+            onPress={() => onSelect(acc)}
+            disabled={loading}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "700", color: "#111827" }}>
+              {acc.name}
+            </Text>
+            <Text style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+              ABHA: {acc.ABHANumber}
+            </Text>
+            <Text style={{ fontSize: 12, color: "#6B7280" }}>
+              ABHA Address: {acc.preferredAbhaAddress}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity style={otpS.cancelBtn} onPress={onCancel}>
+          <Text style={{ fontSize: 13, color: "#374151", fontWeight: "500" }}>
+            Cancel
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+);
 
 // ─── MOBILE ABHA SELECT ───────────────────────────────────────
 const MobileAbhaSelect = ({ value, options, onSelect, placeholder }) => {
@@ -617,6 +675,17 @@ const AbhaExistingPatient = ({ onBack }) => {
   const [apiError, setApiError] = useState("");
   const [sendOtpLoading, setSendOtpLoading] = useState(false);
 
+  // Mobile-based login state
+  const [loginMode, setLoginMode] = useState("abha"); // "abha" | "mobile"
+  const [regMobile, setRegMobile] = useState("");
+  const [mobileTxnId, setMobileTxnId] = useState("");
+  const [tToken, setTToken] = useState("");
+  const [linkedAccounts, setLinkedAccounts] = useState([]);
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [accountPickLoading, setAccountPickLoading] = useState(false);
+  const [notVerifiedMsg, setNotVerifiedMsg] = useState("");
+  const [otpSentMsg, setOtpSentMsg] = useState("");
+
   // ── Animated step transition ──────────────────────────────
   const goToStep = (nextStep) => {
     Animated.timing(slideAnim, {
@@ -654,297 +723,6 @@ const AbhaExistingPatient = ({ onBack }) => {
     });
   };
 
-  // ── OTP verify handler ────────────────────────────────────
-  // const handleVerifyOtp = (otpVal) => {
-  //   setShowOtp(false);
-  //   // Simulate ABHA fetch
-  //   const fetched = {
-  //     fullName: "Rajesh Sharma",
-  //     mobile: "+91 9874563210",
-  //     age: "54",
-  //     gender: "Male",
-  //     address: "Address auto Filled",
-  //     state: "Madhya Pradesh",
-  //     district: "Bhopal",
-  //     pinCode: "462001",
-  //     email: "rajesh@example.com",
-  //     emergencyContact: "+91 9823456789",
-  //   };
-  //   setVerifiedPatient({ name: "Rajesh Sharma", id: "KK-2024-08821", age: 54 });
-  //   setPatientDetails((prev) => ({ ...prev, ...fetched }));
-  //   setVerifiedAbha(abhaNumber || abhaAddress);
-  //   setAbhaVerified(true);
-  //   goToStep(2);
-  // };
-  // const handleVerifyOtp = async (otpVal) => {
-  //   if (!otpVal || otpVal.length < 6) return;
-  //   setApiError("");
-  //   setVerifyLoading(true);
-  //   try {
-  //     const res = await verifyAbhaLoginOtp({
-  //       txnId,
-  //       otp: otpVal,
-  //       // kokoroJwt: "your_jwt_here",  // agar available ho
-  //     });
-
-  //     const profile = res.abha_profile || {};
-
-  //     // Profile data patient details mein fill karo
-  //     const fetched = {
-  //       fullName:
-  //         `${profile.firstName || ""} ${profile.middleName || ""} ${profile.lastName || ""}`.trim(),
-  //       mobile: profile.mobile || "",
-  //       age: profile.age || "",
-  //       gender:
-  //         profile.gender === "M"
-  //           ? "Male"
-  //           : profile.gender === "F"
-  //             ? "Female"
-  //             : "Other",
-  //       dob: profile.dob || "",
-  //       address: profile.address || "",
-  //       state: profile.stateName || "",
-  //       district: profile.districtName || "",
-  //       pinCode: profile.pinCode || "",
-  //       email: profile.email || "",
-  //       emergencyContact: "",
-  //     };
-
-  //     setVerifiedPatient({
-  //       name: fetched.fullName,
-  //       id: profile.ABHANumber || abhaNumber,
-  //       age: fetched.age,
-  //     });
-  //     setPatientDetails((prev) => ({ ...prev, ...fetched }));
-  //     setVerifiedAbha(profile.ABHANumber || abhaNumber || abhaAddress);
-
-  //     // Tokens save karo agar chahiye: res.tokens.token
-
-  //     setAbhaVerified(true);
-  //     setShowOtp(false);
-  //     goToStep(2);
-  //   } catch (err) {
-  //     setApiError(err.message || "Verification failed. Please try again.");
-  //   } finally {
-  //     setVerifyLoading(false);
-  //   }
-  // };
-  // const handleVerifyOtp = async (otpVal) => {
-  //   if (!otpVal || otpVal.length < 6) return;
-  //   setApiError("");
-  //   setVerifyLoading(true);
-  //   try {
-  //     const res = await verifyAbhaLoginOtp({ txnId, otp: otpVal });
-
-  //     console.log("verify response:", res);
-  //     console.log("abha_number:", res.abha_number);
-  //     console.log("abha_profile:", res.abha_profile);
-
-  //     // Token save karo
-  //     const abhaToken = res.tokens?.token;
-
-  //     // Profile directly available hai ya nahi check karo
-  //     let profile = res.abha_profile || {};
-
-  //     // Agar profile empty hai aur token hai — separate call karo
-  //     if ((!profile || Object.keys(profile).length === 0) && abhaToken) {
-  //       try {
-  //         const profileRes = await fetchAbhaProfile(abhaToken);
-  //         profile = profileRes?.abha_profile || profileRes || {};
-  //         console.log("Fetched profile separately:", profile);
-  //       } catch (profileErr) {
-  //         console.warn("Profile fetch failed:", profileErr.message);
-  //       }
-  //     }
-
-  //     const fetched = {
-  //       fullName:
-  //         `${profile.firstName || ""} ${profile.middleName || ""} ${profile.lastName || ""}`.trim(),
-  //       mobile: profile.mobile || "",
-  //       age: profile.age || "",
-  //       gender:
-  //         profile.gender === "M"
-  //           ? "Male"
-  //           : profile.gender === "F"
-  //             ? "Female"
-  //             : "Other",
-  //       dob: profile.dob || "",
-  //       address: profile.address || "",
-  //       state: profile.stateName || "",
-  //       district: profile.districtName || "",
-  //       pinCode: profile.pinCode || "",
-  //       email: profile.email || "",
-  //       emergencyContact: "",
-  //     };
-
-  //     const abhaNum =
-  //       res.abha_number ||
-  //       profile.ABHANumber ||
-  //       profile.abha_number ||
-  //       abhaNumber ||
-  //       abhaAddress;
-
-  //     setVerifiedPatient({
-  //       name: fetched.fullName || abhaNum,
-  //       id: abhaNum,
-  //       age: fetched.age,
-  //     });
-  //     setPatientDetails((prev) => ({ ...prev, ...fetched }));
-  //     setVerifiedAbha(abhaNum);
-  //     setAbhaVerified(true);
-  //     setShowOtp(false);
-  //     goToStep(2);
-  //   } catch (err) {
-  //     setApiError(err.message || "Verification failed. Please try again.");
-  //   } finally {
-  //     setVerifyLoading(false);
-  //   }
-  // };
-  // const handleVerifyOtp = async (otpVal) => {
-  //   if (!otpVal || otpVal.length < 6) return;
-
-  //   setApiError("");
-  //   setVerifyLoading(true);
-
-  //   try {
-  //     const res = await verifyAbhaLoginOtp({
-  //       txnId,
-  //       otp: otpVal,
-  //     });
-
-  //     console.log("Verify Response:", res);
-
-  //     const profile = res.abha_profile || {};
-
-  //     const fetched = {
-  //       fullName: `${profile.firstName || ""} ${profile.lastName || ""}`.trim(),
-  //       mobile: profile.mobile || "",
-  //       age: profile.age || "",
-  //       gender:
-  //         profile.gender === "M"
-  //           ? "Male"
-  //           : profile.gender === "F"
-  //             ? "Female"
-  //             : "Other",
-  //       dob: profile.dob || "",
-  //       address: profile.address || "",
-  //       state: profile.stateName || "",
-  //       district: profile.districtName || "",
-  //       pinCode: profile.pinCode || "",
-  //       email: profile.email || "",
-  //       emergencyContact: "",
-  //     };
-
-  //     const abhaNum = profile.ABHANumber || abhaNumber || abhaAddress;
-
-  //     setVerifiedPatient({
-  //       name: fetched.fullName || "Patient",
-  //       id: abhaNum,
-  //       age: fetched.age,
-  //     });
-
-  //     setPatientDetails((prev) => ({
-  //       ...prev,
-  //       ...fetched,
-  //     }));
-
-  //     setVerifiedAbha(abhaNum);
-  //     setAbhaVerified(true);
-  //     setShowOtp(false);
-
-  //     goToStep(2);
-  //   } catch (err) {
-  //     console.error(err);
-
-  //     setApiError(err.message || "Verification failed. Please try again.");
-  //   } finally {
-  //     setVerifyLoading(false);
-  //   }
-  // };
-  // ── DOB → Age helper ─────────────────────────────────────────
-
-  // ── OTP verify + profile fetch ────────────────────────────────
-  // const handleVerifyOtp = async (otpVal) => {
-  //   if (!otpVal || otpVal.length < 6) return;
-
-  //   setApiError("");
-  //   setVerifyLoading(true);
-
-  //   try {
-  //     // Step 1: verify OTP
-  //     const res = await verifyAbhaLoginOtp({ txnId, otp: otpVal });
-  //     console.log("Verify Response:", res);
-
-  //     // Step 2: save ABHA token for downstream use
-  //     const token = res.tokens?.token || null;
-  //     setAbhaToken(token);
-
-  //     // Step 3: get profile — use ABHAProfile from verify response first,
-  //     // if missing or incomplete, call /abha/profile separately
-  //     let profile = res.ABHAProfile || {};
-
-  //     const isProfileEmpty = !profile.firstName && !profile.ABHANumber;
-
-  //     if (isProfileEmpty && token) {
-  //       console.log("ABHAProfile missing — fetching separately...");
-  //       try {
-  //         const profileRes = await fetchAbhaProfile(
-  //           token,
-  //           profile.ABHANumber || abhaNumber || abhaAddress, // ← dynamic, never hardcoded
-  //         );
-  //         profile = profileRes?.abha_profile || profileRes || {};
-  //         console.log("Fetched profile separately:", profile);
-  //       } catch (profileErr) {
-  //         console.warn("Profile fetch failed:", profileErr.message);
-  //       }
-  //     }
-
-  //     // Step 4: map profile fields → patientDetails shape
-  //     const fetched = {
-  //       fullName: [profile.firstName, profile.middleName, profile.lastName]
-  //         .filter(Boolean)
-  //         .join(" ")
-  //         .trim(),
-  //       mobile: profile.mobile || "",
-  //       age: profile.dob ? calculateAge(profile.dob) : "",
-  //       gender:
-  //         profile.gender === "M"
-  //           ? "Male"
-  //           : profile.gender === "F"
-  //             ? "Female"
-  //             : "Other",
-  //       dob: profile.dob || "",
-  //       address: profile.address || "",
-  //       state: profile.stateName || "",
-  //       district: profile.districtName || "",
-  //       pinCode: profile.pinCode || "",
-  //       email: profile.email || "",
-  //       emergencyContact: "",
-  //     };
-
-  //     const abhaNum = profile.ABHANumber || abhaNumber || abhaAddress;
-
-  //     // Step 5: update UI state
-  //     setVerifiedPatient({
-  //       name: fetched.fullName || "Patient",
-  //       id: abhaNum,
-  //       age: fetched.age,
-  //       photo: profile.photo || null, // base64 JPEG, use in <Image> if needed
-  //     });
-
-  //     setPatientDetails((prev) => ({ ...prev, ...fetched }));
-  //     setVerifiedAbha(abhaNum);
-  //     setAbhaVerified(true);
-  //     setShowOtp(false);
-
-  //     goToStep(2);
-  //   } catch (err) {
-  //     console.error(err);
-  //     setApiError(err.message || "Verification failed. Please try again.");
-  //   } finally {
-  //     setVerifyLoading(false);
-  //   }
-  // };
   const handleVerifyOtp = async (otpVal) => {
     if (!otpVal || otpVal.length < 6) return;
 
@@ -1102,6 +880,142 @@ const AbhaExistingPatient = ({ onBack }) => {
     outputRange: [-60, 0, 60],
   });
 
+  // Step A: Request OTP via registered mobile number
+  const handleSendMobileOtp = async () => {
+    if (!regMobile || regMobile.length < 10) {
+      setApiError("Please enter a valid 10-digit registered mobile number.");
+      return;
+    }
+    setApiError("");
+    setNotVerifiedMsg("");
+    setOtpSentMsg("");
+    setSendOtpLoading(true);
+    try {
+      const res = await requestAbhaMobileLoginOtp(regMobile);
+      setMobileTxnId(res.txn_id);
+      setOtpSentMsg(res.message || "OTP sent successfully.");
+      setShowOtp(true);
+    } catch (err) {
+      if (err.code === "NOT_LINKED") {
+        setNotVerifiedMsg(err.message);
+      } else {
+        setApiError(err.message);
+      }
+    } finally {
+      setSendOtpLoading(false);
+    }
+  };
+
+  // Step B: Verify OTP → get linked ABHA accounts + t_token
+  const handleVerifyMobileOtp = async (otpVal) => {
+    if (!otpVal || otpVal.length < 6) return;
+    setApiError("");
+    setVerifyLoading(true);
+    try {
+      const res = await verifyAbhaMobileLoginOtp({
+        txnId: mobileTxnId,
+        otp: otpVal,
+      });
+      setTToken(res.t_token);
+      setLinkedAccounts(res.accounts || []);
+      setShowOtp(false);
+
+      if ((res.accounts || []).length === 1) {
+        // pass token directly — don't rely on state
+        await handleSelectLinkedAccount(res.accounts[0], res.t_token);
+      } else if ((res.accounts || []).length > 1) {
+        setShowAccountPicker(true);
+      } else {
+        setApiError("No ABHA account found linked to this mobile number.");
+      }
+    } catch (err) {
+      setApiError(err.message || "Verification failed. Please try again.");
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Step C: User selects an ABHA account → finalize login & fetch profile
+  const handleSelectLinkedAccount = async (account, tTokenOverride) => {
+    setApiError("");
+    setAccountPickLoading(true);
+    try {
+      const res = await verifyAbhaMobileUser({
+        txnId: mobileTxnId,
+        abhaNumber: account.ABHANumber,
+        tToken: tTokenOverride || tToken,
+      });
+
+      const token = res.tokens?.token || null;
+      setAbhaToken(token);
+
+      let profile = res.abha_profile || {};
+      const needsFetch = !profile.firstName && !profile.lastName;
+      if (needsFetch && token) {
+        try {
+          const profileRes = await fetchAbhaProfile(token, res.abha_number);
+          profile = profileRes?.abha_profile || profileRes || profile;
+        } catch (e) {
+          console.warn("Profile fetch failed:", e.message);
+        }
+      }
+
+      const fullName = [profile.firstName, profile.middleName, profile.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      const mobile =
+        profile.mobile && !profile.mobile.startsWith("*") ? profile.mobile : "";
+      const gender =
+        profile.gender === "M" || profile.gender === "Male"
+          ? "Male"
+          : profile.gender === "F" || profile.gender === "Female"
+            ? "Female"
+            : profile.gender
+              ? "Other"
+              : "Male";
+      const dob = profile.dob
+        ? profile.dob
+        : profile.dayOfBirth && profile.monthOfBirth && profile.yearOfBirth
+          ? `${String(profile.dayOfBirth).padStart(2, "0")}-${String(profile.monthOfBirth).padStart(2, "0")}-${profile.yearOfBirth}`
+          : "";
+      const pinCode = profile.pinCode || profile.pincode || "";
+
+      const fetched = {
+        fullName,
+        mobile,
+        age: dob ? calculateAge(dob) : "",
+        gender,
+        dob,
+        address: profile.address || "",
+        state: profile.stateName || "",
+        district: profile.districtName || "",
+        pinCode,
+        email: profile.email || "",
+        emergencyContact: "",
+      };
+
+      const abhaNum =
+        res.abha_number || profile.ABHANumber || account.ABHANumber;
+
+      setVerifiedPatient({
+        name: fetched.fullName || abhaNum || "Patient",
+        id: abhaNum,
+        age: fetched.age,
+        photo: profile.photo || null,
+      });
+      setPatientDetails((prev) => ({ ...prev, ...fetched }));
+      setVerifiedAbha(abhaNum);
+      setAbhaVerified(true);
+      setShowAccountPicker(false);
+      goToStep(2);
+    } catch (err) {
+      setApiError(err.message || "Login failed. Please try again.");
+    } finally {
+      setAccountPickLoading(false);
+    }
+  };
+
   // ─── MOBILE STEP RENDERERS ────────────────────────────────
 
   const renderMobileStep1 = () => (
@@ -1111,6 +1025,100 @@ const AbhaExistingPatient = ({ onBack }) => {
       keyboardShouldPersistTaps="handled"
     >
       <Text style={mobileS.pageTitle}>Enter ABHA Number or Address</Text>
+      {/* Login method toggle */}
+      <View style={mobileS.toggleRow}>
+        <TouchableOpacity
+          style={[
+            mobileS.toggleBtn,
+            loginMode === "abha" && mobileS.toggleBtnActive,
+          ]}
+          onPress={() => {
+            setLoginMode("abha");
+            setApiError("");
+          }}
+        >
+          <Text
+            style={[
+              mobileS.toggleText,
+              loginMode === "abha" && mobileS.toggleTextActive,
+            ]}
+          >
+            ABHA Number / Address
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            mobileS.toggleBtn,
+            loginMode === "mobile" && mobileS.toggleBtnActive,
+          ]}
+          onPress={() => {
+            setLoginMode("mobile");
+            setApiError("");
+          }}
+        >
+          <Text
+            style={[
+              mobileS.toggleText,
+              loginMode === "mobile" && mobileS.toggleTextActive,
+            ]}
+          >
+            Registered Mobile Number
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {loginMode === "mobile" && (
+        <View style={mobileS.fieldGroup}>
+          <View style={mobileS.infoAlert}>
+            <Text style={{ fontSize: 12, color: "rgba(77,107,204,1)" }}>
+              ℹ️ Enter the mobile number that is registered/linked with the
+              patient&apos;s ABHA account and Aadhaar. An OTP will be sent to
+              this number to verify identity. If multiple ABHA accounts are
+              linked to this number, you&apos;ll be asked to choose one after
+              OTP verification.
+            </Text>
+          </View>
+          <Text style={mobileS.label}>Registered Mobile Number *</Text>
+          <TextInput
+            style={mobileS.input}
+            placeholder="9587733170"
+            placeholderTextColor="#9CA3AF"
+            value={regMobile}
+            onChangeText={(v) =>
+              setRegMobile(v.replace(/\D/g, "").slice(0, 10))
+            }
+            keyboardType="numeric"
+            maxLength={10}
+          />
+          {notVerifiedMsg ? (
+            <View
+              style={{
+                backgroundColor: "#FFFBEB",
+                borderWidth: 1,
+                borderColor: "#FCD34D",
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 14,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: "#92400E",
+                  fontWeight: "500",
+                  marginBottom: 4,
+                }}
+              >
+                ⚠ Mobile Number Not Verified with ABDM
+              </Text>
+              <Text style={{ fontSize: 12, color: "#92400E", lineHeight: 18 }}>
+                {notVerifiedMsg} Please check the number or create a new ABHA ID
+                using Aadhaar-based registration.
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      )}
 
       <View style={mobileS.infoAlert}>
         <Text style={{ fontSize: 12, color: "rgba(77,107,204,1)" }}>
@@ -1170,47 +1178,40 @@ const AbhaExistingPatient = ({ onBack }) => {
         <TouchableOpacity style={mobileS.backBtn} onPress={goBack}>
           <Text style={{ fontSize: 13, color: "#374151" }}>Back</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[
             mobileS.continueBtn,
             {
               opacity:
-                (!abhaNumber && !abhaAddress) || sendOtpLoading ? 0.5 : 1,
+                loginMode === "mobile"
+                  ? !regMobile || regMobile.length < 10 || sendOtpLoading
+                    ? 0.5
+                    : 1
+                  : (!abhaNumber && !abhaAddress) || sendOtpLoading
+                    ? 0.5
+                    : 1,
             },
           ]}
-          disabled={sendOtpLoading || (!abhaNumber && !abhaAddress)}
-          // onPress={async () => {
-          //   if (!abhaNumber && !abhaAddress) return;
-          //   setApiError("");
-          //   setSendOtpLoading(true);
-          //   try {
-          //     const res = await requestAbhaLoginOtp(abhaNumber || abhaAddress);
-          //     setTxnId(res.txn_id);
-          //     setShowOtp(true);
-          //   } catch (err) {
-          //     setApiError(
-          //       err.message || "OTP request failed. Please try again.",
-          //     );
-          //   } finally {
-          //     setSendOtpLoading(false);
-          //   }
-          // }}
+          disabled={
+            sendOtpLoading ||
+            (loginMode === "mobile"
+              ? !regMobile || regMobile.length < 10
+              : !abhaNumber && !abhaAddress)
+          }
           onPress={async () => {
+            if (loginMode === "mobile") {
+              await handleSendMobileOtp();
+              return;
+            }
             if (!abhaNumber && !abhaAddress) return;
-
             setApiError("");
             setSendOtpLoading(true);
-
             try {
               const res = await requestAbhaLoginOtp(abhaNumber || abhaAddress);
-
-              console.log("OTP Response:", res);
-
               setTxnId(res.txn_id);
               setShowOtp(true);
             } catch (err) {
-              console.error(err);
-
               setApiError(
                 err.message || "OTP request failed. Please try again.",
               );
@@ -1227,13 +1228,26 @@ const AbhaExistingPatient = ({ onBack }) => {
 
       <OTPModal
         visible={showOtp}
-        onVerify={handleVerifyOtp}
+        onVerify={
+          loginMode === "mobile" ? handleVerifyMobileOtp : handleVerifyOtp
+        }
         onCancel={() => {
           setShowOtp(false);
           setApiError("");
         }}
         loading={verifyLoading}
         error={apiError}
+      />
+
+      <AccountPickerModal
+        visible={showAccountPicker}
+        accounts={linkedAccounts}
+        onSelect={(acc) => handleSelectLinkedAccount(acc, tToken)}
+        onCancel={() => {
+          setShowAccountPicker(false);
+          setApiError("");
+        }}
+        loading={accountPickLoading}
       />
     </ScrollView>
   );
@@ -1572,35 +1586,153 @@ const AbhaExistingPatient = ({ onBack }) => {
           for identity verification.
         </Text>
       </View>
-
-      <View style={s.abhaRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.label}>ABHA Number (14-digit)*</Text>
-          <TextInput
-            style={s.input}
-            placeholder="12-5968-7894-1234"
-            placeholderTextColor="#9CA3AF"
-            value={abhaNumber}
-            onChangeText={setAbhaNumber}
-            keyboardType="numeric"
-          />
-        </View>
-        <View style={s.orDivider}>
-          <Text style={{ fontSize: 12, color: "#9CA3AF", fontWeight: "600" }}>
-            — OR —
+      {/* Login method toggle */}
+      <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+        <TouchableOpacity
+          style={[
+            {
+              flex: 1,
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+              borderRadius: 8,
+              paddingVertical: 10,
+              alignItems: "center",
+            },
+            loginMode === "abha" && {
+              backgroundColor: "#EFF6FF",
+              borderColor: "#2563EB",
+            },
+          ]}
+          onPress={() => {
+            setLoginMode("abha");
+            setApiError("");
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              color: loginMode === "abha" ? "#2563EB" : "#374151",
+            }}
+          >
+            ABHA Number / Address
           </Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.label}>ABHA Address</Text>
-          <TextInput
-            style={s.input}
-            placeholder="name@abdm"
-            placeholderTextColor="#9CA3AF"
-            value={abhaAddress}
-            onChangeText={setAbhaAddress}
-          />
-        </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            {
+              flex: 1,
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+              borderRadius: 8,
+              paddingVertical: 10,
+              alignItems: "center",
+            },
+            loginMode === "mobile" && {
+              backgroundColor: "#EFF6FF",
+              borderColor: "#2563EB",
+            },
+          ]}
+          onPress={() => {
+            setLoginMode("mobile");
+            setApiError("");
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              color: loginMode === "mobile" ? "#2563EB" : "#374151",
+            }}
+          >
+            Registered Mobile Number
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {loginMode === "mobile" && (
+        <View style={{ marginBottom: 14 }}>
+          <View style={s.infoAlert}>
+            <Text style={{ fontSize: 12, color: "rgba(77,107,204,1)" }}>
+              ℹ️ Enter the mobile number registered/linked with the
+              patient&apos;s ABHA account and Aadhaar. An OTP will be sent to
+              this number for verification. If this number is linked to multiple
+              ABHA accounts, you&apos;ll be asked to select the correct one
+              after OTP verification.
+            </Text>
+          </View>
+          <Text style={s.label}>Registered Mobile Number *</Text>
+          <TextInput
+            style={[s.input, { maxWidth: 320 }]}
+            placeholder="9587733170"
+            placeholderTextColor="#9CA3AF"
+            value={regMobile}
+            onChangeText={(v) =>
+              setRegMobile(v.replace(/\D/g, "").slice(0, 10))
+            }
+            keyboardType="numeric"
+            maxLength={10}
+          />
+          {notVerifiedMsg ? (
+            <View
+              style={{
+                backgroundColor: "#FFFBEB",
+                borderWidth: 1,
+                borderColor: "#FCD34D",
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 14,
+                maxWidth: 480,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: "#92400E",
+                  fontWeight: "500",
+                  marginBottom: 4,
+                }}
+              >
+                ⚠ Mobile Number Not Verified with ABDM
+              </Text>
+              <Text style={{ fontSize: 12, color: "#92400E", lineHeight: 18 }}>
+                {notVerifiedMsg} Please check the number or create a new ABHA ID
+                using Aadhaar-based registration.
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      )}
+      {loginMode === "abha" && (
+        <View style={s.abhaRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.label}>ABHA Number (14-digit)*</Text>
+            <TextInput
+              style={s.input}
+              placeholder="12-5968-7894-1234"
+              placeholderTextColor="#9CA3AF"
+              value={abhaNumber}
+              onChangeText={setAbhaNumber}
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={s.orDivider}>
+            <Text style={{ fontSize: 12, color: "#9CA3AF", fontWeight: "600" }}>
+              — OR —
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.label}>ABHA Address</Text>
+            <TextInput
+              style={s.input}
+              placeholder="name@abdm"
+              placeholderTextColor="#9CA3AF"
+              value={abhaAddress}
+              onChangeText={setAbhaAddress}
+            />
+          </View>
+        </View>
+      )}
 
       <View style={s.consentRow}>
         <View style={s.checkbox}>
@@ -1619,58 +1751,40 @@ const AbhaExistingPatient = ({ onBack }) => {
         <TouchableOpacity style={s.backBtn} onPress={goBack}>
           <Text style={{ fontSize: 13, color: "#374151" }}>Back</Text>
         </TouchableOpacity>
-        {/* <TouchableOpacity
-          style={[
-            s.continueBtn,
-            { opacity: !abhaNumber && !abhaAddress ? 0.4 : 1 },
-          ]}
-          onPress={() => {
-            if (abhaNumber || abhaAddress) setShowOtp(true);
-          }}
-        >
-          <Text style={s.continueBtnText}>Send OTP & Fetch Details ›</Text>
-        </TouchableOpacity> */}
+
         <TouchableOpacity
           style={[
             s.continueBtn,
             {
               opacity:
-                (!abhaNumber && !abhaAddress) || sendOtpLoading ? 0.4 : 1,
+                loginMode === "mobile"
+                  ? !regMobile || regMobile.length < 10 || sendOtpLoading
+                    ? 0.5
+                    : 1
+                  : (!abhaNumber && !abhaAddress) || sendOtpLoading
+                    ? 0.5
+                    : 1,
             },
           ]}
-          disabled={sendOtpLoading || (!abhaNumber && !abhaAddress)}
-          // onPress={async () => {
-          //   if (!abhaNumber && !abhaAddress) return;
-          //   setApiError("");
-          //   setSendOtpLoading(true);
-          //   try {
-          //     const res = await requestAbhaLoginOtp(abhaNumber || abhaAddress);
-          //     setTxnId(res.txn_id);
-          //     setShowOtp(true);
-          //   } catch (err) {
-          //     setApiError(
-          //       err.message || "OTP request failed. Please try again.",
-          //     );
-          //   } finally {
-          //     setSendOtpLoading(false);
-          //   }
-          // }}
+          disabled={
+            sendOtpLoading ||
+            (loginMode === "mobile"
+              ? !regMobile || regMobile.length < 10
+              : !abhaNumber && !abhaAddress)
+          }
           onPress={async () => {
+            if (loginMode === "mobile") {
+              await handleSendMobileOtp();
+              return;
+            }
             if (!abhaNumber && !abhaAddress) return;
-
             setApiError("");
             setSendOtpLoading(true);
-
             try {
               const res = await requestAbhaLoginOtp(abhaNumber || abhaAddress);
-
-              console.log("OTP Response:", res);
-
               setTxnId(res.txn_id);
               setShowOtp(true);
             } catch (err) {
-              console.error(err);
-
               setApiError(
                 err.message || "OTP request failed. Please try again.",
               );
@@ -1685,20 +1799,28 @@ const AbhaExistingPatient = ({ onBack }) => {
         </TouchableOpacity>
       </View>
 
-      {/* <OTPModal
-        visible={showOtp}
-        onVerify={handleVerifyOtp}
-        onCancel={() => setShowOtp(false)}
-      /> */}
       <OTPModal
         visible={showOtp}
-        onVerify={handleVerifyOtp}
+        onVerify={
+          loginMode === "mobile" ? handleVerifyMobileOtp : handleVerifyOtp
+        }
         onCancel={() => {
           setShowOtp(false);
           setApiError("");
         }}
         loading={verifyLoading}
         error={apiError}
+      />
+
+      <AccountPickerModal
+        visible={showAccountPicker}
+        accounts={linkedAccounts}
+        onSelect={(acc) => handleSelectLinkedAccount(acc, tToken)}
+        onCancel={() => {
+          setShowAccountPicker(false);
+          setApiError("");
+        }}
+        loading={accountPickLoading}
       />
     </ScrollView>
   );
@@ -2035,6 +2157,7 @@ const AbhaExistingPatient = ({ onBack }) => {
     setAbhaVerified(false);
     setVerifiedPatient(null);
     setVerifiedAbha("");
+    setNotVerifiedMsg("");
     setPatientDetails({
       fullName: "",
       mobile: "",
@@ -2718,5 +2841,18 @@ const mobileS = StyleSheet.create({
     marginBottom: 14,
     marginTop: 4,
   },
+  toggleRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
+  toggleBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  toggleBtnActive: { backgroundColor: "#EFF6FF", borderColor: "#2563EB" },
+  toggleText: { fontSize: 12, fontWeight: "600", color: "#374151" },
+  toggleTextActive: { color: "#2563EB" },
 });
 export default AbhaExistingPatient;
