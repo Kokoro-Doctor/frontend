@@ -1,7 +1,3 @@
-/**
- * Hospital portal: preview, edit, and download Medi Assist Reimbursement Claim Form A.
- * @see ../utils/MediAssistFormA.js for HTML/PDF generation.
- */
 import React, {
   useState,
   useEffect,
@@ -26,14 +22,307 @@ import {
   ActivityIndicator,
 } from "react-native";
 import {
-  downloadMediAssistFormA,
-  generateMediAssistFormAHTML,
-} from "../../utils/MediAssistFormA";
-import { mapToFormA, padChars } from "../../utils/MediAssistMapper";
+  downloadInsuranceClaim,
+  generateInsuranceFormHTML,
+} from "../../utils/StarHealthFormB";
+import { mapToStarHealthFormB } from "../../utils/StarHealthMapper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
+
+function digitsOnly(s) {
+  return String(s ?? "").replace(/\D/g, "");
+}
+
+function padAmountToLength(raw, len) {
+  const d = digitsOnly(raw);
+  if (!d) return "".padEnd(len, " ");
+  const trimmed = d.length > len ? d.slice(-len) : d;
+  return trimmed.padStart(len, " ").slice(-len);
+}
+
+function parseDateToDDMMYYYY(raw) {
+  if (raw == null || raw === "") return "";
+  const s = String(raw).trim();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[3]}${iso[2]}${iso[1]}`;
+  const dmy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (dmy) {
+    const dd = dmy[1].padStart(2, "0");
+    const mm = dmy[2].padStart(2, "0");
+    return `${dd}${mm}${dmy[3]}`;
+  }
+  const only = digitsOnly(s);
+  if (only.length >= 8) return only.slice(0, 8);
+  return "";
+}
+
+function parseAgeYears(raw) {
+  if (raw == null) return "";
+  const m = String(raw).match(/\d+/);
+  return m ? m[0].padStart(2, "0").slice(-2) : "";
+}
+
+function strUpper(s, maxLen) {
+  const t = String(s ?? "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  return t.slice(0, maxLen);
+}
+
+function padChars(s, len) {
+  const t = String(s ?? "");
+  return t.padEnd(len, " ").slice(0, len);
+}
+
+function truncateChars(s, len) {
+  return String(s ?? "").slice(0, len);
+}
+
+function tpaOrCompanyId(structured) {
+  const ins = structured.insurance_details || {};
+  const a = (ins.tpa_name || "").trim();
+  const b = (ins.insurance_company || "").trim();
+  if (a && b) return `${a} ${b}`.trim();
+  return a || b || "";
+}
+
+const BILL_ROW_DEFAULT_TOWARDS = [
+  "Hospital main Bill",
+  "Pre-hospitalization Bills: Nos",
+  "Post-hospitalization Bills: Nos",
+  "Pharmacy Bills",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+];
+
+function buildInitialBillRows() {
+  return BILL_ROW_DEFAULT_TOWARDS.map((towards) => ({
+    billNo: "",
+    date: "".padEnd(6, " "),
+    issuedBy: "",
+    towards,
+    amount: "".padEnd(8, " "),
+  }));
+}
+
+function buildInitialForm(sd) {
+  if (!sd || typeof sd !== "object") sd = {};
+  const patient = sd.patient_details || {};
+  const ins = sd.insurance_details || {};
+  const hosp = sd.hospital_details || {};
+  const diag = sd.diagnosis_and_procedures || {};
+  const claim = sd.claim_details || {};
+  const bank = sd.bank_details || {};
+  const meta = sd.document_metadata || {};
+
+  const name = padChars(strUpper(patient.name, 40), 40);
+  const policy = padChars(
+    truncateChars(
+      String(ins.policy_number ?? "")
+        .replace(/\s/g, "")
+        .toUpperCase(),
+      18,
+    ),
+    18,
+  );
+  const tpa = padChars(strUpper(tpaOrCompanyId(sd), 22), 22);
+  const hospital = padChars(strUpper(hosp.hospital_name, 40), 40);
+  const admission = padChars(parseDateToDDMMYYYY(hosp.admission_date), 8);
+  const discharge = padChars(parseDateToDDMMYYYY(hosp.discharge_date), 8);
+  const diagnosis = String(diag.primary_diagnosis ?? "");
+
+  const pre = padAmountToLength(claim.pre_hospitalization_amount, 8);
+  const hospAmt = padAmountToLength(claim.bill_amount, 8);
+  const post = padAmountToLength(claim.post_hospitalization_amount, 8);
+
+  const genderRaw = String(patient.gender ?? "").toLowerCase();
+  let gender = "";
+  if (genderRaw.includes("female") || genderRaw === "f") gender = "female";
+  else if (genderRaw.includes("male") || genderRaw === "m") gender = "male";
+
+  const ageYears = padChars(parseAgeYears(patient.age), 2);
+  const ageMonths = "  ";
+
+  const accNum = padChars(
+    truncateChars(String(bank.account_number ?? "").replace(/\s/g, ""), 22),
+    22,
+  );
+  const bankName = padChars(
+    strUpper(String(bank.bank_name ?? "").trim(), 40),
+    40,
+  );
+  const ifsc = padChars(
+    truncateChars(String(bank.ifsc_code ?? "").toUpperCase(), 11),
+    11,
+  );
+  const chequeLine = String(bank.account_holder ?? "").trim();
+
+  const docDate = padChars(parseDateToDDMMYYYY(meta.document_date), 8);
+
+  const polCompact = String(ins.policy_number ?? "")
+    .replace(/\s/g, "")
+    .toUpperCase();
+
+  return {
+    policyNumber: policy,
+    certificateNumber: "".padEnd(14, " "),
+    tpaId: tpa,
+    primaryName: name,
+    primaryAddressRow1: "".padEnd(40, " "),
+    primaryAddressRow2: "".padEnd(35, " "),
+    primaryCity: "".padEnd(18, " "),
+    primaryState: "".padEnd(18, " "),
+    primaryPin: "".padEnd(6, " "),
+    primaryPhone: "".padEnd(10, " "),
+    primaryEmail: "",
+    insuranceFirstCommencementDate: "".padEnd(8, " "),
+    insuranceCompanyName: "".padEnd(20, " "),
+    insurancePolicyNo: "".padEnd(18, " "),
+    insuranceSumInsured: "".padEnd(12, " "),
+    hospitalizationHistoryDate: "".padEnd(4, " "),
+    previousMediclaimCompanyName: "".padEnd(22, " "),
+    relationshipSpecify: "",
+    occupationSpecify: "",
+    diagnosis,
+    hospitalizedName: name,
+    gender,
+    ageYears,
+    ageMonths,
+    hospitalName: hospital,
+    admissionDate: admission,
+    dischargeDate: discharge,
+    claimPre: pre,
+    claimHospital: hospAmt,
+    claimPost: post,
+    claimHealthCheckup: "".padEnd(8, " "),
+    claimAmbulance: "".padEnd(8, " "),
+    claimOtherCode: "".padEnd(3, " "),
+    claimOtherAmount: "".padEnd(8, " "),
+    claimTotal: "".padEnd(10, " "),
+    claimPreHospitalDays: "".padEnd(3, " "),
+    claimPostHospitalDays: "".padEnd(3, " "),
+    claimHospitalDailyCash: "".padEnd(8, " "),
+    claimSurgicalCash: "".padEnd(8, " "),
+    claimCriticalIllness: "".padEnd(8, " "),
+    claimConvalescence: "".padEnd(8, " "),
+    claimPrePostBenefit: "".padEnd(8, " "),
+    claimOtherBenefit: "".padEnd(8, " "),
+    billRows: buildInitialBillRows(),
+    accountNumber: accNum,
+    bankNameBranch: bankName,
+    ifscCode: ifsc,
+    chequeDetails: chequeLine,
+    declarationDate: docDate,
+    mobileIdRow: padChars(truncateChars(polCompact, 12), 12),
+    mobilePolicy: padChars(truncateChars(polCompact, 16), 16),
+    mobileNameTrunc: padChars(strUpper(patient.name, 20), 20),
+    mobilePhone: "".padEnd(10, " "),
+    mobileEmail: "".padEnd(20, " "),
+    mobileHospital: strUpper(hosp.hospital_name, 200),
+    mobileAdmission:
+      hosp.admission_date != null && hosp.admission_date !== ""
+        ? String(hosp.admission_date)
+        : "",
+    mobileDischarge:
+      hosp.discharge_date != null && hosp.discharge_date !== ""
+        ? String(hosp.discharge_date)
+        : "",
+    mobileAmount:
+      claim.bill_amount != null && claim.bill_amount !== ""
+        ? String(claim.bill_amount)
+        : "",
+    injuryDate: "".padEnd(8, " "),
+    dob: "".padEnd(8, " "),
+    admissionTime: "".padEnd(4, " "),
+    dischargeTime: "".padEnd(4, " "),
+    treatingDoctor: String(hosp.treating_doctor ?? ""),
+    hospAddressRow1: "".padEnd(40, " "),
+    hospAddressRow2: "".padEnd(35, " "),
+    hospCity: "".padEnd(18, " "),
+    hospState: "".padEnd(18, " "),
+    hospPin: "".padEnd(6, " "),
+    hospPhone: "".padEnd(10, " "),
+    hospEmail: "",
+    pan: "".padEnd(10, " "),
+    declarationPlace: "",
+  };
+}
+
+const CHECKED_BOX_STYLE = {
+  backgroundColor: "#1976D2",
+  borderColor: "#1976D2",
+};
+
+function isYesValue(value) {
+  return String(value ?? "").trim().toLowerCase() === "yes";
+}
+
+function isNoValue(value) {
+  return String(value ?? "").trim().toLowerCase() === "no";
+}
+
+function relationshipMatches(value, key) {
+  const rel = String(value ?? "").trim().toLowerCase();
+  if (!rel) return false;
+  if (key === "other") {
+    return !["self", "spouse", "child", "father", "mother"].some(
+      (item) => rel === item || rel.includes(item),
+    );
+  }
+  return rel === key || rel.includes(key);
+}
+
+function occupationMatches(value, key) {
+  const occupation = String(value ?? "").trim().toLowerCase();
+  if (!occupation) return false;
+  if (key === "other") {
+    return !["service", "self", "home", "student", "retired"].some((item) =>
+      occupation.includes(item),
+    );
+  }
+  if (key === "self employed") {
+    return occupation.includes("self") && occupation.includes("employ");
+  }
+  if (key === "home maker") return occupation.includes("home");
+  return occupation.includes(key.split(" ")[0]);
+}
+
+function roomCategoryMatches(value, key) {
+  const room = String(value ?? "").trim().toLowerCase();
+  if (!room) return false;
+  if (key === "day care") return room.includes("day");
+  if (key === "single occupancy") return room.includes("single");
+  if (key === "twin sharing") return room.includes("twin") || room.includes("double");
+  if (key === "3 or more beds per room") {
+    return (
+      room.includes("3") ||
+      room.includes("more") ||
+      room.includes("general") ||
+      room.includes("shared")
+    );
+  }
+  return false;
+}
+
+function hospitalizationCauseMatches(value, key) {
+  const cause = String(value ?? "").trim().toLowerCase();
+  if (!cause) return false;
+  if (key === "injury") return cause.includes("injur");
+  if (key === "illness") {
+    return cause.includes("ill") || cause.includes("disease") || cause.includes("sick");
+  }
+  if (key === "maternity") {
+    return cause.includes("mater") || cause.includes("deliver") || cause.includes("pregnan");
+  }
+  return false;
+}
 
 function CharBoxRow({
   length,
@@ -68,12 +357,81 @@ function CharBoxRow({
   );
 }
 
-export default function MediAssistFormA({ navigation, route }) {
-  const analysisData = route?.params?.analysisData;
+function BillsTableEditor({ billRows, onBillChange }) {
+  return (
+    <View style={stylesWeb.tableContainer}>
+      <View style={stylesWeb.tableRowHeader}>
+        <Text style={[stylesWeb.tableCell, { width: 50 }]}>Sl. No.</Text>
+        <Text style={[stylesWeb.tableCell, { width: 80 }]}>Bill No.</Text>
+        <Text style={[stylesWeb.tableCell, { width: 120 }]}>Date</Text>
+        <Text style={[stylesWeb.tableCell, { width: 200 }]}>Issued by</Text>
+        <Text style={[stylesWeb.tableCell, { flex: 1 }]}>Towards</Text>
+        <Text style={[stylesWeb.tableCell, { width: 200 }]}>Amount (Rs)</Text>
+      </View>
+
+      {billRows.map((row, rowIndex) => (
+        <View key={rowIndex} style={stylesWeb.tableRow}>
+          <Text style={[stylesWeb.tableCell, { width: 50 }]}>
+            {rowIndex + 1}.
+          </Text>
+
+          <View style={[stylesWeb.tableCell, { width: 80 }]}>
+            <TextInput
+              style={stylesWeb.tableTextInput}
+              value={row.billNo}
+              onChangeText={(text) => onBillChange(rowIndex, "billNo", text)}
+            />
+          </View>
+
+          <View style={[stylesWeb.tableCell, { width: 120 }]}>
+            <CharBoxRow
+              length={6}
+              value={row.date}
+              onChange={(text) => onBillChange(rowIndex, "date", text)}
+              rowStyle={stylesWeb.tableCharRow}
+              boxStyle={stylesWeb.squareBoxSmall}
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={[stylesWeb.tableCell, { width: 200 }]}>
+            <TextInput
+              style={stylesWeb.tableTextInput}
+              value={row.issuedBy}
+              onChangeText={(text) => onBillChange(rowIndex, "issuedBy", text)}
+            />
+          </View>
+
+          <View style={[stylesWeb.tableCell, { flex: 1 }]}>
+            <TextInput
+              style={stylesWeb.tableTextInput}
+              value={row.towards}
+              onChangeText={(text) => onBillChange(rowIndex, "towards", text)}
+            />
+          </View>
+
+          <View style={[stylesWeb.tableCell, { width: 200 }]}>
+            <CharBoxRow
+              length={8}
+              value={row.amount}
+              onChange={(text) => onBillChange(rowIndex, "amount", text)}
+              rowStyle={stylesWeb.tableCharRow}
+              boxStyle={stylesWeb.squareBoxSmall}
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export default function StarHealthFormB({ navigation, analysisData }) {
+  //const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
 
   const formSeed = useMemo(
-    () => mapToFormA(analysisData),
+    () => mapToStarHealthFormB(analysisData),
     [analysisData],
   );
 
@@ -82,8 +440,10 @@ export default function MediAssistFormA({ navigation, route }) {
   const [previewMode, setPreviewMode] = useState(true);
   const [signatureImage, setSignatureImage] = useState(null);
   const formRef = useRef(null);
+  const previewFrameRef = useRef(null);
+  const [previewFrameHeight, setPreviewFrameHeight] = useState(1400);
   const htmlPreview = useMemo(
-    () => generateMediAssistFormAHTML(form, signatureImage),
+    () => generateInsuranceFormHTML(form, signatureImage),
     [form, signatureImage],
   );
 
@@ -95,11 +455,46 @@ export default function MediAssistFormA({ navigation, route }) {
     setForm((prev) => ({ ...prev, [key]: v }));
   }, []);
 
+  const setBillField = useCallback((rowIndex, key, value) => {
+    setForm((prev) => ({
+      ...prev,
+      billRows: (prev.billRows || []).map((row, index) =>
+        index === rowIndex ? { ...row, [key]: value } : row,
+      ),
+    }));
+  }, []);
+
+  const syncPreviewFrameHeight = useCallback(() => {
+    if (Platform.OS !== "web") return;
+    const iframe = previewFrameRef.current;
+    const doc = iframe?.contentWindow?.document;
+    if (!doc) return;
+
+    const body = doc.body;
+    const root = doc.documentElement;
+    const nextHeight = Math.max(
+      body?.scrollHeight || 0,
+      body?.offsetHeight || 0,
+      root?.scrollHeight || 0,
+      root?.offsetHeight || 0,
+    );
+
+    if (nextHeight > 0) {
+      setPreviewFrameHeight(Math.max(900, Math.ceil(nextHeight) + 20));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || !previewMode) return;
+    const timer = setTimeout(syncPreviewFrameHeight, 120);
+    return () => clearTimeout(timer);
+  }, [htmlPreview, previewMode, syncPreviewFrameHeight]);
+
   const handleDownload = async () => {
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadMediAssistFormA(form, signatureImage);
+      await downloadInsuranceClaim(form, signatureImage);
     } catch (e) {
       Alert.alert(
         "Download Error",
@@ -212,7 +607,7 @@ export default function MediAssistFormA({ navigation, route }) {
                     ))}
                   </View>
 
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, minHeight: 0 }}>
                     {/* INFO BOX */}
                     <View
                       style={{
@@ -241,6 +636,7 @@ export default function MediAssistFormA({ navigation, route }) {
                         borderColor: "#E5E7EB",
                         paddingBottom: 12,
                         flex: 1,
+                        minHeight: 0,
                       }}
                     >
                       <View
@@ -292,51 +688,64 @@ export default function MediAssistFormA({ navigation, route }) {
 
                       {previewMode ? (
                         /* ── PREVIEW: compact iframe matching the PDF ── */
-                        <iframe
-                          srcDoc={htmlPreview}
-                          style={{
-                            flex: 1,
-                            width: "100%",
-                            border: "none",
-                            minHeight: 600,
-                          }}
-                          title="Insurance Claim Preview"
-                        />
+                        <View style={stylesWeb.previewFrameContainer}>
+                          <iframe
+                            ref={previewFrameRef}
+                            srcDoc={htmlPreview}
+                            onLoad={syncPreviewFrameHeight}
+                            style={{
+                              ...stylesWeb.previewFrame,
+                              height: previewFrameHeight,
+                            }}
+                            title="Insurance Claim Preview"
+                          />
+                        </View>
                       ) : (
                         <ScrollView>
                           <View ref={formRef}>
                             <View style={stylesWeb.formHeaderContainer}>
-                              {/* TOP ROW */}
-                              <View style={stylesWeb.formTopRow}>
-                                {/* LEFT LOGO */}
-                                <View style={stylesWeb.logoRow}>
-                                  <Image
-                                    source={require("../../assets/HospitalPortal/Icon/mediassit.png")}
-                                    style={stylesWeb.logo}
-                                    resizeMode="contain"
-                                  />
-                                  <Text style={stylesWeb.logoText}>
-                                    Medi Assist
-                                  </Text>
-                                </View>
+                              <View style={{ alignItems: "center" }}>
+                                <Image
+                                  source={require("../../assets/HospitalPortal/Images/StarHealth.jpg")}
+                                  style={{
+                                    width: 180,
+                                    height: 60,
+                                    resizeMode: "contain",
+                                  }}
+                                />
 
-                                {/* CENTER TITLE */}
-                                <View style={stylesWeb.centerTitleBlock}>
-                                  <Text style={stylesWeb.formMainTitle}>
-                                    REIMBURSEMENT CLAIM FORM
+                                <Text style={stylesWeb.headerTitle}>
+                                  STAR HEALTH AND ALLIED INSURANCE COMPANY
+                                  LIMITED
+                                </Text>
+
+                                <Text style={stylesWeb.headerSub}>
+                                  Regd & Corporate Office: No. 1, New Tank
+                                  Street...
+                                </Text>
+                              </View>
+
+                              {/* BLACK BAR */}
+                              <View style={stylesWeb.blackBar}>
+                                <Text style={stylesWeb.blackBarText}>
+                                  CLAIM FORM - PART A
+                                </Text>
+                              </View>
+
+                              {/* BELOW TEXT */}
+                              <View style={stylesWeb.headerRowBottom}>
+                                <View style={{ flex: 1 }}>
+                                  <Text style={stylesWeb.centerText}>
+                                    TO BE FILLED IN BY THE INSURED
                                   </Text>
-                                  <Text style={stylesWeb.formSubTitle}>
-                                    TO BE FILLED BY THE INSURED
-                                  </Text>
-                                  <Text style={stylesWeb.formNoteCenter}>
+                                  <Text style={stylesWeb.centerSub}>
                                     The issue of this Form is not to be taken as
                                     an admission of liability
                                   </Text>
                                 </View>
 
-                                {/* RIGHT TEXT */}
-                                <Text style={stylesWeb.formNoteRight}>
-                                  (To be Filled in block letters)
+                                <Text style={stylesWeb.rightNote}>
+                                  (To be filled in block letters)
                                 </Text>
                               </View>
                             </View>
@@ -548,11 +957,23 @@ export default function MediAssistFormA({ navigation, route }) {
                                         a) Currently covered by any other
                                         Mediclaim / Health Insurance:
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isYesValue(form.bCurrentlyOther) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         Yes
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isNoValue(form.bCurrentlyOther) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         No
                                       </Text>
@@ -565,24 +986,19 @@ export default function MediAssistFormA({ navigation, route }) {
                                       </Text>
 
                                       {/* DATE BOXES */}
-                                      <View style={stylesWeb.boxRow}>
-                                        {[
-                                          "D",
-                                          "D",
-                                          "M",
-                                          "M",
-                                          "Y",
-                                          "Y",
-                                          "Y",
-                                          "Y",
-                                        ].map((_, i) => (
-                                          <TextInput
-                                            key={i}
-                                            style={stylesWeb.squareBox}
-                                            maxLength={1}
-                                          />
-                                        ))}
-                                      </View>
+                                      <CharBoxRow
+                                        length={8}
+                                        value={
+                                          form.insuranceFirstCommencementDate
+                                        }
+                                        onChange={(v) =>
+                                          setField(
+                                            "insuranceFirstCommencementDate",
+                                            v,
+                                          )
+                                        }
+                                        keyboardType="numeric"
+                                      />
                                     </View>
                                   </View>
 
@@ -592,32 +1008,26 @@ export default function MediAssistFormA({ navigation, route }) {
                                       <Text style={stylesWeb.label}>
                                         c) If yes, company name:
                                       </Text>
-                                      <View style={stylesWeb.boxRow}>
-                                        {Array.from({ length: 20 }).map(
-                                          (_, i) => (
-                                            <TextInput
-                                              key={i}
-                                              style={stylesWeb.squareBox}
-                                            />
-                                          ),
-                                        )}
-                                      </View>
+                                      <CharBoxRow
+                                        length={20}
+                                        value={form.insuranceCompanyName}
+                                        onChange={(v) =>
+                                          setField("insuranceCompanyName", v)
+                                        }
+                                      />
                                     </View>
 
                                     <View style={stylesWeb.inlineRow}>
                                       <Text style={stylesWeb.label}>
                                         Policy No.
                                       </Text>
-                                      <View style={stylesWeb.boxRow}>
-                                        {Array.from({ length: 18 }).map(
-                                          (_, i) => (
-                                            <TextInput
-                                              key={i}
-                                              style={stylesWeb.squareBox}
-                                            />
-                                          ),
-                                        )}
-                                      </View>
+                                      <CharBoxRow
+                                        length={18}
+                                        value={form.insurancePolicyNo}
+                                        onChange={(v) =>
+                                          setField("insurancePolicyNo", v)
+                                        }
+                                      />
                                     </View>
                                   </View>
 
@@ -627,16 +1037,14 @@ export default function MediAssistFormA({ navigation, route }) {
                                       <Text style={stylesWeb.label}>
                                         Sum insured (Rs.)
                                       </Text>
-                                      <View style={stylesWeb.boxRow}>
-                                        {Array.from({ length: 12 }).map(
-                                          (_, i) => (
-                                            <TextInput
-                                              key={i}
-                                              style={stylesWeb.squareBox}
-                                            />
-                                          ),
-                                        )}
-                                      </View>
+                                      <CharBoxRow
+                                        length={12}
+                                        value={form.insuranceSumInsured}
+                                        onChange={(v) =>
+                                          setField("insuranceSumInsured", v)
+                                        }
+                                        keyboardType="numeric"
+                                      />
                                     </View>
 
                                     <View style={stylesWeb.inlineRow}>
@@ -645,11 +1053,23 @@ export default function MediAssistFormA({ navigation, route }) {
                                         last four years since inception of the
                                         contract?
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isYesValue(form.bHosp4Y) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         Yes
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isNoValue(form.bHosp4Y) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         No
                                       </Text>
@@ -662,14 +1082,17 @@ export default function MediAssistFormA({ navigation, route }) {
                                       >
                                         Date:
                                       </Text>
-                                      <View style={stylesWeb.boxRow}>
-                                        {["M", "M", "Y", "Y"].map((_, i) => (
-                                          <TextInput
-                                            key={i}
-                                            style={stylesWeb.squareBox}
-                                          />
-                                        ))}
-                                      </View>
+                                      <CharBoxRow
+                                        length={4}
+                                        value={form.hospitalizationHistoryDate}
+                                        onChange={(v) =>
+                                          setField(
+                                            "hospitalizationHistoryDate",
+                                            v,
+                                          )
+                                        }
+                                        keyboardType="numeric"
+                                      />
                                     </View>
                                   </View>
 
@@ -694,11 +1117,23 @@ export default function MediAssistFormA({ navigation, route }) {
                                         e) Previously covered by any other
                                         Mediclaim /Health insurance :
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isYesValue(form.bPreviouslyOther) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         Yes
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          isNoValue(form.bPreviouslyOther) &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         No
                                       </Text>
@@ -710,16 +1145,16 @@ export default function MediAssistFormA({ navigation, route }) {
                                     <Text style={stylesWeb.label}>
                                       f) If yes, company name:
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 22 }).map(
-                                        (_, i) => (
-                                          <TextInput
-                                            key={i}
-                                            style={stylesWeb.squareBox}
-                                          />
-                                        ),
-                                      )}
-                                    </View>
+                                    <CharBoxRow
+                                      length={22}
+                                      value={form.previousMediclaimCompanyName}
+                                      onChange={(v) =>
+                                        setField(
+                                          "previousMediclaimCompanyName",
+                                          v,
+                                        )
+                                      }
+                                    />
                                   </View>
                                 </View>
 
@@ -863,7 +1298,16 @@ export default function MediAssistFormA({ navigation, route }) {
                                         <Text style={stylesWeb.smallText}>
                                           {item}
                                         </Text>
-                                        <View style={stylesWeb.checkbox} />
+                                        <View
+                                          style={[
+                                            stylesWeb.checkbox,
+                                            relationshipMatches(
+                                              form.relationship ||
+                                                form.relationshipSpecify,
+                                              item.toLowerCase(),
+                                            ) && CHECKED_BOX_STYLE,
+                                          ]}
+                                        />
                                       </React.Fragment>
                                     ))}
 
@@ -872,6 +1316,10 @@ export default function MediAssistFormA({ navigation, route }) {
                                     </Text>
                                     <TextInput
                                       style={stylesWeb.longInputWide}
+                                      value={form.relationshipSpecify}
+                                      onChangeText={(t) =>
+                                        setField("relationshipSpecify", t)
+                                      }
                                     />
                                   </View>
 
@@ -893,7 +1341,16 @@ export default function MediAssistFormA({ navigation, route }) {
                                         <Text style={stylesWeb.smallText}>
                                           {item}
                                         </Text>
-                                        <View style={stylesWeb.checkbox} />
+                                        <View
+                                          style={[
+                                            stylesWeb.checkbox,
+                                            occupationMatches(
+                                              form.occupation ||
+                                                form.occupationSpecify,
+                                              item.toLowerCase(),
+                                            ) && CHECKED_BOX_STYLE,
+                                          ]}
+                                        />
                                       </React.Fragment>
                                     ))}
 
@@ -902,6 +1359,10 @@ export default function MediAssistFormA({ navigation, route }) {
                                     </Text>
                                     <TextInput
                                       style={stylesWeb.longInputWide}
+                                      value={form.occupationSpecify}
+                                      onChangeText={(t) =>
+                                        setField("occupationSpecify", t)
+                                      }
                                     />
                                   </View>
 
@@ -1054,7 +1515,15 @@ export default function MediAssistFormA({ navigation, route }) {
                                         <Text style={stylesWeb.smallText}>
                                           {item}
                                         </Text>
-                                        <View style={stylesWeb.checkbox} />
+                                        <View
+                                          style={[
+                                            stylesWeb.checkbox,
+                                            roomCategoryMatches(
+                                              form.roomCategory,
+                                              item.toLowerCase(),
+                                            ) && CHECKED_BOX_STYLE,
+                                          ]}
+                                        />
                                       </React.Fragment>
                                     ))}
                                   </View>
@@ -1072,7 +1541,15 @@ export default function MediAssistFormA({ navigation, route }) {
                                             <Text style={stylesWeb.smallText}>
                                               {item}
                                             </Text>
-                                            <View style={stylesWeb.checkbox} />
+                                            <View
+                                              style={[
+                                                stylesWeb.checkbox,
+                                                hospitalizationCauseMatches(
+                                                  form.hospitalizationCause,
+                                                  item.toLowerCase(),
+                                                ) && CHECKED_BOX_STYLE,
+                                              ]}
+                                            />
                                           </React.Fragment>
                                         ),
                                       )}
@@ -1164,7 +1641,20 @@ export default function MediAssistFormA({ navigation, route }) {
                                           <Text style={stylesWeb.smallText}>
                                             {item}
                                           </Text>
-                                          <View style={stylesWeb.checkbox} />
+                                          <View
+                                            style={[
+                                              stylesWeb.checkbox,
+                                              ((item === "Self inflicted" &&
+                                                form.injurySelf) ||
+                                                (item ===
+                                                  "Road Traffic Accident" &&
+                                                  form.injuryRta) ||
+                                                (item ===
+                                                  "Substance Abuse / Alcohol Consumption" &&
+                                                  form.injurySubstance)) &&
+                                                CHECKED_BOX_STYLE,
+                                            ]}
+                                          />
                                         </React.Fragment>
                                       ))}
                                     </View>
@@ -1175,18 +1665,34 @@ export default function MediAssistFormA({ navigation, route }) {
                                       <Text style={stylesWeb.label}>
                                         ii) Reported to Police
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          form.reportedPolice &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                     </View>
 
                                     <View style={stylesWeb.inlineRow}>
                                       <Text style={stylesWeb.label}>
                                         iii. MLC Report & Police FIR attached
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          form.firYes && CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         Yes
                                       </Text>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          form.firNo && CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         No
                                       </Text>
@@ -1275,50 +1781,49 @@ export default function MediAssistFormA({ navigation, route }) {
                                     <Text style={stylesWeb.label}>
                                       iv. Health-Check up cost Rs.
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 8 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={8}
+                                      value={form.claimHealthCheckup}
+                                      onChange={(v) =>
+                                        setField("claimHealthCheckup", v)
+                                      }
+                                      keyboardType="numeric"
+                                    />
                                   </View>
 
                                   <View style={stylesWeb.rowBetween}>
                                     <Text style={stylesWeb.label}>
                                       v. Ambulance Charges Rs.
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 8 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={8}
+                                      value={form.claimAmbulance}
+                                      onChange={(v) =>
+                                        setField("claimAmbulance", v)
+                                      }
+                                      keyboardType="numeric"
+                                    />
 
                                     <Text style={stylesWeb.label}>
                                       vi. Others (code):
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 3 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={3}
+                                      value={form.claimOtherCode}
+                                      onChange={(v) =>
+                                        setField("claimOtherCode", v)
+                                      }
+                                    />
 
                                     <Text style={stylesWeb.label}>Rs.</Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 8 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={8}
+                                      value={form.claimOtherAmount}
+                                      onChange={(v) =>
+                                        setField("claimOtherAmount", v)
+                                      }
+                                      keyboardType="numeric"
+                                    />
                                   </View>
 
                                   {/* TOTAL */}
@@ -1335,16 +1840,15 @@ export default function MediAssistFormA({ navigation, route }) {
                                     >
                                       Total Rs.
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 10 }).map(
-                                        (_, i) => (
-                                          <TextInput
-                                            key={i}
-                                            style={stylesWeb.squareBoxs}
-                                          />
-                                        ),
-                                      )}
-                                    </View>
+                                    <CharBoxRow
+                                      length={10}
+                                      value={form.claimTotal}
+                                      onChange={(v) =>
+                                        setField("claimTotal", v)
+                                      }
+                                      boxStyle={stylesWeb.squareBoxs}
+                                      keyboardType="numeric"
+                                    />
                                   </View>
 
                                   {/* PERIOD */}
@@ -1353,32 +1857,28 @@ export default function MediAssistFormA({ navigation, route }) {
                                       <Text style={stylesWeb.label}>
                                         vii. Pre-hospitalization period: days
                                       </Text>
-                                      <View style={stylesWeb.boxRow}>
-                                        {Array.from({ length: 3 }).map(
-                                          (_, i) => (
-                                            <TextInput
-                                              key={i}
-                                              style={stylesWeb.squareBox}
-                                            />
-                                          ),
-                                        )}
-                                      </View>
+                                      <CharBoxRow
+                                        length={3}
+                                        value={form.claimPreHospitalDays}
+                                        onChange={(v) =>
+                                          setField("claimPreHospitalDays", v)
+                                        }
+                                        keyboardType="numeric"
+                                      />
                                     </View>
 
                                     <View style={stylesWeb.inlineRow}>
                                       <Text style={stylesWeb.label}>
                                         viii. Post-hospitalization period: days
                                       </Text>
-                                      <View style={stylesWeb.boxRow}>
-                                        {Array.from({ length: 3 }).map(
-                                          (_, i) => (
-                                            <TextInput
-                                              key={i}
-                                              style={stylesWeb.squareBox}
-                                            />
-                                          ),
-                                        )}
-                                      </View>
+                                      <CharBoxRow
+                                        length={3}
+                                        value={form.claimPostHospitalDays}
+                                        onChange={(v) =>
+                                          setField("claimPostHospitalDays", v)
+                                        }
+                                        keyboardType="numeric"
+                                      />
                                     </View>
                                   </View>
 
@@ -1387,9 +1887,21 @@ export default function MediAssistFormA({ navigation, route }) {
                                     <Text style={stylesWeb.label}>
                                       b) Claim for Domiciliary Hospitalization:
                                     </Text>
-                                    <View style={stylesWeb.checkbox} />
+                                    <View
+                                      style={[
+                                        stylesWeb.checkbox,
+                                        isYesValue(form.domiciliary) &&
+                                          CHECKED_BOX_STYLE,
+                                      ]}
+                                    />
                                     <Text style={stylesWeb.smallText}>Yes</Text>
-                                    <View style={stylesWeb.checkbox} />
+                                    <View
+                                      style={[
+                                        stylesWeb.checkbox,
+                                        isNoValue(form.domiciliary) &&
+                                          CHECKED_BOX_STYLE,
+                                      ]}
+                                    />
                                     <Text style={stylesWeb.smallText}>No</Text>
                                     <Text style={stylesWeb.smallText}>
                                       (If yes, provide details in annexure)
@@ -1406,52 +1918,52 @@ export default function MediAssistFormA({ navigation, route }) {
                                     <Text style={stylesWeb.label}>
                                       i. Hospital Daily cash Rs.
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 8 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={8}
+                                      value={form.claimHospitalDailyCash}
+                                      onChange={(v) =>
+                                        setField("claimHospitalDailyCash", v)
+                                      }
+                                      keyboardType="numeric"
+                                    />
 
                                     <Text style={stylesWeb.label}>
                                       ii. Surgical Cash Rs.
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 8 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={8}
+                                      value={form.claimSurgicalCash}
+                                      onChange={(v) =>
+                                        setField("claimSurgicalCash", v)
+                                      }
+                                      keyboardType="numeric"
+                                    />
                                   </View>
 
                                   <View style={stylesWeb.rowBetween}>
                                     <Text style={stylesWeb.label}>
                                       iii. Critical Illness benefit Rs.
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 8 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={8}
+                                      value={form.claimCriticalIllness}
+                                      onChange={(v) =>
+                                        setField("claimCriticalIllness", v)
+                                      }
+                                      keyboardType="numeric"
+                                    />
 
                                     <Text style={stylesWeb.label}>
                                       iv. Convalescence Rs.
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 8 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={8}
+                                      value={form.claimConvalescence}
+                                      onChange={(v) =>
+                                        setField("claimConvalescence", v)
+                                      }
+                                      keyboardType="numeric"
+                                    />
                                   </View>
 
                                   <View style={stylesWeb.rowBetween}>
@@ -1459,26 +1971,26 @@ export default function MediAssistFormA({ navigation, route }) {
                                       v. Pre/Post hospitalization Lump sum
                                       benefit Rs.
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 8 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={8}
+                                      value={form.claimPrePostBenefit}
+                                      onChange={(v) =>
+                                        setField("claimPrePostBenefit", v)
+                                      }
+                                      keyboardType="numeric"
+                                    />
 
                                     <Text style={stylesWeb.label}>
                                       vi. Others Rs.
                                     </Text>
-                                    <View style={stylesWeb.boxRow}>
-                                      {Array.from({ length: 8 }).map((_, i) => (
-                                        <TextInput
-                                          key={i}
-                                          style={stylesWeb.squareBox}
-                                        />
-                                      ))}
-                                    </View>
+                                    <CharBoxRow
+                                      length={8}
+                                      value={form.claimOtherBenefit}
+                                      onChange={(v) =>
+                                        setField("claimOtherBenefit", v)
+                                      }
+                                      keyboardType="numeric"
+                                    />
                                   </View>
                                 </View>
 
@@ -1504,7 +2016,13 @@ export default function MediAssistFormA({ navigation, route }) {
                                     "Others",
                                   ].map((item, i) => (
                                     <View key={i} style={stylesWeb.inlineRow}>
-                                      <View style={stylesWeb.checkbox} />
+                                      <View
+                                        style={[
+                                          stylesWeb.checkbox,
+                                          form.docChecklist?.[i] &&
+                                            CHECKED_BOX_STYLE,
+                                        ]}
+                                      />
                                       <Text style={stylesWeb.smallText}>
                                         {item}
                                       </Text>
@@ -1537,127 +2055,10 @@ export default function MediAssistFormA({ navigation, route }) {
 
                               <View style={stylesWeb.sectionContentRow}>
                                 {/* TABLE */}
-                                <View style={stylesWeb.tableContainer}>
-                                  {/* HEADER ROW */}
-                                  {/* HEADER ROW 1 */}
-                                  <View style={stylesWeb.tableRowHeader}>
-                                    <Text
-                                      style={[
-                                        stylesWeb.tableCell,
-                                        { width: 50 },
-                                      ]}
-                                    >
-                                      Sl. No.
-                                    </Text>
-                                    <Text
-                                      style={[
-                                        stylesWeb.tableCell,
-                                        { width: 80 },
-                                      ]}
-                                    >
-                                      Bill No.
-                                    </Text>
-
-                                    <Text
-                                      style={[
-                                        stylesWeb.tableCell,
-                                        { width: 120 },
-                                      ]}
-                                    >
-                                      Date
-                                    </Text>
-
-                                    <Text
-                                      style={[
-                                        stylesWeb.tableCell,
-                                        { width: 200 },
-                                      ]}
-                                    >
-                                      Issued by
-                                    </Text>
-                                    <Text
-                                      style={[stylesWeb.tableCell, { flex: 1 }]}
-                                    >
-                                      Towards
-                                    </Text>
-
-                                    <Text
-                                      style={[
-                                        stylesWeb.tableCell,
-                                        { width: 200 },
-                                      ]}
-                                    >
-                                      Amount (Rs)
-                                    </Text>
-                                  </View>
-
-                                  {/* HEADER ROW 2 (GRID UNDER DATE & AMOUNT) */}
-
-                                  {/* ROWS */}
-                                  {Array.from({ length: 10 }).map(
-                                    (_, rowIndex) => (
-                                      <View style={stylesWeb.tableRow}>
-                                        <Text
-                                          style={[
-                                            stylesWeb.tableCell,
-                                            { width: 50 },
-                                          ]}
-                                        >
-                                          {rowIndex + 1}.
-                                        </Text>
-
-                                        <View
-                                          style={[
-                                            stylesWeb.tableCell,
-                                            { width: 80 },
-                                          ]}
-                                        />
-
-                                        {/* DATE CELLS */}
-                                        {Array.from({ length: 6 }).map(
-                                          (_, i) => (
-                                            <View
-                                              key={i}
-                                              style={stylesWeb.tableCellSmall}
-                                            />
-                                          ),
-                                        )}
-
-                                        <View
-                                          style={[
-                                            stylesWeb.tableCell,
-                                            { width: 200 },
-                                          ]}
-                                        />
-
-                                        <View
-                                          style={[
-                                            stylesWeb.tableCell,
-                                            { flex: 1 },
-                                          ]}
-                                        >
-                                          {rowIndex === 0 &&
-                                            "Hospital main Bill"}
-                                          {rowIndex === 1 &&
-                                            "Pre-hospitalization Bills: Nos"}
-                                          {rowIndex === 2 &&
-                                            "Post-hospitalization Bills: Nos"}
-                                          {rowIndex === 3 && "Pharmacy Bills"}
-                                        </View>
-
-                                        {/* AMOUNT CELLS */}
-                                        {Array.from({ length: 10 }).map(
-                                          (_, i) => (
-                                            <View
-                                              key={i}
-                                              style={stylesWeb.tableCellSmall}
-                                            />
-                                          ),
-                                        )}
-                                      </View>
-                                    ),
-                                  )}
-                                </View>
+                                <BillsTableEditor
+                                  billRows={form.billRows}
+                                  onBillChange={setBillField}
+                                />
 
                                 {/* RIGHT BAR */}
                                 <View style={stylesWeb.sectionBar}>
@@ -2180,9 +2581,21 @@ export default function MediAssistFormA({ navigation, route }) {
                               a) Currently covered by any other Mediclaim /
                               Health Insurance:
                             </Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isYesValue(form.bCurrentlyOther) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>Yes</Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isNoValue(form.bCurrentlyOther) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>No</Text>
                           </View>
 
@@ -2193,17 +2606,14 @@ export default function MediAssistFormA({ navigation, route }) {
                             </Text>
 
                             {/* DATE BOXES */}
-                            <View style={stylesWeb.boxRow}>
-                              {["D", "D", "M", "M", "Y", "Y", "Y", "Y"].map(
-                                (_, i) => (
-                                  <TextInput
-                                    key={i}
-                                    style={stylesWeb.squareBox}
-                                    maxLength={1}
-                                  />
-                                ),
-                              )}
-                            </View>
+                            <CharBoxRow
+                              length={8}
+                              value={form.insuranceFirstCommencementDate}
+                              onChange={(v) =>
+                                setField("insuranceFirstCommencementDate", v)
+                              }
+                              keyboardType="numeric"
+                            />
                           </View>
                         </View>
 
@@ -2213,26 +2623,22 @@ export default function MediAssistFormA({ navigation, route }) {
                             <Text style={stylesWeb.label}>
                               c) If yes, company name:
                             </Text>
-                            <View style={stylesWeb.boxRow}>
-                              {Array.from({ length: 20 }).map((_, i) => (
-                                <TextInput
-                                  key={i}
-                                  style={stylesWeb.squareBox}
-                                />
-                              ))}
-                            </View>
+                            <CharBoxRow
+                              length={20}
+                              value={form.insuranceCompanyName}
+                              onChange={(v) =>
+                                setField("insuranceCompanyName", v)
+                              }
+                            />
                           </View>
 
                           <View style={stylesWeb.inlineRow}>
                             <Text style={stylesWeb.label}>Policy No.</Text>
-                            <View style={stylesWeb.boxRow}>
-                              {Array.from({ length: 18 }).map((_, i) => (
-                                <TextInput
-                                  key={i}
-                                  style={stylesWeb.squareBox}
-                                />
-                              ))}
-                            </View>
+                            <CharBoxRow
+                              length={18}
+                              value={form.insurancePolicyNo}
+                              onChange={(v) => setField("insurancePolicyNo", v)}
+                            />
                           </View>
                         </View>
 
@@ -2242,14 +2648,14 @@ export default function MediAssistFormA({ navigation, route }) {
                             <Text style={stylesWeb.label}>
                               Sum insured (Rs.)
                             </Text>
-                            <View style={stylesWeb.boxRow}>
-                              {Array.from({ length: 12 }).map((_, i) => (
-                                <TextInput
-                                  key={i}
-                                  style={stylesWeb.squareBox}
-                                />
-                              ))}
-                            </View>
+                            <CharBoxRow
+                              length={12}
+                              value={form.insuranceSumInsured}
+                              onChange={(v) =>
+                                setField("insuranceSumInsured", v)
+                              }
+                              keyboardType="numeric"
+                            />
                           </View>
 
                           <View style={stylesWeb.inlineRow}>
@@ -2257,22 +2663,34 @@ export default function MediAssistFormA({ navigation, route }) {
                               d) Have you been hospitalized in the last four
                               years since inception of the contract?
                             </Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isYesValue(form.bHosp4Y) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>Yes</Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isNoValue(form.bHosp4Y) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>No</Text>
 
                             <Text style={[stylesWeb.label, { marginLeft: 10 }]}>
                               Date:
                             </Text>
-                            <View style={stylesWeb.boxRow}>
-                              {["M", "M", "Y", "Y"].map((_, i) => (
-                                <TextInput
-                                  key={i}
-                                  style={stylesWeb.squareBox}
-                                />
-                              ))}
-                            </View>
+                            <CharBoxRow
+                              length={4}
+                              value={form.hospitalizationHistoryDate}
+                              onChange={(v) =>
+                                setField("hospitalizationHistoryDate", v)
+                              }
+                              keyboardType="numeric"
+                            />
                           </View>
                         </View>
 
@@ -2293,9 +2711,21 @@ export default function MediAssistFormA({ navigation, route }) {
                               e) Previously covered by any other Mediclaim
                               /Health insurance :
                             </Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isYesValue(form.bPreviouslyOther) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>Yes</Text>
-                            <View style={stylesWeb.checkbox} />
+                            <View
+                              style={[
+                                stylesWeb.checkbox,
+                                isNoValue(form.bPreviouslyOther) &&
+                                  CHECKED_BOX_STYLE,
+                              ]}
+                            />
                             <Text style={stylesWeb.smallText}>No</Text>
                           </View>
                         </View>
@@ -2305,11 +2735,13 @@ export default function MediAssistFormA({ navigation, route }) {
                           <Text style={stylesWeb.label}>
                             f) If yes, company name:
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 22 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={22}
+                            value={form.previousMediclaimCompanyName}
+                            onChange={(v) =>
+                              setField("previousMediclaimCompanyName", v)
+                            }
+                          />
                         </View>
                       </View>
 
@@ -2434,7 +2866,13 @@ export default function MediAssistFormA({ navigation, route }) {
                           <Text style={stylesWeb.smallText}>
                             (Please Specify)
                           </Text>
-                          <TextInput style={stylesWeb.longInputWide} />
+                          <TextInput
+                            style={stylesWeb.longInputWide}
+                            value={form.relationshipSpecify}
+                            onChangeText={(t) =>
+                              setField("relationshipSpecify", t)
+                            }
+                          />
                         </View>
 
                         {/* f) OCCUPATION */}
@@ -2458,7 +2896,13 @@ export default function MediAssistFormA({ navigation, route }) {
                           <Text style={stylesWeb.smallText}>
                             (Please Specify)
                           </Text>
-                          <TextInput style={stylesWeb.longInputWide} />
+                          <TextInput
+                            style={stylesWeb.longInputWide}
+                            value={form.occupationSpecify}
+                            onChangeText={(t) =>
+                              setField("occupationSpecify", t)
+                            }
+                          />
                         </View>
 
                         {/* g) ADDRESS */}
@@ -2781,38 +3225,41 @@ export default function MediAssistFormA({ navigation, route }) {
                           <Text style={stylesWeb.label}>
                             iv. Health-Check up cost Rs.
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimHealthCheckup}
+                            onChange={(v) => setField("claimHealthCheckup", v)}
+                            keyboardType="numeric"
+                          />
                         </View>
 
                         <View style={stylesWeb.rowBetween}>
                           <Text style={stylesWeb.label}>
                             v. Ambulance Charges Rs.
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimAmbulance}
+                            onChange={(v) => setField("claimAmbulance", v)}
+                            keyboardType="numeric"
+                          />
 
                           <Text style={stylesWeb.label}>
                             vi. Others (code):
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 3 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={3}
+                            value={form.claimOtherCode}
+                            onChange={(v) => setField("claimOtherCode", v)}
+                          />
 
                           <Text style={stylesWeb.label}>Rs.</Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimOtherAmount}
+                            onChange={(v) => setField("claimOtherAmount", v)}
+                            keyboardType="numeric"
+                          />
                         </View>
 
                         {/* TOTAL */}
@@ -2829,11 +3276,13 @@ export default function MediAssistFormA({ navigation, route }) {
                           >
                             Total Rs.
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 10 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBoxs} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={10}
+                            value={form.claimTotal}
+                            onChange={(v) => setField("claimTotal", v)}
+                            boxStyle={stylesWeb.squareBoxs}
+                            keyboardType="numeric"
+                          />
                         </View>
 
                         {/* PERIOD */}
@@ -2842,28 +3291,28 @@ export default function MediAssistFormA({ navigation, route }) {
                             <Text style={stylesWeb.label}>
                               vii. Pre-hospitalization period: days
                             </Text>
-                            <View style={stylesWeb.boxRow}>
-                              {Array.from({ length: 3 }).map((_, i) => (
-                                <TextInput
-                                  key={i}
-                                  style={stylesWeb.squareBox}
-                                />
-                              ))}
-                            </View>
+                            <CharBoxRow
+                              length={3}
+                              value={form.claimPreHospitalDays}
+                              onChange={(v) =>
+                                setField("claimPreHospitalDays", v)
+                              }
+                              keyboardType="numeric"
+                            />
                           </View>
 
                           <View style={stylesWeb.inlineRow}>
                             <Text style={stylesWeb.label}>
                               viii. Post-hospitalization period: days
                             </Text>
-                            <View style={stylesWeb.boxRow}>
-                              {Array.from({ length: 3 }).map((_, i) => (
-                                <TextInput
-                                  key={i}
-                                  style={stylesWeb.squareBox}
-                                />
-                              ))}
-                            </View>
+                            <CharBoxRow
+                              length={3}
+                              value={form.claimPostHospitalDays}
+                              onChange={(v) =>
+                                setField("claimPostHospitalDays", v)
+                              }
+                              keyboardType="numeric"
+                            />
                           </View>
                         </View>
 
@@ -2890,58 +3339,68 @@ export default function MediAssistFormA({ navigation, route }) {
                           <Text style={stylesWeb.label}>
                             i. Hospital Daily cash Rs.
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimHospitalDailyCash}
+                            onChange={(v) =>
+                              setField("claimHospitalDailyCash", v)
+                            }
+                            keyboardType="numeric"
+                          />
 
                           <Text style={stylesWeb.label}>
                             ii. Surgical Cash Rs.
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimSurgicalCash}
+                            onChange={(v) => setField("claimSurgicalCash", v)}
+                            keyboardType="numeric"
+                          />
                         </View>
 
                         <View style={stylesWeb.rowBetween}>
                           <Text style={stylesWeb.label}>
                             iii. Critical Illness benefit Rs.
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimCriticalIllness}
+                            onChange={(v) =>
+                              setField("claimCriticalIllness", v)
+                            }
+                            keyboardType="numeric"
+                          />
 
                           <Text style={stylesWeb.label}>
                             iv. Convalescence Rs.
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimConvalescence}
+                            onChange={(v) => setField("claimConvalescence", v)}
+                            keyboardType="numeric"
+                          />
                         </View>
 
                         <View style={stylesWeb.rowBetween}>
                           <Text style={stylesWeb.label}>
                             v. Pre/Post hospitalization Lump sum benefit Rs.
                           </Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimPrePostBenefit}
+                            onChange={(v) => setField("claimPrePostBenefit", v)}
+                            keyboardType="numeric"
+                          />
 
                           <Text style={stylesWeb.label}>vi. Others Rs.</Text>
-                          <View style={stylesWeb.boxRow}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <TextInput key={i} style={stylesWeb.squareBox} />
-                            ))}
-                          </View>
+                          <CharBoxRow
+                            length={8}
+                            value={form.claimOtherBenefit}
+                            onChange={(v) => setField("claimOtherBenefit", v)}
+                            keyboardType="numeric"
+                          />
                         </View>
                       </View>
 
@@ -2996,71 +3455,10 @@ export default function MediAssistFormA({ navigation, route }) {
 
                     <View style={stylesWeb.sectionContentRow}>
                       {/* TABLE */}
-                      <View style={stylesWeb.tableContainer}>
-                        {/* HEADER ROW */}
-                        {/* HEADER ROW 1 */}
-                        <View style={stylesWeb.tableRowHeader}>
-                          <Text style={[stylesWeb.tableCell, { width: 50 }]}>
-                            Sl. No.
-                          </Text>
-                          <Text style={[stylesWeb.tableCell, { width: 80 }]}>
-                            Bill No.
-                          </Text>
-
-                          <Text style={[stylesWeb.tableCell, { width: 120 }]}>
-                            Date
-                          </Text>
-
-                          <Text style={[stylesWeb.tableCell, { width: 200 }]}>
-                            Issued by
-                          </Text>
-                          <Text style={[stylesWeb.tableCell, { flex: 1 }]}>
-                            Towards
-                          </Text>
-
-                          <Text style={[stylesWeb.tableCell, { width: 200 }]}>
-                            Amount (Rs)
-                          </Text>
-                        </View>
-
-                        {/* HEADER ROW 2 (GRID UNDER DATE & AMOUNT) */}
-
-                        {/* ROWS */}
-                        {Array.from({ length: 10 }).map((_, rowIndex) => (
-                          <View style={stylesWeb.tableRow}>
-                            <Text style={[stylesWeb.tableCell, { width: 50 }]}>
-                              {rowIndex + 1}.
-                            </Text>
-
-                            <View
-                              style={[stylesWeb.tableCell, { width: 80 }]}
-                            />
-
-                            {/* DATE CELLS */}
-                            {Array.from({ length: 6 }).map((_, i) => (
-                              <View key={i} style={stylesWeb.tableCellSmall} />
-                            ))}
-
-                            <View
-                              style={[stylesWeb.tableCell, { width: 200 }]}
-                            />
-
-                            <View style={[stylesWeb.tableCell, { flex: 1 }]}>
-                              {rowIndex === 0 && "Hospital main Bill"}
-                              {rowIndex === 1 &&
-                                "Pre-hospitalization Bills: Nos"}
-                              {rowIndex === 2 &&
-                                "Post-hospitalization Bills: Nos"}
-                              {rowIndex === 3 && "Pharmacy Bills"}
-                            </View>
-
-                            {/* AMOUNT CELLS */}
-                            {Array.from({ length: 10 }).map((_, i) => (
-                              <View key={i} style={stylesWeb.tableCellSmall} />
-                            ))}
-                          </View>
-                        ))}
-                      </View>
+                      <BillsTableEditor
+                        billRows={form.billRows}
+                        onBillChange={setBillField}
+                      />
 
                       {/* RIGHT BAR */}
                       <View style={stylesWeb.sectionBar}>
@@ -3527,6 +3925,7 @@ const stylesWeb = StyleSheet.create({
     alignSelf: "center",
     zIndex: 5,
     height: "85vh",
+    minHeight: 0,
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
@@ -3534,6 +3933,19 @@ const stylesWeb = StyleSheet.create({
   },
 
   /* ── CARD TITLE ROW ── */
+  previewFrameContainer: {
+    flex: 1,
+    minHeight: 0,
+    overflow: "auto",
+    borderRadius: 6,
+    backgroundColor: "#fff",
+  },
+  previewFrame: {
+    width: "100%",
+    border: "none",
+    display: "block",
+    backgroundColor: "#fff",
+  },
   cardTitleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -3692,7 +4104,7 @@ const stylesWeb = StyleSheet.create({
     fontWeight: "700",
   },
   sectionContainer: {
-    marginTop: 10,
+    marginTop: 0,
   },
 
   dividerRow: {
@@ -3715,6 +4127,7 @@ const stylesWeb = StyleSheet.create({
 
   sectionContentRow: {
     flexDirection: "row",
+    alignItems: "stretch",
   },
 
   rowBetween: {
@@ -3796,25 +4209,30 @@ const stylesWeb = StyleSheet.create({
   sectionBar: {
     width: 28,
     alignItems: "center",
-    marginLeft: 6,
+    justifyContent: "space-between",
+    marginLeft: 0,
+    backgroundColor: "#000",
+    paddingVertical: 2,
+    overflow: "hidden",
   },
 
   sectionLine: {
     flex: 1,
     width: 10,
-    backgroundColor: "#000",
-    marginVertical: 2, // small breathing space
+    backgroundColor: "#fff",
+    marginVertical: 0,
   },
 
   sectionTextWrap: {
     paddingVertical: 19, // 🔥 more gap from black bars
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#000",
   },
 
   sectionText: {
-    color: "#000",
+    color: "#fff",
     fontSize: 10,
     fontWeight: "700",
     transform: [{ rotate: "90deg" }],
@@ -3852,6 +4270,7 @@ const stylesWeb = StyleSheet.create({
     height: 18,
     borderWidth: 1,
     borderColor: "#999",
+    paddingHorizontal: 4,
   },
   sectionEChecklist: {
     width: 260,
@@ -3881,11 +4300,18 @@ const stylesWeb = StyleSheet.create({
     borderRightWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#000",
-    padding: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
     fontSize: 11,
     justifyContent: "center",
   },
-
+  tableTextInput: {
+    width: "100%",
+    minHeight: 22,
+    fontSize: 11,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
   squareBoxSmall: {
     width: 14,
     height: 14,
@@ -3909,6 +4335,11 @@ const stylesWeb = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     fontSize: 9,
+  },
+  tableCharRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   declarationText: {
     fontSize: 11,
@@ -4019,6 +4450,48 @@ const stylesWeb = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+  },
+  headerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+
+  headerSub: {
+    fontSize: 10,
+    textAlign: "center",
+  },
+
+  blackBar: {
+    backgroundColor: "#222",
+    marginTop: 6,
+    paddingVertical: 6,
+  },
+
+  blackBarText: {
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "700",
+  },
+
+  headerRowBottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
+
+  centerText: {
+    textAlign: "center",
+    fontWeight: "600",
+  },
+
+  centerSub: {
+    textAlign: "center",
+    fontSize: 11,
+  },
+
+  rightNote: {
+    fontSize: 10,
   },
 });
 

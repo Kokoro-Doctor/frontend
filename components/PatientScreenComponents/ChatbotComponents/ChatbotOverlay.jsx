@@ -85,8 +85,6 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "DataIntegrations",
     "DataIntegrationValidation",
     "DataIntegrationComplete",
-    "MediAssistFormA",
-    "MediAssistFormB",
     "SignatureScreen",
     "HospitalDashboard",
     "PARequests",
@@ -94,9 +92,9 @@ const ChatBotOverlay = ({ navigationRef }) => {
     "WelcomeHospital",
     "HospitalPortalLandingPage",
     "HospitalPatientManagement",
-    "StarHealthFormA",
     "MediAssistCombinedForms",
     "CareHealthCombinedForms",
+    "StarHealthCombinedForms",
   ];
   const shownScreensMobile = ["LandingPage"];
 

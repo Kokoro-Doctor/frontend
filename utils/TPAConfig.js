@@ -21,7 +21,7 @@ export const TPA_REGISTRY = {
     id: "star_health",
     displayName: "Star Health",
     aliases: ["star\\s*health"],
-    screenName: "StarHealthFormA",
+    screenName: "StarHealthCombinedForms",
     description: "Star Health Insurance",
   },
   MEDI_ASSIST: {
@@ -111,7 +111,7 @@ export const findTPAByName = (name) => {
  * Usage:
  *   const screen = getScreenNameForInsurer("Care Health");
  */
-export const getScreenNameForInsurer = (tpaName, fallback = "StarHealthFormA") => {
+export const getScreenNameForInsurer = (tpaName, fallback = "StarHealthCombinedForms") => {
   const tpa = findTPAByName(tpaName);
   return tpa?.screenName || fallback;
 };
@@ -186,8 +186,8 @@ export const getUpdatedFilesScreen = (analysisData, patient = null, selectedInsu
   }
 
   // Default fallback
-  console.log("🔍 TPAConfig: No match found, using default fallback 'StarHealthFormA'");
-  return "MediAssistFormA";
+  console.log("🔍 TPAConfig: No match found, using default fallback 'MediAssistCombinedForms'");
+  return "MediAssistCombinedForms";
 };
 
 /**
@@ -199,7 +199,7 @@ export const getUpdatedFilesScreen = (analysisData, patient = null, selectedInsu
  *   navigation.navigate(screen, { analysisData });
  */
 export const getScreenNameForPatient = (patient, fallback = null) => {
-  if (!patient) return fallback || "StarHealthFormA";
+  if (!patient) return fallback || "StarHealthCombinedForms";
 
   // Check patient.insurer field (from API response)
   if (patient.insurer) {
@@ -213,7 +213,7 @@ export const getScreenNameForPatient = (patient, fallback = null) => {
     if (screenName) return screenName;
   }
 
-  return fallback || "StarHealthFormA";
+  return fallback || "StarHealthCombinedForms";
 };
 
 /**

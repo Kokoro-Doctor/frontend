@@ -7,9 +7,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { useRole } from "../contexts/RoleContext";
 import HospitalPortalLandingPage from "../screens/HospitalScreens/HospitalPortalLandingPage";
 import HospitalInsuranceClaim from "../screens/HospitalScreens/HospitalInsuranceClaim";
-import StarHealthFormA from "../screens/HospitalScreens/StarHealthFormA";
-import MediAssistFormA from "../screens/HospitalScreens/MediAssistFormA";
-import MediAssistFormB from "../screens/HospitalScreens/MediAssistFormB";
+// import StarHealthFormA from "../screens/HospitalScreens/StarHealthFormA";
+// import MediAssistFormA from "../screens/HospitalScreens/MediAssistFormA";
+// import MediAssistFormB from "../screens/HospitalScreens/MediAssistFormB";
 import CareHealthCombinedForms from "../screens/HospitalScreens/CareHealthCombinedForms";
 import PostOpCare from "../screens/HospitalScreens/PostOpCare";
 import PostOpCarePrescription from "../screens/HospitalScreens/PostOpCarePrescription";
@@ -25,6 +25,7 @@ import HospitalPatientManagement from "../screens/HospitalScreens/HospitalPatien
 import MediAssistCombinedForms from "../screens/HospitalScreens/MediAssistCombinedForms";
 import PreAuthMediAssistCombinedForms from "../screens/HospitalScreens/PreAuthMediAssistCombinedForms";
 import MediAssistFormAContent from "../screens/HospitalScreens/PreAuthMediAssistFormA";
+import StarHealthCombinedForms from "../screens/HospitalScreens/StarHealthCombinedForms";
 
 const Stack = createNativeStackNavigator();
 
@@ -81,12 +82,12 @@ const HospitalAppNavigation = ({ navigation }) => {
           component={HospitalInsuranceClaim}
           options={{ headerShown: false }}
         />
-        <Stack.Screen
+        {/* <Stack.Screen
           name="StarHealthFormA"
           component={StarHealthFormA}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="MediAssistFormA"
           component={MediAssistFormA}
           options={{ headerShown: false }}
@@ -95,7 +96,7 @@ const HospitalAppNavigation = ({ navigation }) => {
           name="MediAssistFormB"
           component={MediAssistFormB}
           options={{ headerShown: false }}
-        />
+        /> */}
         <Stack.Screen
           name="PostOpCare"
           component={PostOpCare}
@@ -154,6 +155,11 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="MediAssistCombinedForms"
           component={MediAssistCombinedForms}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="StarHealthCombinedForms"
+          component={StarHealthCombinedForms}
           options={{ headerShown: false }}
         />
         <Stack.Screen

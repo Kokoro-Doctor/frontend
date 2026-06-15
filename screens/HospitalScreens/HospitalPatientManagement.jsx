@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,109 +11,23 @@ import {
   useWindowDimensions,
   Animated,
   Modal,
+  ActivityIndicator,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_URL } from "../../env-vars";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import AbhaRegistration from "../../components/HospitalPortalComponent/AbhaRegistration";
 
 // ─── MOCK DATA ────────────────────────────────────────────────
-const INITIAL_PATIENTS = [
-  {
-    id: "KK-2024-08821",
-    name: "Rajesh Sharma",
-    age: 54,
-    insurer: "Star Health",
-    procedure: "CABG",
-    status: "Discharged",
-    claims: 1,
-    initials: "RS",
-    dob: "12 Mar 1970",
-    gender: "Male",
-    policy: "SH-48821-C",
-    phone: "+91 9874563210",
-    admitted: "12 Aug 2024",
-    discharged: "19 Aug 2024",
-    hasClaim: false,
-  },
-  {
-    id: "KK-2024-08822",
-    name: "Priya Nair",
-    age: 42,
-    insurer: "HDFC Ergo",
-    procedure: "Appendectomy",
-    status: "Discharged",
-    claims: 0,
-    initials: "PN",
-    dob: "05 Jun 1982",
-    gender: "Female",
-    policy: "HE-30021-A",
-    phone: "+91 9823456789",
-    admitted: "01 Sep 2024",
-    discharged: "05 Sep 2024",
-    hasClaim: false,
-  },
-  {
-    id: "KK-2024-08823",
-    name: "Amit Verma",
-    age: 61,
-    insurer: "Star Health",
-    procedure: "Hip Replacement",
-    status: "Claim denied",
-    claims: 0,
-    initials: "AV",
-    dob: "18 Jan 1963",
-    gender: "Male",
-    policy: "SH-71100-D",
-    phone: "+91 9912345678",
-    admitted: "20 Jul 2024",
-    discharged: "30 Jul 2024",
-    hasClaim: true,
-  },
-  {
-    id: "KK-2024-08824",
-    name: "Sunita Rao",
-    age: 38,
-    insurer: "ICICI Lombard",
-    procedure: "Knee Surgery",
-    status: null,
-    claims: 1,
-    initials: "SR",
-    dob: "22 Nov 1986",
-    gender: "Female",
-    policy: "IL-55432-B",
-    phone: "+91 9765432100",
-    admitted: "10 Oct 2024",
-    discharged: "15 Oct 2024",
-    hasClaim: false,
-  },
-];
-
-const UNLINKED = [
-  {
-    id: "KK-2024-08825",
-    name: "Rajesh Sharma",
-    age: 54,
-    insurer: "Star Health",
-    procedure: "CABG",
-    initials: "RS",
-  },
-  {
-    id: "KK-2024-08826",
-    name: "Rajesh Sharma",
-    age: 54,
-    insurer: "Star Health",
-    procedure: "CABG",
-    initials: "RS",
-  },
-];
 
 const INSURERS = [
   "All Insurers",
   "Star Health",
-  "HDFC Ergo",
+  "Medi Assist",
   "ICICI Lombard",
-  "Bajaj Allianz",
+  "Care Health",
 ];
 const DOCTORS = [
   "Dr. Arjun Mehta",
@@ -122,6 +36,32 @@ const DOCTORS = [
   "Dr. Anita Singh",
 ];
 const GENDERS = ["Male", "Female", "Other"];
+const EMPTY_PATIENT_DOCS = {
+  insurance: null,
+  hospitalBill: null,
+  prescription: null,
+};
+
+const DOC_CONFIG = [
+  {
+    key: "insurance",
+    label: "Insurance Policy",
+    icon: "🛡️",
+    accept: ".pdf,.jpg,.jpeg,.png",
+  },
+  {
+    key: "hospitalBill",
+    label: "Hospital Bill",
+    icon: "🧾",
+    accept: ".pdf,.jpg,.jpeg,.png",
+  },
+  {
+    key: "prescription",
+    label: "Doctor Prescription",
+    icon: "💊",
+    accept: ".pdf,.jpg,.jpeg,.png",
+  },
+];
 
 let patientIdCounter = 8827;
 const generatePatientId = () => `KK-2024-0${patientIdCounter++}`;
@@ -133,6 +73,28 @@ const getInitials = (name = "") =>
     .join("")
     .toUpperCase()
     .slice(0, 2);
+
+const mapApiPatient = (p) => ({
+  id: p.patient_id || p.id || "—",
+  name: p.full_name || p.name || "Unknown",
+  age:
+    p.age ||
+    (p.date_of_birth
+      ? new Date().getFullYear() - new Date(p.date_of_birth).getFullYear()
+      : "—"),
+  insurer: p.insurer || p.insurance_provider || "—",
+  procedure: p.procedure || p.diagnosis || "—",
+  status: p.status || null,
+  claims: p.claims_count || p.claims || 0,
+  initials: getInitials(p.full_name || p.name || ""),
+  dob: p.date_of_birth || p.dob || "—",
+  gender: p.gender || "—",
+  policy: p.policy_number || p.policy || "—",
+  phone: p.phone || p.mobile || "—",
+  admitted: p.admission_date || p.admitted || "—",
+  discharged: p.discharge_date || p.discharged || "—",
+  hasClaim: p.has_claim || false,
+});
 
 // ─── STATUS BADGE ─────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
@@ -232,7 +194,7 @@ const DetailCell = ({ label, value }) => (
 const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
   const [open, setOpen] = useState(false);
   return (
-    <View style={styles.formGroup}>
+    <View style={[styles.formGroup, { zIndex: open ? 9999 : 1 }]}>
       <Text style={styles.formLabel}>{label}</Text>
       <TouchableOpacity
         style={styles.formSelect}
@@ -278,7 +240,7 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 };
 
 // ─── ADD PATIENT FORM ─────────────────────────────────────────
-// const AddPatientForm = ({ onSave, onSaveAndAnother }) => {
+// const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
 //   const [form, setForm] = useState({
 //     fullName: "",
 //     dob: "",
@@ -292,6 +254,7 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 //   });
 //   const [generatedId] = useState(generatePatientId());
 //   const [savedMessage, setSavedMessage] = useState("");
+//   const [savedName, setSavedName] = useState("");
 
 //   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
@@ -317,7 +280,8 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 
 //   const handleSave = () => {
 //     const patient = buildPatient();
-//     setSavedMessage(`${patient.name} saved with Patient ID ${patient.id}`);
+//     setSavedName(form.fullName || "Patient");
+//     setSavedMessage(generatedId);
 //     onSave(patient);
 //   };
 
@@ -326,15 +290,198 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 //     onSaveAndAnother(patient, form.fullName, generatedId);
 //   };
 
+//   // ── MOBILE FORM ──────────────────────────────────────────────
+//   if (isMobile) {
+//     return (
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         contentContainerStyle={{ padding: 16, paddingBottom: 50 }}
+//         keyboardShouldPersistTaps="handled"
+//       >
+//         <Text style={mobileFormStyles.sectionHeading}>Patient Details :</Text>
+
+//         {/* Full Name */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>
+//             Full name <Text style={{ color: "#EF4444" }}>*</Text>
+//           </Text>
+//           <TextInput
+//             style={mobileFormStyles.input}
+//             placeholder="Enter Name..."
+//             placeholderTextColor="#9CA3AF"
+//             value={form.fullName}
+//             onChangeText={(v) => set("fullName", v)}
+//           />
+//         </View>
+
+//         {/* Date of Birth */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>
+//             Date of birth <Text style={{ color: "#EF4444" }}>*</Text>
+//           </Text>
+//           <TextInput
+//             style={mobileFormStyles.input}
+//             placeholder="dd-mm-yyyy"
+//             placeholderTextColor="#9CA3AF"
+//             value={form.dob}
+//             onChangeText={(v) => set("dob", v)}
+//           />
+//         </View>
+
+//         {/* Patient ID (auto) */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>Patient ID</Text>
+//           <TextInput
+//             style={[mobileFormStyles.input, mobileFormStyles.inputDisabled]}
+//             value={generatedId}
+//             editable={false}
+//             placeholderTextColor="#9CA3AF"
+//           />
+//         </View>
+
+//         {/* Gender */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>
+//             Gender <Text style={{ color: "#EF4444" }}>*</Text>
+//           </Text>
+//           <MobileSelectField
+//             value={form.gender}
+//             options={GENDERS}
+//             onSelect={(v) => set("gender", v)}
+//             placeholder="Select Gender"
+//           />
+//         </View>
+
+//         {/* Phone */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>Phone no</Text>
+//           <TextInput
+//             style={mobileFormStyles.input}
+//             placeholder="+91 9823400998"
+//             placeholderTextColor="#9CA3AF"
+//             keyboardType="phone-pad"
+//             value={form.phone}
+//             onChangeText={(v) => set("phone", v)}
+//           />
+//         </View>
+
+//         {/* Insurance Policy Number */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>Insurance policy number</Text>
+//           <TextInput
+//             style={mobileFormStyles.input}
+//             placeholder="e.g SH-48821-C"
+//             placeholderTextColor="#9CA3AF"
+//             value={form.policy}
+//             onChangeText={(v) => set("policy", v)}
+//           />
+//         </View>
+
+//         {/* Insurer */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>Insurer</Text>
+//           <MobileSelectField
+//             value={form.insurer}
+//             options={INSURERS.slice(1)}
+//             onSelect={(v) => set("insurer", v)}
+//             placeholder="Select Insurer"
+//           />
+//         </View>
+
+//         {/* Admission Date */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>Admission date</Text>
+//           <TextInput
+//             style={mobileFormStyles.input}
+//             placeholder="dd-mm-yyyy"
+//             placeholderTextColor="#9CA3AF"
+//             value={form.admissionDate}
+//             onChangeText={(v) => set("admissionDate", v)}
+//           />
+//         </View>
+
+//         {/* Diagnosis / Procedure */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>Diagnosis/Procedure</Text>
+//           <TextInput
+//             style={mobileFormStyles.input}
+//             placeholder="eg CABG, Hysterectomy"
+//             placeholderTextColor="#9CA3AF"
+//             value={form.procedure}
+//             onChangeText={(v) => set("procedure", v)}
+//           />
+//         </View>
+
+//         {/* Assign Doctor */}
+//         <View style={mobileFormStyles.fieldGroup}>
+//           <Text style={mobileFormStyles.label}>Assign Doctor</Text>
+//           <MobileSelectField
+//             value={form.doctor}
+//             options={DOCTORS}
+//             onSelect={(v) => set("doctor", v)}
+//             placeholder="Select Doctor"
+//           />
+//         </View>
+
+//         {/* Import from Excel/CSV */}
+//         <Text style={mobileFormStyles.importLabel}>
+//           1. Import from excel/csv
+//         </Text>
+//         <View style={mobileFormStyles.uploadBox}>
+//           <Text style={{ fontSize: 20, marginBottom: 6 }}>⬆</Text>
+//           <Text style={{ fontSize: 13, color: "#6B7280", textAlign: "center" }}>
+//             Upload patient list (.xlsx or .csv){" "}
+//             <Text style={{ color: "#2563EB", fontWeight: "600" }}>
+//               Click here
+//             </Text>
+//           </Text>
+//         </View>
+//         <TouchableOpacity style={mobileFormStyles.downloadBtn}>
+//           <Text style={mobileFormStyles.downloadBtnText}>
+//             Download Template
+//           </Text>
+//         </TouchableOpacity>
+//         <Text style={mobileFormStyles.downloadHint}>
+//           Not sure of format? download our template first
+//         </Text>
+
+//         {/* Saved success pill */}
+//         {savedMessage !== "" && (
+//           <View style={mobileFormStyles.savedPill}>
+//             <Text style={mobileFormStyles.savedPillText}>
+//               <Text style={{ fontWeight: "700" }}>{savedName} </Text>
+//               saved with Patient ID{" "}
+//               <Text style={{ fontWeight: "700", color: "#15803D" }}>
+//                 {savedMessage}
+//               </Text>
+//             </Text>
+//           </View>
+//         )}
+
+//         {/* Action Buttons */}
+//         <TouchableOpacity
+//           style={mobileFormStyles.saveAnotherBtn}
+//           onPress={handleSaveAnother}
+//         >
+//           <Text style={mobileFormStyles.saveAnotherBtnText}>
+//             Save & Register Another Patient →
+//           </Text>
+//         </TouchableOpacity>
+//         <TouchableOpacity style={mobileFormStyles.saveBtn} onPress={handleSave}>
+//           <Text style={mobileFormStyles.saveBtnText}>Save Patient</Text>
+//         </TouchableOpacity>
+//       </ScrollView>
+//     );
+//   }
+
+//   // ── WEB / TABLET FORM (original layout unchanged) ────────────
 //   return (
 //     <ScrollView
 //       showsVerticalScrollIndicator={false}
 //       contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
 //     >
-//       {/* Section: Patient Details */}
 //       <Text style={styles.formSectionHeading}>Patients Details :</Text>
 
-//       {/* Row 1: Full Name + DOB */}
 //       <View style={styles.formRow}>
 //         <View style={styles.formGroup}>
 //           <Text style={styles.formLabel}>
@@ -362,7 +509,6 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 //         </View>
 //       </View>
 
-//       {/* Row 2: Patient ID + Gender */}
 //       <View style={styles.formRow}>
 //         <View style={styles.formGroup}>
 //           <Text style={styles.formLabel}>Patient ID</Text>
@@ -383,7 +529,6 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 //         />
 //       </View>
 
-//       {/* Row 3: Phone + Policy */}
 //       <View style={styles.formRow}>
 //         <View style={styles.formGroup}>
 //           <Text style={styles.formLabel}>Phone no</Text>
@@ -408,7 +553,6 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 //         </View>
 //       </View>
 
-//       {/* Row 4: Insurer + Admission Date */}
 //       <View style={styles.formRow}>
 //         <SelectRow
 //           label="Insurer"
@@ -429,7 +573,6 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 //         </View>
 //       </View>
 
-//       {/* Row 5: Diagnosis + Assign Doctor */}
 //       <View style={styles.formRow}>
 //         <View style={styles.formGroup}>
 //           <Text style={styles.formLabel}>Diagnosis/Procedure</Text>
@@ -450,7 +593,6 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 //         />
 //       </View>
 
-//       {/* Import from Excel/CSV */}
 //       <View style={styles.importRow}>
 //         <Text style={styles.importLabel}>1 Import from excel/csv</Text>
 //       </View>
@@ -476,7 +618,6 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 //         </View>
 //       </View>
 
-//       {/* Action Buttons */}
 //       <View style={styles.formActions}>
 //         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
 //           <Text style={styles.saveBtnText}>Save Patient</Text>
@@ -504,7 +645,7 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
 //     </ScrollView>
 //   );
 // };
-// ─── ADD PATIENT FORM ─────────────────────────────────────────
+
 const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
   const [form, setForm] = useState({
     fullName: "",
@@ -520,42 +661,315 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
   const [generatedId] = useState(generatePatientId());
   const [savedMessage, setSavedMessage] = useState("");
   const [savedName, setSavedName] = useState("");
+  const [patientDocs, setPatientDocs] = useState({ ...EMPTY_PATIENT_DOCS });
+  const [isSaving, setIsSaving] = useState(false);
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
-  const buildPatient = () => ({
-    id: generatedId,
-    name: form.fullName || "New Patient",
-    age: form.dob
-      ? new Date().getFullYear() - parseInt(form.dob.slice(-4) || 2000)
-      : "—",
-    insurer: form.insurer || "—",
-    procedure: form.procedure || "—",
-    status: "Discharged",
-    claims: 0,
-    initials: getInitials(form.fullName),
-    dob: form.dob,
-    gender: form.gender,
-    policy: form.policy,
-    phone: form.phone,
-    admitted: form.admissionDate,
-    discharged: "—",
-    hasClaim: false,
-  });
-
-  const handleSave = () => {
-    const patient = buildPatient();
-    setSavedName(form.fullName || "Patient");
-    setSavedMessage(generatedId);
-    onSave(patient);
+  // ── Document picker — web
+  const openDocPicker = (docKey) => {
+    if (Platform.OS !== "web") return;
+    const config = DOC_CONFIG.find((d) => d.key === docKey);
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = config?.accept || ".pdf,.jpg,.jpeg,.png";
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      setPatientDocs((prev) => ({
+        ...prev,
+        [docKey]: { file, name: file.name, uploaded: false, error: "" },
+      }));
+    };
+    input.click();
   };
 
-  const handleSaveAnother = () => {
-    const patient = buildPatient();
-    onSaveAndAnother(patient, form.fullName, generatedId);
+  // ── Document picker — mobile
+  const openDocPickerMobile = async (docKey) => {
+    try {
+      const DocumentPicker = require("react-native-document-picker");
+      const res = await DocumentPicker.default.pickSingle({
+        type: [DocumentPicker.types.pdf, DocumentPicker.types.images],
+      });
+      setPatientDocs((prev) => ({
+        ...prev,
+        [docKey]: { file: res, name: res.name, uploaded: false, error: "" },
+      }));
+    } catch (err) {
+      if (err?.code !== "DOCUMENT_PICKER_CANCELED") {
+        console.warn("Document picker error:", err?.message);
+      }
+    }
   };
 
-  // ── MOBILE FORM ──────────────────────────────────────────────
+  const removeDoc = (docKey) => {
+    setPatientDocs((prev) => ({ ...prev, [docKey]: null }));
+  };
+
+  // ── API call (mirrors ManualDataIntegration.callAddPatientAPI)
+  const callAddPatientAPI = async () => {
+    const token =
+      Platform.OS === "web"
+        ? localStorage.getItem("token")
+        : await AsyncStorage.getItem("token");
+    const hospitalId =
+      Platform.OS === "web"
+        ? localStorage.getItem("hospital_id")
+        : await AsyncStorage.getItem("hospital_id");
+
+    if (!patientDocs.insurance?.file)
+      throw new Error("Insurance policy document is required");
+    if (!patientDocs.hospitalBill?.file)
+      throw new Error("Hospital bill document is required");
+    if (!patientDocs.prescription?.file)
+      throw new Error("Prescription document is required");
+
+    let phone = form.phone?.trim();
+    if (phone && !phone.startsWith("+")) {
+      phone = "+91" + phone.replace(/^0+/, "");
+    }
+
+    const formData = new FormData();
+    formData.append("hospital_id", hospitalId);
+    formData.append("phone", phone);
+    formData.append("name", form.fullName.trim());
+    if (form.dob) formData.append("date_of_birth", form.dob);
+    if (form.gender) formData.append("gender", form.gender);
+    if (form.policy) formData.append("policy_number", form.policy);
+    if (form.insurer) formData.append("insurer", form.insurer);
+    if (form.admissionDate)
+      formData.append("admission_date", form.admissionDate);
+    if (form.procedure) formData.append("diagnosis", form.procedure);
+    formData.append("insurance_policy", patientDocs.insurance.file);
+    formData.append("hospital_bill", patientDocs.hospitalBill.file);
+    formData.append("prescription", patientDocs.prescription.file);
+
+    const res = await fetch(`${API_URL}/hospitals/staff/add-patient`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const text = await res.text();
+    if (!res.ok) {
+      let msg = "Failed to add patient";
+      try {
+        const err = JSON.parse(text);
+        msg = err.message || err.error || err.detail || msg;
+      } catch (_) {}
+      throw new Error(msg);
+    }
+    return JSON.parse(text);
+  };
+
+  const handleSave = async () => {
+    if (!form.fullName.trim()) {
+      alert("Full name is required");
+      return;
+    }
+    if (!form.phone.trim()) {
+      alert("Phone number is required");
+      return;
+    }
+    if (!patientDocs.insurance?.file) {
+      alert("Insurance policy document is required");
+      return;
+    }
+    if (!patientDocs.hospitalBill?.file) {
+      alert("Hospital bill document is required");
+      return;
+    }
+    if (!patientDocs.prescription?.file) {
+      alert("Prescription document is required");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const response = await callAddPatientAPI();
+      const savedPatient = {
+        id:
+          response?.patient?.patient_id || response?.patient_id || generatedId,
+        name: form.fullName,
+        age: form.dob
+          ? new Date().getFullYear() - parseInt(form.dob.slice(-4) || 2000)
+          : "—",
+        insurer: form.insurer || "—",
+        procedure: form.procedure || "—",
+        status: "Discharged",
+        claims: 0,
+        initials: getInitials(form.fullName),
+        dob: form.dob,
+        gender: form.gender,
+        policy: form.policy,
+        phone: form.phone,
+        admitted: form.admissionDate,
+        discharged: "—",
+        hasClaim: false,
+      };
+      setSavedName(form.fullName);
+      setSavedMessage(savedPatient.id);
+      onSave(savedPatient);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveAnother = async () => {
+    if (!form.fullName.trim()) {
+      alert("Full name is required");
+      return;
+    }
+    if (!form.phone.trim()) {
+      alert("Phone number is required");
+      return;
+    }
+    if (!patientDocs.insurance?.file) {
+      alert("Insurance policy document is required");
+      return;
+    }
+    if (!patientDocs.hospitalBill?.file) {
+      alert("Hospital bill document is required");
+      return;
+    }
+    if (!patientDocs.prescription?.file) {
+      alert("Prescription document is required");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const response = await callAddPatientAPI();
+      const savedPatient = {
+        id:
+          response?.patient?.patient_id || response?.patient_id || generatedId,
+        name: form.fullName,
+        age: form.dob
+          ? new Date().getFullYear() - parseInt(form.dob.slice(-4) || 2000)
+          : "—",
+        insurer: form.insurer || "—",
+        procedure: form.procedure || "—",
+        status: "Discharged",
+        claims: 0,
+        initials: getInitials(form.fullName),
+        dob: form.dob,
+        gender: form.gender,
+        policy: form.policy,
+        phone: form.phone,
+        admitted: form.admissionDate,
+        discharged: "—",
+        hasClaim: false,
+      };
+      onSaveAndAnother(savedPatient, form.fullName, savedPatient.id);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ── Shared document upload row renderer
+  const renderDocRow = (mobile = false) => (
+    <View style={{ flexDirection: "row", gap: mobile ? 10 : 14, marginTop: 4 }}>
+      {DOC_CONFIG.map((cfg) => {
+        const docState = patientDocs[cfg.key];
+        const hasFile = !!docState?.file;
+        return (
+          <TouchableOpacity
+            key={cfg.key}
+            style={{
+              flex: 1,
+              borderWidth: 1.5,
+              borderColor: hasFile ? "#86EFAC" : "#BFDBFE",
+              borderStyle: hasFile ? "solid" : "dashed",
+              borderRadius: 10,
+              backgroundColor: hasFile ? "#F0FDF4" : "#F0F7FF",
+              paddingVertical: mobile ? 14 : 18,
+              paddingHorizontal: mobile ? 6 : 10,
+              alignItems: "center",
+              position: "relative",
+              minHeight: mobile ? 100 : 110,
+            }}
+            onPress={() =>
+              Platform.OS === "web"
+                ? openDocPicker(cfg.key)
+                : openDocPickerMobile(cfg.key)
+            }
+            activeOpacity={0.8}
+          >
+            {hasFile && (
+              <TouchableOpacity
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  right: 6,
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  backgroundColor: "#EF4444",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  zIndex: 10,
+                }}
+                onPress={(e) => {
+                  e?.stopPropagation?.();
+                  removeDoc(cfg.key);
+                }}
+                hitSlop={{ top: 6, right: 6, bottom: 6, left: 6 }}
+              >
+                <Text
+                  style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}
+                >
+                  ✕
+                </Text>
+              </TouchableOpacity>
+            )}
+            <Text style={{ fontSize: 22, marginBottom: 6 }}>{cfg.icon}</Text>
+            <Text
+              style={{
+                fontSize: mobile ? 11 : 12,
+                fontWeight: "700",
+                color: "#1D4ED8",
+                textAlign: "center",
+                marginBottom: 4,
+              }}
+            >
+              {cfg.label}
+            </Text>
+            {hasFile ? (
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: "#374151",
+                  textAlign: "center",
+                  marginTop: 4,
+                }}
+                numberOfLines={2}
+              >
+                {docState.name}
+              </Text>
+            ) : (
+              <Text
+                style={{ fontSize: 11, color: "#6B7280", textAlign: "center" }}
+              >
+                Tap to upload{"\n"}
+                <Text style={{ fontSize: 10, color: "#9CA3AF" }}>
+                  PDF / JPG / PNG
+                </Text>
+              </Text>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
+  // ── MOBILE FORM
   if (isMobile) {
     return (
       <ScrollView
@@ -565,7 +979,6 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
       >
         <Text style={mobileFormStyles.sectionHeading}>Patient Details :</Text>
 
-        {/* Full Name */}
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>
             Full name <Text style={{ color: "#EF4444" }}>*</Text>
@@ -579,11 +992,8 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Date of Birth */}
         <View style={mobileFormStyles.fieldGroup}>
-          <Text style={mobileFormStyles.label}>
-            Date of birth <Text style={{ color: "#EF4444" }}>*</Text>
-          </Text>
+          <Text style={mobileFormStyles.label}>Date of birth</Text>
           <TextInput
             style={mobileFormStyles.input}
             placeholder="dd-mm-yyyy"
@@ -593,7 +1003,6 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Patient ID (auto) */}
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Patient ID</Text>
           <TextInput
@@ -604,11 +1013,8 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Gender */}
         <View style={mobileFormStyles.fieldGroup}>
-          <Text style={mobileFormStyles.label}>
-            Gender <Text style={{ color: "#EF4444" }}>*</Text>
-          </Text>
+          <Text style={mobileFormStyles.label}>Gender</Text>
           <MobileSelectField
             value={form.gender}
             options={GENDERS}
@@ -617,9 +1023,10 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Phone */}
         <View style={mobileFormStyles.fieldGroup}>
-          <Text style={mobileFormStyles.label}>Phone no</Text>
+          <Text style={mobileFormStyles.label}>
+            Phone no <Text style={{ color: "#EF4444" }}>*</Text>
+          </Text>
           <TextInput
             style={mobileFormStyles.input}
             placeholder="+91 9823400998"
@@ -630,7 +1037,6 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Insurance Policy Number */}
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Insurance policy number</Text>
           <TextInput
@@ -642,7 +1048,6 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Insurer */}
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Insurer</Text>
           <MobileSelectField
@@ -653,7 +1058,6 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Admission Date */}
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Admission date</Text>
           <TextInput
@@ -665,7 +1069,6 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Diagnosis / Procedure */}
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Diagnosis/Procedure</Text>
           <TextInput
@@ -677,7 +1080,6 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Assign Doctor */}
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Assign Doctor</Text>
           <MobileSelectField
@@ -688,29 +1090,14 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
 
-        {/* Import from Excel/CSV */}
-        <Text style={mobileFormStyles.importLabel}>
-          1. Import from excel/csv
-        </Text>
-        <View style={mobileFormStyles.uploadBox}>
-          <Text style={{ fontSize: 20, marginBottom: 6 }}>⬆</Text>
-          <Text style={{ fontSize: 13, color: "#6B7280", textAlign: "center" }}>
-            Upload patient list (.xlsx or .csv){" "}
-            <Text style={{ color: "#2563EB", fontWeight: "600" }}>
-              Click here
-            </Text>
+        {/* Documents */}
+        <View style={mobileFormStyles.fieldGroup}>
+          <Text style={mobileFormStyles.label}>
+            Upload Documents <Text style={{ color: "#EF4444" }}>*</Text>
           </Text>
+          {renderDocRow(true)}
         </View>
-        <TouchableOpacity style={mobileFormStyles.downloadBtn}>
-          <Text style={mobileFormStyles.downloadBtnText}>
-            Download Template
-          </Text>
-        </TouchableOpacity>
-        <Text style={mobileFormStyles.downloadHint}>
-          Not sure of format? download our template first
-        </Text>
 
-        {/* Saved success pill */}
         {savedMessage !== "" && (
           <View style={mobileFormStyles.savedPill}>
             <Text style={mobileFormStyles.savedPillText}>
@@ -723,23 +1110,59 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           </View>
         )}
 
-        {/* Action Buttons */}
         <TouchableOpacity
-          style={mobileFormStyles.saveAnotherBtn}
+          style={[
+            mobileFormStyles.saveAnotherBtn,
+            isSaving && { opacity: 0.6 },
+          ]}
           onPress={handleSaveAnother}
+          disabled={isSaving}
         >
-          <Text style={mobileFormStyles.saveAnotherBtnText}>
-            Save & Register Another Patient →
-          </Text>
+          {isSaving ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                justifyContent: "center",
+              }}
+            >
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={mobileFormStyles.saveAnotherBtnText}>Saving...</Text>
+            </View>
+          ) : (
+            <Text style={mobileFormStyles.saveAnotherBtnText}>
+              Save & Register Another Patient →
+            </Text>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity style={mobileFormStyles.saveBtn} onPress={handleSave}>
-          <Text style={mobileFormStyles.saveBtnText}>Save Patient</Text>
+
+        <TouchableOpacity
+          style={[mobileFormStyles.saveBtn, isSaving && { opacity: 0.6 }]}
+          onPress={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                justifyContent: "center",
+              }}
+            >
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={mobileFormStyles.saveBtnText}>Saving...</Text>
+            </View>
+          ) : (
+            <Text style={mobileFormStyles.saveBtnText}>Save Patient</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     );
   }
 
-  // ── WEB / TABLET FORM (original layout unchanged) ────────────
+  // ── WEB FORM
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
@@ -761,12 +1184,10 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>
-            Date of birth <Text style={{ color: "#EF4444" }}>*</Text>
-          </Text>
+          <Text style={styles.formLabel}>Date of birth</Text>
           <TextInput
             style={styles.formInput}
-            placeholder="Select department"
+            placeholder="dd-mm-yyyy"
             placeholderTextColor="#9CA3AF"
             value={form.dob}
             onChangeText={(v) => set("dob", v)}
@@ -774,7 +1195,7 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
         </View>
       </View>
 
-      <View style={styles.formRow}>
+      <View style={[styles.formRow, { zIndex: 20 }]}>
         <View style={styles.formGroup}>
           <Text style={styles.formLabel}>Patient ID</Text>
           <TextInput
@@ -786,7 +1207,7 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
           />
         </View>
         <SelectRow
-          label="Gender *"
+          label="Gender"
           value={form.gender}
           options={GENDERS}
           onSelect={(v) => set("gender", v)}
@@ -796,7 +1217,9 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
 
       <View style={styles.formRow}>
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>Phone no</Text>
+          <Text style={styles.formLabel}>
+            Phone no <Text style={{ color: "#EF4444" }}>*</Text>
+          </Text>
           <TextInput
             style={styles.formInput}
             placeholder="+91 9823400998"
@@ -818,7 +1241,7 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
         </View>
       </View>
 
-      <View style={styles.formRow}>
+      <View style={[styles.formRow, { zIndex: 15 }]}>
         <SelectRow
           label="Insurer"
           value={form.insurer}
@@ -858,51 +1281,57 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
         />
       </View>
 
-      <View style={styles.importRow}>
-        <Text style={styles.importLabel}>1 Import from excel/csv</Text>
-      </View>
-      <View style={styles.importSection}>
-        <View style={styles.uploadBox}>
-          <Text style={{ fontSize: 22, marginBottom: 6 }}>⬆</Text>
-          <Text style={{ fontSize: 13, color: "#6B7280" }}>
-            Upload patient list (.xlsx or .csv){" "}
-            <Text style={{ color: "#2563EB", fontWeight: "600" }}>
-              Click here
-            </Text>
-          </Text>
-        </View>
-        <View style={styles.downloadBox}>
-          <TouchableOpacity style={styles.downloadBtn}>
-            <Text style={{ fontSize: 12, color: "#374151", fontWeight: "500" }}>
-              Download Template
-            </Text>
-          </TouchableOpacity>
-          <Text style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>
-            Not sure of format? download our template first
-          </Text>
-        </View>
+      {/* Documents */}
+      <View style={{ marginBottom: 20 }}>
+        <Text style={styles.formLabel}>
+          Upload Documents <Text style={{ color: "#EF4444" }}>*</Text>
+        </Text>
+        {renderDocRow(false)}
       </View>
 
       <View style={styles.formActions}>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>Save Patient</Text>
-        </TouchableOpacity>
         <TouchableOpacity
-          style={styles.saveMoreBtn}
-          onPress={handleSaveAnother}
+          style={[styles.saveBtn, isSaving && { opacity: 0.6 }]}
+          onPress={handleSave}
+          disabled={isSaving}
         >
-          <Text style={styles.saveMoreBtnText}>
-            Save & Register Another Patient →
-          </Text>
+          {isSaving ? (
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={styles.saveBtnText}>Saving...</Text>
+            </View>
+          ) : (
+            <Text style={styles.saveBtnText}>Save Patient</Text>
+          )}
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.saveMoreBtn, isSaving && { opacity: 0.6 }]}
+          onPress={handleSaveAnother}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={styles.saveMoreBtnText}>Saving...</Text>
+            </View>
+          ) : (
+            <Text style={styles.saveMoreBtnText}>
+              Save & Register Another Patient →
+            </Text>
+          )}
+        </TouchableOpacity>
+
         {savedMessage !== "" && (
           <View style={styles.savedPill}>
             <Text style={styles.savedPillText}>
-              <Text style={{ fontWeight: "700" }}>
-                {form.fullName || "Patient"}{" "}
-              </Text>
+              <Text style={{ fontWeight: "700" }}>{savedName} </Text>
               saved with Patient ID{" "}
-              <Text style={{ fontWeight: "700" }}>{generatedId}</Text>
+              <Text style={{ fontWeight: "700" }}>{savedMessage}</Text>
             </Text>
           </View>
         )}
@@ -1411,7 +1840,11 @@ const MobileInlineDetail = ({ patient, navigation }) => {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 const HospitalPatientManagement = ({ navigation }) => {
-  const [patients, setPatients] = useState(INITIAL_PATIENTS);
+  // const [patients, setPatients] = useState(INITIAL_PATIENTS);
+  const [patients, setPatients] = useState([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+  const [patientsError, setPatientsError] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
   const [activeTab, setActiveTab] = useState("view");
   const [searchText, setSearchText] = useState("");
   const [selectedInsurer, setSelectedInsurer] = useState("All Insurers");
@@ -1432,6 +1865,56 @@ const HospitalPatientManagement = ({ navigation }) => {
     // { key: "add_doctor", label: "+ Add Doctor" },
   ];
 
+  const fetchPatients = useCallback(
+    async (cursor = null) => {
+      try {
+        setPatientsLoading(true);
+        setPatientsError(null);
+        const token = await AsyncStorage.getItem("token");
+        const hospitalId = await AsyncStorage.getItem("hospital_id");
+        console.log("TOKEN:", token);
+        console.log("HOSPITAL_ID:", hospitalId);
+        if (!token || !hospitalId) {
+          setPatientsError("Not authenticated. Please log in again.");
+          return;
+        }
+        const res = await fetch(
+          `${API_URL}/hospitals/${hospitalId}/patients?limit=50${cursor ? `&cursor=${cursor}` : ""}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+        if (res.status === 403) {
+          setPatientsError("Access denied. Hospital account may be disabled.");
+          return;
+        }
+        if (!res.ok) {
+          setPatientsError(`Failed to load patients (${res.status})`);
+          return;
+        }
+        const data = await res.json();
+        console.log("FULL API RESPONSE:", JSON.stringify(data, null, 2));
+        const mapped = (data.patients || []).map(mapApiPatient);
+        setPatients((prev) => (cursor ? [...prev, ...mapped] : mapped));
+        setNextCursor(data.next_cursor || null);
+      } catch (err) {
+        setPatientsError("Network error. Please check your connection.");
+        console.error("fetchPatients error:", err);
+      } finally {
+        setPatientsLoading(false);
+      }
+    },
+    [mapApiPatient],
+  );
+
+  useEffect(() => {
+    fetchPatients();
+  }, [fetchPatients]);
+
   const filteredPatients = patients.filter((p) => {
     const matchSearch =
       searchText === "" ||
@@ -1442,25 +1925,6 @@ const HospitalPatientManagement = ({ navigation }) => {
     return matchSearch && matchInsurer;
   });
 
-  // ── Open / close patient detail panel ──
-  // const openDetail = (patient) => {
-  //   setSelectedPatient(patient);
-  //   Animated.spring(slideAnim, {
-  //     toValue: 1,
-  //     useNativeDriver: false,
-  //     tension: 60,
-  //     friction: 10,
-  //   }).start();
-  // };
-
-  // const closeDetail = () => {
-  //   Animated.spring(slideAnim, {
-  //     toValue: 0,
-  //     useNativeDriver: false,
-  //     tension: 60,
-  //     friction: 10,
-  //   }).start(() => setSelectedPatient(null));
-  // };
   // ── Open / close patient detail panel ──
   const openDetail = (patient) => {
     if (Platform.OS !== "web") {
@@ -1684,6 +2148,33 @@ const HospitalPatientManagement = ({ navigation }) => {
               <Text style={styles.addBtnText}>+ Add</Text>
             </TouchableOpacity>
           </View>
+          {patientsLoading && (
+            <View style={{ padding: 20, alignItems: "center" }}>
+              <Text style={{ color: "#6B7280", fontSize: 13 }}>
+                Loading patients...
+              </Text>
+            </View>
+          )}
+          {patientsError && (
+            <View
+              style={{
+                padding: 16,
+                backgroundColor: "#FEF2F2",
+                margin: 12,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: "#DC2626", fontSize: 13 }}>
+                {patientsError}
+              </Text>
+              <TouchableOpacity
+                onPress={() => fetchPatients()}
+                style={{ marginTop: 8 }}
+              >
+                <Text style={{ color: "#2563EB", fontSize: 13 }}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Patient List */}
           <ScrollView
@@ -1779,7 +2270,7 @@ const HospitalPatientManagement = ({ navigation }) => {
             </View>
 
             {/* Unlinked banner */}
-            <View style={[styles.unlinkedBanner, { marginTop: 16 }]}>
+            {/* <View style={[styles.unlinkedBanner, { marginTop: 16 }]}>
               <Text
                 style={{ color: "#92400E", fontSize: 12, fontWeight: "600" }}
               >
@@ -1819,7 +2310,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                   </Text>
                 </View>
               ))}
-            </View>
+            </View> */}
             <View style={{ height: 30 }} />
           </ScrollView>
         </>
@@ -1962,6 +2453,35 @@ const HospitalPatientManagement = ({ navigation }) => {
             >
               {/* LIST PANE */}
               <Animated.View style={[styles.listPane, { flex: listFlex }]}>
+                {patientsLoading && (
+                  <View style={{ padding: 20, alignItems: "center" }}>
+                    <Text style={{ color: "#6B7280", fontSize: 13 }}>
+                      Loading patients...
+                    </Text>
+                  </View>
+                )}
+                {patientsError && (
+                  <View
+                    style={{
+                      padding: 16,
+                      backgroundColor: "#FEF2F2",
+                      margin: 12,
+                      borderRadius: 8,
+                    }}
+                  >
+                    <Text style={{ color: "#DC2626", fontSize: 13 }}>
+                      {patientsError}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => fetchPatients()}
+                      style={{ marginTop: 8 }}
+                    >
+                      <Text style={{ color: "#2563EB", fontSize: 13 }}>
+                        Retry
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
                 <ScrollView showsVerticalScrollIndicator={false}>
                   <View style={styles.listContainer}>
                     {filteredPatients.map((patient, index) => (
@@ -2019,7 +2539,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                     ))}
                   </View>
 
-                  <View style={styles.unlinkedBanner}>
+                  {/* <View style={styles.unlinkedBanner}>
                     <Text
                       style={{
                         color: "#92400E",
@@ -2075,7 +2595,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                         </View>
                       </View>
                     ))}
-                  </View>
+                  </View> */}
                   <View style={{ height: 30 }} />
                 </ScrollView>
               </Animated.View>
@@ -2164,19 +2684,7 @@ const HospitalPatientManagement = ({ navigation }) => {
   }
 
   // ── MOBILE LAYOUT ────────────────────────────────────────────
-  // return (
-  //   <SafeAreaView style={{ flex: 1, backgroundColor: "#F1F5F9" }}>
-  //     <View style={{ zIndex: 2 }}>
-  //       <HeaderLoginSignUp navigation={navigation} />
-  //     </View>
-  //     <ScrollView
-  //       contentContainerStyle={{ padding: 16, flexGrow: 1 }}
-  //       showsVerticalScrollIndicator={false}
-  //     >
-  //       {renderCard()}
-  //     </ScrollView>
-  //   </SafeAreaView>
-  // );
+  
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#F1F5F9" }}>
       <View style={{ zIndex: 2 }}>
@@ -2670,6 +3178,21 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: "#fff",
   },
+  // selectMenu: {
+  //   position: "absolute",
+  //   top: 62,
+  //   left: 0,
+  //   right: 0,
+  //   backgroundColor: "#fff",
+  //   borderWidth: 1,
+  //   borderColor: "#E5E7EB",
+  //   borderRadius: 8,
+  //   zIndex: 9999,
+  //   shadowColor: "#000",
+  //   shadowOpacity: 0.12,
+  //   shadowRadius: 8,
+  //   elevation: 20,
+  // },
   selectMenu: {
     position: "absolute",
     top: 62,
@@ -2684,6 +3207,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 20,
+    overflow: "visible", // ← add this
   },
   selectMenuItem: {
     paddingHorizontal: 14,
