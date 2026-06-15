@@ -676,7 +676,7 @@ const AbhaExistingPatient = ({ onBack }) => {
   const [sendOtpLoading, setSendOtpLoading] = useState(false);
 
   // Mobile-based login state
-  const [loginMode, setLoginMode] = useState("abha"); // "abha" | "mobile"
+  const [loginMode, setLoginMode] = useState("mobile"); // "abha" | "mobile"
   const [regMobile, setRegMobile] = useState("");
   const [mobileTxnId, setMobileTxnId] = useState("");
   const [tToken, setTToken] = useState("");
@@ -1598,36 +1598,6 @@ const AbhaExistingPatient = ({ onBack }) => {
               paddingVertical: 10,
               alignItems: "center",
             },
-            loginMode === "abha" && {
-              backgroundColor: "#EFF6FF",
-              borderColor: "#2563EB",
-            },
-          ]}
-          onPress={() => {
-            setLoginMode("abha");
-            setApiError("");
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: "600",
-              color: loginMode === "abha" ? "#2563EB" : "#374151",
-            }}
-          >
-            ABHA Number / Address
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            {
-              flex: 1,
-              borderWidth: 1,
-              borderColor: "#E5E7EB",
-              borderRadius: 8,
-              paddingVertical: 10,
-              alignItems: "center",
-            },
             loginMode === "mobile" && {
               backgroundColor: "#EFF6FF",
               borderColor: "#2563EB",
@@ -1648,6 +1618,37 @@ const AbhaExistingPatient = ({ onBack }) => {
             Registered Mobile Number
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            {
+              flex: 1,
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+              borderRadius: 8,
+              paddingVertical: 10,
+              alignItems: "center",
+            },
+            loginMode === "abha" && {
+              backgroundColor: "#EFF6FF",
+              borderColor: "#2563EB",
+            },
+          ]}
+          onPress={() => {
+            setLoginMode("abha");
+            setApiError("");
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              color: loginMode === "abha" ? "#2563EB" : "#374151",
+            }}
+          >
+            ABHA Number / Address
+          </Text>
+        </TouchableOpacity>
+        
       </View>
 
       {loginMode === "mobile" && (
