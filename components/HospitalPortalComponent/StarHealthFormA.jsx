@@ -24,8 +24,8 @@ import {
 import {
   downloadInsuranceClaim,
   generateInsuranceFormHTML,
-} from "../../utils/StarHealthFormB";
-import { mapToStarHealthFormB } from "../../utils/StarHealthMapper";
+} from "../../utils/StarHealthFormA";
+import { mapToStarHealthFormA } from "../../utils/StarHealthMapper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -426,12 +426,12 @@ function BillsTableEditor({ billRows, onBillChange }) {
   );
 }
 
-export default function HospitalInsuranceDownload({ navigation, route }) {
-  const analysisData = route?.params?.analysisData;
+export default function StarHealthFormA({ navigation, analysisData }) {
+  //const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
 
   const formSeed = useMemo(
-    () => mapToStarHealthFormB(analysisData),
+    () => mapToStarHealthFormA(analysisData),
     [analysisData],
   );
 
