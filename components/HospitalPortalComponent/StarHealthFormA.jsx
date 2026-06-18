@@ -384,12 +384,10 @@ function BillsTableEditor({ billRows, onBillChange }) {
           </View>
 
           <View style={[stylesWeb.tableCell, { width: 120 }]}>
-            <CharBoxRow
-              length={6}
+            <TextInput
+              style={stylesWeb.tableTextInput}
               value={row.date}
-              onChange={(text) => onBillChange(rowIndex, "date", text)}
-              rowStyle={stylesWeb.tableCharRow}
-              boxStyle={stylesWeb.squareBoxSmall}
+              onChangeText={(text) => onBillChange(rowIndex, "date", text)}
               keyboardType="numeric"
             />
           </View>
@@ -411,12 +409,10 @@ function BillsTableEditor({ billRows, onBillChange }) {
           </View>
 
           <View style={[stylesWeb.tableCell, { width: 200 }]}>
-            <CharBoxRow
-              length={8}
+            <TextInput
+              style={stylesWeb.tableTextInput}
               value={row.amount}
-              onChange={(text) => onBillChange(rowIndex, "amount", text)}
-              rowStyle={stylesWeb.tableCharRow}
-              boxStyle={stylesWeb.squareBoxSmall}
+              onChangeText={(text) => onBillChange(rowIndex, "amount", text)}
               keyboardType="numeric"
             />
           </View>
@@ -426,7 +422,387 @@ function BillsTableEditor({ billRows, onBillChange }) {
   );
 }
 
-export default function StarHealthFormA({ navigation, analysisData }) {
+const STAR_HEALTH_FORM_A_SECTIONS = [
+  {
+    title: "A. Details of Primary Insured",
+    fields: [
+      ["policyNumber", "Policy No."],
+      ["certificateNumber", "Sl. No. / Certificate No."],
+      ["tpaId", "Company / TPA ID"],
+      ["primaryName", "Name"],
+      ["primaryAddressRow1", "Address line 1", true],
+      ["primaryAddressRow2", "Address line 2", true],
+      ["primaryCity", "City"],
+      ["primaryState", "State"],
+      ["primaryPin", "Pin Code"],
+      ["primaryPhone", "Phone No."],
+      ["primaryEmail", "Email ID"],
+    ],
+  },
+  {
+    title: "B. Insurance History",
+    fields: [
+      ["insuranceFirstCommencementDate", "First insurance commencement date"],
+      ["insuranceCompanyName", "Insurance company name"],
+      ["insurancePolicyNo", "Policy No."],
+      ["insuranceSumInsured", "Sum insured"],
+      ["hospitalizationHistoryDate", "Hospitalization date"],
+      ["diagnosis", "Diagnosis", true],
+      ["previousMediclaimCompanyName", "Previous mediclaim company name"],
+    ],
+    yesNo: [
+      ["bCurrentlyOther", "Currently covered by other Mediclaim / Health Insurance"],
+      ["bHosp4Y", "Hospitalized in the last four years"],
+      ["bPreviouslyOther", "Previously covered by any other Mediclaim"],
+    ],
+  },
+  {
+    title: "C. Details of Insured Person Hospitalized",
+    fields: [
+      ["hospitalizedName", "Name"],
+      ["gender", "Gender"],
+      ["ageYears", "Age years"],
+      ["ageMonths", "Age months"],
+      ["dob", "Date of birth"],
+      ["relationship", "Relationship"],
+      ["relationshipSpecify", "Relationship specify"],
+      ["occupation", "Occupation"],
+      ["occupationSpecify", "Occupation specify"],
+      ["hospAddressRow1", "Address line 1", true],
+      ["hospAddressRow2", "Address line 2", true],
+      ["hospCity", "City"],
+      ["hospState", "State"],
+      ["hospPin", "Pin Code"],
+      ["hospPhone", "Phone No."],
+      ["hospEmail", "Email ID"],
+    ],
+  },
+  {
+    title: "D. Hospitalization Details",
+    fields: [
+      ["hospitalName", "Name of hospital"],
+      ["roomCategory", "Room category"],
+      ["hospitalizationCause", "Hospitalization due to"],
+      ["injuryDate", "Date of injury / disease"],
+      ["admissionDate", "Admission date"],
+      ["admissionTime", "Admission time"],
+      ["dischargeDate", "Discharge date"],
+      ["dischargeTime", "Discharge time"],
+      ["treatingDoctor", "Treating doctor"],
+      ["systemOfMedicine", "System of medicine"],
+      ["declarationPlace", "Place"],
+    ],
+    yesNo: [
+      ["medicoLegal", "Medico legal"],
+      ["domiciliary", "Domiciliary hospitalization"],
+    ],
+    booleans: [
+      ["injurySelf", "Self inflicted"],
+      ["injuryRta", "Road traffic accident"],
+      ["injurySubstance", "Alcohol / substance abuse"],
+      ["reportedPolice", "Reported to police"],
+      ["firYes", "FIR yes"],
+      ["firNo", "FIR no"],
+    ],
+  },
+  {
+    title: "E. Claim Details",
+    fields: [
+      ["claimPre", "Pre-hospitalization expenses"],
+      ["claimHospital", "Hospitalization expenses"],
+      ["claimPost", "Post-hospitalization expenses"],
+      ["claimHealthCheckup", "Health check-up cost"],
+      ["claimAmbulance", "Ambulance charges"],
+      ["claimOtherCode", "Other code"],
+      ["claimOtherAmount", "Other amount"],
+      ["claimTotal", "Total"],
+      ["claimPreHospitalDays", "Pre-hospitalization days"],
+      ["claimPostHospitalDays", "Post-hospitalization days"],
+      ["claimHospitalDailyCash", "Hospital daily cash"],
+      ["claimSurgicalCash", "Surgical cash"],
+      ["claimCriticalIllness", "Critical illness benefit"],
+      ["claimConvalescence", "Convalescence"],
+      ["claimPrePostBenefit", "Pre/post lump sum benefit"],
+      ["claimOtherBenefit", "Other benefit"],
+    ],
+  },
+  {
+    title: "G. Bank Account Details",
+    fields: [
+      ["pan", "PAN"],
+      ["accountNumber", "Account number"],
+      ["bankNameBranch", "Bank name and branch"],
+      ["ifscCode", "IFSC code"],
+      ["chequeDetails", "Cheque / DD payable details"],
+    ],
+  },
+  {
+    title: "H. Declaration",
+    fields: [
+      ["declarationDate", "Date"],
+      ["declarationPlace", "Place"],
+    ],
+  },
+];
+
+const DOC_CHECKLIST_LABELS = [
+  "Claim form duly signed",
+  "Copy of photo ID card",
+  "Hospital discharge summary",
+  "Final hospital bill",
+  "Detailed break-up bill",
+  "Payment receipts",
+  "Investigation reports",
+  "Medicine bills",
+  "Prescriptions",
+  "MLC / FIR copy",
+  "Cancelled cheque",
+  "KYC documents",
+  "Other documents",
+];
+
+function editDisplayValue(value) {
+  return String(value ?? "").replace(/\s+$/g, "");
+}
+
+function EditableField({ label, value, onChange, multiline }) {
+  return (
+    <View style={stylesWeb.editField}>
+      <Text style={stylesWeb.editLabel}>{label}</Text>
+      <TextInput
+        style={[stylesWeb.editInput, multiline && stylesWeb.editInputMulti]}
+        value={editDisplayValue(value)}
+        onChangeText={onChange}
+        multiline={!!multiline}
+        textAlignVertical={multiline ? "top" : "center"}
+        autoCorrect={false}
+        autoCapitalize="none"
+        selectTextOnFocus={false}
+        blurOnSubmit={false}
+      />
+    </View>
+  );
+}
+
+function YesNoField({ label, value, onChange }) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  const choose = (nextValue) => {
+    onChange(normalized === nextValue ? "" : nextValue);
+  };
+
+  return (
+    <View style={stylesWeb.yesNoField}>
+      <Text style={stylesWeb.editLabel}>{label}</Text>
+      <View style={stylesWeb.yesNoGroup}>
+        {["yes", "no"].map((option) => {
+          const selected = normalized === option;
+          return (
+            <TouchableOpacity
+              key={option}
+              style={[
+                stylesWeb.yesNoOption,
+                selected && stylesWeb.yesNoOptionSelected,
+              ]}
+              onPress={() => choose(option)}
+              activeOpacity={0.85}
+            >
+              <View
+                style={[
+                  stylesWeb.checkbox,
+                  selected && CHECKED_BOX_STYLE,
+                ]}
+              />
+              <Text
+                style={[
+                  stylesWeb.yesNoText,
+                  selected && stylesWeb.yesNoTextSelected,
+                ]}
+              >
+                {option === "yes" ? "Yes" : "No"}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function BooleanField({ label, value, onChange }) {
+  const checked = !!value || String(value ?? "").toLowerCase() === "yes";
+  return (
+    <TouchableOpacity
+      style={stylesWeb.editBoolean}
+      onPress={() => onChange(!checked)}
+      activeOpacity={0.8}
+    >
+      <View style={[stylesWeb.checkbox, checked && CHECKED_BOX_STYLE]} />
+      <Text style={stylesWeb.editBooleanText}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function StarHealthFormAEditableContent({
+  form,
+  setField,
+  setBillField,
+  signatureImage,
+  setSignatureImage,
+}) {
+  const updateBillField = (rowIndex, key, value) => {
+    if (setBillField) {
+      setBillField(rowIndex, key, value);
+      return;
+    }
+    const rows = [...(form.billRows || [])];
+    rows[rowIndex] = { ...(rows[rowIndex] || {}), [key]: value };
+    setField("billRows", rows);
+  };
+
+  const toggleChecklist = (index) => {
+    const next = Array.isArray(form.docChecklist)
+      ? [...form.docChecklist]
+      : Array(DOC_CHECKLIST_LABELS.length).fill(false);
+    next[index] = !next[index];
+    setField("docChecklist", next);
+  };
+
+  return (
+    <ScrollView style={stylesWeb.editOnlyScroll}>
+      <View style={stylesWeb.editOnlyRoot}>
+        <View style={stylesWeb.formHeaderContainer}>
+          <View style={{ alignItems: "center" }}>
+            <Image
+              source={require("../../assets/HospitalPortal/Images/StarHealth.jpg")}
+              style={{ width: 180, height: 60, resizeMode: "contain" }}
+            />
+            <Text style={stylesWeb.headerTitle}>
+              STAR HEALTH AND ALLIED INSURANCE COMPANY LIMITED
+            </Text>
+            <Text style={stylesWeb.headerSub}>
+              CLAIM FORM - PART A (editable fields)
+            </Text>
+          </View>
+        </View>
+
+        {STAR_HEALTH_FORM_A_SECTIONS.map((section) => (
+          <View key={section.title} style={stylesWeb.editSection}>
+            <Text style={stylesWeb.editSectionTitle}>{section.title}</Text>
+            <View style={stylesWeb.editGrid}>
+              {section.fields.map(([key, label, multiline]) => (
+                <EditableField
+                  key={key}
+                  label={label}
+                  value={form[key]}
+                  multiline={multiline}
+                  onChange={(text) => setField(key, text)}
+                />
+              ))}
+            </View>
+            {!!section.yesNo?.length && (
+              <View style={stylesWeb.yesNoGrid}>
+                {section.yesNo.map(([key, label]) => (
+                  <YesNoField
+                    key={key}
+                    label={label}
+                    value={form[key]}
+                    onChange={(value) => setField(key, value)}
+                  />
+                ))}
+              </View>
+            )}
+            {!!section.booleans?.length && (
+              <View style={stylesWeb.editBooleanGrid}>
+                {section.booleans.map(([key, label]) => (
+                  <BooleanField
+                    key={key}
+                    label={label}
+                    value={form[key]}
+                    onChange={(value) => setField(key, value)}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        ))}
+
+        <View style={stylesWeb.editSection}>
+          <Text style={stylesWeb.editSectionTitle}>F. Details of Bills Enclosed</Text>
+          <BillsTableEditor
+            billRows={form.billRows || buildInitialBillRows()}
+            onBillChange={updateBillField}
+          />
+        </View>
+
+        <View style={stylesWeb.editSection}>
+          <Text style={stylesWeb.editSectionTitle}>Document Checklist</Text>
+          <View style={stylesWeb.editBooleanGrid}>
+            {DOC_CHECKLIST_LABELS.map((label, index) => (
+              <BooleanField
+                key={label}
+                label={label}
+                value={form.docChecklist?.[index]}
+                onChange={() => toggleChecklist(index)}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={stylesWeb.editSection}>
+          <Text style={stylesWeb.editSectionTitle}>Signature</Text>
+          <TouchableOpacity
+            style={stylesWeb.signatureBox}
+            onPress={() => setSignatureImage?.(signatureImage || null)}
+            activeOpacity={0.8}
+          >
+            {signatureImage ? (
+              <Image
+                source={{ uri: signatureImage }}
+                style={stylesWeb.signatureImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <Text style={stylesWeb.signaturePlaceholder}>
+                Signature can be added from the signature flow.
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
+export default function StarHealthFormA({
+  navigation,
+  analysisData,
+  form: controlledForm,
+  setField: controlledSetField,
+  setBillField: controlledSetBillField,
+  signatureImage: controlledSignatureImage,
+  setSignatureImage: controlledSetSignatureImage,
+}) {
+  if (controlledForm && controlledSetField) {
+    return (
+      <StarHealthFormAEditableContent
+        form={controlledForm}
+        setField={controlledSetField}
+        setBillField={controlledSetBillField}
+        signatureImage={controlledSignatureImage}
+        setSignatureImage={controlledSetSignatureImage}
+      />
+    );
+  }
+
+  return (
+    <StarHealthFormAStandalone
+      navigation={navigation}
+      analysisData={analysisData}
+    />
+  );
+}
+
+function StarHealthFormAStandalone({ navigation, analysisData }) {
   //const analysisData = route?.params?.analysisData;
   const { width } = useWindowDimensions();
 
@@ -4450,6 +4826,116 @@ const stylesWeb = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+  },
+  editOnlyScroll: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  editOnlyRoot: {
+    padding: 14,
+    backgroundColor: "#fff",
+  },
+  editSection: {
+    borderWidth: 1,
+    borderColor: "#D0D5DD",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    backgroundColor: "#fff",
+  },
+  editSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 10,
+  },
+  editGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  editField: {
+    minWidth: 220,
+    flexGrow: 1,
+    flexBasis: "31%",
+  },
+  editLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 4,
+  },
+  editInput: {
+    minHeight: 36,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 13,
+    color: "#111827",
+    backgroundColor: "#fff",
+  },
+  editInputMulti: {
+    minHeight: 72,
+  },
+  editBooleanGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 6,
+  },
+  editBoolean: {
+    minWidth: 210,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingRight: 8,
+  },
+  editBooleanText: {
+    fontSize: 12,
+    color: "#374151",
+  },
+  yesNoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 10,
+  },
+  yesNoField: {
+    minWidth: 280,
+    flexGrow: 1,
+    flexBasis: "31%",
+  },
+  yesNoGroup: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 6,
+    overflow: "hidden",
+    alignSelf: "flex-start",
+    backgroundColor: "#fff",
+  },
+  yesNoOption: {
+    minWidth: 84,
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    borderRightWidth: 1,
+    borderRightColor: "#CBD5E1",
+  },
+  yesNoOptionSelected: {
+    backgroundColor: "#E8F0FE",
+  },
+  yesNoText: {
+    fontSize: 12,
+    color: "#374151",
+    fontWeight: "600",
+  },
+  yesNoTextSelected: {
+    color: "#1565C0",
   },
   headerTitle: {
     fontSize: 14,
