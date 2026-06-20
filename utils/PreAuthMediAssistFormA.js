@@ -37,6 +37,22 @@ function boxes(value, count) {
     .join("");
 }
 
+/** Renders a row of boxes that show a hint letter (D/M/Y/H) when empty, the actual digit when filled */
+function hintBoxes(value, hints, small = false) {
+  const len = hints.length;
+  const padded = String(value ?? "")
+    .padEnd(len, " ")
+    .slice(0, len);
+  const cls = small ? "cb-sm" : "cb";
+  return hints
+    .map((h, i) => {
+      const ch = padded[i];
+      if (ch && ch !== " ") return `<span class="${cls}">${esc(ch)}</span>`;
+      return `<span class="${cls} cb-hint">${esc(h)}</span>`;
+    })
+    .join("");
+}
+
 /** Square checkbox — filled blue when checked=true */
 function chk(checked) {
   return checked
@@ -124,12 +140,20 @@ function sigBlock(dataUrl) {
 
 function isYes(value) {
   if (value === true) return true;
-  return String(value ?? "").trim().toLowerCase() === "yes";
+  return (
+    String(value ?? "")
+      .trim()
+      .toLowerCase() === "yes"
+  );
 }
 
 function isNo(value) {
   if (value === false) return true;
-  return String(value ?? "").trim().toLowerCase() === "no";
+  return (
+    String(value ?? "")
+      .trim()
+      .toLowerCase() === "no"
+  );
 }
 
 /* ─────────────────────────────────────────────
@@ -141,22 +165,16 @@ export function generateMediAssistFormAHTML(form, signatureDataUrl = null) {
   const f = form ?? {};
   const patientName =
     f.patientName || f.hospitalizedName || f.primaryName || "";
-  const contactNumber =
-    f.contactNumber || f.hospPhone || f.primaryPhone || "";
-  const insurerIdCardNo =
-    f.insurerIdCardNo || f.certificateNumber || "";
-  const policyNumberCorporate =
-    f.policyNumberCorporate || f.policyNumber || "";
-  const insurerName =
-    f.insurerName || f.tpaId || "";
+  const contactNumber = f.contactNumber || f.hospPhone || f.primaryPhone || "";
+  const insurerIdCardNo = f.insurerIdCardNo || f.certificateNumber || "";
+  const policyNumberCorporate = f.policyNumberCorporate || f.policyNumber || "";
+  const insurerName = f.insurerName || f.tpaId || "";
   const hospitalLocation =
-    f.hospitalLocation ||
-    [f.hospCity, f.hospState].filter(Boolean).join(", ");
+    f.hospitalLocation || [f.hospCity, f.hospState].filter(Boolean).join(", ");
   const hospitalEmail = f.hospitalEmail || f.hospEmail || "";
   const treatingDoctorName = f.treatingDoctorName || f.treatingDoctor || "";
   const treatingDoctorContact = f.treatingDoctorContact || "";
-  const firstConsultationDate =
-    f.firstConsultationDate || "";
+  const firstConsultationDate = f.firstConsultationDate || "";
   const icd10Code = f.icd10Code || "";
   const icd10PcsCode = f.icd10PcsCode || "";
   const dateOfInjury = f.dateOfInjury || f.injuryDate || "";
@@ -1797,6 +1815,744 @@ body {
 }
 
 /* ─────────────────────────────────────────────
+   EXPORT: generateMediAssistFormAPage2HTML
+   Page 2 — Cost estimates, chronic history,
+   declarations, hospital declaration, documents.
+───────────────────────────────────────────── */
+// export function generateMediAssistFormAPage2HTML(
+//   form,
+//   signatureDataUrl = null,
+// ) {
+//   const f = form ?? {};
+//   const patientName =
+//     f.patientName || f.hospitalizedName || f.primaryName || "";
+//   const contactNumber = f.contactNumber || f.hospPhone || f.primaryPhone || "";
+//   const treatingDoctorName =
+//     f.declarationDoctorName || f.treatingDoctorName || f.treatingDoctor || "";
+
+//   const costRows = [
+//     [
+//       "g) Per Day Room Rent + Nursing & Service charges + Patient's Diet:",
+//       f.costRoomRent,
+//     ],
+//     ["h) Expected cost for investigation + diagnostics:", f.costInvestigation],
+//     ["i) ICU Charges:", f.costIcu],
+//     ["j) OT Charges:", f.costOt],
+//     [
+//       "k) Professional fees Surgeon + Anesthetist fees + Consultation charges:",
+//       f.costProfessionalFees,
+//     ],
+//     [
+//       "L) Medicines + Consumables cost of Implants: (specify if applicable)",
+//       f.costMedicines,
+//     ],
+//     ["m) Other hospital expenses if any:", f.costOtherExpenses],
+//     [
+//       "n) All inclusive package charges if any applicable:",
+//       f.costPackageCharges,
+//     ],
+//     ["o) Sum Total expected cost of hospitalization:", f.costTotal],
+//   ];
+
+//   const costRowsHtml = costRows
+//     .map(
+//       ([label, val]) => `
+//     <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:4px;">
+//       <span class="lbl" style="font-size:7.5px;flex:1;">${esc(label)}</span>
+//       <span class="txt" style="font-size:7.5px;margin-right:2px;">Rs.</span>
+//       <span class="uline" style="min-width:70px;">${esc(val || "")}</span>
+//     </div>`,
+//     )
+//     .join("");
+
+//   const chronicItems = [
+//     ["chronicDiabetes", "1. Diabetes"],
+//     ["chronicHeartDisease", "2. Heart Disease"],
+//     ["chronicHypertension", "3. Hypertension"],
+//     ["chronicHyperlipidemia", "4. Hyperlipidemias"],
+//     ["chronicOsteoarthritis", "5. Osteoarthritis"],
+//     ["chronicAsthma", "6. Asthma/ COPD / Bronchitis"],
+//     ["chronicCancer", "7. Cancer"],
+//     ["chronicAlcohol", "8. Alcohol or drug abuse"],
+//     ["chronicHiv", "9. Any HIV or STD / related ailments"],
+//   ];
+
+//   const chronicHtml = chronicItems
+//     .map(
+//       ([key, label]) => `
+//     <div class="row" style="align-items:center;gap:4px;margin-bottom:3px;">
+//       ${chk(!!f[key])}
+//       <span class="txt" style="font-size:7px;flex:1;">${esc(label)}</span>
+//       <span class="uline" style="min-width:40px;font-size:6px;">${esc(f[key + "Date"] || "")}</span>
+//     </div>`,
+//     )
+//     .join("");
+
+//   const patientDeclPoints = [
+//     "a. I agree to allow the hospital to submit all original documents pertaining to hospitalization to the Insurer/TPA after the discharge.",
+//     "b. Payment to hospital is governed by the terms and conditions of the policy.",
+//     "c. All non-medical expenses not relevant to current hospitalization will be paid by me.",
+//     "d. I hereby declare to abide by the terms and conditions of the policy.",
+//     "e. I agree and understand that TPA is in no way warranting the service of the hospital.",
+//     "f. I hereby warrant the truth of the forgoing particulars in every respect.",
+//     "g. I agree to indemnify the hospital against all expenses incurred on my behalf.",
+//     'h. "I/We authorize Insurance Company/TPA to contact me/us through mobile/email for any update on this claim"',
+//   ];
+
+//   const hospitalDeclPoints = [
+//     "a. We have no objection to any authorized TPA / Insurance Company official verifying documents.",
+//     "b. All valid original documents will be sent to TPA within 7 days of the patient's discharge.",
+//     "c. We agree that TPA will not be liable to make payment in case of discrepancy.",
+//     "d. The patient declaration has been signed in our presence.",
+//     "e. We agree to provide clarifications for queries raised.",
+//     "f. We will abide by the terms and conditions agreed in the MOU.",
+//     "g. No additional amount would be collected from the insured in excess of Agreed Package Rates.",
+//     "h. No recoveries would be made from the deposit except for non-admissible amounts.",
+//     "i. In the event of unauthorized recovery, the TPA reserves the right to recover the same from us.",
+//   ];
+
+//   const documentsPoints = [
+//     "1. Detailed Discharge Summary and all Bills from the hospital.",
+//     "2. Cash Memos from the Hospitals / Chemists supported by proper prescription.",
+//     "3. Receipts and Pathological Test Reports from Pathologists.",
+//     "4. Surgeon's Certificate stating nature of Operation performed.",
+//     "5. Certificates from attending Medical Practitioner that the patient is fully cured.",
+//   ];
+
+//   const declList = (points) =>
+//     points.map((p) => `<div class="decl-text">${esc(p)}</div>`).join("");
+
+//   return `<!DOCTYPE html>
+// <html lang="en">
+// <head>
+// <meta charset="UTF-8"/>
+// <title>Reimbursement Claim Form - Page 2</title>
+// <style>
+// @media print { @page { size: A4 portrait; margin: 0; } body { margin: 0; } }
+// * { box-sizing: border-box; margin: 0; padding: 0; }
+// body { font-family: Arial, Helvetica, sans-serif; font-size: 7px; color: #000; background: #fff; }
+// .page { width: 210mm; min-height: 297mm; padding: 6mm; margin: 0 auto; background: #fff; }
+// .sec-wrap { margin-bottom: 6px; }
+// .sec-body { padding: 3px 4px; }
+// .div-row { display:flex; align-items:center; gap:4px; margin-bottom:6px; }
+// .div-line { flex:1; height:0.6px; background:#444; }
+// .div-label { font-size:7.5px; font-weight:700; white-space:nowrap; }
+// .row { display:flex; align-items:center; flex-wrap:wrap; gap:3px; margin-bottom:4px; }
+// .row-sb { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:3px; margin-bottom:6px; }
+// .lbl { font-size:8px; font-weight:500; white-space:nowrap; }
+// .txt { font-size:8px; }
+// .chkbox { display:inline-block; width:7px; height:7px; border:0.6px solid #333; margin:0 1.5px; vertical-align:middle; font-size:5.5px; text-align:center; line-height:7px; }
+// .chkbox-on { background:#1565C0; color:#fff; }
+// .uline { display:inline-block; border-bottom:0.6px solid #555; min-width:50px; font-size:7px; padding:0 1px; vertical-align:bottom; white-space:nowrap; overflow:hidden; }
+// .uline-lg { min-width:140px; }
+// .uline-xl { min-width:200px; }
+// .decl-text { font-size:6.5px; line-height:1.35; text-align:justify; margin-bottom:3px; }
+// .sig-box { display:inline-block; width:44mm; height:14mm; border:0.6px solid #555; vertical-align:bottom; flex-shrink:0; margin-left:6px; }
+// .sig-filled { padding:1px; overflow:hidden; }
+// .sig-img { display:block; width:100%; height:100%; object-fit:contain; object-position:left bottom; }
+// </style>
+// </head>
+// <body>
+// <div class="page">
+
+//   <div class="sec-wrap">
+//     <div class="sec-body" style="display:flex;gap:10px;">
+//       <div style="flex:1.2;">
+//         ${costRowsHtml}
+//       </div>
+//       <div style="flex:1;border-left:1px solid #ddd;padding-left:8px;">
+//         <div class="lbl" style="font-weight:700;font-size:7.5px;margin-bottom:6px;">
+//           p. Mandatory past history of any chronic illness.<br/>If yes (since month/year)
+//         </div>
+//         ${chronicHtml}
+//         <div class="lbl" style="font-size:7.5px;margin-top:6px;">10. Any other ailment give details:</div>
+//         <div style="height:36px;border:1px solid #666;margin-top:3px;padding:3px;font-size:7px;">${esc(f.chronicOtherDetails || "")}</div>
+//       </div>
+//     </div>
+//   </div>
+
+//   <div class="sec-wrap">
+//     <div class="sec-body">
+//       ${divider("DECLARATION (PLEASE READ VERY CAREFULLY)")}
+//       <div class="decl-text">We confirm having read understood and agreed to the declaration of this form</div>
+//       <div class="row" style="margin-top:6px;">
+//         <span class="lbl" style="font-size:8px;">a) Name of the treating doctor:</span>
+//         <span class="uline uline-xl" style="margin-left:6px;">${esc(treatingDoctorName)}</span>
+//       </div>
+//       <div class="row-sb">
+//         <div class="row" style="gap:4px;">
+//           <span class="lbl" style="font-size:8px;">b) Qualification:</span>
+//           <span class="uline" style="min-width:120px;">${esc(f.qualification || "")}</span>
+//         </div>
+//         <div class="row" style="gap:4px;">
+//           <span class="lbl" style="font-size:8px;">c) Registration No. with State code:</span>
+//           <span class="uline" style="min-width:100px;">${esc(f.registrationNo || "")}</span>
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+
+//   <div class="sec-wrap">
+//     <div class="sec-body">
+//       <div class="div-label" style="margin-bottom:6px;">DECLARATION BY THE PATIENT / REPRESENTATIVE</div>
+//       ${declList(patientDeclPoints)}
+//       <div class="row" style="margin-top:8px;">
+//         <span class="lbl" style="font-size:8px;">a) Patient's / Insured's name:</span>
+//         <span class="uline uline-xl" style="margin-left:6px;">${esc(patientName)}</span>
+//       </div>
+//       <div class="row-sb">
+//         <div class="row" style="gap:4px;">
+//           <span class="lbl" style="font-size:8px;">b) Contact number:</span>
+//           <span class="uline" style="min-width:100px;">${esc(contactNumber)}</span>
+//         </div>
+//         <div class="row" style="gap:4px;">
+//           <span class="lbl" style="font-size:8px;">c) Email ID: (Optional)</span>
+//           <span class="uline uline-lg">${esc(f.patientEmail || "")}</span>
+//         </div>
+//       </div>
+//       <div class="row" style="align-items:center;margin-top:6px;">
+//         <span class="lbl" style="font-size:8px;">d) Patient's / Insured's signature:</span>
+//         ${sigBlock(signatureDataUrl)}
+//       </div>
+//     </div>
+//   </div>
+
+//   <div class="sec-wrap">
+//     <div class="sec-body">
+//       <div class="div-label" style="margin-bottom:6px;">HOSPITAL DECLARATION</div>
+//       ${declList(hospitalDeclPoints)}
+//     </div>
+//   </div>
+
+//   <div class="sec-wrap">
+//     <div class="sec-body">
+//       <div class="div-label" style="margin-bottom:6px;">DOCUMENTS TO BE PROVIDED BY THE HOSPITAL</div>
+//       ${declList(documentsPoints)}
+//     </div>
+//   </div>
+
+//   <div style="width:100%;border-top:1px solid #666;padding-top:4px;text-align:right;font-size:8px;font-weight:500;">
+//     Page 2 of 2 | Version: 25.06.2019
+//   </div>
+
+// </div>
+// </body>
+// </html>`;
+// }
+
+export function generateMediAssistFormAPage2HTML(
+  form,
+  signatureDataUrl = null,
+) {
+  const f = form ?? {};
+  const patientName =
+    f.patientName || f.hospitalizedName || f.primaryName || "";
+  const contactNumber = f.contactNumber || f.hospPhone || f.primaryPhone || "";
+  const treatingDoctorName =
+    f.declarationDoctorName || f.treatingDoctorName || f.treatingDoctor || "";
+
+  const costRows = [
+    [
+      "g) Per Day Room Rent + Nursing & Service charges + Patient's Diet:",
+      f.costRoomRent,
+    ],
+    ["h) Expected cost for investigation + diagnostics:", f.costInvestigation],
+    ["i) ICU Charges:", f.costIcu],
+    ["j) OT Charges:", f.costOt],
+    [
+      "k) Professional fees Surgeon + Anesthetist fees + Consultation charges:",
+      f.costProfessionalFees,
+    ],
+    [
+      "L) Medicines + Consumables cost of Implants: (specify if applicable)",
+      f.costMedicines,
+    ],
+    ["m) Other hospital expenses if any:", f.costOtherExpenses],
+    [
+      "n) All inclusive package charges if any applicable:",
+      f.costPackageCharges,
+    ],
+    ["o) Sum Total expected cost of hospitalization", f.costTotal],
+  ];
+
+  const costRowsHtml = costRows
+    .map(
+      ([label, val]) => `
+    <div class="row" style="justify-content:space-between;">
+      <span class="lbl" style="flex:1;">${esc(label)}</span>
+      <span class="txt" style="margin-right:2px;">Rs.</span>
+      <span class="cb-row">${boxes(val, 8)}</span>
+    </div>`,
+    )
+    .join("");
+
+  const chronicItems = [
+    ["chronicDiabetes", "1. Diabetes"],
+    ["chronicHeartDisease", "2. Heart Disease"],
+    ["chronicHypertension", "3. Hypertension"],
+    ["chronicHyperlipidemia", "4. Hyperlipidemias"],
+    ["chronicOsteoarthritis", "5. Osteoarthritis"],
+    ["chronicAsthma", "6. Asthma/ COPD / Bronchitis"],
+    ["chronicCancer", "7. Cancer"],
+    ["chronicAlcohol", "8. Alcohol or drug abuse"],
+    ["chronicHiv", "9. Any HIV or STD / related ailments"],
+  ];
+
+  const chronicHtml = chronicItems
+    .map(
+      ([key, label]) => `
+    <div class="chk-item" style="justify-content:space-between;">
+      ${chk(!!f[key])}
+      <span style="flex:1;">${esc(label)}</span>
+      <span class="cb-row">${hintBoxes(f[key + "Date"], ["M", "M", "Y", "Y"], true)}</span>
+    </div>`,
+    )
+    .join("");
+
+  const declList = (points) =>
+    points.map((p) => `<div class="decl-text">${esc(p)}</div>`).join("");
+
+  const patientDeclPoints = [
+    "a. I agree to allow the hospital to submit all original documents pertaining to hospitalization to the Insurer/TPA after the discharge. I agree to sign on the Final Bill & the Discharge Summary, before my discharge.",
+    "b. Payment to hospital is governed by the terms and conditions of the policy. In case the Insurer / TPA is not liable to settle the hospital bill, I undertake to settle the bill as per the terms and conditions of the policy.",
+    "c. All non-medical expenses and expenses not relevant to current hospitalization and the amounts over & above the limit authorized by the Insurer/TPA not governed by the terms and conditions of the policy will be paid by me.",
+    "d. I hereby declare to abide by the terms and conditions of the policy and if at any time the facts disclosed by me are found to be false or incorrect I forfeit my claim and agree to indemnify the insurer / TPA.",
+    "e. I agree and understand that TPA is in no way warranting the service of the hospital & that the Insurer / TPA is in no way guaranteeing that the services provided by the hospital will be of a particular quality or standard.",
+    "f. I hereby warrant the truth of the forgoing particulars in every respect and I agree that if I have made or shall make any false or untrue statement, suppression or concealment with respect to the claim, my right to claim reimbursement of the said expenses shall be absolutely forfeited.",
+    "g. I agree to indemnify the hospital against all expenses incurred on my behalf, which are not reimbursed by the Insurer/ TPA.",
+    '"I/We authorize Insurance Company/TPA to contact me/us through mobile/email for any update on this claim"',
+  ];
+
+  const hospitalDeclPoints = [
+    "a. We have no objection to any authorized TPA / Insurance Company official verifying documents pertaining to hospitalization.",
+    "b. All valid original documents duly countersigned by the insured / patient as per the checklist below will be sent to TPA/ Insurance Company within 7 days of the patient's discharge.",
+    "c. We agree that TPA / Insurance Company will not be Liable to make the payment in the event of any discrepancy between the facts in this form and discharge summary or other documents.",
+    "d. The patient declaration has been signed by the patient or by his representative in our presence.",
+    "e. We agree to provide clarifications for the queries raised regarding this hospitalization and we take the sole responsibility for any delay in offering clarifications.",
+    "f. We will abide by the terms and conditions agreed in the MOU.",
+    "g. We confirm that no additional amount would be collected from the insured in excess of Agreed Package Rates except costs towards non-admissible amounts (including additional charges due to opting higher room rent than eligibility choosing separate line of treatment which is not envisaged/ considered in package).",
+    "h. We confirm that no recoveries would be made from the deposit amount collected from the Insured except for costs towards non-admissible amounts (including additional charges due to opting higher room rent than eligibility/ choosing separate line of treatment which is not envisaged/considered in package).",
+    "i. In the event of unauthorized recovery of any additional amount from the Insured in excess of Agreed Package Rates, the authorized TPA / Insurance Company reserves the right to recover the same from us (the Network Provider) and/or take necessary action, as provided under the MOU or applicable laws.",
+  ];
+
+  const documentsPoints = [
+    "1. Detailed Discharge Summary and all Bills from the hospital.",
+    "2. Cash Memos from the Hospitals / Chemists supported by proper prescription.",
+    "3. Receipts and Pathological Test Reports from Pathologists, Supported by note from the attending Medical Practitioner / Surgeon recommending such pathological Tests.",
+    "4. Surgeon's Certificate stating nature of Operation performed and Surgeon's Bill and Receipt.",
+    "5. Certificates from attending Medical Practitioner / Surgeon that the patient is fully cured.",
+  ];
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Reimbursement Claim Form - Page 2</title>
+<style>
+/* ── RESET & PAGE ── */
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  body { margin: 0; }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 7px;
+  color: #000;
+  background: #fff;
+}
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 4mm 4mm 4mm 4mm;
+  margin: 0 auto;
+  background: #fff;
+}
+
+/* ── HEADER ── */
+.hdr {
+  width: 100%;
+  padding: 2px 2px 0;
+  margin-bottom: 6px;
+}
+
+.hdr-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.hdr-logo-wrap {
+  width: 180px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+.hdr-logo {
+  width: 142px;
+  height: auto;
+  object-fit: contain;
+  object-position: left top;
+  display: block;
+}
+
+.hdr-center {
+  flex: 1;
+  text-align: center;
+  padding: 0 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.hdr-title {
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.05;
+  text-transform: uppercase;
+  white-space: nowrap;
+  letter-spacing: 0;
+  margin-top: 20px;
+}
+
+.hdr-subtitle {
+  font-size: 10px;
+  font-weight: 500;
+  margin-top: 1px;
+  line-height: 1;
+}
+
+.hdr-right {
+  width: 178px;
+  text-align: right;
+  font-size: 7px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding-top: 34px;
+  flex-shrink: 0;
+  letter-spacing: 0.1px;
+}
+
+/* Hospital Header Fields (unused on page 2 but kept for shared .cb sizing) */
+.hospital-header { margin-top: 12px; }
+.hospital-row { display: flex; align-items: center; margin-bottom: 5px; }
+.hospital-label { font-size: 8px; min-width: 122px; font-weight: 500; }
+.hospital-right-group { display: flex; align-items: center; margin-left: auto; padding-left: 16px; }
+.hospital-right-label { font-size: 8px; margin-right: 5px; white-space: nowrap; }
+.hospital-header .cb-row { display: inline-flex; flex-wrap: nowrap; }
+.hospital-header .cb {
+  width: 13px; height: 14px; border: 1px solid #4c4c4c;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 7px; font-family: monospace; line-height: 1; margin-right: 2px;
+}
+
+/* TPA section (unused on page 2, kept for class parity) */
+.tpa-header {
+  margin-top: 10px;
+  border-bottom: 1.4px solid #000;
+  padding: 3px 0 2px;
+  font-size: 8px;
+  font-weight: 550;
+}
+.tpa-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 8px; gap: 12px; padding-top: 5px;
+}
+.tpa-item { display: flex; align-items: center; white-space: nowrap; }
+.tpa-item b { margin-right: 4px; }
+
+/* ── SECTION WRAPPER ── */
+.sec-wrap {
+  display: flex;
+  margin-bottom: 2px;
+}
+.sec-body { flex: 1; padding: 3px 4px; min-width: 0; }
+
+/* ── SECTION BAR (right vertical strip) ── */
+.sec-bar {
+  width: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #222;
+  flex-shrink: 0;
+  padding: 2px 0;
+}
+.sec-line { flex: 1; width: 7px; border-left: 0.5px solid #fff; }
+.sec-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: #fff;
+  font-size: 5.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+  padding: 3px 0;
+}
+
+/* ── DIVIDER ── */
+.div-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+.div-line { flex: 1; height: 0.6px; background: #444; }
+.div-label { font-size: 9px; font-weight: 700; white-space: nowrap; letter-spacing: 0.2px; }
+
+
+
+/* ── LAYOUT ROWS ── */
+.row  { display: flex-row; align-items: center; flex-wrap: wrap; gap: 2px; margin-bottom: 2px; }
+.row-sb { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 3px; margin-bottom: 2px; }
+.lbl {
+  font-size: 9.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.txt {
+  font-size: 9.5px;
+  font-weight: 500;
+}
+/* ── CHARACTER BOXES ── */
+.cb-row {
+  display: flex-row;
+  flex-wrap: nowrap;
+}
+.cb {
+  width: 16px;
+  height: 18px;
+  border: 1px solid #4c4c4c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: monospace;
+  line-height: 1;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+/* ── CHECKBOXES ── */
+.chkbox {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border: 0.8px solid #333;
+  margin: 0 2px;
+  vertical-align: middle;
+  font-size: 7px;
+  text-align: center;
+  line-height: 9px;
+}
+.chkbox-on { background: #1565C0; color: #fff; }
+
+/* ── TEXT UNDERLINE INPUTS ── */
+.uline {
+  display: inline-block;
+  border-bottom: 0.6px solid #555;
+  min-width: 50px;
+  font-size: 6.5px;
+  padding: 0 1px;
+  vertical-align: bottom;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.uline-lg  { min-width: 140px; }
+.uline-xl  { min-width: 200px; }
+.uline-xxl { min-width: 280px; }
+
+/* ── SECTION E LAYOUT ── */
+.sec-e-inner { display: flex; gap: 14px; }
+.sec-e-main  { flex: 1; min-width: 0; }
+.sec-e-chk   { width: 115px; flex-shrink: 0; border-left: 0.6px solid #ccc; padding-left: 4px; }
+.chk-title { font-size: 9.2px; font-weight: 500; margin-bottom: 6px; line-height: 1.3; }
+.chk-item    { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+.chk-item .chkbox { flex-shrink: 0; }
+.chk-item span { font-size: 8.5px; font-weight: 500; line-height: 1.3; white-space: nowrap; }
+/* ── BILLS TABLE ── */
+.bills-tbl { width: 100%; border-collapse: collapse; font-size: 6.5px; }
+.bills-tbl th, .bills-tbl td {
+  border: 0.5px solid #888;
+  padding: 1px 2px;
+  vertical-align: middle;
+}
+.bills-tbl th { background: #ebebeb; font-weight: 700; text-align: center; }
+.bills-tbl td.ctr { text-align: center; }
+
+/* ── DECLARATION ── */
+.decl-text {
+  font-size: 7.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: justify;
+  margin-bottom: 5px;
+}
+
+/* ── SIGNATURE ── */
+.sig-row { display: flex; align-items: flex-end; gap: 8px; margin-top: 4px; }
+.sig-box {
+  display: inline-block;
+  width: 44mm; height: 14mm;
+  border: 0.6px solid #555;
+  vertical-align: bottom;
+  flex-shrink: 0;
+}
+.sig-filled { padding: 1px; overflow: hidden; }
+.sig-img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: left bottom; }
+
+/* ── FOOTER ── */
+.footer-note { font-size: 8.5px; font-weight: 700; text-align: right; margin-top: 6px; }
+
+.footer-line { border-top: 0.8px solid #000; margin-top: 6px; margin-bottom: 2px; }
+
+/* ── TOTAL ROW ── */
+.total-row { display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin-bottom: 2px; }
+.total-lbl { font-size: 9px; font-weight: 700; }
+
+/* ── PAGE 2 ADDITIONS: hint-style boxes for date/time fields ── */
+.cb-hint { color: #999; font-weight: 500; }
+.cb-sm {
+  width: 16px;
+  height: 18px;
+  border: 1px solid #4c4c4c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8.5px;
+  font-weight: 600;
+  font-family: monospace;
+  line-height: 1;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="hdr-logo-wrap">
+        <img src="${MEDI_ASSIST_LOGO_DATA_URI}" class="hdr-logo" alt="Medi Assist" />
+      </div>
+      <div class="hdr-center">
+        <div class="hdr-title">REQUEST FOR CASHLESS HOSPITALISATION FOR HEALTH INSURANCE POLICY</div>
+        <div class="hdr-subtitle">PART C (Revised)</div>
+      </div>
+      <div class="hdr-right">TO BE FILLED IN BLOCK LETTERS</div>
+    </div>
+  </div>
+
+  <div class="sec-wrap">
+    <div class="sec-body">
+      <div class="sec-e-inner">
+        <div class="sec-e-main">${costRowsHtml}</div>
+        <div class="sec-e-chk" style="width:230px;">
+          <div class="chk-title">p. Mandatory past history of any chronic illness. If yes (since month/year)</div>
+          ${chronicHtml}
+          <div class="lbl" style="margin-top:6px;">10. Any other ailment give details:</div>
+          <div style="height:40px;border:1px solid #666;margin-top:4px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-wrap">
+    <div class="sec-body">
+      ${divider("DECLARATION (PLEASE READ VERY CAREFULLY)")}
+      <div class="decl-text">We confirm having read understood and agreed to the declaration of this form</div>
+      <div class="row" style="margin-top:4px;">
+        <span class="lbl">a) Name of the treating doctor:</span>
+        <span class="cb-row" style="margin-left:6px;">${boxes(treatingDoctorName, 33)}</span>
+      </div>
+      <div class="row-sb">
+        <div class="row" style="gap:4px;">
+          <span class="lbl">b) Qualification:</span>
+          <span class="cb-row">${boxes(f.qualification, 14)}</span>
+        </div>
+        <div class="row" style="gap:4px;">
+          <span class="lbl">c) Registration No. with State code:</span>
+          <span class="cb-row">${boxes(f.registrationNo, 10)}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-wrap">
+    <div class="sec-body">
+      <div class="div-label" style="margin-bottom:6px;">DECLARATION BY THE PATIENT / REPRESENTATIVE</div>
+      ${declList(patientDeclPoints)}
+      <div class="row" style="margin-top:12px;">
+        <span class="lbl">a) Patient's / Insured's name:</span>
+        <span class="cb-row" style="margin-left:6px;">${boxes(patientName, 38)}</span>
+      </div>
+      <div class="row-sb">
+        <div class="row" style="gap:4px;">
+          <span class="lbl">b) Contact number:</span>
+          <span class="cb-row">${boxes(contactNumber, 10)}</span>
+        </div>
+        <div class="row" style="gap:4px;">
+          <span class="lbl">c) Email ID: (Optional)</span>
+          <span class="cb-row">${boxes(f.patientEmail, 16)}</span>
+        </div>
+      </div>
+      <div class="row" style="align-items:flex-end;margin-top:6px;">
+        <span class="lbl">d) Patient's / Insured's signature:</span>
+        ${sigBlock(signatureDataUrl)}
+        <span class="lbl" style="margin-left:14px;">Date:</span>
+        <span class="cb-row">${hintBoxes(f.patientDeclarationDate, ["D", "D", "M", "M", "Y", "Y", "Y", "Y"])}</span>
+        <span class="lbl" style="margin-left:10px;">Time:</span>
+        <span class="cb-row">${hintBoxes(f.patientDeclarationTime, ["H", "H", "M", "M"])}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-wrap">
+    <div class="sec-body">
+      <div class="div-label" style="margin-bottom:6px;">HOSPITAL DECLARATION</div>
+      ${declList(hospitalDeclPoints)}
+    </div>
+  </div>
+
+  <div class="sec-wrap">
+    <div class="sec-body">
+      <div class="div-label" style="margin-bottom:6px;">DOCUMENTS TO BE PROVIDED BY THE HOSPITAL IN SUPPORT OF THE CLAIM</div>
+      ${declList(documentsPoints)}
+      <div class="row" style="justify-content:space-between;align-items:flex-end;margin-top:10px;">
+        <div style="width:48%;">
+          <span class="lbl">Hospital seal:</span>
+          <div style="width:95%;height:46px;border:0.6px solid #555;margin-top:3px;"></div>
+        </div>
+        <div style="width:48%;">
+          <span class="lbl">Doctor's signature:</span>
+          <div style="width:95%;height:46px;border:0.6px solid #555;margin-top:3px;"></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:6px;">
+        <span class="lbl">Date:</span>
+        <span class="cb-row">${hintBoxes(f.hospitalDeclarationDate, ["D", "D", "M", "M", "Y", "Y", "Y", "Y"])}</span>
+        <span class="lbl" style="margin-left:14px;">Time:</span>
+        <span class="cb-row">${hintBoxes(f.hospitalDeclarationTime, ["H", "H", "M", "M"])}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note" style="border-top:1px solid #666;padding-top:4px;">
+    Page 1 of 2 | Version: 25.06.2019
+  </div>
+
+</div>
+</body>
+</html>`;
+}
+
+/* ─────────────────────────────────────────────
    EXPORT: downloadMediAssistFormA
    Web  → html2pdf.js  (PNG, scale 3, A4)
    Native → expo-print → expo-sharing
@@ -1862,7 +2618,8 @@ export async function downloadMediAssistFormA(form, signatureDataUrl = null) {
 
   /* ── NATIVE (iOS / Android) ── */
   const { uri } = await Print.printToFileAsync({ html });
-  const destDir = FileSystem["documentDirectory"] ?? FileSystem["cacheDirectory"] ?? ""; // eslint-disable-line import/namespace
+  const destDir =
+    FileSystem["documentDirectory"] ?? FileSystem["cacheDirectory"] ?? ""; // eslint-disable-line import/namespace
   const destUri = destDir + fileName;
   await FileSystem.copyAsync({ from: uri, to: destUri });
   try {

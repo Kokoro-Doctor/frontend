@@ -1,5 +1,5 @@
 // ── Step 1: Request OTP on Aadhaar-linked mobile ──────────────
-import { API_URL} from "../env-vars";
+import { API_URL } from "../env-vars";
 export const requestAadhaarOtp = async (aadhaar) => {
   const response = await fetch(`${API_URL}/abha/create/request-otp`, {
     method: "POST",
@@ -19,7 +19,12 @@ export const requestAadhaarOtp = async (aadhaar) => {
 
 // ── Step 2: Verify OTP and create ABHA ───────────────────────
 // kokoroJwt optional hai — pass karo agar user logged in ho
-export const verifyOtpAndCreateAbha = async ({ txnId, otp, mobile, kokoroJwt }) => {
+export const verifyOtpAndCreateAbha = async ({
+  txnId,
+  otp,
+  mobile,
+  kokoroJwt,
+}) => {
   const headers = { "Content-Type": "application/json" };
   if (kokoroJwt) {
     headers["Authorization"] = `Bearer ${kokoroJwt}`;
@@ -42,5 +47,23 @@ export const verifyOtpAndCreateAbha = async ({ txnId, otp, mobile, kokoroJwt }) 
   }
 
   // Returns: { message, txn_id, is_new, abha_profile, tokens, abha_saved }
+  return data;
+};
+
+// ── Step 3: Provision Kokoro user from ABHA (adds patient to "All Patients" list) ──
+export const signupUserFromAbha = async (abhaNumber) => {
+  const response = await fetch(`${API_URL}/abha/signup-user`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ abha_number: abhaNumber }),
+  });
+
+  const data = await response.json();
+  console.log("Response:", data);
+  if (!response.ok) {
+    throw new Error(data?.message || "Failed to register patient");
+  }
+
+  // Backend just needs to be pinged; response not strictly needed by UI
   return data;
 };
