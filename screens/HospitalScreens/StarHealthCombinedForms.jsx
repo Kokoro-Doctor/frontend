@@ -40,7 +40,10 @@ import StarHealthFormAContent from "../../components/HospitalPortalComponent/Sta
 import StarHealthFormBContent from "../../components/HospitalPortalComponent/StarHealthFormB";
 
 // ── Mappers ──────────────────────────────────────────────────────────────────
-import { mapToStarHealthFormA } from "../../utils/StarHealthMapper";
+import {
+  mapToStarHealthFormA,
+  mapToStarHealthFormB,
+} from "../../utils/StarHealthMapper";
 import { mapToDischargeSummary } from "../../utils/DischargeMapper";
 
 // ── Download / HTML utils ────────────────────────────────────────────────────
@@ -110,7 +113,7 @@ export default function StarHealthCombinedForms({ navigation, route }) {
 
   // ── Form B state ───────────────────────────────────────────────────────────
   const formBSeed = useMemo(
-    () => mapToStarHealthFormA(analysisData),
+    () => mapToStarHealthFormB(analysisData),
     [analysisData],
   );
   const [formB, setFormB] = useState(() => formBSeed);
@@ -417,7 +420,7 @@ export default function StarHealthCombinedForms({ navigation, route }) {
   // ─────────────────────────────────────────────────────────────────────────
   //  ACTIVE FORM CONTENT (edit mode)
   // ─────────────────────────────────────────────────────────────────────────
-  const ActiveFormContent = () => {
+  const renderActiveFormContent = () => {
     if (currentStep === 0) {
       return (
         <StarHealthFormAContent
@@ -659,7 +662,7 @@ export default function StarHealthCombinedForms({ navigation, route }) {
                           style={{ flex: 1 }}
                           showsVerticalScrollIndicator
                         >
-                          <ActiveFormContent />
+                          {renderActiveFormContent()}
                         </ScrollView>
                       )}
                     </View>
@@ -735,7 +738,7 @@ export default function StarHealthCombinedForms({ navigation, route }) {
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator>
               <View style={{ minWidth: 1300 }}>
-                <ActiveFormContent />
+                {renderActiveFormContent()}
               </View>
             </ScrollView>
           )}
