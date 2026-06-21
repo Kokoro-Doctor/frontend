@@ -18,6 +18,8 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { API_URL } from "../../env-vars";
 import PreAuthMediAssistCombinedForms from "../../screens/HospitalScreens/PreAuthMediAssistCombinedForms";
+import StarHealthPreAuth from "../../screens/HospitalScreens/StarHealthPreAuth";
+import CarehealthPreauth from "../../screens/HospitalScreens/CarehealthPreauth";
 
 // ─── STEPS ────────────────────────────────────────────────────────────────────
 const STEPS = [
@@ -555,6 +557,13 @@ const ServiceInfoForm = ({
   }));
 
   const handleNext = () => {
+    // console.log("bhcsdhcsdnjs Service Info Form Data:", {
+    //     insurer: insuranceProvider,
+    //     urgencyLevel,
+    //     provider: selectedDoctor?.doctorname || "",
+    //     doctorId: selectedDoctor?.doctor_id || "",
+    //     serviceType,
+    //   })
     onNext({
       insurer: insuranceProvider,
       urgencyLevel,
@@ -1874,28 +1883,55 @@ const PARequests = ({ navigation }) => {
     </Animated.View>
   );
 
-  const renderStep5 = (animRef) => {
-    const analysisData =
-      preAuthAnalysisData ||
-      buildPreAuthAnalysisData({
-        patient: selectedPatient,
-        updatedUser: selectedPatient?.rawPatient,
-        diagnosisSummary,
-        diagnosisCodes,
-        procedureCodes,
-        serviceFormData,
-      });
+const renderStep5 = (animRef) => {
+  const analysisData =
+    preAuthAnalysisData ||
+    buildPreAuthAnalysisData({
+      patient: selectedPatient,
+      updatedUser: selectedPatient?.rawPatient,
+      diagnosisSummary,
+      diagnosisCodes,
+      procedureCodes,
+      serviceFormData,
+    });
 
-    return (
-      <Animated.View style={{ transform: [{ translateX: animRef }] }}>
+  const insurerRaw = String(
+    serviceFormData?.insurer ||
+    selectedPatient?.insurer ||
+    ""
+  ).toLowerCase().trim();
+
+  const isStarHealth =
+    insurerRaw.includes("star health") ||
+    insurerRaw.includes("starhealth") ||
+    insurerRaw.includes("star");
+
+  const isCareHealth =
+    insurerRaw.includes("care health") ||
+    insurerRaw.includes("carehealth") ||
+    insurerRaw.includes("care");
+
+  return (
+    <Animated.View style={{ transform: [{ translateX: animRef }] }}>
+      {isStarHealth ? (
+        <StarHealthPreAuth
+          navigation={navigation}
+          route={{ params: { analysisData } }}
+        />
+      ) : isCareHealth ? (
+        <CarehealthPreauth
+          navigation={navigation}
+          route={{ params: { analysisData } }}
+        />
+      ) : (
         <PreAuthMediAssistCombinedForms
           navigation={navigation}
           route={{ params: { analysisData } }}
         />
-      </Animated.View>
-    );
-  };
-
+      )}
+    </Animated.View>
+  );
+};
   const renderCurrentStep = (animRef, isMobile) => {
     if (currentStep === 1) return renderStep1(animRef, isMobile);
     if (currentStep === 2) return renderStep2(animRef, isMobile);
