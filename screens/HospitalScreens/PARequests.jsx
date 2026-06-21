@@ -18,9 +18,8 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { API_URL } from "../../env-vars";
 import PreAuthMediAssistCombinedForms from "../../screens/HospitalScreens/PreAuthMediAssistCombinedForms";
-import PreAuthStarHealth from "../../screens/HospitalScreens/PreAuthStarHealthForm";
 import CareHealthPreAuth from "../../screens/HospitalScreens/CareHealthPreauthForm";
-import HospitalInsuranceDownload from "../../components/HospitalPortalComponent/PreAuthStarhealthForm";
+import PreAuthStarHealthForm from "../../components/HospitalPortalComponent/PreAuthStarhealthForm";
 // ─── STEPS ────────────────────────────────────────────────────────────────────
 const STEPS = [
   { id: 1, label: "Choose Patient", sub: "Select patient" },
@@ -45,7 +44,11 @@ const isFormValuePresent = (value) => {
 const firstFilled = (...values) =>
   values.find((value) => isFormValuePresent(value)) ?? "";
 
-const getInsuranceProvider = ({ serviceFormData, selectedPatient, analysisData }) =>
+const getInsuranceProvider = ({
+  serviceFormData,
+  selectedPatient,
+  analysisData,
+}) =>
   firstFilled(
     serviceFormData?.insurer,
     selectedPatient?.insurer,
@@ -1854,7 +1857,10 @@ const PARequests = ({ navigation }) => {
       <ReviewVerifyForm
         patient={{
           ...selectedPatient,
-          insurer: firstFilled(serviceFormData.insurer, selectedPatient?.insurer),
+          insurer: firstFilled(
+            serviceFormData.insurer,
+            selectedPatient?.insurer,
+          ),
         }}
         diagnosisCodes={diagnosisCodes}
         procedureCodes={procedureCodes}
@@ -1941,16 +1947,18 @@ const PARequests = ({ navigation }) => {
       (selectedPatient?.insurer !== "—" ? selectedPatient?.insurer : "") ||
       "";
     const insurerSource =
-      getInsuranceProvider({ serviceFormData, selectedPatient, analysisData }) ||
-      rawInsurer;
+      getInsuranceProvider({
+        serviceFormData,
+        selectedPatient,
+        analysisData,
+      }) || rawInsurer;
     const insurer = normalizeInsuranceProvider(insurerSource);
     console.log("serviceFormData.insurer:", serviceFormData?.insurer);
-console.log("selectedPatient.insurer:", selectedPatient?.insurer);
-console.log("insurerSource:", insurerSource);
-console.log("normalized insurer:", insurer);
+    console.log("selectedPatient.insurer:", selectedPatient?.insurer);
+    console.log("insurerSource:", insurerSource);
+    console.log("normalized insurer:", insurer);
     const isStarHealth =
-      insurer.includes("starhealth") ||
-      (insurer.includes("star") && insurer.includes("health"));
+      insurer.includes("star") || insurer.includes("starhealth");
     const patientName = selectedPatient?.name || "Patient";
     const isCareHealth =
       insurer.includes("carehealth") ||
@@ -1968,9 +1976,10 @@ console.log("normalized insurer:", insurer);
     return (
       <Animated.View style={{ transform: [{ translateX: animRef }] }}>
         {isStarHealth ? (
-          <HospitalInsuranceDownload
+          <PreAuthStarHealthForm 
             navigation={navigation}
             route={{ params: { analysisData } }}
+            embedded={true}
           />
         ) : isCareHealth ? (
           <CareHealthPreAuth
