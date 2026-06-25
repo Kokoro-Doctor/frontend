@@ -94,6 +94,8 @@ const mapApiPatient = (p) => ({
   admitted: p.admission_date || p.admitted || "—",
   discharged: p.discharge_date || p.discharged || "—",
   hasClaim: p.has_claim || false,
+  doctorId: p.doctor_id || p.assigned_doctor_id || null,
+  doctorName: p.doctor_name || p.assigned_doctor_name || p.doctorname || null,
 });
 
 // ─── STATUS BADGE ─────────────────────────────────────────────
@@ -239,412 +241,6 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
   );
 };
 
-// ─── ADD PATIENT FORM ─────────────────────────────────────────
-// const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
-//   const [form, setForm] = useState({
-//     fullName: "",
-//     dob: "",
-//     gender: "",
-//     phone: "",
-//     policy: "",
-//     insurer: "",
-//     admissionDate: "",
-//     procedure: "",
-//     doctor: "",
-//   });
-//   const [generatedId] = useState(generatePatientId());
-//   const [savedMessage, setSavedMessage] = useState("");
-//   const [savedName, setSavedName] = useState("");
-
-//   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
-
-//   const buildPatient = () => ({
-//     id: generatedId,
-//     name: form.fullName || "New Patient",
-//     age: form.dob
-//       ? new Date().getFullYear() - parseInt(form.dob.slice(-4) || 2000)
-//       : "—",
-//     insurer: form.insurer || "—",
-//     procedure: form.procedure || "—",
-//     status: "Discharged",
-//     claims: 0,
-//     initials: getInitials(form.fullName),
-//     dob: form.dob,
-//     gender: form.gender,
-//     policy: form.policy,
-//     phone: form.phone,
-//     admitted: form.admissionDate,
-//     discharged: "—",
-//     hasClaim: false,
-//   });
-
-//   const handleSave = () => {
-//     const patient = buildPatient();
-//     setSavedName(form.fullName || "Patient");
-//     setSavedMessage(generatedId);
-//     onSave(patient);
-//   };
-
-//   const handleSaveAnother = () => {
-//     const patient = buildPatient();
-//     onSaveAndAnother(patient, form.fullName, generatedId);
-//   };
-
-//   // ── MOBILE FORM ──────────────────────────────────────────────
-//   if (isMobile) {
-//     return (
-//       <ScrollView
-//         showsVerticalScrollIndicator={false}
-//         contentContainerStyle={{ padding: 16, paddingBottom: 50 }}
-//         keyboardShouldPersistTaps="handled"
-//       >
-//         <Text style={mobileFormStyles.sectionHeading}>Patient Details :</Text>
-
-//         {/* Full Name */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>
-//             Full name <Text style={{ color: "#EF4444" }}>*</Text>
-//           </Text>
-//           <TextInput
-//             style={mobileFormStyles.input}
-//             placeholder="Enter Name..."
-//             placeholderTextColor="#9CA3AF"
-//             value={form.fullName}
-//             onChangeText={(v) => set("fullName", v)}
-//           />
-//         </View>
-
-//         {/* Date of Birth */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>
-//             Date of birth <Text style={{ color: "#EF4444" }}>*</Text>
-//           </Text>
-//           <TextInput
-//             style={mobileFormStyles.input}
-//             placeholder="dd-mm-yyyy"
-//             placeholderTextColor="#9CA3AF"
-//             value={form.dob}
-//             onChangeText={(v) => set("dob", v)}
-//           />
-//         </View>
-
-//         {/* Patient ID (auto) */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>Patient ID</Text>
-//           <TextInput
-//             style={[mobileFormStyles.input, mobileFormStyles.inputDisabled]}
-//             value={generatedId}
-//             editable={false}
-//             placeholderTextColor="#9CA3AF"
-//           />
-//         </View>
-
-//         {/* Gender */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>
-//             Gender <Text style={{ color: "#EF4444" }}>*</Text>
-//           </Text>
-//           <MobileSelectField
-//             value={form.gender}
-//             options={GENDERS}
-//             onSelect={(v) => set("gender", v)}
-//             placeholder="Select Gender"
-//           />
-//         </View>
-
-//         {/* Phone */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>Phone no</Text>
-//           <TextInput
-//             style={mobileFormStyles.input}
-//             placeholder="+91 9823400998"
-//             placeholderTextColor="#9CA3AF"
-//             keyboardType="phone-pad"
-//             value={form.phone}
-//             onChangeText={(v) => set("phone", v)}
-//           />
-//         </View>
-
-//         {/* Insurance Policy Number */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>Insurance policy number</Text>
-//           <TextInput
-//             style={mobileFormStyles.input}
-//             placeholder="e.g SH-48821-C"
-//             placeholderTextColor="#9CA3AF"
-//             value={form.policy}
-//             onChangeText={(v) => set("policy", v)}
-//           />
-//         </View>
-
-//         {/* Insurer */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>Insurer</Text>
-//           <MobileSelectField
-//             value={form.insurer}
-//             options={INSURERS.slice(1)}
-//             onSelect={(v) => set("insurer", v)}
-//             placeholder="Select Insurer"
-//           />
-//         </View>
-
-//         {/* Admission Date */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>Admission date</Text>
-//           <TextInput
-//             style={mobileFormStyles.input}
-//             placeholder="dd-mm-yyyy"
-//             placeholderTextColor="#9CA3AF"
-//             value={form.admissionDate}
-//             onChangeText={(v) => set("admissionDate", v)}
-//           />
-//         </View>
-
-//         {/* Diagnosis / Procedure */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>Diagnosis/Procedure</Text>
-//           <TextInput
-//             style={mobileFormStyles.input}
-//             placeholder="eg CABG, Hysterectomy"
-//             placeholderTextColor="#9CA3AF"
-//             value={form.procedure}
-//             onChangeText={(v) => set("procedure", v)}
-//           />
-//         </View>
-
-//         {/* Assign Doctor */}
-//         <View style={mobileFormStyles.fieldGroup}>
-//           <Text style={mobileFormStyles.label}>Assign Doctor</Text>
-//           <MobileSelectField
-//             value={form.doctor}
-//             options={DOCTORS}
-//             onSelect={(v) => set("doctor", v)}
-//             placeholder="Select Doctor"
-//           />
-//         </View>
-
-//         {/* Import from Excel/CSV */}
-//         <Text style={mobileFormStyles.importLabel}>
-//           1. Import from excel/csv
-//         </Text>
-//         <View style={mobileFormStyles.uploadBox}>
-//           <Text style={{ fontSize: 20, marginBottom: 6 }}>⬆</Text>
-//           <Text style={{ fontSize: 13, color: "#6B7280", textAlign: "center" }}>
-//             Upload patient list (.xlsx or .csv){" "}
-//             <Text style={{ color: "#2563EB", fontWeight: "600" }}>
-//               Click here
-//             </Text>
-//           </Text>
-//         </View>
-//         <TouchableOpacity style={mobileFormStyles.downloadBtn}>
-//           <Text style={mobileFormStyles.downloadBtnText}>
-//             Download Template
-//           </Text>
-//         </TouchableOpacity>
-//         <Text style={mobileFormStyles.downloadHint}>
-//           Not sure of format? download our template first
-//         </Text>
-
-//         {/* Saved success pill */}
-//         {savedMessage !== "" && (
-//           <View style={mobileFormStyles.savedPill}>
-//             <Text style={mobileFormStyles.savedPillText}>
-//               <Text style={{ fontWeight: "700" }}>{savedName} </Text>
-//               saved with Patient ID{" "}
-//               <Text style={{ fontWeight: "700", color: "#15803D" }}>
-//                 {savedMessage}
-//               </Text>
-//             </Text>
-//           </View>
-//         )}
-
-//         {/* Action Buttons */}
-//         <TouchableOpacity
-//           style={mobileFormStyles.saveAnotherBtn}
-//           onPress={handleSaveAnother}
-//         >
-//           <Text style={mobileFormStyles.saveAnotherBtnText}>
-//             Save & Register Another Patient →
-//           </Text>
-//         </TouchableOpacity>
-//         <TouchableOpacity style={mobileFormStyles.saveBtn} onPress={handleSave}>
-//           <Text style={mobileFormStyles.saveBtnText}>Save Patient</Text>
-//         </TouchableOpacity>
-//       </ScrollView>
-//     );
-//   }
-
-//   // ── WEB / TABLET FORM (original layout unchanged) ────────────
-//   return (
-//     <ScrollView
-//       showsVerticalScrollIndicator={false}
-//       contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-//     >
-//       <Text style={styles.formSectionHeading}>Patients Details :</Text>
-
-//       <View style={styles.formRow}>
-//         <View style={styles.formGroup}>
-//           <Text style={styles.formLabel}>
-//             Full name <Text style={{ color: "#EF4444" }}>*</Text>
-//           </Text>
-//           <TextInput
-//             style={styles.formInput}
-//             placeholder="Enter Name..."
-//             placeholderTextColor="#9CA3AF"
-//             value={form.fullName}
-//             onChangeText={(v) => set("fullName", v)}
-//           />
-//         </View>
-//         <View style={styles.formGroup}>
-//           <Text style={styles.formLabel}>
-//             Date of birth <Text style={{ color: "#EF4444" }}>*</Text>
-//           </Text>
-//           <TextInput
-//             style={styles.formInput}
-//             placeholder="Select department"
-//             placeholderTextColor="#9CA3AF"
-//             value={form.dob}
-//             onChangeText={(v) => set("dob", v)}
-//           />
-//         </View>
-//       </View>
-
-//       <View style={styles.formRow}>
-//         <View style={styles.formGroup}>
-//           <Text style={styles.formLabel}>Patient ID</Text>
-//           <TextInput
-//             style={[styles.formInput, { color: "#9CA3AF" }]}
-//             value={generatedId}
-//             editable={false}
-//             placeholder="Auto-generated"
-//             placeholderTextColor="#9CA3AF"
-//           />
-//         </View>
-//         <SelectRow
-//           label="Gender *"
-//           value={form.gender}
-//           options={GENDERS}
-//           onSelect={(v) => set("gender", v)}
-//           placeholder="Select Gender"
-//         />
-//       </View>
-
-//       <View style={styles.formRow}>
-//         <View style={styles.formGroup}>
-//           <Text style={styles.formLabel}>Phone no</Text>
-//           <TextInput
-//             style={styles.formInput}
-//             placeholder="+91 9823400998"
-//             placeholderTextColor="#9CA3AF"
-//             keyboardType="phone-pad"
-//             value={form.phone}
-//             onChangeText={(v) => set("phone", v)}
-//           />
-//         </View>
-//         <View style={styles.formGroup}>
-//           <Text style={styles.formLabel}>Insurance policy number</Text>
-//           <TextInput
-//             style={styles.formInput}
-//             placeholder="e.g SH-48821-C"
-//             placeholderTextColor="#9CA3AF"
-//             value={form.policy}
-//             onChangeText={(v) => set("policy", v)}
-//           />
-//         </View>
-//       </View>
-
-//       <View style={styles.formRow}>
-//         <SelectRow
-//           label="Insurer"
-//           value={form.insurer}
-//           options={INSURERS.slice(1)}
-//           onSelect={(v) => set("insurer", v)}
-//           placeholder="Select Insurer"
-//         />
-//         <View style={styles.formGroup}>
-//           <Text style={styles.formLabel}>Admission date</Text>
-//           <TextInput
-//             style={styles.formInput}
-//             placeholder="dd-mm-yyyy"
-//             placeholderTextColor="#9CA3AF"
-//             value={form.admissionDate}
-//             onChangeText={(v) => set("admissionDate", v)}
-//           />
-//         </View>
-//       </View>
-
-//       <View style={styles.formRow}>
-//         <View style={styles.formGroup}>
-//           <Text style={styles.formLabel}>Diagnosis/Procedure</Text>
-//           <TextInput
-//             style={styles.formInput}
-//             placeholder="eg CABG, Hysterectomy"
-//             placeholderTextColor="#9CA3AF"
-//             value={form.procedure}
-//             onChangeText={(v) => set("procedure", v)}
-//           />
-//         </View>
-//         <SelectRow
-//           label="Assign Doctor"
-//           value={form.doctor}
-//           options={DOCTORS}
-//           onSelect={(v) => set("doctor", v)}
-//           placeholder="Select Doctor"
-//         />
-//       </View>
-
-//       <View style={styles.importRow}>
-//         <Text style={styles.importLabel}>1 Import from excel/csv</Text>
-//       </View>
-//       <View style={styles.importSection}>
-//         <View style={styles.uploadBox}>
-//           <Text style={{ fontSize: 22, marginBottom: 6 }}>⬆</Text>
-//           <Text style={{ fontSize: 13, color: "#6B7280" }}>
-//             Upload patient list (.xlsx or .csv){" "}
-//             <Text style={{ color: "#2563EB", fontWeight: "600" }}>
-//               Click here
-//             </Text>
-//           </Text>
-//         </View>
-//         <View style={styles.downloadBox}>
-//           <TouchableOpacity style={styles.downloadBtn}>
-//             <Text style={{ fontSize: 12, color: "#374151", fontWeight: "500" }}>
-//               Download Template
-//             </Text>
-//           </TouchableOpacity>
-//           <Text style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>
-//             Not sure of format? download our template first
-//           </Text>
-//         </View>
-//       </View>
-
-//       <View style={styles.formActions}>
-//         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-//           <Text style={styles.saveBtnText}>Save Patient</Text>
-//         </TouchableOpacity>
-//         <TouchableOpacity
-//           style={styles.saveMoreBtn}
-//           onPress={handleSaveAnother}
-//         >
-//           <Text style={styles.saveMoreBtnText}>
-//             Save & Register Another Patient →
-//           </Text>
-//         </TouchableOpacity>
-//         {savedMessage !== "" && (
-//           <View style={styles.savedPill}>
-//             <Text style={styles.savedPillText}>
-//               <Text style={{ fontWeight: "700" }}>
-//                 {form.fullName || "Patient"}{" "}
-//               </Text>
-//               saved with Patient ID{" "}
-//               <Text style={{ fontWeight: "700" }}>{generatedId}</Text>
-//             </Text>
-//           </View>
-//         )}
-//       </View>
-//     </ScrollView>
-//   );
-// };
 
 const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
   const [form, setForm] = useState({
@@ -1908,7 +1504,7 @@ const HospitalPatientManagement = ({ navigation }) => {
         setPatientsLoading(false);
       }
     },
-    [mapApiPatient],
+    [],
   );
 
   useEffect(() => {
@@ -2487,7 +2083,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                     {filteredPatients.map((patient, index) => (
                       <TouchableOpacity
                         key={patient.id}
-                        onPress={() => openDetail(patient)}
+                        //onPress={() => openDetail(patient)}
                         style={[
                           styles.patientRow,
                           index < filteredPatients.length - 1 &&
@@ -2518,22 +2114,35 @@ const HospitalPatientManagement = ({ navigation }) => {
                         >
                           <StatusBadge status={patient.status} />
                           <ClaimBadge count={patient.claims} />
-                          <View
+
+                          <TouchableOpacity
                             style={{
-                              width: 28,
+                              width: 78,
                               height: 28,
-                              borderRadius: 14,
-                              borderWidth: 1.5,
+                              borderRadius: 10,
+                              borderWidth: 2,
                               borderColor: "#D1D5DB",
                               justifyContent: "center",
                               alignItems: "center",
                               marginLeft: 4,
                             }}
+                            onPress={(e) => {
+                              e?.stopPropagation?.();
+                              navigation.navigate("ManualDataIntegration", {
+                                preSelectedPatient: patient,
+                                preSelectedDoctor: patient.doctorId
+                                  ? {
+                                      doctor_id: patient.doctorId,
+                                      doctorname: patient.doctorName,
+                                    }
+                                  : null,
+                              });
+                            }}
                           >
-                            <Text style={{ fontSize: 14, color: "#6B7280" }}>
-                              ⊙
+                            <Text style={{ fontSize: 14, color: "#31343aff" }}>
+                              Add Doc
                             </Text>
-                          </View>
+                          </TouchableOpacity>
                         </View>
                       </TouchableOpacity>
                     ))}
@@ -2601,9 +2210,8 @@ const HospitalPatientManagement = ({ navigation }) => {
               </Animated.View>
 
               {/* DIVIDER */}
-              {isDetailOpen && <View style={styles.panelDivider} />}
+              {/* {isDetailOpen && <View style={styles.panelDivider} />}
 
-              {/* DETAIL PANE */}
               {isDetailOpen && (
                 <Animated.View
                   style={[
@@ -2621,7 +2229,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                     navigation={navigation}
                   />
                 </Animated.View>
-              )}
+              )} */}
             </Animated.View>
 
             {/* ── ADD PATIENT FORM (slides in from RIGHT) ── */}
@@ -2684,7 +2292,7 @@ const HospitalPatientManagement = ({ navigation }) => {
   }
 
   // ── MOBILE LAYOUT ────────────────────────────────────────────
-  
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#F1F5F9" }}>
       <View style={{ zIndex: 2 }}>

@@ -18,8 +18,9 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { API_URL } from "../../env-vars";
 import PreAuthMediAssistCombinedForms from "../../screens/HospitalScreens/PreAuthMediAssistCombinedForms";
-import CareHealthPreAuth from "../../screens/HospitalScreens/CareHealthPreauthForm";
-import PreAuthStarHealthForm from "../../components/HospitalPortalComponent/PreAuthStarhealthForm";
+import StarHealthPreAuth from "../../screens/HospitalScreens/StarHealthPreAuth";
+import CarehealthPreauth from "../../screens/HospitalScreens/CarehealthPreauth";
+
 // ─── STEPS ────────────────────────────────────────────────────────────────────
 const STEPS = [
   { id: 1, label: "Choose Patient", sub: "Select patient" },
@@ -575,6 +576,13 @@ const ServiceInfoForm = ({
   }));
 
   const handleNext = () => {
+    // console.log("bhcsdhcsdnjs Service Info Form Data:", {
+    //     insurer: insuranceProvider,
+    //     urgencyLevel,
+    //     provider: selectedDoctor?.doctorname || "",
+    //     doctorId: selectedDoctor?.doctor_id || "",
+    //     serviceType,
+    //   })
     onNext({
       insurer: insuranceProvider,
       urgencyLevel,
@@ -1942,60 +1950,43 @@ const PARequests = ({ navigation }) => {
         serviceFormData,
       });
 
-    const rawInsurer =
-      serviceFormData?.insurer ||
-      (selectedPatient?.insurer !== "—" ? selectedPatient?.insurer : "") ||
-      "";
-    const insurerSource =
-      getInsuranceProvider({
-        serviceFormData,
-        selectedPatient,
-        analysisData,
-      }) || rawInsurer;
-    const insurer = normalizeInsuranceProvider(insurerSource);
-    console.log("serviceFormData.insurer:", serviceFormData?.insurer);
-    console.log("selectedPatient.insurer:", selectedPatient?.insurer);
-    console.log("insurerSource:", insurerSource);
-    console.log("normalized insurer:", insurer);
-    const isStarHealth =
-      insurer.includes("star") || insurer.includes("starhealth");
-    const patientName = selectedPatient?.name || "Patient";
-    const isCareHealth =
-      insurer.includes("carehealth") ||
-      (insurer.includes("care") && insurer.includes("health"));
+  const insurerRaw = String(
+    serviceFormData?.insurer ||
+    selectedPatient?.insurer ||
+    ""
+  ).toLowerCase().trim();
 
-    // Override filename to match the actual form
-    if (analysisData?.structured_data) {
-      analysisData.structured_data.source_filename = isStarHealth
-        ? `PreAuthStarHealth_${patientName}.pdf`
-        : isCareHealth
-          ? `CareHealth_PreAuth_${patientName}.pdf`
-          : `PreAuth_MediAssist_${patientName}.pdf`;
-    }
+  const isStarHealth =
+    insurerRaw.includes("star health") ||
+    insurerRaw.includes("starhealth") ||
+    insurerRaw.includes("star");
 
-    return (
-      <Animated.View style={{ transform: [{ translateX: animRef }] }}>
-        {isStarHealth ? (
-          <PreAuthStarHealthForm 
-            navigation={navigation}
-            route={{ params: { analysisData } }}
-            embedded={true}
-          />
-        ) : isCareHealth ? (
-          <CareHealthPreAuth
-            navigation={navigation}
-            route={{ params: { analysisData } }}
-          />
-        ) : (
-          <PreAuthMediAssistCombinedForms
-            navigation={navigation}
-            route={{ params: { analysisData } }}
-          />
-        )}
-      </Animated.View>
-    );
-  };
+  const isCareHealth =
+    insurerRaw.includes("care health") ||
+    insurerRaw.includes("carehealth") ||
+    insurerRaw.includes("care");
 
+  return (
+    <Animated.View style={{ transform: [{ translateX: animRef }] }}>
+      {isStarHealth ? (
+        <StarHealthPreAuth
+          navigation={navigation}
+          route={{ params: { analysisData } }}
+        />
+      ) : isCareHealth ? (
+        <CarehealthPreauth
+          navigation={navigation}
+          route={{ params: { analysisData } }}
+        />
+      ) : (
+        <PreAuthMediAssistCombinedForms
+          navigation={navigation}
+          route={{ params: { analysisData } }}
+        />
+      )}
+    </Animated.View>
+  );
+};
   const renderCurrentStep = (animRef, isMobile) => {
     if (currentStep === 1) return renderStep1(animRef, isMobile);
     if (currentStep === 2) return renderStep2(animRef, isMobile);

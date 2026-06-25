@@ -15,6 +15,7 @@ import {
   verifyOtpAndCreateAbha,
   signupUserFromAbha,
 } from "../../utils/AbhaNewPatient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ─── CONSTANTS ────────────────────────────────────────────────
 const GENDERS = ["Male", "Female", "Other"];
@@ -1871,31 +1872,15 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.primaryBtn, { backgroundColor: "#2563EB" }]}
-          // onPress={() =>
-          //   onFlowComplete &&
-          //   onFlowComplete({
-          //     fullName,
-          //     mobile: preferredMobile || mobile,
-          //     gender,
-          //     dob,
-          //     abhaNumber: "9876-5623-5412-6325",
-          //     abhaAddress: abhaAddr,
-          //   })
-          // }
-          // onPress={() => {
-          //   setOuterStep(3);
-          //   slideAnim.setValue(1);
-          //   Animated.timing(slideAnim, {
-          //     toValue: 0,
-          //     duration: 250,
-          //     useNativeDriver: true,
-          //   }).start();
-          // }}
+          
           onPress={async () => {
             setApiError("");
             setSignupLoading(true);
+
             try {
-              await signupUserFromAbha(abhaNumber);
+              const hospitalId = await AsyncStorage.getItem("hospital_id");
+              await signupUserFromAbha(abhaNumber, hospitalId);
+
               setOuterStep(3);
               slideAnim.setValue(1);
               Animated.timing(slideAnim, {
@@ -1904,6 +1889,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
                 useNativeDriver: true,
               }).start();
             } catch (err) {
+              console.error(err);
               setApiError(err.message || "Could not register patient");
             } finally {
               setSignupLoading(false);

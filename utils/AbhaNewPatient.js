@@ -41,7 +41,7 @@ export const verifyOtpAndCreateAbha = async ({
   });
 
   const data = await response.json();
-
+  console.log("Response:", data);
   if (!response.ok) {
     throw new Error(data?.message || "OTP verification failed");
   }
@@ -51,11 +51,14 @@ export const verifyOtpAndCreateAbha = async ({
 };
 
 // ── Step 3: Provision Kokoro user from ABHA (adds patient to "All Patients" list) ──
-export const signupUserFromAbha = async (abhaNumber) => {
-  const response = await fetch(`${API_URL}/abha/signup-user`, {
+export const signupUserFromAbha = async (abhaNumber, hospitalId) => {
+  console.log("Before signup");
+  console.log("abhaNumber =", abhaNumber);
+  console.log("hospitalId =", hospitalId);
+  const response = await fetch(`${API_URL}/auth/abha/signup-user`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ abha_number: abhaNumber }),
+    body: JSON.stringify({ abha_number: abhaNumber, hospital_id: hospitalId }),
   });
 
   const data = await response.json();
