@@ -28,29 +28,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
 // ── Form content components ──────────────────────────────────────────────────
-import MediAssistFormAContent from "../../components/HospitalPortalComponent/MediAssistFormA";
-import MediAssistFormBContent from "../../components/HospitalPortalComponent/MediAssistFormB";
+import PreAuthMediAssistFormAContent from "../../components/HospitalPortalComponent/PreAuthMediAssistFormA";
+// import MediAssistFormBContent from "../../components/HospitalPortalComponent/MediAssistFormB";
 
 // ── Mappers & download utils ─────────────────────────────────────────────────
-import {
-  mapToFormA,
-  mapToFormB,
-} from "../../utils/PreAuthMediAssistMapper";
+import { mapToFormA, mapToFormB } from "../../utils/PreAuthMediAssistMapper";
 import {
   downloadMediAssistFormA,
   generateMediAssistFormAHTML,
+  generateMediAssistFormAPage2HTML
 } from "../../utils/PreAuthMediAssistFormA";
-import {
-  downloadMediAssistFormB,
-  generateMediAssistFormBHTML,
-} from "../../utils/PreAuthMediAssistFormB";
+// import {
+//   downloadMediAssistFormB,
+//   generateMediAssistFormBHTML,
+// } from "../../utils/PreAuthMediAssistFormB";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  STEP CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 const STEPS = [
   { key: "A", label: "Page 1", sub: "Insured section" },
-  { key: "B", label: "Page 2", sub: "Hospital section" },
+  { key: "B", label: "Page 2", sub: "Cost & Declaration" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,57 +76,71 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
   }, []);
 
   // ── Form B state ───────────────────────────────────────────────────────────
-  const formBSeed = useMemo(() => mapToFormB(analysisData), [analysisData]);
-  const [formB, setFormB] = useState(() => formBSeed);
-  const [signatureB, setSignatureB] = useState(null);
-  const [previewB, setPreviewB] = useState(true);
+  // const formBSeed = useMemo(() => mapToFormB(analysisData), [analysisData]);
+  // const [formB, setFormB] = useState(() => formBSeed);
+  // const [signatureB, setSignatureB] = useState(null);
+  // const [previewB, setPreviewB] = useState(true);
 
-  useEffect(() => {
-    setFormB(formBSeed);
-  }, [formBSeed]);
+  // useEffect(() => {
+  //   setFormB(formBSeed);
+  // }, [formBSeed]);
 
-  const setFieldB = useCallback((key, v) => {
-    setFormB((prev) => ({ ...prev, [key]: v }));
-  }, []);
+  // const setFieldB = useCallback((key, v) => {
+  //   setFormB((prev) => ({ ...prev, [key]: v }));
+  // }, []);
 
-  const setDiagnosis = useCallback((idx, subKey, v) => {
-    setFormB((prev) => ({
-      ...prev,
-      diagnoses: prev.diagnoses.map((r, i) =>
-        i === idx ? { ...r, [subKey]: v } : r,
-      ),
-    }));
-  }, []);
+  // const setDiagnosis = useCallback((idx, subKey, v) => {
+  //   setFormB((prev) => ({
+  //     ...prev,
+  //     diagnoses: prev.diagnoses.map((r, i) =>
+  //       i === idx ? { ...r, [subKey]: v } : r,
+  //     ),
+  //   }));
+  // }, []);
 
-  const setProcedure = useCallback((idx, subKey, v) => {
-    setFormB((prev) => ({
-      ...prev,
-      procedures: prev.procedures.map((r, i) =>
-        i === idx ? { ...r, [subKey]: v } : r,
-      ),
-    }));
-  }, []);
+  // const setProcedure = useCallback((idx, subKey, v) => {
+  //   setFormB((prev) => ({
+  //     ...prev,
+  //     procedures: prev.procedures.map((r, i) =>
+  //       i === idx ? { ...r, [subKey]: v } : r,
+  //     ),
+  //   }));
+  // }, []);
 
-  const toggleChecklist = useCallback((idx) => {
-    setFormB((prev) => {
-      const next = [...prev.claimDocChecklist];
-      next[idx] = !next[idx];
-      return { ...prev, claimDocChecklist: next };
-    });
-  }, []);
+  // const toggleChecklist = useCallback((idx) => {
+  //   setFormB((prev) => {
+  //     const next = [...prev.claimDocChecklist];
+  //     next[idx] = !next[idx];
+  //     return { ...prev, claimDocChecklist: next };
+  //   });
+  // }, []);
 
   // ── Download ───────────────────────────────────────────────────────────────
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // const handleDownload = async () => {
+  //   if (isDownloading) return;
+  //   setIsDownloading(true);
+  //   try {
+  //     if (currentStep === 0) {
+  //       await downloadMediAssistFormA(formA, signatureA);
+  //     } else {
+  //       await downloadMediAssistFormB(formB, signatureB);
+  //     }
+  //   } catch {
+  //     Alert.alert(
+  //       "Download Error",
+  //       "Could not generate the PDF. Please try again.",
+  //     );
+  //   } finally {
+  //     setIsDownloading(false);
+  //   }
+  // };
   const handleDownload = async () => {
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      if (currentStep === 0) {
-        await downloadMediAssistFormA(formA, signatureA);
-      } else {
-        await downloadMediAssistFormB(formB, signatureB);
-      }
+      await downloadMediAssistFormA(formA, signatureA);
     } catch {
       Alert.alert(
         "Download Error",
@@ -140,25 +152,37 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
   };
 
   // ── HTML preview (only computed for active form) ───────────────────────────
-  const htmlPreviewA = useMemo(
-    () => generateMediAssistFormAHTML(formA, signatureA),
-    [formA, signatureA],
-  );
-  const htmlPreviewB = useMemo(
-    () => generateMediAssistFormBHTML(formB, signatureB),
-    [formB, signatureB],
-  );
+  // const htmlPreviewA = useMemo(
+  //   () => generateMediAssistFormAHTML(formA, signatureA),
+  //   [formA, signatureA],
+  // );
+  // const htmlPreviewB = useMemo(
+  //   () => generateMediAssistFormBHTML(formB, signatureB),
+  //   [formB, signatureB],
+  // );
 
-  // ── Derived ────────────────────────────────────────────────────────────────
+  // // ── Derived ────────────────────────────────────────────────────────────────
+  // const isFirst = currentStep === 0;
+  // const isLast = currentStep === STEPS.length - 1;
+  // const activePreview = currentStep === 0 ? previewA : previewB;
+  // const activeHtml = currentStep === 0 ? htmlPreviewA : htmlPreviewB;
+
+  // const togglePreview = () => {
+  //   if (currentStep === 0) setPreviewA((p) => !p);
+  //   else setPreviewB((p) => !p);
+  // };
+  const activeHtml = useMemo(
+  () =>
+    currentStep === 0
+      ? generateMediAssistFormAHTML(formA, signatureA)
+      : generateMediAssistFormAPage2HTML(formA, signatureA),
+  [formA, signatureA, currentStep],
+);
   const isFirst = currentStep === 0;
   const isLast = currentStep === STEPS.length - 1;
-  const activePreview = currentStep === 0 ? previewA : previewB;
-  const activeHtml = currentStep === 0 ? htmlPreviewA : htmlPreviewB;
+  const activePreview = previewA;
 
-  const togglePreview = () => {
-    if (currentStep === 0) setPreviewA((p) => !p);
-    else setPreviewB((p) => !p);
-  };
+  const togglePreview = () => setPreviewA((p) => !p);
 
   // ─────────────────────────────────────────────────────────────────────────
   //  FORM TABS (pill switcher)
@@ -255,31 +279,42 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
   // ─────────────────────────────────────────────────────────────────────────
   //  ACTIVE FORM CONTENT
   // ─────────────────────────────────────────────────────────────────────────
-  const ActiveFormContent = () => {
-    if (currentStep === 0) {
-      return (
-        <MediAssistFormAContent
-          form={formA}
-          setField={setFieldA}
-          signatureImage={signatureA}
-          setSignatureImage={setSignatureA}
-          navigation={navigation}
-        />
-      );
-    }
-    return (
-      <MediAssistFormBContent
-        form={formB}
-        setField={setFieldB}
-        setDiagnosis={setDiagnosis}
-        setProcedure={setProcedure}
-        toggleChecklist={toggleChecklist}
-        signatureImage={signatureB}
-        setSignatureImage={setSignatureB}
-        navigation={navigation}
-      />
-    );
-  };
+  // const ActiveFormContent = () => {
+  //   if (currentStep === 0) {
+  //     return (
+  //       <PreAuthMediAssistFormAContent
+  //         form={formA}
+  //         setField={setFieldA}
+  //         signatureImage={signatureA}
+  //         setSignatureImage={setSignatureA}
+  //         navigation={navigation}
+  //         page={currentStep === 0 ? 1 : 2}
+  //       />
+  //     );
+  //   }
+  //   // return (
+  //   //   <MediAssistFormBContent
+  //   //     form={formB}
+  //   //     setField={setFieldB}
+  //   //     setDiagnosis={setDiagnosis}
+  //   //     setProcedure={setProcedure}
+  //   //     toggleChecklist={toggleChecklist}
+  //   //     signatureImage={signatureB}
+  //   //     setSignatureImage={setSignatureB}
+  //   //     navigation={navigation}
+  //   //   />
+  //   // );
+  // };
+  const ActiveFormContent = () => (
+    <PreAuthMediAssistFormAContent
+      form={formA}
+      setField={setFieldA}
+      signatureImage={signatureA}
+      setSignatureImage={setSignatureA}
+      navigation={navigation}
+      page={currentStep === 0 ? 1 : 2}
+    />
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   //  WEB LAYOUT  (width > 1000)
@@ -357,7 +392,7 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
                       //minWidth: "80%",
                       minHeight: 0,
                       borderWidth: 1,
-                      borderColor:"#afb0b0ff"
+                      borderColor: "#afb0b0ff",
                     }}
                   >
                     {activePreview ? (

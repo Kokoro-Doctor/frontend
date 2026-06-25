@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ImageBackground,
   StyleSheet,
@@ -95,7 +95,7 @@ const getInitials = (name = "") => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-const ManualDataIntegration = ({ navigation }) => {
+const ManualDataIntegration = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -130,6 +130,26 @@ const ManualDataIntegration = ({ navigation }) => {
   const [doctorList, setDoctorList] = useState([]);
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState("");
+
+  useEffect(() => {
+    const preSelected = route?.params?.preSelectedPatient;
+    const preDoctor = route?.params?.preSelectedDoctor;
+    if (preSelected) {
+      setSelectedDoctor(preDoctor || null); // patient acts as the "doctor" context
+      setPatientForm({
+        fullName: preSelected.name || "",
+        age: preSelected.age ? String(preSelected.age) : "",
+        gender: preSelected.gender || "",
+        phoneNo: preSelected.phone || "",
+        policyNo: preSelected.policy || "",
+        insurer: preSelected.insurer || "",
+        admissionDate: preSelected.admitted || "",
+        diagnosis: preSelected.procedure || "",
+      });
+      setShowPatientForm(true);
+      setCurrentStep(1);
+    }
+  }, [route?.params?.preSelectedDoctor, route?.params?.preSelectedPatient]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));

@@ -13,7 +13,9 @@ import {
 import {
   requestAadhaarOtp,
   verifyOtpAndCreateAbha,
+  signupUserFromAbha,
 } from "../../utils/AbhaNewPatient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ─── CONSTANTS ────────────────────────────────────────────────
 const GENDERS = ["Male", "Female", "Other"];
@@ -579,6 +581,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
   const otpOpacity = useRef(new Animated.Value(0)).current;
   const [preferredMobile, setPreferredMobile] = useState("");
   const [mobileSent, setMobileSent] = useState(false);
+  const [signupLoading, setSignupLoading] = useState(false);
   // const ABHA_SUGGESTIONS = [
   //   "priya.devi@abdm",
   //   "priya.devi2@abdm",
@@ -1869,26 +1872,30 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.primaryBtn, { backgroundColor: "#2563EB" }]}
-          // onPress={() =>
-          //   onFlowComplete &&
-          //   onFlowComplete({
-          //     fullName,
-          //     mobile: preferredMobile || mobile,
-          //     gender,
-          //     dob,
-          //     abhaNumber: "9876-5623-5412-6325",
-          //     abhaAddress: abhaAddr,
-          //   })
-          // }
-          onPress={() => {
-            setOuterStep(3);
-            slideAnim.setValue(1);
-            Animated.timing(slideAnim, {
-              toValue: 0,
-              duration: 250,
-              useNativeDriver: true,
-            }).start();
+          
+          onPress={async () => {
+            setApiError("");
+            setSignupLoading(true);
+
+            try {
+              const hospitalId = await AsyncStorage.getItem("hospital_id");
+              await signupUserFromAbha(abhaNumber, hospitalId);
+
+              setOuterStep(3);
+              slideAnim.setValue(1);
+              Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: true,
+              }).start();
+            } catch (err) {
+              console.error(err);
+              setApiError(err.message || "Could not register patient");
+            } finally {
+              setSignupLoading(false);
+            }
           }}
+          disabled={signupLoading}
         >
           <Text style={s.primaryBtnText}>🪪 Create ABHA ID ›</Text>
         </TouchableOpacity>
@@ -2142,13 +2149,12 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
       )}
 
       {/* Inner sub-step bar sirf ABHA creation steps mein dikhao */}
-      {outerStep === 1 && (
-        isMobile ? (
+      {outerStep === 1 &&
+        (isMobile ? (
           <MobileInnerStepIndicator currentStep={subStep} />
         ) : (
           <InnerStepIndicator currentStep={subStep} />
-        )
-      )}
+        ))}
 
       <Animated.View style={{ flex: 1, transform: [{ translateX }] }}>
         {outerStep === 1 && subStep === 1 && renderStep1()}

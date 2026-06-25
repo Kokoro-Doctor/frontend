@@ -12,7 +12,7 @@ import { Asset } from "expo-asset";
 export async function getLogoBase64() {
   try {
     const asset = Asset.fromModule(
-      require("../assets/HospitalPortal/Images/preauth_Carehealth.png"),
+      require("../assets/HospitalPortal/Images/preauth_Carehealth.png")
     );
 
     await asset.downloadAsync();
@@ -84,25 +84,15 @@ function lineFieldHtml(value, className = "") {
 }
 
 function isYes(value) {
-  return (
-    String(value ?? "")
-      .trim()
-      .toLowerCase() === "yes"
-  );
+  return String(value ?? "").trim().toLowerCase() === "yes";
 }
 
 function isNo(value) {
-  return (
-    String(value ?? "")
-      .trim()
-      .toLowerCase() === "no"
-  );
+  return String(value ?? "").trim().toLowerCase() === "no";
 }
 
 function relationshipChecked(value, key) {
-  const rel = String(value ?? "")
-    .trim()
-    .toLowerCase();
+  const rel = String(value ?? "").trim().toLowerCase();
   if (!rel) return false;
   if (key === "other") {
     return !["self", "spouse", "child", "father", "mother"].some(
@@ -113,9 +103,7 @@ function relationshipChecked(value, key) {
 }
 
 function occupationChecked(value, key) {
-  const occupation = String(value ?? "")
-    .trim()
-    .toLowerCase();
+  const occupation = String(value ?? "").trim().toLowerCase();
   if (!occupation) return false;
   if (key === "other") {
     return !["service", "self", "home", "student", "retired"].some((item) =>
@@ -132,14 +120,11 @@ function occupationChecked(value, key) {
 }
 
 function roomCategoryChecked(value, key) {
-  const room = String(value ?? "")
-    .trim()
-    .toLowerCase();
+  const room = String(value ?? "").trim().toLowerCase();
   if (!room) return false;
   if (key === "day care") return room.includes("day");
   if (key === "single occupancy") return room.includes("single");
-  if (key === "twin sharing")
-    return room.includes("twin") || room.includes("double");
+  if (key === "twin sharing") return room.includes("twin") || room.includes("double");
   if (key === "3 or more beds per room") {
     return (
       room.includes("3") ||
@@ -152,24 +137,14 @@ function roomCategoryChecked(value, key) {
 }
 
 function hospitalizationCauseChecked(value, key) {
-  const cause = String(value ?? "")
-    .trim()
-    .toLowerCase();
+  const cause = String(value ?? "").trim().toLowerCase();
   if (!cause) return false;
   if (key === "injury") return cause.includes("injur");
   if (key === "illness") {
-    return (
-      cause.includes("ill") ||
-      cause.includes("disease") ||
-      cause.includes("sick")
-    );
+    return cause.includes("ill") || cause.includes("disease") || cause.includes("sick");
   }
   if (key === "maternity") {
-    return (
-      cause.includes("mater") ||
-      cause.includes("deliver") ||
-      cause.includes("pregnan")
-    );
+    return cause.includes("mater") || cause.includes("deliver") || cause.includes("pregnan");
   }
   return false;
 }
@@ -3556,11 +3531,7 @@ export function generateInsuranceFormHTML(
  * @param {string | null} [signatureDataUrl] - optional PNG data URI from the e-sign capture
  * @returns {Promise<void>}
  */
-export async function downloadInsuranceClaim(
-  form,
-  signatureDataUrl = null,
-  htmlOverride = null,
-) {
+export async function downloadInsuranceClaim(form, signatureDataUrl = null) {
   const patientName =
     String(form?.primaryName ?? "")
       .trim()
@@ -3568,15 +3539,16 @@ export async function downloadInsuranceClaim(
   const date = new Date().toISOString().split("T")[0];
   const fileName = `InsuranceClaim_${patientName}_${date}.pdf`;
 
+  // On native we can try to load the logo from assets at runtime.
+  // On web the constant CARE_HEALTH_LOGO_DATA_URI is always available,
+  // but getLogoBase64() gives us the freshest copy if the asset path is correct.
   let logoDataUrl = null;
   if (Platform.OS !== "web") {
     logoDataUrl = await getLogoBase64().catch(() => null);
   }
 
-  // Use the edited HTML if provided, otherwise regenerate fresh
-  const html =
-    htmlOverride ||
-    generateInsuranceFormHTML(form, signatureDataUrl, logoDataUrl);
+  const html = generateInsuranceFormHTML(form, signatureDataUrl, logoDataUrl);
+
   if (Platform.OS === "web") {
     let injectedStyle = null;
     let host = null;

@@ -45,6 +45,25 @@ const isFormValuePresent = (value) => {
 const firstFilled = (...values) =>
   values.find((value) => isFormValuePresent(value)) ?? "";
 
+const getInsuranceProvider = ({
+  serviceFormData,
+  selectedPatient,
+  analysisData,
+}) =>
+  firstFilled(
+    serviceFormData?.insurer,
+    selectedPatient?.insurer,
+    analysisData?.structured_data?.insurance_details?.insurance_company,
+    analysisData?.structured_data?.insurance_details?.tpa_name,
+    selectedPatient?.rawPatient?.insurer,
+    selectedPatient?.rawPatient?.insurance_provider,
+  );
+
+const normalizeInsuranceProvider = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
 const rawPatientFrom = (patient) =>
   patient?.rawPatient || patient?.user || patient || {};
 
@@ -1114,6 +1133,7 @@ const PARequests = ({ navigation }) => {
   const [diagnosisSummary, setDiagnosisSummary] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
+  const [selectedForm, setSelectedForm] = useState("mediassist"); // "mediassist" | "starhealth"
 
   // ── Lifted state: shared between Step 3 → Step 4 ──────────────────────────
   const [diagnosisCodes, setDiagnosisCodes] = useState([]); // ✅ start empty, filled from API
@@ -1776,6 +1796,14 @@ const PARequests = ({ navigation }) => {
         onPrevious={() => handlePrevious(animRef)}
         onNext={(formValues) => {
           setServiceFormData(formValues);
+          setSelectedPatient((patient) =>
+            patient
+              ? {
+                  ...patient,
+                  insurer: firstFilled(formValues.insurer, patient.insurer),
+                }
+              : patient,
+          );
           handleNext(animRef);
         }}
       />
@@ -1835,7 +1863,13 @@ const PARequests = ({ navigation }) => {
   const renderStep4 = (animRef) => (
     <Animated.View style={{ transform: [{ translateX: animRef }] }}>
       <ReviewVerifyForm
-        patient={selectedPatient}
+        patient={{
+          ...selectedPatient,
+          insurer: firstFilled(
+            serviceFormData.insurer,
+            selectedPatient?.insurer,
+          ),
+        }}
         diagnosisCodes={diagnosisCodes}
         procedureCodes={procedureCodes}
         updateLoading={updateLoading}
@@ -1883,17 +1917,38 @@ const PARequests = ({ navigation }) => {
     </Animated.View>
   );
 
-const renderStep5 = (animRef) => {
-  const analysisData =
-    preAuthAnalysisData ||
-    buildPreAuthAnalysisData({
-      patient: selectedPatient,
-      updatedUser: selectedPatient?.rawPatient,
-      diagnosisSummary,
-      diagnosisCodes,
-      procedureCodes,
-      serviceFormData,
-    });
+  // const renderStep5 = (animRef) => {
+  //   const analysisData =
+  //     preAuthAnalysisData ||
+  //     buildPreAuthAnalysisData({
+  //       patient: selectedPatient,
+  //       updatedUser: selectedPatient?.rawPatient,
+  //       diagnosisSummary,
+  //       diagnosisCodes,
+  //       procedureCodes,
+  //       serviceFormData,
+  //     });
+
+  //   return (
+  //     <Animated.View style={{ transform: [{ translateX: animRef }] }}>
+  //       <PreAuthMediAssistCombinedForms
+  //         navigation={navigation}
+  //         route={{ params: { analysisData } }}
+  //       />
+  //     </Animated.View>
+  //   );
+  // };
+  const renderStep5 = (animRef) => {
+    const analysisData =
+      preAuthAnalysisData ||
+      buildPreAuthAnalysisData({
+        patient: selectedPatient,
+        updatedUser: selectedPatient?.rawPatient,
+        diagnosisSummary,
+        diagnosisCodes,
+        procedureCodes,
+        serviceFormData,
+      });
 
   const insurerRaw = String(
     serviceFormData?.insurer ||
