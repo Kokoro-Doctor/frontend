@@ -312,6 +312,10 @@ export function generateInsuranceFormHTML(
       amount: row.amount ?? "",
     };
   });
+  const chronicChecked = (key) => f.chronicIllnesses?.[key]?.present === true;
+const chronicMonth = (key) => f.chronicIllnesses?.[key]?.month ?? "  ";
+const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
+
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1877,8 +1881,9 @@ export function generateInsuranceFormHTML(
     </div>
 
     <div class="tpa-box-row long">
-      ${emptyBoxRowHtml(24)}
-    </div>
+  ${charBoxHtml(f.tpaName ?? "", 24)}
+</div>
+
   </div>
 
   <!-- ROW 2 -->
@@ -1890,8 +1895,10 @@ export function generateInsuranceFormHTML(
       </div>
 
       <div class="tpa-box-row medium">
-        ${emptyBoxRowHtml(10)}
-      </div>
+  ${charBoxHtml(f.tpaPhone ?? "", 10)}
+</div>
+
+
     </div>
 
     <div class="split-right">
@@ -1899,9 +1906,9 @@ export function generateInsuranceFormHTML(
         c) Toll Free FAX :
       </div>
 
-      <div class="tpa-box-row medium">
-        ${emptyBoxRowHtml(12)}
-      </div>
+<div class="tpa-box-row medium">
+  ${charBoxHtml(f.tpaFax ?? "", 12)}
+</div>
     </div>
 
   </div>
@@ -1913,8 +1920,8 @@ export function generateInsuranceFormHTML(
     </div>
 
     <div class="tpa-box-row hospital">
-      ${emptyBoxRowHtml(30)}
-    </div>
+  ${charBoxHtml(f.tpaHospitalName ?? "", 30)}
+</div>
   </div>
 
   <!-- ADDRESS -->
@@ -1927,9 +1934,10 @@ export function generateInsuranceFormHTML(
       Address
     </div>
 
-    <div class="tpa-box-row hospital">
-      ${emptyBoxRowHtml(30)}
-    </div>
+<div class="tpa-box-row hospital">
+  ${charBoxHtml(f.tpaHospitalAddress ?? "", 30)}
+</div>
+
   </div>
 
   <!-- ROHINI -->
@@ -1942,9 +1950,10 @@ export function generateInsuranceFormHTML(
       Rohini ID
     </div>
 
-    <div class="tpa-box-row hospital">
-      ${emptyBoxRowHtml(30)}
-    </div>
+<div class="tpa-box-row hospital">
+  ${charBoxHtml(f.tpaRohiniId ?? "", 30)}
+</div>
+
   </div>
 
   <!-- EMAIL -->
@@ -1958,8 +1967,8 @@ export function generateInsuranceFormHTML(
     </div>
 
     <div class="tpa-box-row hospital">
-      ${emptyBoxRowHtml(30)}
-    </div>
+  ${charBoxHtml(f.tpaEmailId ?? "", 30)}
+</div>
   </div>
 
 </div>
@@ -1980,8 +1989,9 @@ export function generateInsuranceFormHTML(
     </div>
 
     <div class="insured-box-group patient-name-boxes">
-      ${emptyBoxRowHtml(28)}
-    </div>
+  ${charBoxHtml(f.patientName ?? "", 28)}
+</div>
+
 
   </div>
 
@@ -2000,14 +2010,17 @@ export function generateInsuranceFormHTML(
 
       <span class="colon">:</span>
 
-      <span class="gender-box"></span>
-      <span class="gender-text">M</span>
+      <span class="gender-box" style="${f.gender === "male" ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">
+  ${f.gender === "male" ? "✓" : ""}
+</span>
+<span class="gender-text">M</span>
+<span class="gender-box" style="${f.gender === "female" ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">
+  ${f.gender === "female" ? "✓" : ""}
+</span>
+<span class="gender-text">F</span>
+<span class="gender-box"></span>
+<span class="gender-text">Other</span>
 
-      <span class="gender-box"></span>
-      <span class="gender-text">F</span>
-
-      <span class="gender-box"></span>
-      <span class="gender-text">Other</span>
     </div>
 
     <!-- Age -->
@@ -2015,14 +2028,13 @@ export function generateInsuranceFormHTML(
       <div class="insured-label">c) Age :</div>
 
       <div class="insured-box-group small">
-        ${emptyBoxRowHtml(2)}
-      </div>
+  ${charBoxHtml(f.ageYears ?? "", 2)}
+</div>
+<span class="mini-text">(YY)</span>
+<div class="insured-box-group small">
+  ${charBoxHtml(f.ageMonths ?? "", 2)}
+</div>
 
-      <span class="mini-text">(YY)</span>
-
-      <div class="insured-box-group small">
-        ${emptyBoxRowHtml(2)}
-      </div>
 
       <span class="mini-text">(MM)</span>
     </div>
@@ -2031,21 +2043,12 @@ export function generateInsuranceFormHTML(
     <div class="inline-group dob-group">
       <div class="insured-label">d) Date of Birth :</div>
 
-      <div class="insured-box-group dob">
-        ${emptyBoxRowHtml(2)}
-      </div>
+      <div class="insured-box-group dob">${charBoxHtml((f.dob ?? "").slice(0, 2), 2)}</div>
+<span class="slash">/</span>
+<div class="insured-box-group dob">${charBoxHtml((f.dob ?? "").slice(2, 4), 2)}</div>
+<span class="slash">/</span>
+<div class="insured-box-group dob year">${charBoxHtml((f.dob ?? "").slice(4, 8), 4)}</div>
 
-      <span class="slash">/</span>
-
-      <div class="insured-box-group dob">
-        ${emptyBoxRowHtml(2)}
-      </div>
-
-      <span class="slash">/</span>
-
-      <div class="insured-box-group dob year">
-        ${emptyBoxRowHtml(4)}
-      </div>
     </div>
 
   </div>
@@ -2056,15 +2059,10 @@ export function generateInsuranceFormHTML(
       e) Contact Number :
     </div>
 
-    <div class="insured-box-group phone-code">
-      ${emptyBoxRowHtml(5)}
-    </div>
+<div class="insured-box-group phone-code">${charBoxHtml((f.contactNumber ?? "").slice(0,5), 5)}</div>
+<span class="dash">-</span>
+<div class="insured-box-group phone-number">${charBoxHtml((f.contactNumber ?? "").slice(5,10) || (f.contactNumber ?? ""), 10)}</div>
 
-    <span class="dash">-</span>
-
-    <div class="insured-box-group phone-number">
-      ${emptyBoxRowHtml(10)}
-    </div>
   </div>
 
   <!-- f -->
@@ -2090,9 +2088,7 @@ export function generateInsuranceFormHTML(
       g) Insured Card ID Number :
     </div>
 
-    <div class="insured-box-group full">
-      ${emptyBoxRowHtml(26)}
-    </div>
+    <div class="insured-box-group full">${charBoxHtml(f.insuredCardId ?? "", 26)}</div>
   </div>
 
   <!-- h -->
@@ -2101,9 +2097,7 @@ export function generateInsuranceFormHTML(
       h) Policy Number/Name of Corporate :
     </div>
 
-    <div class="insured-box-group full">
-      ${emptyBoxRowHtml(26)}
-    </div>
+    <div class="insured-box-group full">${charBoxHtml(f.policyNumber ?? "", 26)}</div>
   </div>
 
   <!-- i -->
@@ -2112,9 +2106,7 @@ export function generateInsuranceFormHTML(
       i) Employee ID :
     </div>
 
-    <div class="insured-box-group full">
-      ${emptyBoxRowHtml(32)}
-    </div>
+<div class="insured-box-group full">${charBoxHtml(f.employeeId ?? "", 32)}</div>
   </div>
 
   <!-- j -->
@@ -2124,11 +2116,15 @@ export function generateInsuranceFormHTML(
       j) Currently do you have any other Mediclaim/Health Insurance :
     </div>
 
-    <span class="gender-box"></span>
-    <span class="gender-text">Yes</span>
+    <span class="gender-box" style="${f.otherInsurance === 'yes' ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">
+  ${f.otherInsurance === 'yes' ? '✓' : ''}
+</span>
+<span class="gender-text">Yes</span>
+<span class="gender-box" style="${f.otherInsurance === 'no' ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">
+  ${f.otherInsurance === 'no' ? '✓' : ''}
+</span>
+<span class="gender-text">No</span>
 
-    <span class="gender-box"></span>
-    <span class="gender-text">No</span>
 
   </div>
 
@@ -2140,9 +2136,8 @@ export function generateInsuranceFormHTML(
       Company Name :
     </div>
 
-    <div class="insured-box-group full">
-      ${emptyBoxRowHtml(28)}
-    </div>
+    <div class="insured-box-group full">${charBoxHtml(f.otherInsuranceCompany ?? "", 28)}</div>
+
   </div>
 
   <!-- j ii -->
@@ -2163,11 +2158,15 @@ export function generateInsuranceFormHTML(
       k) Do you have a family physician :
     </div>
 
-    <span class="gender-box"></span>
-    <span class="gender-text">Yes</span>
+    <span class="gender-box" style="${f.hasFamilyPhysician === 'yes' ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">
+  ${f.hasFamilyPhysician === 'yes' ? '✓' : ''}
+</span>
+<span class="gender-text">Yes</span>
+<span class="gender-box" style="${f.hasFamilyPhysician === 'no' ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">
+  ${f.hasFamilyPhysician === 'no' ? '✓' : ''}
+</span>
+<span class="gender-text">No</span>
 
-    <span class="gender-box"></span>
-    <span class="gender-text">No</span>
 
   </div>
 
@@ -2177,9 +2176,8 @@ export function generateInsuranceFormHTML(
       l) Name of the family physician :
     </div>
 
-    <div class="insured-box-group full">
-      ${emptyBoxRowHtml(25)}
-    </div>
+    <div class="insured-box-group full">${charBoxHtml(f.familyPhysicianName ?? "", 25)}</div>
+
   </div>
 
   <!-- m -->
@@ -2188,15 +2186,10 @@ export function generateInsuranceFormHTML(
       m) Contact Number, if any :
     </div>
 
-    <div class="insured-box-group phone-code">
-      ${emptyBoxRowHtml(5)}
-    </div>
+    <div class="insured-box-group phone-code">${charBoxHtml((f.familyPhysicianContact ?? "").slice(0,5), 5)}</div>
+<span class="dash">-</span>
+<div class="insured-box-group phone-number">${charBoxHtml((f.familyPhysicianContact ?? "").slice(5,10) || (f.familyPhysicianContact ?? ""), 10)}</div>
 
-    <span class="dash">-</span>
-
-    <div class="insured-box-group phone-number">
-      ${emptyBoxRowHtml(10)}
-    </div>
   </div>
 
   <!-- n -->
@@ -2205,9 +2198,8 @@ export function generateInsuranceFormHTML(
       n) Current Address of the Insured Patient :
     </div>
 
-    <div class="insured-box-group full">
-      ${emptyBoxRowHtml(30)}
-    </div>
+<div class="insured-box-group full">${charBoxHtml(f.patientAddress ?? "", 30)}</div>
+
   </div>
 
   <!-- o -->
@@ -2216,9 +2208,8 @@ export function generateInsuranceFormHTML(
       o) Occupation of Insured Person :
     </div>
 
-    <div class="insured-box-group full">
-      ${emptyBoxRowHtml(30)}
-    </div>
+<div class="insured-box-group full">${charBoxHtml(f.patientOccupation ?? "", 30)}</div>
+
   </div>
 
 </div>
@@ -2236,9 +2227,8 @@ export function generateInsuranceFormHTML(
       a) Name of the treating doctor :
     </div>
 
-    <div class="treating-box-group full">
-      ${emptyBoxRowHtml(26)}
-    </div>
+    <div class="treating-box-group full">${charBoxHtml(f.treatingDoctorName ?? "", 26)}</div>
+
   </div>
 
   <!-- b -->
@@ -2249,15 +2239,9 @@ export function generateInsuranceFormHTML(
 
     <span class="colon">:</span>
 
-    <div class="treating-box-group phone-code">
-      ${emptyBoxRowHtml(6)}
-    </div>
-
-    <span class="dash">-</span>
-
-    <div class="treating-box-group phone-number">
-      ${emptyBoxRowHtml(12)}
-    </div>
+<div class="treating-box-group phone-code">${charBoxHtml((f.treatingDoctorContact ?? "").slice(0,6), 6)}</div>
+<span class="dash">-</span>
+<div class="treating-box-group phone-number">${charBoxHtml((f.treatingDoctorContact ?? "").slice(6) || (f.treatingDoctorContact ?? ""), 12)}</div>
   </div>
 
   <!-- c -->
@@ -2266,7 +2250,8 @@ export function generateInsuranceFormHTML(
       c) Nature of Illness/Disease with presenting complaints :
     </div>
 
-    <div class="treating-line"></div>
+<div class="treating-line" style="color:#111;font-size:8px;padding:1px 2px;">${escHtml(f.natureOfIllness ?? "")}</div>
+
   </div>
 
   <!-- d -->
@@ -2275,7 +2260,8 @@ export function generateInsuranceFormHTML(
       d) Relevant clinical findings:
     </div>
 
-    <div class="treating-line"></div>
+<div class="treating-line" style="color:#111;font-size:8px;padding:1px 2px;">${escHtml(f.clinicalFindings ?? "")}</div>
+
   </div>
 
   <!-- e -->
@@ -2285,9 +2271,8 @@ export function generateInsuranceFormHTML(
       e) Duration of the present ailment :
     </div>
 
-    <div class="treating-box-group small">
-      ${emptyBoxRowHtml(3)}
-    </div>
+    <div class="treating-box-group small">${charBoxHtml(f.durationDays ?? "", 3)}</div>
+
 
     <span class="days-text">days</span>
 
@@ -2304,21 +2289,12 @@ export function generateInsuranceFormHTML(
       Date of first consultation :
     </div>
 
-    <div class="treating-box-group date-box">
-      ${emptyBoxRowHtml(2)}
-    </div>
+    <div class="treating-box-group date-box">${charBoxHtml((f.firstConsultationDate ?? "").slice(0,2), 2)}</div>
+<span class="slash">/</span>
+<div class="treating-box-group date-box">${charBoxHtml((f.firstConsultationDate ?? "").slice(2,4), 2)}</div>
+<span class="slash">/</span>
+<div class="treating-box-group year-box">${charBoxHtml((f.firstConsultationDate ?? "").slice(4,8), 4)}</div>
 
-    <span class="slash">/</span>
-
-    <div class="treating-box-group date-box">
-      ${emptyBoxRowHtml(2)}
-    </div>
-
-    <span class="slash">/</span>
-
-    <div class="treating-box-group year-box">
-      ${emptyBoxRowHtml(4)}
-    </div>
 
     <span class="date-format">(DD/MM/YYYY)</span>
 
@@ -2346,7 +2322,8 @@ export function generateInsuranceFormHTML(
       f) Provisional diagnosis :
     </div>
 
-    <div class="treating-line"></div>
+    <div class="treating-line" style="color:#111;font-size:8px;padding:1px 2px;">${escHtml(f.provisionalDiagnosis ?? "")}</div>
+
 
   </div>
 
@@ -2361,9 +2338,7 @@ export function generateInsuranceFormHTML(
       ICD 10 Code :
     </div>
 
-    <div class="treating-box-group icd-boxes">
-      ${emptyBoxRowHtml(14)}
-    </div>
+    <div class="treating-box-group icd-boxes">${charBoxHtml(f.icd10Code ?? "", 14)}</div>
 
   </div>
   <!-- g -->
@@ -2373,28 +2348,24 @@ export function generateInsuranceFormHTML(
     g) Proposed line of treatment :
   </div>
 
-  <span class="square-box"></span>
-  <span class="treating-option">Medical Management</span>
+  <span class="square-box" style="${f.proposedMedical ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedMedical ? '✓' : ''}</span>
+<span class="treating-option">Medical Management</span>
+<span class="square-box" style="${f.proposedSurgical ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedSurgical ? '✓' : ''}</span>
+<span class="treating-option">Surgical Management</span>
+<span class="square-box" style="${f.proposedIntensiveCare ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedIntensiveCare ? '✓' : ''}</span>
+<span class="treating-option">Intensive care</span>
+<span class="square-box" style="${f.proposedInvestigation ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedInvestigation ? '✓' : ''}</span>
+<span class="treating-option">Investigation</span>
 
-  <span class="square-box"></span>
-  <span class="treating-option">Surgical Management</span>
-
-  <span class="square-box"></span>
-  <span class="treating-option">Intensive care</span>
-
-  <span class="square-box"></span>
-  <span class="treating-option">Investigation</span>
 
 </div>
 
 <!-- non allopathic -->
 <div class="treating-row treatment-sub-row">
 
-  <span class="square-box"></span>
+ <span class="square-box" style="${f.proposedNonAllopathic ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedNonAllopathic ? '✓' : ''}</span>
+<span class="treating-option">Non allopathic treatment</span>
 
-  <span class="treating-option">
-    Non allopathic treatment
-  </span>
 
 </div>
 
@@ -2405,7 +2376,7 @@ export function generateInsuranceFormHTML(
     h) If Investigation &/or Medical Management provide details :
   </div>
 
-  <div class="treating-line"></div>
+  <div class="treating-line" style="color:#111;font-size:8px;padding:1px 2px;">${escHtml(f.investigationDetails ?? "")}</div>
 
 </div>
 
@@ -2420,7 +2391,8 @@ export function generateInsuranceFormHTML(
     Route of drug administration :
   </div>
 
-  <div class="treating-line"></div>
+  <div class="treating-line" style="color:#111;font-size:8px;padding:1px 2px;">${escHtml(f.drugRoute ?? "")}</div>
+
 
 </div>
 
@@ -2431,7 +2403,8 @@ export function generateInsuranceFormHTML(
     i) If Surgical, name of surgery :
   </div>
 
-  <div class="treating-line"></div>
+  <div class="treating-line" style="color:#111;font-size:8px;padding:1px 2px;">${escHtml(f.surgeryName ?? "")}</div>
+
 
 </div>
 
@@ -2446,9 +2419,8 @@ export function generateInsuranceFormHTML(
     ICD 10 PCS Code :
   </div>
 
-  <div class="treating-box-group pcs-boxes">
-    ${emptyBoxRowHtml(12)}
-  </div>
+  <div class="treating-box-group pcs-boxes">${charBoxHtml(f.icd10PcsCode ?? "", 12)}</div>
+
 
 </div>
 
@@ -2459,7 +2431,8 @@ export function generateInsuranceFormHTML(
     j) If other treatments provide details :
   </div>
 
-  <div class="treating-line"></div>
+<div class="treating-line" style="color:#111;font-size:8px;padding:1px 2px;">${escHtml(f.otherTreatmentDetails ?? "")}</div>
+
 
 </div>
 
@@ -2470,7 +2443,7 @@ export function generateInsuranceFormHTML(
     k) How did injury occur :
   </div>
 
-  <div class="treating-line"></div>
+<div class="treating-line" style="color:#111;font-size:8px;padding:1px 2px;">${escHtml(f.injuryCause ?? "")}</div>
 
 </div>
 
@@ -2486,30 +2459,22 @@ export function generateInsuranceFormHTML(
   </div>
 
   <span class="square-box"></span>
-  <span class="treating-option">Yes</span>
+  <span class="square-box" style="${f.isRta ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.isRta ? '✓' : ''}</span>
+<span class="treating-option">Yes</span>
+<span class="square-box" style="${!f.isRta && f.isRta !== undefined && f.isRta !== null ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}"></span>
+<span class="treating-option">No</span>
 
-  <span class="square-box"></span>
-  <span class="treating-option">No</span>
 
   <div class="treating-label injury-label">
     ii) Date of injury :
   </div>
 
-  <div class="treating-box-group date-group">
-    ${emptyBoxRowHtml(2)}
-  </div>
+  <div class="treating-box-group date-group">${charBoxHtml((f.dateOfInjury ?? "").slice(0,2), 2)}</div>
+<span class="slash">/</span>
+<div class="treating-box-group date-group">${charBoxHtml((f.dateOfInjury ?? "").slice(2,4), 2)}</div>
+<span class="slash">/</span>
+<div class="treating-box-group year-group">${charBoxHtml((f.dateOfInjury ?? "").slice(4,8), 4)}</div>
 
-  <span class="slash">/</span>
-
-  <div class="treating-box-group date-group">
-    ${emptyBoxRowHtml(2)}
-  </div>
-
-  <span class="slash">/</span>
-
-  <div class="treating-box-group year-group">
-    ${emptyBoxRowHtml(4)}
-  </div>
 
   <span class="date-note">(DD/MM/YYYY)</span>
 
@@ -2532,9 +2497,7 @@ export function generateInsuranceFormHTML(
     iv) FIR No.:
   </div>
 
-  <div class="treating-box-group fir-group">
-    ${emptyBoxRowHtml(10)}
-  </div>
+  <div class="treating-box-group fir-group">${charBoxHtml(f.firNumber ?? "", 10)}</div>
 
 </div>
 
@@ -2630,21 +2593,12 @@ export function generateInsuranceFormHTML(
         a) Date of Admission :
       </span>
 
-      <div class="admission-date-group">
-        ${emptyBoxRowHtml(2)}
-      </div>
+      <div class="admission-date-group">${charBoxHtml((f.admissionDate ?? "").slice(0,2), 2)}</div>
+<span class="slash">/</span>
+<div class="admission-date-group">${charBoxHtml((f.admissionDate ?? "").slice(2,4), 2)}</div>
+<span class="slash">/</span>
+<div class="admission-year-group">${charBoxHtml((f.admissionDate ?? "").slice(4,8), 4)}</div>
 
-      <span class="slash">/</span>
-
-      <div class="admission-date-group">
-        ${emptyBoxRowHtml(2)}
-      </div>
-
-      <span class="slash">/</span>
-
-      <div class="admission-year-group">
-        ${emptyBoxRowHtml(4)}
-      </div>
 
       <span class="admission-note">(DD/MM/YYYY)</span>
     </div>
@@ -2655,15 +2609,10 @@ export function generateInsuranceFormHTML(
         b) Time of Admission :
       </span>
 
-      <div class="admission-time-group">
-        ${emptyBoxRowHtml(2)}
-      </div>
+      <div class="admission-time-group">${charBoxHtml((f.admissionTime ?? "").slice(0,2), 2)}</div>
+<span class="colon">:</span>
+<div class="admission-time-group">${charBoxHtml((f.admissionTime ?? "").slice(2,4), 2)}</div>
 
-      <span class="colon">:</span>
-
-      <div class="admission-time-group">
-        ${emptyBoxRowHtml(2)}
-      </div>
 
       <span class="admission-note">(HH:MM)</span>
 
@@ -2679,10 +2628,11 @@ export function generateInsuranceFormHTML(
     </span>
 
     <span class="square-box"></span>
-    <span class="admission-option">Emergency</span>
+    <span class="square-box" style="${f.isEmergency ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.isEmergency ? '✓' : ''}</span>
+<span class="admission-option">Emergency</span>
+<span class="square-box" style="${f.isPlanned ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.isPlanned ? '✓' : ''}</span>
+<span class="admission-option">Planned</span>
 
-    <span class="square-box"></span>
-    <span class="admission-option">Planned</span>
 
   </div>
 
@@ -2695,9 +2645,9 @@ export function generateInsuranceFormHTML(
         d) Expected no. of days stay in hospital :
       </span>
 
-      <div class="small-box-group">
-        ${emptyBoxRowHtml(3)}
-      </div>
+      <div class="small-box-group">${charBoxHtml(f.expectedDays ?? "", 3)}</div>
+<span class="days-text">days</span>
+
 
       <span class="days-text">days</span>
 
@@ -2709,11 +2659,8 @@ export function generateInsuranceFormHTML(
         e) Days in ICU :
       </span>
 
-      <div class="small-box-group">
-        ${emptyBoxRowHtml(3)}
-      </div>
-
-      <span class="days-text">days</span>
+      <div class="small-box-group">${charBoxHtml(f.icuDays ?? "", 3)}</div>
+<span class="days-text">days</span>
 
     </div>
 
@@ -2723,7 +2670,7 @@ export function generateInsuranceFormHTML(
         f) Room Type :
       </span>
 
-      <div class="room-line"></div>
+      <div class="room-line" style="color:#111;font-size:8px;padding:1px 2px;">${escHtml(f.roomType ?? "")}</div>
 
     </div>
 
@@ -2738,9 +2685,8 @@ export function generateInsuranceFormHTML(
 
     <span class="rs-label">: Rs.</span>
 
-    <div class="cost-box-group">
-      ${emptyBoxRowHtml(8)}
-    </div>
+    <div class="cost-box-group">${charBoxHtml(f.roomNursingCost ?? "", 8)}</div>
+
   </div>
 
   <div class="cost-row">
@@ -2750,9 +2696,7 @@ export function generateInsuranceFormHTML(
 
     <span class="rs-label">: Rs.</span>
 
-    <div class="cost-box-group">
-      ${emptyBoxRowHtml(8)}
-    </div>
+    <div class="cost-box-group">${charBoxHtml(f.investigationCost ?? "", 8)}</div>
   </div>
 
   <div class="cost-row">
@@ -2762,10 +2706,7 @@ export function generateInsuranceFormHTML(
 
     <span class="rs-label">: Rs.</span>
 
-    <div class="cost-box-group">
-      ${emptyBoxRowHtml(8)}
-    </div>
-  </div>
+    <div class="cost-box-group">${charBoxHtml(f.icuCharges ?? "", 8)}</div>  </div>
 
   <div class="cost-row">
     <span class="cost-label">
@@ -2774,9 +2715,7 @@ export function generateInsuranceFormHTML(
 
     <span class="rs-label">: Rs.</span>
 
-    <div class="cost-box-group">
-      ${emptyBoxRowHtml(8)}
-    </div>
+    <div class="cost-box-group">${charBoxHtml(f.otCharges ?? "", 8)}</div>
   </div>
 
   <div class="cost-row">
@@ -2786,9 +2725,7 @@ export function generateInsuranceFormHTML(
 
     <span class="rs-label">: Rs.</span>
 
-    <div class="cost-box-group">
-      ${emptyBoxRowHtml(8)}
-    </div>
+    <div class="cost-box-group">${charBoxHtml(f.professionalFees ?? "", 8)}</div>
   </div>
 
   <div class="cost-row">
@@ -2798,9 +2735,7 @@ export function generateInsuranceFormHTML(
 
     <span class="rs-label">: Rs.</span>
 
-    <div class="cost-box-group">
-      ${emptyBoxRowHtml(8)}
-    </div>
+    <div class="cost-box-group">${charBoxHtml(f.medicinesCost ?? "", 8)}</div>
   </div>
 
   <div class="cost-row">
@@ -2810,9 +2745,7 @@ export function generateInsuranceFormHTML(
 
     <span class="rs-label">: Rs.</span>
 
-    <div class="cost-box-group">
-      ${emptyBoxRowHtml(8)}
-    </div>
+    <div class="cost-box-group">${charBoxHtml(f.otherHospExpenses ?? "", 8)}</div>
   </div>
 
   <div class="cost-row">
@@ -2822,9 +2755,7 @@ export function generateInsuranceFormHTML(
 
     <span class="rs-label">: Rs.</span>
 
-    <div class="cost-box-group">
-      ${emptyBoxRowHtml(8)}
-    </div>
+    <div class="cost-box-group">${charBoxHtml(f.packageCharges ?? "", 8)}</div>
   </div>
 
   <div class="cost-row total-cost-row">
@@ -2834,9 +2765,7 @@ export function generateInsuranceFormHTML(
 
     <span class="rs-label">: Rs.</span>
 
-    <div class="cost-box-group">
-      ${emptyBoxRowHtml(8)}
-    </div>
+    <div class="cost-box-group">${charBoxHtml(f.totalExpectedCost ?? "", 8)}</div>
   </div>
 
 </div>
@@ -2867,13 +2796,8 @@ export function generateInsuranceFormHTML(
 
     <div class="chronic-right-section">
 
-      <div class="month-box-group">
-        ${emptyBoxRowHtml(2)}
-      </div>
-
-      <div class="year-box-group">
-        ${emptyBoxRowHtml(2)}
-      </div>
+      <div class="month-box-group">${charBoxHtml(chronicMonth('diabetes'), 2)}</div>
+<div class="year-box-group">${charBoxHtml(chronicYear('diabetes'), 2)}</div>
 
       <span class="month-note">(MM/YY)</span>
 
