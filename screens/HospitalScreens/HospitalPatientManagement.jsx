@@ -2401,7 +2401,7 @@ const HospitalPatientManagement = ({ navigation }) => {
         </Animated.View>
       )} */}
       {/* Mobile: Full-screen add patient form overlay */}
-      {Platform.OS !== "web" && isFormOpen && (
+      {!(Platform.OS === "web" && (width > 1000 || width === 0)) && isFormOpen && ( 
         <Animated.View
           style={{
             position: "absolute",

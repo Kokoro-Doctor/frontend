@@ -19,6 +19,7 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -295,7 +296,8 @@ const ClaudeThinkingView = ({
   return (
     <ScrollView
       ref={scrollRef}
-      style={{ flex: 1 }}
+      nestedScrollEnabled={true}
+      style={{ maxHeight: 600 }}
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={true}
     >
@@ -632,7 +634,11 @@ const StructuredPanel = ({ structured, isLoading }) => {
   );
 
   return (
-    <ScrollView style={{ padding: 12 }} showsVerticalScrollIndicator={true}>
+    <ScrollView
+      nestedScrollEnabled={true}
+      style={{ padding: 12, maxHeight: 600 }}
+      showsVerticalScrollIndicator={true}
+    >
       <Text style={pn.filename}>{structured?.source_filename}</Text>
       <Text style={pn.head}>Patient Details</Text>
       <Field label="Name" value={structured?.patient_details?.name} />
@@ -715,51 +721,64 @@ const MobileAnalysisView = ({
   finalReport,
   analysisData,
   navigation,
-  selectedPatient,      
-  selectedInsurer,    
+  selectedPatient,
+  selectedInsurer,
 }) => {
   const [activeTab, setActiveTab] = useState("details"); // 'details' | 'ai'
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Tab Bar */}
-      <View style={mav.tabBar}>
-        <TouchableOpacity
-          style={[mav.tab, activeTab === "details" && mav.tabActive]}
-          onPress={() => setActiveTab("details")}
-        >
-          <Text
-            style={[mav.tabText, activeTab === "details" && mav.tabTextActive]}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingBottom: 120,
+          flexGrow: 1,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Tab Bar */}
+        <View style={mav.tabBar}>
+          <TouchableOpacity
+            style={[mav.tab, activeTab === "details" && mav.tabActive]}
+            onPress={() => setActiveTab("details")}
           >
-            Patient Details
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[mav.tab, activeTab === "ai" && mav.tabActive]}
-          onPress={() => setActiveTab("ai")}
-        >
-          <Text style={[mav.tabText, activeTab === "ai" && mav.tabTextActive]}>
-            AI Analysis
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={[
+                mav.tabText,
+                activeTab === "details" && mav.tabTextActive,
+              ]}
+            >
+              Patient Details
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[mav.tab, activeTab === "ai" && mav.tabActive]}
+            onPress={() => setActiveTab("ai")}
+          >
+            <Text
+              style={[mav.tabText, activeTab === "ai" && mav.tabTextActive]}
+            >
+              AI Analysis
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Tab Content */}
-      <View style={mav.tabContent}>
-        {activeTab === "details" ? (
-          <StructuredPanel structured={structured} isLoading={false} />
-        ) : (
-          <ClaudeThinkingView
-            thinkingTrace={thinkingTrace}
-            auditResults={auditResults}
-            finalReport={finalReport}
-            analysisData={analysisData}
-          />
-        )}
-      </View>
+        {/* Tab Content */}
+        <View style={mav.tabContent}>
+          {activeTab === "details" ? (
+            <StructuredPanel structured={structured} isLoading={false} />
+          ) : (
+            <ClaudeThinkingView
+              thinkingTrace={thinkingTrace}
+              auditResults={auditResults}
+              finalReport={finalReport}
+              analysisData={analysisData}
+            />
+          )}
+        </View>
 
-      {/* Accept Button */}
-      {/* <TouchableOpacity
+        {/* Accept Button */}
+        {/* <TouchableOpacity
         style={mav.acceptBtn}
         onPress={() => {
           const targetScreen = getUpdatedFilesScreen(analysisData, selectedPatient, selectedInsurer);
@@ -778,22 +797,45 @@ const MobileAnalysisView = ({
       >
         <Text style={mav.acceptText}>Generate Form B (hospital) →</Text>
       </TouchableOpacity> */}
+      </ScrollView>
       <TouchableOpacity
-        style={mav.acceptBtn}
+        style={{
+          position: "absolute",
+          bottom: 20,
+          left: 16,
+          right: 16,
+          backgroundColor: "#2563EB",
+          paddingVertical: 16,
+          borderRadius: 14,
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          elevation: 20,
+        }}
         onPress={() => {
           const targetScreen = getUpdatedFilesScreen(
             analysisData,
             selectedPatient,
             selectedInsurer,
           );
+
           trackButton("hospital_insurance_generate_files_button_clicked", {
             source: "insurance_claim_analysis_result",
             target_screen: targetScreen,
           });
+
           navigation.navigate(targetScreen, { analysisData });
         }}
       >
-        <Text style={mav.acceptText}>Generate Updated Files →</Text>
+        <Text
+          style={{
+            color: "#fff",
+            fontSize: 16,
+            fontWeight: "700",
+          }}
+        >
+          Generate Updated Files →
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -1369,7 +1411,9 @@ const HospitalInsuranceClaim = ({ navigation }) => {
         const token = localStorage.getItem("token");
         if (token) headers.Authorization = `Bearer ${token}`;
       } else {
-        const token = await AsyncStorage.getItem("@token").catch(() => null);
+        const token = await AsyncStorage.getItem("@token")
+          .then((t) => t || AsyncStorage.getItem("token"))
+          .catch(() => null);
         if (token) headers.Authorization = `Bearer ${token}`;
       }
       console.log("Calling API:", `${API_URL}/medilocker/insurance/analyze`);
@@ -1464,7 +1508,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       if (Platform.OS === "web") {
         token = localStorage.getItem("token");
       } else {
-        token = await AsyncStorage.getItem("@token").catch(() => null);
+        token = await AsyncStorage.getItem("hospital_token").catch(() => null);
       }
 
       if (!token) {
@@ -2734,7 +2778,15 @@ const HospitalInsuranceClaim = ({ navigation }) => {
             <View style={m.header}>
               <HeaderLoginSignUp navigation={navigation} />
             </View>
-            <View style={m.titleRowWithSelect}>
+            <View
+              style={[
+                m.titleRowWithSelect,
+                {
+                  zIndex: 99999,
+                  overflow: "visible",
+                },
+              ]}
+            >
               <Text style={m.titleCentered}>Insurance claim analysis AI</Text>
               <View style={{ position: "relative" }}>
                 <TouchableOpacity
@@ -2749,140 +2801,141 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
 
-                {patientDropdownOpen && (
-                  <View
+                <Modal
+  visible={patientDropdownOpen}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setPatientDropdownOpen(false)}
+>
+  <TouchableOpacity
+    style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }}
+    activeOpacity={1}
+    onPress={() => setPatientDropdownOpen(false)}
+  >
+    <View
+      style={{
+        position: "absolute",
+        top: 130,
+        left: 16,
+        width: 280,
+        maxHeight: 360,
+        backgroundColor: "#fff",
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#E2E8F0",
+        overflow: "hidden",
+      }}
+    >
+      <View
+        style={{
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          backgroundColor: "#F8FAFC",
+          borderBottomWidth: 1,
+          borderBottomColor: "#E2E8F0",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 11, color: "#64748B", fontWeight: "700" }}>
+          SELECT PATIENT
+        </Text>
+        <TouchableOpacity onPress={() => setPatientDropdownOpen(false)}>
+          <Feather name="x" size={14} color="#94A3B8" />
+        </TouchableOpacity>
+      </View>
+
+      {patientLoading ? (
+        <View style={{ padding: 20, alignItems: "center" }}>
+          <ActivityIndicator size="small" color="#2563EB" />
+          <Text style={{ color: "#64748B", fontSize: 13, marginTop: 8 }}>
+            Loading patients...
+          </Text>
+        </View>
+      ) : patientList.length === 0 ? (
+        <View style={{ padding: 16 }}>
+          <Text style={{ color: "#94A3B8", fontSize: 13, textAlign: "center" }}>
+            No patients found
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={true}
+          style={{ maxHeight: 300 }}
+        >
+          {patientList.map((p, i) => (
+            <TouchableOpacity
+              key={p.user_id || i}
+              onPress={() => handlePatientSelect(p)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                borderBottomWidth: i < patientList.length - 1 ? 1 : 0,
+                borderBottomColor: "#E2E8F0",
+                backgroundColor:
+                  selectedPatient?.user_id === p.user_id ? "#EFF6FF" : "#fff",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: "#0F172A",
+                  flex: 1,
+                  marginRight: 8,
+                }}
+                numberOfLines={1}
+              >
+                {p.name || "Unknown"}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {p.age ? (
+                  <Text
                     style={{
-                      position: "absolute",
-                      top: 38,
-                      left: 0,
-                      width: 260,
-                      backgroundColor: "#fff",
-                      borderRadius: 10,
-                      borderWidth: 1,
-                      borderColor: "#E2E8F0",
-                      zIndex: 9999,
-                      elevation: 10,
-                      maxHeight: 280,
-                      overflow: "hidden",
+                      fontSize: 11,
+                      color: "#fff",
+                      backgroundColor: "#2563EB",
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 4,
+                      fontWeight: "600",
                     }}
                   >
-                    {patientLoading ? (
-                      <View style={{ padding: 20, alignItems: "center" }}>
-                        <ActivityIndicator size="small" color="#2563EB" />
-                        <Text
-                          style={{
-                            color: "#64748B",
-                            fontSize: 13,
-                            marginTop: 8,
-                          }}
-                        >
-                          Loading patients...
-                        </Text>
-                      </View>
-                    ) : patientList.length === 0 ? (
-                      <View style={{ padding: 16 }}>
-                        <Text
-                          style={{
-                            color: "#94A3B8",
-                            fontSize: 13,
-                            textAlign: "center",
-                          }}
-                        >
-                          No patients found
-                        </Text>
-                      </View>
-                    ) : (
-                      <ScrollView style={{ maxHeight: 260 }}>
-                        {patientList.map((p, i) => (
-                          <TouchableOpacity
-                            key={p.user_id || i}
-                            onPress={() => handlePatientSelect(p)}
-                            style={{
-                              paddingHorizontal: 14,
-                              paddingVertical: 12,
-                              borderBottomWidth:
-                                i < patientList.length - 1 ? 1 : 0,
-                              borderBottomColor: "#E2E8F0",
-                              backgroundColor:
-                                selectedPatient?.user_id === p.user_id
-                                  ? "#EFF6FF"
-                                  : "#fff",
-                              flexDirection: "row",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            {/* Left: Name */}
-                            <Text
-                              style={{
-                                fontSize: 14,
-                                fontWeight: "600",
-                                color: "#0F172A",
-                                flex: 1,
-                                marginRight: 8,
-                              }}
-                              numberOfLines={1}
-                            >
-                              {p.name || "Unknown"}
-                            </Text>
-
-                            {/* Right: age · gender · phone in a row */}
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: 6,
-                              }}
-                            >
-                              {p.age ? (
-                                <Text
-                                  style={{
-                                    fontSize: 11,
-                                    color: "#fff",
-                                    backgroundColor: "#2563EB",
-                                    paddingHorizontal: 6,
-                                    paddingVertical: 2,
-                                    borderRadius: 4,
-                                    fontWeight: "600",
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  {p.age}y
-                                </Text>
-                              ) : null}
-                              {p.gender ? (
-                                <Text
-                                  style={{
-                                    fontSize: 11,
-                                    color: "#059669",
-                                    backgroundColor: "#DCFCE7",
-                                    paddingHorizontal: 6,
-                                    paddingVertical: 2,
-                                    borderRadius: 4,
-                                    fontWeight: "600",
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  {p.gender.charAt(0).toUpperCase()}
-                                </Text>
-                              ) : null}
-                              {p.phoneNumber ? (
-                                <Text
-                                  style={{
-                                    fontSize: 11,
-                                    color: "#64748B",
-                                  }}
-                                >
-                                  {p.phoneNumber}
-                                </Text>
-                              ) : null}
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    )}
-                  </View>
-                )}
+                    {p.age}y
+                  </Text>
+                ) : null}
+                {p.gender ? (
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: "#059669",
+                      backgroundColor: "#DCFCE7",
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 4,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {p.gender.charAt(0).toUpperCase()}
+                  </Text>
+                ) : null}
+                {p.phoneNumber ? (
+                  <Text style={{ fontSize: 11, color: "#64748B" }}>
+                    {p.phoneNumber}
+                  </Text>
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  </TouchableOpacity>
+</Modal>
               </View>
               {/* ── Insurer Dropdown — Mobile ── */}
               <View style={{ position: "relative", marginLeft: 8 }}>
@@ -3275,7 +3328,14 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={m.resultCard}>
+              <View
+                style={[
+                  m.resultCard,
+                  {
+                    paddingBottom: 120,
+                  },
+                ]}
+              >
                 <Text style={m.resultTitle}>Kokoro AI Analysis</Text>
                 <Text style={m.resultSub}>
                   {isAnalyzing
@@ -3289,7 +3349,38 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                     flow={uploadSections.claim ? "audit" : "autofill"}
                   />
                 ) : isAutofillAnalysisResult ? (
-                  <AutofillView analysisData={analysisData} isMobile={true} />
+                  <>
+                    <AutofillView analysisData={analysisData} isMobile={true} />
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: "#2563EB",
+                        paddingVertical: 16,
+                        borderRadius: 14,
+                        alignItems: "center",
+                        marginTop: 12,
+                        marginHorizontal: 16,
+                        marginBottom: 30,
+                      }}
+                      onPress={() => {
+                        const targetScreen = getUpdatedFilesScreen(
+                          analysisData,
+                          selectedPatient,
+                          selectedInsurer,
+                        );
+                        navigation.navigate(targetScreen, { analysisData });
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontSize: 16,
+                          fontWeight: "700",
+                        }}
+                      >
+                        Generate Updated Files →
+                      </Text>
+                    </TouchableOpacity>
+                  </>
                 ) : analysisData ? (
                   <MobileAnalysisView
                     structured={structured}
@@ -4435,7 +4526,7 @@ const mav = StyleSheet.create({
     color: "#fff",
   },
   tabContent: {
-    height: 480,
+    minHeight: 400,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     borderRadius: 8,
