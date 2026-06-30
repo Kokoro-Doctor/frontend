@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import AbhaRegistration from "../../components/HospitalPortalComponent/AbhaRegistration";
+import PatientDocumentsModal from "../../components/HospitalPortalComponent/PatientDocumentsModal";
 
 // ─── MOCK DATA ────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ const getInitials = (name = "") =>
     .slice(0, 2);
 
 const mapApiPatient = (p) => ({
-  id: p.patient_id || p.id || "—",
+  id: p.user_id || p.patient_id || p.id || "—",
   name: p.full_name || p.name || "Unknown",
   age:
     p.age ||
@@ -1447,6 +1448,7 @@ const HospitalPatientManagement = ({ navigation }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [toast, setToast] = useState({ visible: false, name: "", id: "" });
+  const [docsModalPatient, setDocsModalPatient] = useState(null);
   const { width } = useWindowDimensions();
 
   // slideAnim: 0 = patient list full | 1 = detail panel open
@@ -1585,6 +1587,10 @@ const HospitalPatientManagement = ({ navigation }) => {
   };
 
   const dismissToast = () => setToast({ visible: false, name: "", id: "" });
+
+  // ── Open / close patient documents popup ──
+  const openDocsModal = (patient) => setDocsModalPatient(patient);
+  const closeDocsModal = () => setDocsModalPatient(null);
 
   const handleTabPress = (tabKey) => {
     if (tabKey === "add_patients") {
@@ -2128,15 +2134,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                             }}
                             onPress={(e) => {
                               e?.stopPropagation?.();
-                              navigation.navigate("ManualDataIntegration", {
-                                preSelectedPatient: patient,
-                                preSelectedDoctor: patient.doctorId
-                                  ? {
-                                      doctor_id: patient.doctorId,
-                                      doctorname: patient.doctorName,
-                                    }
-                                  : null,
-                              });
+                              openDocsModal(patient);
                             }}
                           >
                             <Text style={{ fontSize: 14, color: "#31343aff" }}>
@@ -2261,6 +2259,13 @@ const HospitalPatientManagement = ({ navigation }) => {
         patientName={toast.name}
         patientId={toast.id}
         onDismiss={dismissToast}
+      />
+
+      {/* PATIENT DOCUMENTS POPUP */}
+      <PatientDocumentsModal
+        visible={!!docsModalPatient}
+        patient={docsModalPatient}
+        onClose={closeDocsModal}
       />
     </View>
   );
