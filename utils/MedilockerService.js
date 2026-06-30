@@ -1,4 +1,4 @@
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import { API_URL } from "../env-vars";
 
 const medilocker_API = `${API_URL}/medilocker`;
@@ -31,14 +31,46 @@ export const FetchFromServer = async (email) => {
     }
 }
 
+/**
+ * Upload files to a user's Medilocker via multipart/form-data.
+ * Uses the async endpoint — the server stores the file and returns 202
+ * immediately, OCR/extraction runs in the background. Poll
+ * GET /medilocker/users/{user_id}/files/{file_id}/status for completion.
+ * @param {Object} payload
+ * @param {string} payload.user_id
+ * @param {Array<{filename: string, uri: string, file?: File, mimeType?: string, metadata?: Object}>} payload.files
+ *   `file` (web only) is the picked File/Blob object; `uri` is used on native (and as a web fallback).
+ * @returns {Promise<{message: string, files: Array<{file_id: string, filename: string, status: string}>}>}
+ */
 export const upload = async (payload) => {
     try {
-        const response = await fetch(`${medilocker_API}/upload`, {
+        const { user_id, files = [] } = payload;
+        const formData = new FormData();
+        formData.append("user_id", user_id);
+
+        const metadataMap = {};
+        for (const file of files) {
+            if (Platform.OS === "web") {
+                const webFile = file.file || (await fetch(file.uri).then((r) => r.blob()));
+                formData.append("files", webFile, file.filename);
+            } else {
+                formData.append("files", {
+                    uri: file.uri,
+                    name: file.filename,
+                    type: file.mimeType || "application/octet-stream",
+                });
+            }
+            if (file.metadata) {
+                metadataMap[file.filename] = file.metadata;
+            }
+        }
+        if (Object.keys(metadataMap).length > 0) {
+            formData.append("metadata", JSON.stringify(metadataMap));
+        }
+
+        const response = await fetch(`${medilocker_API}/upload/async`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
+            body: formData,
         });
 
         if (!response.ok) {
@@ -136,20 +168,26 @@ export const shortenUrl = async (longUrl) => {
  * Save an approved prescription (PDF) to the patient's Medilocker.
  * @param {string} userId - Patient's user ID (Medilocker owner)
  * @param {string} prescriptionPdfBase64 - Base64-encoded PDF content
+ * @param {string} [filename] - Optional display filename
  * @returns {Promise<{file_id: string, filename: string}>}
  */
-export const savePrescriptionToMedilocker = async (userId, prescriptionPdfBase64) => {
+export const savePrescriptionToMedilocker = async (userId, prescriptionPdfBase64, filename) => {
     try {
         const encodedUserId = encodeURIComponent(userId);
         const url = `${medilocker_API}/users/${encodedUserId}/prescription/save`;
         console.log("[Medilocker] savePrescription request", { url, payloadSize: prescriptionPdfBase64?.length });
 
+        // Backend now expects multipart/form-data (raw bytes), not base64-in-JSON.
+        const pdfBlob = await fetch(`data:application/pdf;base64,${prescriptionPdfBase64}`).then((r) => r.blob());
+        const formData = new FormData();
+        formData.append("file", pdfBlob, filename || "prescription.pdf");
+        if (filename) {
+            formData.append("filename", filename);
+        }
+
         const response = await fetch(url, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ prescription_pdf: prescriptionPdfBase64 }),
+            body: formData,
         });
 
         console.log("[Medilocker] savePrescription response", {
