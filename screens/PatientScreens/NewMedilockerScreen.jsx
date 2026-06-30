@@ -625,7 +625,7 @@ const Medilocker = ({ navigation }) => {
                   onPress={() => {
                     setActiveTab(tab.id);
                     verticalScrollRef.current?.scrollTo({
-                      y: 120,
+                      y: 160,
                       animated: true,
                     });
                   }}

@@ -25,6 +25,14 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       icon: require("../../assets/HospitalPortal/Icon/hospital_home.png"),
     },
     {
+      name: "Patient Management",
+      icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
+    },
+    {
+      name: "Pre Auth",
+      icon: require("../../assets/HospitalPortal/Icon/PARequest.png"),
+    },
+    {
       name: "Medi Claim Agent",
       icon: require("../../assets/HospitalPortal/Icon/insurance.png"),
     },
@@ -41,14 +49,8 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       name: "Data Integration",
       icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
     },
-    {
-      name: "PA Requests",
-      icon: require("../../assets/HospitalPortal/Icon/PARequest.png"),
-    },
-    {
-      name: "Patient Management",
-      icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
-    },
+    
+    
     
     
   ];
@@ -71,7 +73,7 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       navigation.navigate("PostOpCare");
     } else if (menu === "Medi Claim Agent") {
       navigation.navigate("HospitalInsuranceClaim");
-    }else if (menu === "PA Requests") {
+    }else if (menu === "Pre Auth") {
       navigation.navigate("PARequests");
     }else if (menu === "Data Integration") {
       navigation.navigate("DataIntegrations");
