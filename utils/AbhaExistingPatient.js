@@ -124,3 +124,21 @@ export const verifyAbhaMobileUser = async ({ txnId, abhaNumber, tToken }) => {
     throw new Error(data?.message || "Login verification failed");
   return data;
 };
+
+export const signupUserFromAbha = async (abhaNumber, hospitalId) => {
+  console.log("Before signup");
+  console.log("abhaNumber =", abhaNumber);
+  console.log("hospitalId =", hospitalId);
+  const response = await fetch(`${API_URL}/auth/abha/signup-user`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ abha_number: abhaNumber, hospital_id: hospitalId }),
+  });
+
+  const data = await response.json();
+  console.log("Response:", data);
+  if (!response.ok) {
+    throw new Error(data?.message || "Failed to register patient");
+  }
+  return data;
+};

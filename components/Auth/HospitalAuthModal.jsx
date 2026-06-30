@@ -340,6 +340,7 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
   const [email, setEmail]             = useState("");
   const [password, setPassword]       = useState("");
   const [contactNumber, setContactNumber] = useState("");
+  const [hfrid, setHfrId]             = useState("");
   const [address, setAddress]         = useState("");
   const [city, setCity]               = useState("");
   const [stateVal, setStateVal]       = useState("");
@@ -465,6 +466,10 @@ const HospitalAuthModal = ({ visible, onRequestClose, onSuccess }) => {
                   onChangeText={(t) => { setContactNumber(t); clearError(); }}
                   placeholder="+919587733170"
                   keyboardType="phone-pad" editable={!isLoading} />
+                <Field label="HFR Id" value={hfrid}
+                  onChangeText={(t) => { setHfrId(t); clearError(); }}
+                  placeholder="@hfrid"
+                  keyboardType="email-address" editable={!isLoading} />
                 <Field label="Address" value={address}
                   onChangeText={(t) => { setAddress(t); clearError(); }}
                   placeholder="123 Main Street" editable={!isLoading} />

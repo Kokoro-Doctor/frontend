@@ -1663,7 +1663,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
         style={[
           s.secureAlert,
           {
-            backgroundColor: "#568363ff",
+            backgroundColor: "rgba(237, 244, 239, 1)",
             borderColor: "#86EFAC",
             flexDirection: "row",
             justifyContent: "space-between",
@@ -1681,7 +1681,7 @@ const AbhaNewPatient = ({ onBack, onFlowComplete }) => {
             { backgroundColor: "#DCFCE7", borderColor: "#86EFAC" },
           ]}
         >
-          <Text style={{ fontSize: 11, color: "#15803D", fontWeight: "700" }}>
+          <Text style={{ fontSize: 13, color: "#15803D", fontWeight: "700" }}>
             {abhaNumber || "—"}
           </Text>
         </View>
