@@ -878,13 +878,16 @@ export default function StarHealthPreAuth({ navigation, route }) {
   };
 
   const fileName =
-    analysisData?.structured_data?.source_filename || "StarHealth_PreAuth.pdf";
+    analysisData?.structured_data?.source_filename || "CareHealth_PreAuth.pdf";
 
   // ── BUTTONS PANEL ─────────────────────────────────────────────────────────
   const ButtonsPanel = () => (
     <View style={styles.buttonsPanel}>
       {/* Open in editor */}
-      <TouchableOpacity style={styles.outlineBtn}>
+      <TouchableOpacity
+        style={styles.outlineBtn}
+        onPress={() => setPreviewMode(false)}
+      >
         <Text style={styles.outlineText}>Open in editor</Text>
       </TouchableOpacity>
 
@@ -917,35 +920,53 @@ export default function StarHealthPreAuth({ navigation, route }) {
   if (isMobile) {
     return (
       <View style={styles.root}>
-        <View style={styles.infoBox}>
+        <View style={styles.mobileInfoBox}>
           <Text style={styles.infoText}>
-            Star Health pre-auth form generated. Review below, make any final
-            edits, then download.
+            Fill in the details below, then download.
           </Text>
         </View>
 
-        {/* File name */}
-        <View style={styles.fileHeader}>
-          <Ionicons name="document-text" size={18} color="#1976D2" />
-          <Text style={styles.fileName}>{fileName}</Text>
+        <View style={{ alignItems: "flex-end", marginBottom: 8 }}>
+          <TouchableOpacity
+            style={styles.toggleBtn}
+            onPress={() => setPreviewMode((p) => !p)}
+          >
+            <Text style={styles.toggleBtnText}>
+              {previewMode ? "Edit Fields" : "Preview"}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Form scroll */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator
-          scrollEventThrottle={16}
-        >
-          <View style={{ minWidth: 900, padding: 12 }}>
-            <Text style={{ fontSize: 13, color: "#374151" }}>{fileName}</Text>
-            <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 6 }}>
-              Download the form to view the full Star Health pre-auth PDF.
-            </Text>
-          </View>
-        </ScrollView>
+        <View style={styles.mobileCard}>
+          {Platform.OS === "web" ? (
+            <iframe
+              ref={previewMode ? previewFrameRef : editFrameRef}
+              srcDoc={previewMode ? htmlPreview : editableHtml}
+              onLoad={syncPreviewFrameHeight}
+              style={{
+                width: "100%",
+                height: Math.max(500, previewFrameHeight),
+                border: "none",
+                display: "block",
+                backgroundColor: "#fff",
+              }}
+              title="Care Health Pre-Auth Preview"
+            />
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <View style={{ minWidth: 900, padding: 12 }}>
+                <Text style={{ fontSize: 13, color: "#374151" }}>
+                  {fileName}
+                </Text>
+                <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 6 }}>
+                  Download the form to view the full Care Health pre-auth PDF.
+                </Text>
+              </View>
+            </ScrollView>
+          )}
+        </View>
 
-        {/* Buttons below on mobile */}
-        <View style={{ paddingTop: 16 }}>
+        <View style={{ marginTop: 8 }}>
           <ButtonsPanel />
         </View>
       </View>
@@ -956,12 +977,12 @@ export default function StarHealthPreAuth({ navigation, route }) {
   return (
     <View style={styles.root}>
       {/* Info banner — full width above the two-column row */}
-      <View style={styles.infoBox}>
-        <Text style={styles.infoText}>
-          Star Health pre-auth form generated. Review below, make any final
-          edits, then download.
-        </Text>
-      </View>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>
+            Care Health pre-auth form generated. Review below, make any final
+            edits, then download.
+          </Text>
+        </View>
 
       {/* Two-column row */}
       <View style={styles.contentRow}>
@@ -1063,6 +1084,14 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 12,
     color: "#1E3A8A",
+  },
+  mobileInfoBox: {
+    backgroundColor: "#E8F0FE",
+    borderColor: "#90CAF9",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
   },
 
   // ── Two-column row ─────────────────────────────────────────────────────────

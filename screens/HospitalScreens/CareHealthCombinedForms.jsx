@@ -565,7 +565,36 @@ export default function CareHealthCombinedForms({ navigation, route }) {
       />
     );
   };
+  // ─────────────────────────────────────────────────────────────────────────
+  //  BUTTON PANEL (shared between web and mobile)
+  // ─────────────────────────────────────────────────────────────────────────
+  const ButtonPanel = () => (
+    <View style={stylesWeb.buttonContainer}>
+      <TouchableOpacity style={stylesWeb.outlineBtnWeb}>
+        <Text style={stylesWeb.outlineTextWeb}>Open in editor</Text>
+      </TouchableOpacity>
 
+      <TouchableOpacity
+        style={[stylesWeb.primaryBtnWeb, isDownloading && { opacity: 0.6 }]}
+        onPress={handleDownload}
+        disabled={isDownloading}
+      >
+        {isDownloading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={stylesWeb.primaryTextWeb}>Download updated claim</Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity style={stylesWeb.greenOutlineBtnWeb}>
+        <Text style={stylesWeb.greenOutlineTextWeb}>Analyze another claim</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={stylesWeb.greenBtnWeb}>
+        <Text style={stylesWeb.greenTextWeb}>Set up date Integration</Text>
+      </TouchableOpacity>
+    </View>
+  );
   // ─────────────────────────────────────────────────────────────────────────
   //  WEB LAYOUT  (width > 1000)
   // ─────────────────────────────────────────────────────────────────────────
@@ -792,6 +821,8 @@ export default function CareHealthCombinedForms({ navigation, route }) {
         )}
 
         {/* Form card */}
+       
+        {/* Form card */}
         <View style={styles.mobileCard}>
           {isDischargeSummaryStep ? (
             <View style={styles.mobileHtmlPreviewWrap}>
@@ -809,6 +840,11 @@ export default function CareHealthCombinedForms({ navigation, route }) {
               </View>
             </ScrollView>
           )}
+        </View>
+
+        {/* Mobile buttons */}
+        <View style={{ marginTop: 8 }}>
+          <ButtonPanel />
         </View>
 
         {/* Mobile nav buttons */}
