@@ -75,36 +75,6 @@ const Medilocker = ({ navigation }) => {
     loadFilesFromServer();
   }, [user]);
 
-  
-  const convertFileToBase64 = async (asset) => {
-    try {
-      if (Platform.OS === "web") {
-        const response = await fetch(asset.uri);
-        const blob = await response.blob();
-
-        return await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const base64data = reader.result.split(",")[1];
-            resolve(base64data);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } else {
-        // return await FileSystem.readAsStringAsync(asset.uri, {
-        //   encoding: FileSystem.EncodingType.Base64,
-        // });
-        return await FileSystem.readAsStringAsync(asset.uri, {
-          encoding: "base64",
-        });
-      }
-    } catch (error) {
-      console.error("Base64 conversion failed:", error);
-      return null;
-    }
-  };
-
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: "*/*" });
@@ -130,18 +100,14 @@ const Medilocker = ({ navigation }) => {
         }
       }
 
-      const base64String = await convertFileToBase64(asset);
-      if (!base64String) {
-        alert("Error converting file to Base64.");
-        return;
-      }
-
       const payload = {
         user_id: user?.user_id || user?.email,
         files: [
           {
             filename: fileName,
-            content: base64String,
+            uri: asset.uri,
+            file: asset.file,
+            mimeType: asset.mimeType || "application/octet-stream",
             metadata: {
               file_type: fileType,
               file_size: fileSize,

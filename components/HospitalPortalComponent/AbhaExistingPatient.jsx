@@ -18,7 +18,9 @@ import {
   requestAbhaMobileLoginOtp,
   verifyAbhaMobileLoginOtp,
   verifyAbhaMobileUser,
+  signupUserFromAbha,
 } from "../../utils/AbhaExistingPatient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ─── CONSTANTS ────────────────────────────────────────────────
 const DEPARTMENTS = [
@@ -1566,7 +1568,17 @@ const AbhaExistingPatient = ({ onBack }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[mobileS.continueBtn, { backgroundColor: "#16A34A" }]}
-          onPress={() => setShowConfirmModal(true)}
+          onPress={async () => {
+            try {
+              const hospitalId = await AsyncStorage.getItem("hospital_id");
+              await signupUserFromAbha(verifiedAbha, hospitalId);
+              setShowConfirmModal(true);
+            } catch (err) {
+              setApiError(
+                err.message || "Failed to register patient. Please try again.",
+              );
+            }
+          }}
         >
           <Text style={mobileS.continueBtnText}>Review & Confirm ›</Text>
         </TouchableOpacity>
@@ -1648,7 +1660,6 @@ const AbhaExistingPatient = ({ onBack }) => {
             ABHA Number / Address
           </Text>
         </TouchableOpacity>
-        
       </View>
 
       {loginMode === "mobile" && (
@@ -2141,7 +2152,17 @@ const AbhaExistingPatient = ({ onBack }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.continueBtn, { backgroundColor: "#16A34A" }]}
-          onPress={() => setShowConfirmModal(true)}
+          onPress={async () => {
+  try {
+    const hospitalId = await AsyncStorage.getItem("hospital_id");
+    console.log("verifiedAbha =", verifiedAbha);
+    console.log("hospitalId =", hospitalId);
+    await signupUserFromAbha(verifiedAbha, hospitalId);
+    setShowConfirmModal(true);
+  } catch (err) {
+    setApiError(err.message || "Failed to register patient. Please try again.");
+  }
+}}
         >
           <Text style={s.continueBtnText}>✓ Confirm</Text>
         </TouchableOpacity>

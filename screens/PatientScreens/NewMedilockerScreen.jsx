@@ -137,35 +137,6 @@ const Medilocker = ({ navigation }) => {
     loadFilesFromServer();
   }, [user]);
 
-  const convertFileToBase64 = async (asset) => {
-    try {
-      if (Platform.OS === "web") {
-        const response = await fetch(asset.uri);
-        const blob = await response.blob();
-
-        return await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const base64data = reader.result.split(",")[1];
-            resolve(base64data);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } else {
-        // return await FileSystem.readAsStringAsync(asset.uri, {
-        //   encoding: FileSystem.EncodingType.Base64,
-        // });
-        return await FileSystem.readAsStringAsync(asset.uri, {
-          encoding: "base64",
-        });
-      }
-    } catch (error) {
-      console.error("Base64 conversion failed:", error);
-      return null;
-    }
-  };
-
   const uploadFile = async () => {
     setUploadProgress(0);
     setUploadStatus("uploading");
@@ -213,12 +184,6 @@ const Medilocker = ({ navigation }) => {
         }
       }
 
-      const base64String = await convertFileToBase64(asset);
-      if (!base64String) {
-        alert("Error converting file to Base64.");
-        return;
-      }
-
       const newFile = {
         name: fileName,
         size: fileSize,
@@ -236,13 +201,9 @@ const Medilocker = ({ navigation }) => {
         files: [
           {
             filename: fileName,
-            content: base64String,
-            // metadata: {
-            //   file_type: fileType,
-            //   file_size: fileSize,
-            //   upload_date: newFile.date,
-            //   upload_time: newFile.time,
-            // },
+            uri: asset.uri,
+            file: asset.file,
+            mimeType: asset.mimeType || "application/octet-stream",
             metadata: {
               file_type: fileType,
               file_size: fileSize,
@@ -625,7 +586,7 @@ const Medilocker = ({ navigation }) => {
                   onPress={() => {
                     setActiveTab(tab.id);
                     verticalScrollRef.current?.scrollTo({
-                      y: 120,
+                      y: 160,
                       animated: true,
                     });
                   }}
