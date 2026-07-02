@@ -33,26 +33,21 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       icon: require("../../assets/HospitalPortal/Icon/PARequest.png"),
     },
     {
-      name: "Medi Claim Agent",
+      name: "Final Auth",
       icon: require("../../assets/HospitalPortal/Icon/insurance.png"),
-    },
-    {
-      name: "Revenue Dashboard",
-      icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
-    },
-    
-    {
-      name: "Post OP Patients",
-      icon: require("../../assets/HospitalPortal/Icon/post_op_patient.png"),
     },
     {
       name: "Data Integration",
       icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
     },
-    
-    
-    
-    
+    {
+      name: "Post OP Patients",
+      icon: require("../../assets/HospitalPortal/Icon/post_op_patient.png"),
+    },
+    {
+      name: "Revenue Dashboard",
+      icon: require("../../assets/HospitalPortal/Icon/hospital_dashboard.png"),
+    },
   ];
 
   const handleSidebarClick = (menu) => {
