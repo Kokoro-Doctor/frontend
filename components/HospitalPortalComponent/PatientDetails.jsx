@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,9 +6,17 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  ImageBackground,
+  useWindowDimensions,
+  Modal,
 } from "react-native";
-// swap import
-
+import { SafeAreaView } from "react-native-safe-area-context";
+import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
+import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
+import {
+  listPatientDocuments,
+  uploadPatientDocuments,
+} from "../../utils/HospitalStaffDocsService";
 
 // ─── DOCUMENT SECTION CONFIG ───────────────────────────────────
 const SECTIONS = [
@@ -20,7 +28,13 @@ const SECTIONS = [
     color: "#F59E0B",
     bg: "#FFF7ED",
     border: "#FDE0B0",
-    docs: [{ key: "abha_prescription", label: "Doctor Prescription" }],
+    docs: [
+      {
+        key: "abha_prescription",
+        label: "Doctor Prescription",
+        docType: "PRESCRIPTION",
+      },
+    ],
   },
   {
     key: "preauth",
@@ -31,8 +45,16 @@ const SECTIONS = [
     bg: "#F0FDF4",
     border: "#BBF0CE",
     docs: [
-      { key: "preauth_prescription", label: "Doctor Prescription" },
-      { key: "preauth_policy", label: "Insurance Policy" },
+      {
+        key: "preauth_prescription",
+        label: "Doctor Prescription",
+        docType: "PRESCRIPTION",
+      },
+      {
+        key: "preauth_policy",
+        label: "Insurance Policy",
+        docType: "INSURANCE_POLICY",
+      },
     ],
   },
   {
@@ -40,47 +62,77 @@ const SECTIONS = [
     title: "Final Auth Documents",
     subtitle: "Billing and clinical evidence",
     icon: "📋",
-    color: "#6B7280",
-    bg: "#F9FAFB",
-    border: "#E5E7EB",
+    color: "#16A34A",
+    bg: "#F0FDF4",
+    border: "#BBF0CE",
     docs: [
-      { key: "final_prescription_1", label: "Doctor Prescription" },
-      { key: "final_prescription_2", label: "Doctor Prescription" },
-      { key: "final_prescription_3", label: "Doctor Prescription" },
+      {
+        key: "final_prescription_1",
+        label: "Hospital Bill",
+        docType: "HOSPITAL_BILL",
+      },
+      {
+        key: "final_prescription_2",
+        label: "Insurance Policy",
+        docType: "INSURANCE_POLICY",
+      },
+      {
+        key: "final_prescription_3",
+        label: "Doctor Prescription",
+        docType: "PRESCRIPTION",
+      },
     ],
   },
 ];
 
-const TOTAL_DOCS = SECTIONS.reduce((sum, s) => sum + s.docs.length, 0);
+const PENDING_STYLE = {
+  color: "#6B7280",
+  bg: "#F0F6FF",
+  border: "#E5E7EB",
+};
 
 // ─── SECTION HEADER ─────────────────────────────────────────────
-const SectionHeader = ({ section, uploadedCount, expanded, onToggle }) => (
-  <TouchableOpacity
-    style={[
-      styles.sectionHeader,
-      { backgroundColor: section.bg, borderColor: section.border },
-    ]}
-    onPress={onToggle}
-    activeOpacity={0.8}
-  >
-    <Text style={[styles.chevron, { color: section.color }]}>
-      {expanded ? "▾" : "▸"}
-    </Text>
-    <View
-      style={[styles.sectionIconBox, { backgroundColor: section.color }]}
+const SectionHeader = ({
+  section,
+  uploadedCount,
+  expanded,
+  onToggle,
+  actionButton,
+}) => {
+  const total = section.docs.length;
+
+  const isComplete = total > 0 && uploadedCount === total;
+  const colors = isComplete
+    ? { color: section.color, bg: section.bg, border: section.border }
+    : PENDING_STYLE;
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.sectionHeader,
+        { backgroundColor: colors.bg, borderColor: colors.border },
+      ]}
+      onPress={onToggle}
+      activeOpacity={0.8}
     >
-      <Text style={{ fontSize: 14 }}>{section.icon}</Text>
-    </View>
-    <View style={{ flex: 1 }}>
-      <Text style={[styles.sectionTitle, { color: section.color }]}>
-        {section.title}
+      <Text style={[styles.chevron, { color: colors.color }]}>
+        {expanded ? "▾" : "▸"}
       </Text>
-      <Text style={styles.sectionSubtitle}>
-        {uploadedCount}/{section.docs.length} uploaded · {section.subtitle}
-      </Text>
-    </View>
-  </TouchableOpacity>
-);
+      <View style={[styles.sectionIconBox, { backgroundColor: colors.color }]}>
+        <Text style={{ fontSize: 14 }}>{section.icon}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.sectionTitle, { color: colors.color }]}>
+          {section.title}
+        </Text>
+        <Text style={styles.sectionSubtitle}>
+          {uploadedCount}/{total} uploaded · {section.subtitle}
+        </Text>
+      </View>
+      {actionButton}
+    </TouchableOpacity>
+  );
+};
 
 // ─── DOCUMENT ROW ────────────────────────────────────────────────
 const DocRow = ({ doc, docState, onToggleCheck, onUpload, isLast }) => {
@@ -95,13 +147,10 @@ const DocRow = ({ doc, docState, onToggleCheck, onUpload, isLast }) => {
       </TouchableOpacity>
       <View style={{ flex: 1 }}>
         <Text style={styles.docLabel}>{doc.label}</Text>
-        <Text
-          style={[
-            styles.docSubLabel,
-            uploaded && { color: "#16A34A" },
-          ]}
-        >
-          {uploaded ? `✓ File uploaded — ${docState.name || "ready"}` : "No file chosen"}
+        <Text style={[styles.docSubLabel, uploaded && { color: "#16A34A" }]}>
+          {uploaded
+            ? `✓ File uploaded — ${docState.name || "ready"}`
+            : "No file chosen"}
         </Text>
       </View>
       <TouchableOpacity
@@ -125,37 +174,147 @@ const DocRow = ({ doc, docState, onToggleCheck, onUpload, isLast }) => {
 };
 
 // ─── MAIN SCREEN ─────────────────────────────────────────────────
-const PatientDetails = ({ patient, onBack }) => {
+const PatientDetails = ({ route, navigation }) => {
+  const { patient, preloadedDocuments } = route.params || {};
+  const onBack = () => navigation.goBack();
+  const [preAuthPopupVisible, setPreAuthPopupVisible] = useState(false);
   const [docs, setDocs] = useState({});
+  const [otherDocs, setOtherDocs] = useState([]); // dynamic "Other Documents" list
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [docsError, setDocsError] = useState(null);
+  const [preAuthLoading, setPreAuthLoading] = useState(false);
+
+  const userId = patient?.id;
+
+  const mapDocuments = useCallback((fetched) => {
+    const newDocs = {};
+    const matchedIds = new Set();
+
+    SECTIONS.forEach((section) => {
+      section.docs.forEach((slot) => {
+        const match = fetched.find(
+          (d) => (d.document_category || d.doc_type) === slot.docType,
+        );
+        if (match) {
+          newDocs[slot.key] = {
+            uploaded: true,
+            name: match.filename,
+            download_url: match.download_url,
+            file_id: match.file_id,
+          };
+          matchedIds.add(match.file_id);
+        }
+      });
+    });
+
+    const leftover = fetched
+      .filter((d) => !matchedIds.has(d.file_id))
+      .map((d) => ({
+        key: d.file_id,
+        label: d.filename,
+        uploaded: true,
+        name: d.filename,
+        download_url: d.download_url,
+        file_id: d.file_id,
+      }));
+
+    return { newDocs, leftover };
+  }, []);
+
+  const fetchDocuments = useCallback(async () => {
+    if (!userId) return;
+    try {
+      setDocsLoading(true);
+      setDocsError(null);
+      const data = await listPatientDocuments(userId);
+      const fetched = data?.documents || [];
+      const { newDocs, leftover } = mapDocuments(fetched);
+      setDocs(newDocs);
+      setOtherDocs(leftover);
+    } catch (err) {
+      setDocsError(err.message || "Failed to load documents");
+    } finally {
+      setDocsLoading(false);
+    }
+  }, [userId, mapDocuments]);
+
+  useEffect(() => {
+    if (preloadedDocuments) {
+      const { newDocs, leftover } = mapDocuments(preloadedDocuments);
+      setDocs(newDocs);
+      setOtherDocs(leftover);
+      // no fetchDocuments() call needed — data is already correct
+    } else {
+      fetchDocuments();
+    }
+  }, [fetchDocuments, mapDocuments, preloadedDocuments]);
+
   const [expanded, setExpanded] = useState({
     abha: true,
     preauth: true,
     final: true,
+    other: true,
   });
+  const { width } = useWindowDimensions();
 
   const toggleSection = (key) =>
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleUpload = (docKey) => {
+    const slot = SECTIONS.flatMap((s) => s.docs).find((d) => d.key === docKey);
     if (Platform.OS === "web") {
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".pdf,.jpg,.jpeg,.png";
-      input.onchange = (e) => {
+      input.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        setDocs((prev) => ({
-          ...prev,
-          [docKey]: { file, name: file.name, uploaded: true },
-        }));
+        try {
+          await uploadPatientDocuments(userId, [
+            { file, filename: file.name, docType: slot?.docType || "OTHER" },
+          ]);
+          await fetchDocuments(); // refresh so the real doc shows up
+        } catch (err) {
+          alert(err.message || "Upload failed");
+        }
       };
       input.click();
     } else {
       // mobile picker would go here (react-native-document-picker)
-      setDocs((prev) => ({
-        ...prev,
-        [docKey]: { uploaded: true, name: "document.pdf" },
-      }));
+    }
+  };
+
+  const handleGoToPreAuth = (isComplete) => {
+    if (!isComplete) {
+      setPreAuthPopupVisible(true);
+      return;
+    }
+    navigation.navigate("PARequests", {
+      preselectedPatient: patient, // pass the full object, not just the id
+      skipToStep2: true,
+    });
+  };
+
+  const handleAddOtherDocument = () => {
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".pdf,.jpg,.jpeg,.png";
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          await uploadPatientDocuments(userId, [
+            { file, filename: file.name, docType: "OTHER" },
+          ]);
+          await fetchDocuments(); // refresh so it appears immediately
+        } catch (err) {
+          alert(err.message || "Upload failed");
+        }
+      };
+      input.click();
+    } else {
+      // mobile picker would go here (react-native-document-picker)
     }
   };
 
@@ -166,16 +325,23 @@ const PatientDetails = ({ patient, onBack }) => {
     }));
   };
 
-  const uploadedTotal = Object.values(docs).filter((d) => d?.uploaded).length;
+  const fixedTotal = SECTIONS.reduce((sum, s) => sum + s.docs.length, 0);
+  const TOTAL_DOCS = fixedTotal + otherDocs.length;
+
+  const fixedUploaded = Object.values(docs).filter((d) => d?.uploaded).length;
+  const otherUploaded = otherDocs.filter((d) => d.uploaded).length;
+  const uploadedTotal = fixedUploaded + otherUploaded;
+
   const progressPct = TOTAL_DOCS === 0 ? 0 : uploadedTotal / TOTAL_DOCS;
 
-  return (
+  // ── The card content ──
+  const renderCard = () => (
     <View style={styles.card}>
       {/* HEADER */}
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>Patient Management</Text>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backBtnText}>Back to home</Text>
+          <Text style={styles.backBtnText}>Go Back</Text>
         </TouchableOpacity>
       </View>
 
@@ -188,8 +354,8 @@ const PatientDetails = ({ patient, onBack }) => {
           Upload documents — {patient?.name || "Patient"}
         </Text>
         <Text style={styles.pageSubtitle}>
-          Patient ID: {patient?.id || "—"} · Complete all sections to submit
-          the claim
+          Patient ID: {patient?.id || "—"} · Complete all sections to submit the
+          claim
         </Text>
 
         {/* PATIENT + PROGRESS ROW */}
@@ -260,11 +426,13 @@ const PatientDetails = ({ patient, onBack }) => {
           </View>
         </View>
 
-        {/* SECTIONS */}
+        {/* FIXED SECTIONS */}
+        {/* FIXED SECTIONS */}
         {SECTIONS.map((section) => {
           const uploadedCount = section.docs.filter(
-            (d) => docs[d.key]?.uploaded
+            (d) => docs[d.key]?.uploaded,
           ).length;
+          const isComplete = uploadedCount === section.docs.length;
           return (
             <View key={section.key} style={styles.sectionBlock}>
               <SectionHeader
@@ -272,6 +440,29 @@ const PatientDetails = ({ patient, onBack }) => {
                 uploadedCount={uploadedCount}
                 expanded={expanded[section.key]}
                 onToggle={() => toggleSection(section.key)}
+                actionButton={
+                  section.key === "preauth" ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.goToPreAuthBtn,
+                        !isComplete && styles.goToPreAuthBtnDisabled,
+                      ]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleGoToPreAuth(isComplete);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.goToPreAuthBtnText,
+                          !isComplete && styles.goToPreAuthBtnTextDisabled,
+                        ]}
+                      >
+                        Go to Pre-Auth
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null
+                }
               />
               {expanded[section.key] && (
                 <View style={styles.sectionBody}>
@@ -295,27 +486,139 @@ const PatientDetails = ({ patient, onBack }) => {
           );
         })}
 
-        {/* FOOTER ACTIONS */}
-        <View style={styles.footerActions}>
-          <TouchableOpacity style={styles.saveDraftBtn}>
-            <Text style={styles.saveDraftBtnText}>Save draft</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.submitBtn}>
-            <Text style={styles.submitBtnText}>Submit Claim</Text>
-          </TouchableOpacity>
+        {/* OTHER DOCUMENTS SECTION (dynamic, user-added) */}
+        <View style={styles.sectionBlock}>
+          <SectionHeader
+            section={{
+              title: "Other Documents",
+              subtitle: "Any additional supporting files",
+              icon: "📋",
+              color: "#16A34A",
+              bg: "#F0FDF4",
+              border: "#BBF0CE",
+              docs: otherDocs,
+            }}
+            uploadedCount={otherUploaded}
+            expanded={expanded.other}
+            onToggle={() => toggleSection("other")}
+          />
+          {expanded.other && (
+            <View style={styles.sectionBody}>
+              <View style={styles.docsTableHeader}>
+                <Text style={styles.docsTableHeaderText}>Documents</Text>
+                <Text style={styles.docsTableHeaderText}>Action</Text>
+              </View>
+              {otherDocs.map((doc, i) => (
+                <DocRow
+                  key={doc.key}
+                  doc={doc}
+                  docState={doc}
+                  onToggleCheck={() => {}}
+                  onUpload={() => {}}
+                  isLast={i === otherDocs.length - 1}
+                />
+              ))}
+              <TouchableOpacity
+                style={styles.addOtherDocBtn}
+                onPress={handleAddOtherDocument}
+              >
+                <Text style={styles.addOtherDocBtnText}>+ Add Document</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
+      <Modal
+        visible={preAuthPopupVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreAuthPopupVisible(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>🚧 Documents Pending</Text>
+            <Text style={styles.popupText}>
+              Please upload the documents first to go to Pre-Auth.
+            </Text>
+            <TouchableOpacity
+              style={styles.popupBtn}
+              onPress={() => setPreAuthPopupVisible(false)}
+            >
+              <Text style={styles.popupBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
+  );
+
+  // ── WEB LAYOUT: sidebar + header + background, matching HospitalPatientManagement ──
+  if (Platform.OS === "web" && (width > 1000 || width === 0)) {
+    return (
+      <View style={layoutStyles.container}>
+        <ImageBackground
+          source={require("../../assets/HospitalPortal/Images/hospital_background_image.jpg")}
+          style={layoutStyles.background}
+          resizeMode="cover"
+        >
+          <View style={layoutStyles.overlay} />
+          <View style={layoutStyles.main}>
+            <View style={layoutStyles.left}>
+              <HospitalSidebarNavigation navigation={navigation} />
+            </View>
+            <View style={layoutStyles.right}>
+              <View style={layoutStyles.header}>
+                <HeaderLoginSignUp navigation={navigation} />
+              </View>
+              {renderCard()}
+            </View>
+          </View>
+        </ImageBackground>
+      </View>
+    );
+  }
+
+  // ── MOBILE LAYOUT ──
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#F1F5F9" }}>
+      <HeaderLoginSignUp navigation={navigation} />
+      <View style={{ flex: 1 }}>{renderCard()}</View>
+    </SafeAreaView>
   );
 };
 
-// ─── STYLES ─────────────────────────────────────────────────────
+// ─── OUTER LAYOUT STYLES (matches HospitalPatientManagement's web layout) ──
+const layoutStyles = StyleSheet.create({
+  container: { flex: 1, height: "100vh", overflow: "hidden" },
+  background: { flex: 1, height: "100%" },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    zIndex: 1,
+  },
+  main: { flexDirection: "row", height: "100%", zIndex: 2 },
+  left: { width: "15%" },
+  right: {
+    width: "85%",
+    padding: 20,
+    zIndex: 3,
+    height: "100%",
+    overflow: "auto",
+  },
+  header: { marginBottom: 0 },
+});
+
+// ─── CARD STYLES (full, nothing omitted) ─────────────────────────
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
     backgroundColor: "#fff",
     borderRadius: 12,
+    width: "95%",
+    alignSelf: "center",
+    height: "85vh",
     overflow: "hidden",
+    flexDirection: "column",
+    minHeight: 500,
   },
   cardHeader: {
     flexDirection: "row",
@@ -337,7 +640,12 @@ const styles = StyleSheet.create({
   backBtnText: { fontSize: 14, fontWeight: "500", color: "#555555" },
 
   pageTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  pageSubtitle: { fontSize: 12, color: "#6B7280", marginTop: 4, marginBottom: 16 },
+  pageSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 4,
+    marginBottom: 16,
+  },
 
   topRow: { flexDirection: "row", gap: 16, marginBottom: 20 },
 
@@ -360,7 +668,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatarText: { fontWeight: "700", color: "#92400E", fontSize: 15 },
-  patientName: { fontSize: 15, fontWeight: "700", color: "#111827", marginRight: 8 },
+  patientName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginRight: 8,
+  },
   activeBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -421,7 +734,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#2563EB",
     borderRadius: 4,
   },
-  progressCount: { fontSize: 12, color: "#374151", marginTop: 10, fontWeight: "600" },
+  progressCount: {
+    fontSize: 12,
+    color: "#374151",
+    marginTop: 10,
+    fontWeight: "600",
+  },
 
   sectionBlock: {
     borderWidth: 1,
@@ -508,6 +826,17 @@ const styles = StyleSheet.create({
   },
   actionBtnText: { fontSize: 12, fontWeight: "600" },
 
+  addOtherDocBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  addOtherDocBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#2563EB",
+  },
+
   footerActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -530,6 +859,59 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   submitBtnText: { fontSize: 13, fontWeight: "600", color: "#fff" },
+  goToPreAuthBtn: {
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: "#2563EB",
+    marginLeft: 10,
+  },
+  goToPreAuthBtnDisabled: {
+    backgroundColor: "#E5E7EB",
+  },
+  goToPreAuthBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  goToPreAuthBtnTextDisabled: {
+    color: "#9CA3AF",
+  },
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  popupCard: {
+    width: 280,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+  },
+  popupTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 10,
+    color: "#111827",
+  },
+  popupText: {
+    fontSize: 13,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  popupBtn: {
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  popupBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
 });
 
 export default PatientDetails;

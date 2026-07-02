@@ -28,6 +28,7 @@ import MediAssistFormAContent from "../screens/HospitalScreens/PreAuthMediAssist
 import StarHealthCombinedForms from "../screens/HospitalScreens/StarHealthCombinedForms";
 import CareHealthPreAuth from "../screens/HospitalScreens/CareHealthPreauthForm";
 import PreAuthStarHealth from "../screens/HospitalScreens/PreAuthStarHealthForm";
+import PatientDetails from "../components/HospitalPortalComponent/PatientDetails";
 
 const Stack = createNativeStackNavigator();
 
@@ -187,6 +188,11 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen
           name="PreAuthStarHealthForm"
           component={PreAuthStarHealth}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="PatientDetails" 
+          component={PatientDetails} 
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

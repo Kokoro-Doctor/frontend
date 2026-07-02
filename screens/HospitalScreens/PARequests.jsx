@@ -10,6 +10,7 @@ import {
   TextInput,
   ImageBackground,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -1114,7 +1115,7 @@ const ReviewVerifyForm = ({
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
-const PARequests = ({ navigation }) => {
+const PARequests = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
   const [currentStep, setCurrentStep] = useState(1);
   const [searchText, setSearchText] = useState("");
@@ -1134,6 +1135,10 @@ const PARequests = ({ navigation }) => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
   const [selectedForm, setSelectedForm] = useState("mediassist"); // "mediassist" | "starhealth"
+  const hasAutoSelectedRef = useRef(false);
+  const [autoSelecting, setAutoSelecting] = useState(
+    !!route?.params?.skipToStep2,
+  );
 
   // ── Lifted state: shared between Step 3 → Step 4 ──────────────────────────
   const [diagnosisCodes, setDiagnosisCodes] = useState([]); // ✅ start empty, filled from API
@@ -1470,6 +1475,31 @@ const PARequests = ({ navigation }) => {
     },
     [mapApiPatient],
   );
+  useEffect(() => {
+    if (hasAutoSelectedRef.current) return;
+    if (!route?.params?.skipToStep2) return;
+
+    const passedPatient = route.params.preselectedPatient;
+
+    const run = async (patientToUse) => {
+      hasAutoSelectedRef.current = true;
+      await handleSelectPatient(patientToUse, slideAnim);
+      setAutoSelecting(false);
+    };
+
+    if (passedPatient) {
+      const mapped = mapApiPatient(passedPatient.rawPatient || passedPatient);
+      run(mapped);
+      return;
+    }
+
+    if (patients.length === 0) return;
+    const targetId = route.params.preselectedPatientId;
+    const match = patients.find(
+      (p) => p.id === targetId || p.user_id === targetId,
+    );
+    if (match) run(match);
+  }, [patients, route?.params]);
 
   useEffect(() => {
     fetchPatients();
@@ -1950,43 +1980,43 @@ const PARequests = ({ navigation }) => {
         serviceFormData,
       });
 
-  const insurerRaw = String(
-    serviceFormData?.insurer ||
-    selectedPatient?.insurer ||
-    ""
-  ).toLowerCase().trim();
+    const insurerRaw = String(
+      serviceFormData?.insurer || selectedPatient?.insurer || "",
+    )
+      .toLowerCase()
+      .trim();
 
-  const isStarHealth =
-    insurerRaw.includes("star health") ||
-    insurerRaw.includes("starhealth") ||
-    insurerRaw.includes("star");
+    const isStarHealth =
+      insurerRaw.includes("star health") ||
+      insurerRaw.includes("starhealth") ||
+      insurerRaw.includes("star");
 
-  const isCareHealth =
-    insurerRaw.includes("care health") ||
-    insurerRaw.includes("carehealth") ||
-    insurerRaw.includes("care");
+    const isCareHealth =
+      insurerRaw.includes("care health") ||
+      insurerRaw.includes("carehealth") ||
+      insurerRaw.includes("care");
 
-  return (
-    <Animated.View style={{ transform: [{ translateX: animRef }] }}>
-      {isStarHealth ? (
-        <StarHealthPreAuth
-          navigation={navigation}
-          route={{ params: { analysisData } }}
-        />
-      ) : isCareHealth ? (
-        <CarehealthPreauth
-          navigation={navigation}
-          route={{ params: { analysisData } }}
-        />
-      ) : (
-        <PreAuthMediAssistCombinedForms
-          navigation={navigation}
-          route={{ params: { analysisData } }}
-        />
-      )}
-    </Animated.View>
-  );
-};
+    return (
+      <Animated.View style={{ transform: [{ translateX: animRef }] }}>
+        {isStarHealth ? (
+          <StarHealthPreAuth
+            navigation={navigation}
+            route={{ params: { analysisData } }}
+          />
+        ) : isCareHealth ? (
+          <CarehealthPreauth
+            navigation={navigation}
+            route={{ params: { analysisData } }}
+          />
+        ) : (
+          <PreAuthMediAssistCombinedForms
+            navigation={navigation}
+            route={{ params: { analysisData } }}
+          />
+        )}
+      </Animated.View>
+    );
+  };
   const renderCurrentStep = (animRef, isMobile) => {
     if (currentStep === 1) return renderStep1(animRef, isMobile);
     if (currentStep === 2) return renderStep2(animRef, isMobile);
@@ -2054,10 +2084,27 @@ const PARequests = ({ navigation }) => {
                         <Text style={web.backBtnText}>Back</Text>
                       </TouchableOpacity>
                     </View>
-                    <WebStepper currentStep={currentStep} />
-                    <View style={{ overflow: "hidden" }}>
-                      {renderCurrentStep(slideAnim, false)}
-                    </View>
+                    {autoSelecting ? (
+                      <View style={{ padding: 60, alignItems: "center" }}>
+                        <ActivityIndicator size="large" color="#2563EB" />
+                        <Text
+                          style={{
+                            marginTop: 12,
+                            color: "#6B7280",
+                            fontSize: 13,
+                          }}
+                        >
+                          Loading patient details...
+                        </Text>
+                      </View>
+                    ) : (
+                      <>
+                        <WebStepper currentStep={currentStep} />
+                        <View style={{ overflow: "hidden" }}>
+                          {renderCurrentStep(slideAnim, false)}
+                        </View>
+                      </>
+                    )}
                   </ScrollView>
                 </View>
               </View>
