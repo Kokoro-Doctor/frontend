@@ -20,6 +20,8 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import AbhaRegistration from "../../components/HospitalPortalComponent/AbhaRegistration";
 import PatientDocumentsModal from "../../components/HospitalPortalComponent/PatientDocumentsModal";
+import PatientDetails from "../../components/HospitalPortalComponent/PatientDetails";
+import { listPatientDocuments } from "../../utils/HospitalStaffDocsService";
 
 // ─── MOCK DATA ────────────────────────────────────────────────
 
@@ -241,7 +243,6 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
     </View>
   );
 };
-
 
 const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
   const [form, setForm] = useState({
@@ -1442,7 +1443,7 @@ const HospitalPatientManagement = ({ navigation }) => {
   const [patientsLoading, setPatientsLoading] = useState(false);
   const [patientsError, setPatientsError] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
-  const [activeTab, setActiveTab] = useState("view");
+  const [activeTab, setActiveTab] = useState("opd_registration");
   const [searchText, setSearchText] = useState("");
   const [selectedInsurer, setSelectedInsurer] = useState("All Insurers");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -1450,6 +1451,22 @@ const HospitalPatientManagement = ({ navigation }) => {
   const [toast, setToast] = useState({ visible: false, name: "", id: "" });
   const [docsModalPatient, setDocsModalPatient] = useState(null);
   const { width } = useWindowDimensions();
+  const [addDocLoading, setAddDocLoading] = useState(false);
+  const handleAddDocPress = async (patient) => {
+    setAddDocLoading(true);
+    try {
+      const data = await listPatientDocuments(patient.id);
+      navigation.navigate("PatientDetails", {
+        patient,
+        preloadedDocuments: data?.documents || [],
+      });
+    } catch (err) {
+      // Still navigate even if prefetch fails — PatientDetails will fetch itself as fallback
+      navigation.navigate("PatientDetails", { patient });
+    } finally {
+      setAddDocLoading(false);
+    }
+  };
 
   // slideAnim: 0 = patient list full | 1 = detail panel open
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -1463,51 +1480,48 @@ const HospitalPatientManagement = ({ navigation }) => {
     // { key: "add_doctor", label: "+ Add Doctor" },
   ];
 
-  const fetchPatients = useCallback(
-    async (cursor = null) => {
-      try {
-        setPatientsLoading(true);
-        setPatientsError(null);
-        const token = await AsyncStorage.getItem("token");
-        const hospitalId = await AsyncStorage.getItem("hospital_id");
-        console.log("TOKEN:", token);
-        console.log("HOSPITAL_ID:", hospitalId);
-        if (!token || !hospitalId) {
-          setPatientsError("Not authenticated. Please log in again.");
-          return;
-        }
-        const res = await fetch(
-          `${API_URL}/hospitals/${hospitalId}/patients?limit=50${cursor ? `&cursor=${cursor}` : ""}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          },
-        );
-        if (res.status === 403) {
-          setPatientsError("Access denied. Hospital account may be disabled.");
-          return;
-        }
-        if (!res.ok) {
-          setPatientsError(`Failed to load patients (${res.status})`);
-          return;
-        }
-        const data = await res.json();
-        console.log("FULL API RESPONSE:", JSON.stringify(data, null, 2));
-        const mapped = (data.patients || []).map(mapApiPatient);
-        setPatients((prev) => (cursor ? [...prev, ...mapped] : mapped));
-        setNextCursor(data.next_cursor || null);
-      } catch (err) {
-        setPatientsError("Network error. Please check your connection.");
-        console.error("fetchPatients error:", err);
-      } finally {
-        setPatientsLoading(false);
+  const fetchPatients = useCallback(async (cursor = null) => {
+    try {
+      setPatientsLoading(true);
+      setPatientsError(null);
+      const token = await AsyncStorage.getItem("token");
+      const hospitalId = await AsyncStorage.getItem("hospital_id");
+      console.log("TOKEN:", token);
+      console.log("HOSPITAL_ID:", hospitalId);
+      if (!token || !hospitalId) {
+        setPatientsError("Not authenticated. Please log in again.");
+        return;
       }
-    },
-    [],
-  );
+      const res = await fetch(
+        `${API_URL}/hospitals/${hospitalId}/patients?limit=50${cursor ? `&cursor=${cursor}` : ""}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      if (res.status === 403) {
+        setPatientsError("Access denied. Hospital account may be disabled.");
+        return;
+      }
+      if (!res.ok) {
+        setPatientsError(`Failed to load patients (${res.status})`);
+        return;
+      }
+      const data = await res.json();
+      console.log("FULL API RESPONSE:", JSON.stringify(data, null, 2));
+      const mapped = (data.patients || []).map(mapApiPatient);
+      setPatients((prev) => (cursor ? [...prev, ...mapped] : mapped));
+      setNextCursor(data.next_cursor || null);
+    } catch (err) {
+      setPatientsError("Network error. Please check your connection.");
+      console.error("fetchPatients error:", err);
+    } finally {
+      setPatientsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchPatients();
@@ -2134,7 +2148,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                             }}
                             onPress={(e) => {
                               e?.stopPropagation?.();
-                              openDocsModal(patient);
+                              handleAddDocPress(patient);
                             }}
                           >
                             <Text style={{ fontSize: 14, color: "#31343aff" }}>
@@ -2260,6 +2274,16 @@ const HospitalPatientManagement = ({ navigation }) => {
         patientId={toast.id}
         onDismiss={dismissToast}
       />
+      {addDocLoading && (
+        <View style={styles.addDocLoaderOverlay}>
+          <View style={styles.addDocLoaderBox}>
+            <ActivityIndicator size="large" color="#2563EB" />
+            <Text style={styles.addDocLoaderText}>
+              Loading patient documents...
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* PATIENT DOCUMENTS POPUP */}
       <PatientDocumentsModal
@@ -2406,50 +2430,51 @@ const HospitalPatientManagement = ({ navigation }) => {
         </Animated.View>
       )} */}
       {/* Mobile: Full-screen add patient form overlay */}
-      {!(Platform.OS === "web" && (width > 1000 || width === 0)) && isFormOpen && ( 
-        <Animated.View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "#fff",
-            zIndex: 60,
-            opacity: formOpacity,
-            transform: [{ translateX: formTranslateX }],
-            flexDirection: "column",
-          }}
-          pointerEvents={isFormOpen ? "auto" : "none"}
-        >
-          {/* Spacer to push content below HeaderLoginSignUp */}
-          <View style={{ backgroundColor: "#fff" }}>
-            <HeaderLoginSignUp navigation={navigation} />
-          </View>
+      {!(Platform.OS === "web" && (width > 1000 || width === 0)) &&
+        isFormOpen && (
+          <Animated.View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "#fff",
+              zIndex: 60,
+              opacity: formOpacity,
+              transform: [{ translateX: formTranslateX }],
+              flexDirection: "column",
+            }}
+            pointerEvents={isFormOpen ? "auto" : "none"}
+          >
+            {/* Spacer to push content below HeaderLoginSignUp */}
+            <View style={{ backgroundColor: "#fff" }}>
+              <HeaderLoginSignUp navigation={navigation} />
+            </View>
 
-          {/* Form top bar */}
-          <View style={styles.mobileFormTopBar}>
-            <TouchableOpacity
-              onPress={closeAddPatientForm}
-              style={styles.mobileBackRow}
-            >
-              <Text style={styles.mobileBackArrow}>←</Text>
-              <Text style={styles.mobileBackText}>Back</Text>
-            </TouchableOpacity>
-            <Text style={styles.mobileDetailTitle}>Add Patient</Text>
-          </View>
+            {/* Form top bar */}
+            <View style={styles.mobileFormTopBar}>
+              <TouchableOpacity
+                onPress={closeAddPatientForm}
+                style={styles.mobileBackRow}
+              >
+                <Text style={styles.mobileBackArrow}>←</Text>
+                <Text style={styles.mobileBackText}>Back</Text>
+              </TouchableOpacity>
+              <Text style={styles.mobileDetailTitle}>Add Patient</Text>
+            </View>
 
-          {/* Form content */}
-          <View style={{ flex: 1 }}>
-            <AddPatientForm
-              key={toast.id || "form"}
-              onSave={handleSavePatient}
-              onSaveAndAnother={handleSaveAndAnother}
-              isMobile={true}
-            />
-          </View>
-        </Animated.View>
-      )}
+            {/* Form content */}
+            <View style={{ flex: 1 }}>
+              <AddPatientForm
+                key={toast.id || "form"}
+                onSave={handleSavePatient}
+                onSaveAndAnother={handleSaveAndAnother}
+                isMobile={true}
+              />
+            </View>
+          </Animated.View>
+        )}
 
       <SuccessToast
         visible={toast.visible}
@@ -2998,6 +3023,31 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e5e7eb",
     backgroundColor: "#fff",
     marginTop: 0,
+  },
+  addDocLoaderOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  addDocLoaderBox: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 24,
+    paddingHorizontal: 32,
+    alignItems: "center",
+    gap: 10,
+  },
+  addDocLoaderText: {
+    fontSize: 13,
+    color: "#374151",
+    fontWeight: "600",
+    marginTop: 8,
   },
 });
 const mobileDetailStyles = StyleSheet.create({
