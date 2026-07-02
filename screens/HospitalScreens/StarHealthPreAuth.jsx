@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { WebView } from "react-native-webview";
 import {
   downloadInsuranceClaim,
   generateInsuranceFormHTML,
@@ -169,14 +170,24 @@ export default function StarHealthPreAuth({ navigation, route }) {
         </View>
 
         {/* Form scroll */}
-        <ScrollView horizontal showsHorizontalScrollIndicator scrollEventThrottle={16}>
-          <View style={{ minWidth: 900, padding: 12 }}>
-            <Text style={{ fontSize: 13, color: "#374151" }}>{fileName}</Text>
-            <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 6 }}>
-              Download the form to view the full Star Health pre-auth PDF.
-            </Text>
-          </View>
-        </ScrollView>
+       {/* Form preview */}
+{Platform.OS === "web" ? (
+  <ScrollView horizontal showsHorizontalScrollIndicator scrollEventThrottle={16}>
+    <View style={{ minWidth: 900, padding: 12 }}>
+      <Text style={{ fontSize: 13, color: "#374151" }}>{fileName}</Text>
+      <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 6 }}>
+        Download the form to view the full Star Health pre-auth PDF.
+      </Text>
+    </View>
+  </ScrollView>
+) : (
+  <WebView
+    originWhitelist={["*"]}
+    source={{ html: htmlPreview }}
+    style={{ width: "100%", height: 600 }}
+    scalesPageToFit={Platform.OS === "android"}
+  />
+)}
 
         {/* Buttons below on mobile */}
         <View style={{ paddingTop: 16 }}>

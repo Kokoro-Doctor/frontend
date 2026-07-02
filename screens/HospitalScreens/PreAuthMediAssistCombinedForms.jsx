@@ -24,6 +24,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { WebView } from "react-native-webview";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -513,21 +514,31 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
         </View>
 
         {/* Form card */}
-        <View style={styles.mobileCard}>
-          {activePreview && Platform.OS === "web" ? (
-            <iframe
-              srcDoc={activeHtml}
-              style={{ width: "100%", border: "none", minHeight: 500 }}
-              title={`Form ${STEPS[currentStep].key} Preview`}
-            />
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator>
-              <View style={{ minWidth: 1300 }}>
-                <ActiveFormContent />
-              </View>
-            </ScrollView>
-          )}
-        </View>
+        {/* Form card */}
+<View style={styles.mobileCard}>
+  {activePreview ? (
+    Platform.OS === "web" ? (
+      <iframe
+        srcDoc={activeHtml}
+        style={{ width: "100%", border: "none", minHeight: 500 }}
+        title={`Form ${STEPS[currentStep].key} Preview`}
+      />
+    ) : (
+      <WebView
+        originWhitelist={["*"]}
+        source={{ html: activeHtml }}
+        style={{ width: "100%", height: 600 }}
+        scalesPageToFit={Platform.OS === "android"}
+      />
+    )
+  ) : (
+    <ScrollView horizontal showsHorizontalScrollIndicator>
+      <View style={{ minWidth: 1300 }}>
+        <ActiveFormContent />
+      </View>
+    </ScrollView>
+  )}
+</View>
 
         {/* Mobile nav buttons */}
         <NavButtons />

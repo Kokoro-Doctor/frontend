@@ -16,6 +16,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { WebView } from "react-native-webview";
 import {
   downloadInsuranceClaim,
   generateInsuranceFormHTML,
@@ -938,33 +939,29 @@ export default function StarHealthPreAuth({ navigation, route }) {
         </View>
 
         <View style={styles.mobileCard}>
-          {Platform.OS === "web" ? (
-            <iframe
-              ref={previewMode ? previewFrameRef : editFrameRef}
-              srcDoc={previewMode ? htmlPreview : editableHtml}
-              onLoad={syncPreviewFrameHeight}
-              style={{
-                width: "100%",
-                height: Math.max(500, previewFrameHeight),
-                border: "none",
-                display: "block",
-                backgroundColor: "#fff",
-              }}
-              title="Care Health Pre-Auth Preview"
-            />
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator>
-              <View style={{ minWidth: 900, padding: 12 }}>
-                <Text style={{ fontSize: 13, color: "#374151" }}>
-                  {fileName}
-                </Text>
-                <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 6 }}>
-                  Download the form to view the full Care Health pre-auth PDF.
-                </Text>
-              </View>
-            </ScrollView>
-          )}
-        </View>
+  {Platform.OS === "web" ? (
+    <iframe
+      ref={previewMode ? previewFrameRef : editFrameRef}
+      srcDoc={previewMode ? htmlPreview : editableHtml}
+      onLoad={syncPreviewFrameHeight}
+      style={{
+        width: "100%",
+        height: Math.max(500, previewFrameHeight),
+        border: "none",
+        display: "block",
+        backgroundColor: "#fff",
+      }}
+      title="Care Health Pre-Auth Preview"
+    />
+  ) : (
+    <WebView
+      originWhitelist={["*"]}
+      source={{ html: previewMode ? htmlPreview : editableHtml }}
+      style={{ width: "100%", height: Math.max(500, previewFrameHeight) }}
+      scalesPageToFit={Platform.OS === "android"}
+    />
+  )}
+</View>
 
         <View style={{ marginTop: 8 }}>
           <ButtonsPanel />
