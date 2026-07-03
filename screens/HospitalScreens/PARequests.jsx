@@ -2115,22 +2115,33 @@ const PARequests = ({ navigation, route }) => {
 
       {/* ── MOBILE ── */}
       {(Platform.OS !== "web" || width < 1000) && (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-          <View style={mob.header}>
-            <HeaderLoginSignUp navigation={navigation} />
+  <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <View style={mob.header}>
+      <HeaderLoginSignUp navigation={navigation} />
+    </View>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <Text style={mob.title}>PA Requests</Text>
+      {autoSelecting ? (
+        <View style={{ padding: 60, alignItems: "center" }}>
+          <ActivityIndicator size="large" color="#2563EB" />
+          <Text style={{ marginTop: 12, color: "#6B7280", fontSize: 13 }}>
+            Loading patient details...
+          </Text>
+        </View>
+      ) : (
+        <>
+          <MobileStepper currentStep={currentStep} />
+          <View style={{ overflow: "hidden" }}>
+            {renderCurrentStep(slideAnimMob, true)}
           </View>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 40 }}
-          >
-            <Text style={mob.title}>PA Requests</Text>
-            <MobileStepper currentStep={currentStep} />
-            <View style={{ overflow: "hidden" }}>
-              {renderCurrentStep(slideAnimMob, true)}
-            </View>
-          </ScrollView>
-        </SafeAreaView>
+        </>
       )}
+    </ScrollView>
+  </SafeAreaView>
+)}
     </>
   );
 };
