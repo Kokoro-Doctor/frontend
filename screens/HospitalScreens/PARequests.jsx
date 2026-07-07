@@ -12,6 +12,7 @@ import {
   Animated,
   ActivityIndicator,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -448,6 +449,69 @@ const EmptyState = ({ onNewRequest, isMobile }) => (
       <Feather name="plus" size={16} color="#fff" style={{ marginRight: 6 }} />
       <Text style={es.btnText}>Create your first PA Request</Text>
     </TouchableOpacity>
+  </View>
+);
+
+const UploadCard = ({ label, doc, onPick, onClear }) => (
+  <View
+    style={{
+      borderWidth: 1,
+      borderColor: doc ? "#BBF0CE" : "#E5E7EB",
+      backgroundColor: doc ? "#F0FDF4" : "#FAFAFA",
+      borderRadius: 10,
+      padding: 16,
+      marginBottom: 12,
+    }}
+  >
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Feather
+          name={doc ? "check-circle" : "upload-cloud"}
+          size={18}
+          color={doc ? "#16A34A" : "#6B7280"}
+        />
+        <View>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827" }}>
+            {label}
+          </Text>
+          <Text
+            style={{
+              fontSize: 11,
+              color: doc ? "#16A34A" : "#9CA3AF",
+              marginTop: 2,
+            }}
+          >
+            {doc ? doc.name : "No file chosen"}
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity
+        onPress={doc ? onClear : onPick}
+        style={{
+          borderWidth: 1,
+          borderColor: doc ? "#BBF0CE" : "#D1D5DB",
+          borderRadius: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "600",
+            color: doc ? "#16A34A" : "#374151",
+          }}
+        >
+          {doc ? "Change" : "Upload"}
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
 );
 
@@ -1139,6 +1203,42 @@ const PARequests = ({ navigation, route }) => {
   const [autoSelecting, setAutoSelecting] = useState(
     !!route?.params?.skipToStep2,
   );
+  const [prescriptionDoc, setPrescriptionDoc] = useState(null); // { name }
+  const [insuranceDoc, setInsuranceDoc] = useState(null);
+  const pickDocument = async (setter) => {
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".pdf,.jpg,.jpeg,.png";
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setter({ name: file.name, file });
+      };
+      input.click();
+    } else {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/jpeg", "image/png"],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset) return;
+      setter({ name: asset.name, uri: asset.uri, mimeType: asset.mimeType });
+    }
+  };
+
+  const canProceedWithoutPatient = !!prescriptionDoc && !!insuranceDoc;
+
+  const handleProceedWithoutPatient = (animRef) => {
+    setSelectedPatient((p) => p || { name: "—", insurer: "—", user_id: null });
+    setServiceFormData((prev) => ({
+      ...prev,
+      prescriptionDoc,
+      insuranceDoc,
+    }));
+    handleNext(animRef);
+  };
 
   // ── Lifted state: shared between Step 3 → Step 4 ──────────────────────────
   const [diagnosisCodes, setDiagnosisCodes] = useState([]); // ✅ start empty, filled from API
@@ -1217,33 +1317,73 @@ const PARequests = ({ navigation, route }) => {
 
     try {
       const token = await AsyncStorage.getItem("token");
-
       if (!token) {
         setAiError("Not authenticated.");
         return;
       }
 
-      if (!selectedPatient?.user_id) {
-        setAiError("No patient selected.");
-        return;
-      }
+      let res;
 
-      const res = await fetch(
-        `${API_URL}/medilocker/users/${selectedPatient.user_id}/insurance/autofill-stored`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+      if (selectedPatient?.user_id) {
+        // existing flow — patient was actually selected
+        res = await fetch(
+          `${API_URL}/medilocker/users/${selectedPatient.user_id}/insurance/autofill-stored`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           },
-        },
-      );
+        );
+      } else {
+        // no patient — use the two files uploaded in Step 1
+        if (!prescriptionDoc && !insuranceDoc) {
+          setAiError("No patient selected and no documents uploaded.");
+          return;
+        }
+
+        const formData = new FormData();
+        if (Platform.OS === "web") {
+          if (prescriptionDoc?.file)
+            formData.append(
+              "prescription",
+              prescriptionDoc.file,
+              prescriptionDoc.name,
+            );
+          if (insuranceDoc?.file)
+            formData.append(
+              "insurance_policy",
+              insuranceDoc.file,
+              insuranceDoc.name,
+            );
+        } else {
+          if (prescriptionDoc?.uri)
+            formData.append("prescription", {
+              uri: prescriptionDoc.uri,
+              name: prescriptionDoc.name,
+              type: prescriptionDoc.mimeType || "application/octet-stream",
+            });
+          if (insuranceDoc?.uri)
+            formData.append("insurance_policy", {
+              uri: insuranceDoc.uri,
+              name: insuranceDoc.name,
+              type: insuranceDoc.mimeType || "application/octet-stream",
+            });
+        }
+
+        res = await fetch(`${API_URL}/medilocker/insurance/autofill-upload`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+      }
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         if (res.status === 404) {
           setAiError(
-            "No uploaded documents found for this patient. Ask them to upload documents via the patient app first.",
+            "No uploaded documents found. Ask them to upload documents via the patient app first.",
           );
         } else {
           setAiError(errData.message || `Server error ${res.status}`);
@@ -1693,114 +1833,212 @@ const PARequests = ({ navigation, route }) => {
   // ── Step renderers ─────────────────────────────────────────────────────────
   const renderStep1 = (animRef, isMobile) => (
     <Animated.View style={{ transform: [{ translateX: animRef }] }}>
-      <View style={isMobile ? mob.sectionHeader : sh.header}>
-        <View>
-          <Text style={isMobile ? mob.sectionTitle : sh.title}>
-            Select Patient
-          </Text>
-          {isMobile && <Text style={mob.sectionSub}>Choose patient</Text>}
-        </View>
-        <TouchableOpacity style={sh.newReqBtn}>
-          <Feather
-            name="plus"
-            size={14}
-            color="#fff"
-            style={{ marginRight: 4 }}
-          />
-          <Text style={sh.newReqText}>New PA Request</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={isMobile ? mob.searchRow : sh.searchRow}>
-        <View style={isMobile ? mob.searchBox : sh.searchBox}>
-          <Feather
-            name="search"
-            size={14}
-            color="#9CA3AF"
-            style={{ marginRight: 8 }}
-          />
-          <TextInput
-            placeholder="Search For Patient"
-            placeholderTextColor="#9CA3AF"
-            value={searchText}
-            onChangeText={setSearchText}
-            style={isMobile ? mob.searchInput : sh.searchInput}
-          />
-        </View>
-        <View style={isMobile ? mob.filterBox : sh.filterBox}>
-          <Text style={isMobile ? mob.filterText : sh.filterText}>
-            {statusFilter}
-          </Text>
-          <Feather
-            name="chevron-down"
-            size={13}
-            color="#374151"
-            style={{ marginLeft: 6 }}
-          />
-        </View>
-      </View>
-      {/* {filteredPatients.length > 0 ? (
-        <View style={isMobile ? { paddingHorizontal: 16 } : {}}>
-          {filteredPatients.map((p) => (
-            <PatientRow
-              key={p.id}
-              patient={p}
-              onSelect={(pat) => handleSelectPatient(pat, animRef)}
-              isSelected={selectedPatient?.id === p.id}
-            />
-          ))}
-        </View>
-      ) : (
-        <EmptyState onNewRequest={() => {}} isMobile={isMobile} />
-      )} */}
-      {patientsLoading && (
-        <View style={{ padding: 32, alignItems: "center" }}>
-          <Text style={{ color: "#6B7280", fontSize: 13 }}>
-            Loading patients...
-          </Text>
-        </View>
-      )}
-      {!patientsLoading && patientsError && (
-        <View style={{ padding: 24, alignItems: "center" }}>
-          <Text style={{ color: "#DC2626", fontSize: 13, textAlign: "center" }}>
-            {patientsError}
-          </Text>
-          <TouchableOpacity
-            style={{ marginTop: 12, padding: 10 }}
-            onPress={() => fetchPatients()}
-          >
-            <Text style={{ color: "#2563EB", fontWeight: "600" }}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {!patientsLoading &&
-        !patientsError &&
-        (filteredPatients.length > 0 ? (
-          <View style={isMobile ? { paddingHorizontal: 16 } : {}}>
-            {filteredPatients.map((p, index) => (
-              <PatientRow
-                key={p.id || p.user_id || `patient-${index}`}
-                patient={p}
-                onSelect={(pat) => handleSelectPatient(pat, animRef)}
-                isSelected={selectedPatient?.id === p.id}
+      <View
+        style={{
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : "flex-start",
+        }}
+      >
+        {/* ── LEFT: Patient selection ── */}
+        <View style={{ flex: isMobile ? undefined : 1.3 }}>
+          <View style={isMobile ? mob.sectionHeader : sh.header}>
+            <View>
+              <Text style={isMobile ? mob.sectionTitle : sh.title}>
+                Select Patient
+              </Text>
+              {isMobile && <Text style={mob.sectionSub}>Choose patient</Text>}
+            </View>
+          </View>
+          <View style={isMobile ? mob.searchRow : sh.searchRow}>
+            <View style={isMobile ? mob.searchBox : sh.searchBox}>
+              <Feather
+                name="search"
+                size={14}
+                color="#9CA3AF"
+                style={{ marginRight: 8 }}
               />
-            ))}
-            {/* Pagination — only show if more pages exist */}
-            {nextCursor && (
-              <TouchableOpacity
-                style={{ padding: 16, alignItems: "center" }}
-                onPress={() => fetchPatients(nextCursor)}
+              <TextInput
+                placeholder="Search For Patient"
+                placeholderTextColor="#9CA3AF"
+                value={searchText}
+                onChangeText={setSearchText}
+                style={isMobile ? mob.searchInput : sh.searchInput}
+              />
+            </View>
+            <View style={isMobile ? mob.filterBox : sh.filterBox}>
+              <Text style={isMobile ? mob.filterText : sh.filterText}>
+                {statusFilter}
+              </Text>
+              <Feather
+                name="chevron-down"
+                size={13}
+                color="#374151"
+                style={{ marginLeft: 6 }}
+              />
+            </View>
+          </View>
+
+          {patientsLoading && (
+            <View style={{ padding: 32, alignItems: "center" }}>
+              <Text style={{ color: "#6B7280", fontSize: 13 }}>
+                Loading patients...
+              </Text>
+            </View>
+          )}
+          {!patientsLoading && patientsError && (
+            <View style={{ padding: 24, alignItems: "center" }}>
+              <Text
+                style={{ color: "#DC2626", fontSize: 13, textAlign: "center" }}
               >
-                <Text
-                  style={{ color: "#2563EB", fontWeight: "600", fontSize: 13 }}
-                >
-                  Load more patients
+                {patientsError}
+              </Text>
+              <TouchableOpacity
+                style={{ marginTop: 12, padding: 10 }}
+                onPress={() => fetchPatients()}
+              >
+                <Text style={{ color: "#2563EB", fontWeight: "600" }}>
+                  Retry
                 </Text>
               </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          <EmptyState onNewRequest={() => {}} isMobile={isMobile} />
-        ))}
+            </View>
+          )}
+          {!patientsLoading &&
+            !patientsError &&
+            (filteredPatients.length > 0 ? (
+              <View
+                style={
+                  Platform.OS === "web"
+                    ? { maxHeight: 480, overflowY: "auto" }
+                    : { maxHeight: 480 }
+                }
+              >
+                {Platform.OS === "web" ? (
+                  <View style={isMobile ? { paddingHorizontal: 16 } : {}}>
+                    {filteredPatients.map((p, index) => (
+                      <PatientRow
+                        key={p.id || p.user_id || `patient-${index}`}
+                        patient={p}
+                        onSelect={(pat) => handleSelectPatient(pat, animRef)}
+                        isSelected={selectedPatient?.id === p.id}
+                      />
+                    ))}
+                    {nextCursor && (
+                      <TouchableOpacity
+                        style={{ padding: 16, alignItems: "center" }}
+                        onPress={() => fetchPatients(nextCursor)}
+                      >
+                        <Text
+                          style={{
+                            color: "#2563EB",
+                            fontWeight: "600",
+                            fontSize: 13,
+                          }}
+                        >
+                          Load more patients
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : (
+                  <ScrollView nestedScrollEnabled>
+                    <View style={isMobile ? { paddingHorizontal: 16 } : {}}>
+                      {filteredPatients.map((p, index) => (
+                        <PatientRow
+                          key={p.id || p.user_id || `patient-${index}`}
+                          patient={p}
+                          onSelect={(pat) => handleSelectPatient(pat, animRef)}
+                          isSelected={selectedPatient?.id === p.id}
+                        />
+                      ))}
+                      {nextCursor && (
+                        <TouchableOpacity
+                          style={{ padding: 16, alignItems: "center" }}
+                          onPress={() => fetchPatients(nextCursor)}
+                        >
+                          <Text
+                            style={{
+                              color: "#2563EB",
+                              fontWeight: "600",
+                              fontSize: 13,
+                            }}
+                          >
+                            Load more patients
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </ScrollView>
+                )}
+              </View>
+            ) : (
+              <EmptyState onNewRequest={() => {}} isMobile={isMobile} />
+            ))}
+        </View>
+
+        {/* ── DIVIDER ── */}
+        {!isMobile && (
+          <View
+            style={{
+              width: 1,
+              backgroundColor: "#E5E7EB",
+              marginHorizontal: 20,
+            }}
+          />
+        )}
+
+        {/* ── RIGHT: Quick upload panel ── */}
+        {/* ── RIGHT: Quick upload panel ── */}
+        <View
+          style={{
+            flex: 1,
+            paddingHorizontal: isMobile ? 16 : 0,
+            paddingTop: isMobile ? 20 : 0,
+            ...(Platform.OS === "web" && !isMobile
+              ? { position: "sticky", top: 20, alignSelf: "flex-start" }
+              : {}),
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: "700",
+              color: "#111827",
+              marginBottom: 4,
+            }}
+          >
+            Or upload documents directly
+          </Text>
+          <Text style={{ fontSize: 12, color: "#6B7280", marginBottom: 16 }}>
+            Skip patient selection — upload these two documents to continue
+          </Text>
+
+          <UploadCard
+            label="Prescription"
+            doc={prescriptionDoc}
+            onPick={() => pickDocument(setPrescriptionDoc)}
+            onClear={() => setPrescriptionDoc(null)}
+          />
+          <UploadCard
+            label="Insurance Policy"
+            doc={insuranceDoc}
+            onPick={() => pickDocument(setInsuranceDoc)}
+            onClear={() => setInsuranceDoc(null)}
+          />
+
+          <TouchableOpacity
+            style={[
+              sif.nextBtn,
+              { marginTop: 20, alignSelf: "flex-start" },
+              !canProceedWithoutPatient && { opacity: 0.4 },
+            ]}
+            disabled={!canProceedWithoutPatient}
+            onPress={() => handleProceedWithoutPatient(animRef)}
+          >
+            <Text style={sif.nextText}>Continue</Text>
+            <Feather name="arrow-right" size={14} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
     </Animated.View>
   );
 
@@ -1906,7 +2144,23 @@ const PARequests = ({ navigation, route }) => {
         updateError={updateError}
         onPrevious={() => handlePrevious(animRef)}
         onNext={async () => {
-          if (!selectedPatient?.user_id) return;
+          // No real patient (came from "upload documents directly" flow)
+          if (!selectedPatient?.user_id) {
+            setPreAuthAnalysisData(
+              buildPreAuthAnalysisData({
+                patient: selectedPatient,
+                updatedUser: null,
+                diagnosisSummary,
+                diagnosisCodes,
+                procedureCodes,
+                serviceFormData,
+              }),
+            );
+            handleNext(animRef); // advance to Step 5 directly
+            return;
+          }
+
+          // Existing flow — real patient selected, update via API
           setUpdateLoading(true);
           setUpdateError(null);
 
@@ -1920,8 +2174,8 @@ const PARequests = ({ navigation, route }) => {
                 : undefined,
             insurer: serviceFormData.insurer,
             urgencyLevel: serviceFormData.urgencyLevel,
-            doctorId: serviceFormData.doctorId, // ✅ ADD THIS
-            policyNumber: selectedPatient.policyNumber, // ✅ ADD THIS if needed
+            doctorId: serviceFormData.doctorId,
+            policyNumber: selectedPatient.policyNumber,
           });
 
           setUpdateLoading(false);
@@ -1938,7 +2192,7 @@ const PARequests = ({ navigation, route }) => {
                 serviceFormData,
               }),
             );
-            handleNext(animRef); // advance to Step 5
+            handleNext(animRef);
           } else {
             setUpdateError(result.error || "Failed to submit. Try again.");
           }
@@ -2115,33 +2369,33 @@ const PARequests = ({ navigation, route }) => {
 
       {/* ── MOBILE ── */}
       {(Platform.OS !== "web" || width < 1000) && (
-  <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-    <View style={mob.header}>
-      <HeaderLoginSignUp navigation={navigation} />
-    </View>
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 40 }}
-    >
-      <Text style={mob.title}>PA Requests</Text>
-      {autoSelecting ? (
-        <View style={{ padding: 60, alignItems: "center" }}>
-          <ActivityIndicator size="large" color="#2563EB" />
-          <Text style={{ marginTop: 12, color: "#6B7280", fontSize: 13 }}>
-            Loading patient details...
-          </Text>
-        </View>
-      ) : (
-        <>
-          <MobileStepper currentStep={currentStep} />
-          <View style={{ overflow: "hidden" }}>
-            {renderCurrentStep(slideAnimMob, true)}
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+          <View style={mob.header}>
+            <HeaderLoginSignUp navigation={navigation} />
           </View>
-        </>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
+            <Text style={mob.title}>PA Requests</Text>
+            {autoSelecting ? (
+              <View style={{ padding: 60, alignItems: "center" }}>
+                <ActivityIndicator size="large" color="#2563EB" />
+                <Text style={{ marginTop: 12, color: "#6B7280", fontSize: 13 }}>
+                  Loading patient details...
+                </Text>
+              </View>
+            ) : (
+              <>
+                <MobileStepper currentStep={currentStep} />
+                <View style={{ overflow: "hidden" }}>
+                  {renderCurrentStep(slideAnimMob, true)}
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </SafeAreaView>
       )}
-    </ScrollView>
-  </SafeAreaView>
-)}
     </>
   );
 };
