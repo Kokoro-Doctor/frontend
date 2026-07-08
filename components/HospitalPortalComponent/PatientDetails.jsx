@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   Modal,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
@@ -25,9 +26,9 @@ const SECTIONS = [
     title: "ABHA Documents",
     subtitle: "Identity and prescription records",
     icon: "📋",
-    color: "#F59E0B",
-    bg: "#FFF7ED",
-    border: "#FDE0B0",
+    color: "#16A34A",
+    bg: "#F0FDF4",
+    border: "#BBF0CE",
     docs: [
       {
         key: "abha_prescription",
@@ -135,16 +136,13 @@ const SectionHeader = ({
 };
 
 // ─── DOCUMENT ROW ────────────────────────────────────────────────
-const DocRow = ({ doc, docState, onToggleCheck, onUpload, isLast }) => {
+const DocRow = ({ doc, docState, onUpload, isLast }) => {
   const uploaded = !!docState?.uploaded;
   return (
     <View style={[styles.docRow, !isLast && styles.docRowBorder]}>
-      <TouchableOpacity
-        style={styles.checkbox}
-        onPress={() => onToggleCheck(doc.key)}
-      >
+      <View style={styles.checkbox}>
         {uploaded && <View style={styles.checkboxTick} />}
-      </TouchableOpacity>
+      </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.docLabel}>{doc.label}</Text>
         <Text style={[styles.docSubLabel, uploaded && { color: "#16A34A" }]}>
@@ -183,6 +181,9 @@ const PatientDetails = ({ route, navigation }) => {
   const [docsLoading, setDocsLoading] = useState(false);
   const [docsError, setDocsError] = useState(null);
   const [preAuthLoading, setPreAuthLoading] = useState(false);
+  const [finalAuthPopupVisible, setFinalAuthPopupVisible] = useState(false);
+  const { width } = useWindowDimensions();
+  const isMobileLayout = Platform.OS !== "web" || width < 1000;
 
   const userId = patient?.id;
 
@@ -255,34 +256,54 @@ const PatientDetails = ({ route, navigation }) => {
     final: true,
     other: true,
   });
-  const { width } = useWindowDimensions();
 
   const toggleSection = (key) =>
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const handleUpload = (docKey) => {
-    const slot = SECTIONS.flatMap((s) => s.docs).find((d) => d.key === docKey);
-    if (Platform.OS === "web") {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".pdf,.jpg,.jpeg,.png";
-      input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-          await uploadPatientDocuments(userId, [
-            { file, filename: file.name, docType: slot?.docType || "OTHER" },
-          ]);
-          await fetchDocuments(); // refresh so the real doc shows up
-        } catch (err) {
-          alert(err.message || "Upload failed");
-        }
+ const handleUpload = async (docKey) => {
+  const slot = SECTIONS.flatMap((s) => s.docs).find((d) => d.key === docKey);
+  if (Platform.OS === "web") {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.jpg,.jpeg,.png";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        await uploadPatientDocuments(userId, [
+          { file, filename: file.name, docType: slot?.docType || "OTHER" },
+        ]);
+        await fetchDocuments();
+      } catch (err) {
+        alert(err.message || "Upload failed");
+      }
+    };
+    input.click();
+  } else {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/jpeg", "image/png"],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset) return;
+
+      const file = {
+        uri: asset.uri,
+        name: asset.name || "document.pdf",
+        type: asset.mimeType || "application/octet-stream",
       };
-      input.click();
-    } else {
-      // mobile picker would go here (react-native-document-picker)
+
+      await uploadPatientDocuments(userId, [
+        { file, filename: file.name, docType: slot?.docType || "OTHER" },
+      ]);
+      await fetchDocuments();
+    } catch (err) {
+      alert(err.message || "Upload failed");
     }
-  };
+  }
+};
 
   const handleGoToPreAuth = (isComplete) => {
     if (!isComplete) {
@@ -294,36 +315,63 @@ const PatientDetails = ({ route, navigation }) => {
       skipToStep2: true,
     });
   };
-
-  const handleAddOtherDocument = () => {
-    if (Platform.OS === "web") {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".pdf,.jpg,.jpeg,.png";
-      input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-          await uploadPatientDocuments(userId, [
-            { file, filename: file.name, docType: "OTHER" },
-          ]);
-          await fetchDocuments(); // refresh so it appears immediately
-        } catch (err) {
-          alert(err.message || "Upload failed");
-        }
-      };
-      input.click();
-    } else {
-      // mobile picker would go here (react-native-document-picker)
+  const handleGoToFinalAuth = (isComplete) => {
+    if (!isComplete) {
+      setFinalAuthPopupVisible(true);
+      return;
     }
+    navigation.navigate("HospitalInsuranceClaim", {
+      preselectedPatientId: patient.id,
+      preselectedInsurerName: patient.insurer || null, // ← NEW
+      skipToStep2: true,
+    });
   };
 
-  const toggleCheck = (docKey) => {
-    setDocs((prev) => ({
-      ...prev,
-      [docKey]: { ...prev[docKey], uploaded: !prev[docKey]?.uploaded },
-    }));
-  };
+  const handleAddOtherDocument = async () => {
+  if (Platform.OS === "web") {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.jpg,.jpeg,.png";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        await uploadPatientDocuments(userId, [
+          { file, filename: file.name, docType: "OTHER" },
+        ]);
+        await fetchDocuments();
+      } catch (err) {
+        alert(err.message || "Upload failed");
+      }
+    };
+    input.click();
+  } else {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/jpeg", "image/png"],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset) return;
+
+      const file = {
+        uri: asset.uri,
+        name: asset.name || "document.pdf",
+        type: asset.mimeType || "application/octet-stream",
+      };
+
+      await uploadPatientDocuments(userId, [
+        { file, filename: file.name, docType: "OTHER" },
+      ]);
+      await fetchDocuments();
+    } catch (err) {
+      alert(err.message || "Upload failed");
+    }
+  }
+};
+
+ 
 
   const fixedTotal = SECTIONS.reduce((sum, s) => sum + s.docs.length, 0);
   const TOTAL_DOCS = fixedTotal + otherDocs.length;
@@ -461,6 +509,26 @@ const PatientDetails = ({ route, navigation }) => {
                         Go to Pre-Auth
                       </Text>
                     </TouchableOpacity>
+                  ) : section.key === "final" ? ( // ← add this branch
+                    <TouchableOpacity
+                      style={[
+                        styles.goToPreAuthBtn,
+                        !isComplete && styles.goToPreAuthBtnDisabled,
+                      ]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleGoToFinalAuth(isComplete);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.goToPreAuthBtnText,
+                          !isComplete && styles.goToPreAuthBtnTextDisabled,
+                        ]}
+                      >
+                        Go to Final Auth
+                      </Text>
+                    </TouchableOpacity>
                   ) : null
                 }
               />
@@ -472,13 +540,12 @@ const PatientDetails = ({ route, navigation }) => {
                   </View>
                   {section.docs.map((doc, i) => (
                     <DocRow
-                      key={doc.key}
-                      doc={doc}
-                      docState={docs[doc.key]}
-                      onToggleCheck={toggleCheck}
-                      onUpload={handleUpload}
-                      isLast={i === section.docs.length - 1}
-                    />
+  key={doc.key}
+  doc={doc}
+  docState={docs[doc.key]}
+  onUpload={handleUpload}
+  isLast={i === section.docs.length - 1}
+/>
                   ))}
                 </View>
               )}
@@ -549,6 +616,281 @@ const PatientDetails = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+      <Modal
+        visible={finalAuthPopupVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFinalAuthPopupVisible(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>🚧 Documents Pending</Text>
+            <Text style={styles.popupText}>
+              Please upload all Final Auth documents first to go to Final Auth.
+            </Text>
+            <TouchableOpacity
+              style={styles.popupBtn}
+              onPress={() => setFinalAuthPopupVisible(false)}
+            >
+              <Text style={styles.popupBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+  const renderMobileCard = () => (
+    <View style={mobileStyles.card}>
+      {/* HEADER */}
+      <View style={mobileStyles.cardHeader}>
+        <Text style={mobileStyles.cardTitle}>Patient Management</Text>
+        <TouchableOpacity style={mobileStyles.backBtn} onPress={onBack}>
+          <Text style={mobileStyles.backBtnText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      >
+        <Text style={mobileStyles.pageTitle}>
+          Upload documents — {patient?.name || "Patient"}
+        </Text>
+        <Text style={mobileStyles.pageSubtitle}>
+          Patient ID: {patient?.id || "—"} · Complete all sections to submit the
+          claim
+        </Text>
+
+        {/* PATIENT CARD */}
+        <View style={mobileStyles.patientCard}>
+          <View style={mobileStyles.patientCardTop}>
+            <View style={mobileStyles.avatar}>
+              <Text style={mobileStyles.avatarText}>
+                {(patient?.initials || "PT").slice(0, 2)}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={mobileStyles.patientName}>
+                {patient?.name || "Unknown Patient"}
+              </Text>
+              <Text style={mobileStyles.patientId}>{patient?.id || "—"}</Text>
+            </View>
+            <View style={mobileStyles.activeBadge}>
+              <View style={mobileStyles.activeDot} />
+              <Text style={mobileStyles.activeBadgeText}>Admission Active</Text>
+            </View>
+          </View>
+
+          <View style={mobileStyles.patientMetaGrid}>
+            <View style={mobileStyles.metaCell}>
+              <Text style={mobileStyles.metaLabel}>Admitted</Text>
+              <Text style={mobileStyles.metaValue}>
+                {patient?.admitted || "—"}
+              </Text>
+            </View>
+            <View style={mobileStyles.metaCell}>
+              <Text style={mobileStyles.metaLabel}>Age</Text>
+              <Text style={mobileStyles.metaValue}>
+                {patient?.age || "—"} yrs
+              </Text>
+            </View>
+            <View style={mobileStyles.metaCell}>
+              <Text style={mobileStyles.metaLabel}>Insurer</Text>
+              <Text style={[mobileStyles.metaValue, mobileStyles.metaLink]}>
+                {patient?.insurer || "—"}
+              </Text>
+            </View>
+            <View style={mobileStyles.metaCell}>
+              <Text style={mobileStyles.metaLabel}>Ward</Text>
+              <Text style={[mobileStyles.metaValue, mobileStyles.metaLink]}>
+                {patient?.ward || "General"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* PROGRESS CARD */}
+        <View style={mobileStyles.progressCard}>
+          <Text style={mobileStyles.progressLabel}>
+            Overall upload progress
+          </Text>
+          <View style={mobileStyles.progressBarTrack}>
+            <View
+              style={[
+                mobileStyles.progressBarFill,
+                { width: `${progressPct * 100}%` },
+              ]}
+            />
+          </View>
+          <Text style={mobileStyles.progressCount}>
+            {uploadedTotal} of {TOTAL_DOCS} documents
+          </Text>
+        </View>
+
+        {/* SECTIONS (reuse same SectionHeader/DocRow components) */}
+        {SECTIONS.map((section) => {
+          const uploadedCount = section.docs.filter(
+            (d) => docs[d.key]?.uploaded,
+          ).length;
+          const isComplete = uploadedCount === section.docs.length;
+          return (
+            <View key={section.key} style={styles.sectionBlock}>
+              <SectionHeader
+                section={section}
+                uploadedCount={uploadedCount}
+                expanded={expanded[section.key]}
+                onToggle={() => toggleSection(section.key)}
+                actionButton={
+                  section.key === "preauth" ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.goToPreAuthBtn,
+                        !isComplete && styles.goToPreAuthBtnDisabled,
+                      ]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleGoToPreAuth(isComplete);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.goToPreAuthBtnText,
+                          !isComplete && styles.goToPreAuthBtnTextDisabled,
+                        ]}
+                      >
+                        Go to Pre-Auth
+                      </Text>
+                    </TouchableOpacity>
+                  ) : section.key === "final" ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.goToPreAuthBtn,
+                        !isComplete && styles.goToPreAuthBtnDisabled,
+                      ]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleGoToFinalAuth(isComplete);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.goToPreAuthBtnText,
+                          !isComplete && styles.goToPreAuthBtnTextDisabled,
+                        ]}
+                      >
+                        Go to Final Auth
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null
+                }
+              />
+              {expanded[section.key] && (
+                <View style={styles.sectionBody}>
+                  <View style={styles.docsTableHeader}>
+                    <Text style={styles.docsTableHeaderText}>Documents</Text>
+                    <Text style={styles.docsTableHeaderText}>Action</Text>
+                  </View>
+                  {section.docs.map((doc, i) => (
+                   <DocRow
+  key={doc.key}
+  doc={doc}
+  docState={docs[doc.key]}
+  onUpload={handleUpload}
+  isLast={i === section.docs.length - 1}
+/>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
+
+        {/* OTHER DOCUMENTS */}
+        <View style={styles.sectionBlock}>
+          <SectionHeader
+            section={{
+              title: "Other Documents",
+              subtitle: "Any additional supporting files",
+              icon: "📋",
+              color: "#16A34A",
+              bg: "#F0FDF4",
+              border: "#BBF0CE",
+              docs: otherDocs,
+            }}
+            uploadedCount={otherUploaded}
+            expanded={expanded.other}
+            onToggle={() => toggleSection("other")}
+          />
+          {expanded.other && (
+            <View style={styles.sectionBody}>
+              <View style={styles.docsTableHeader}>
+                <Text style={styles.docsTableHeaderText}>Documents</Text>
+                <Text style={styles.docsTableHeaderText}>Action</Text>
+              </View>
+              {otherDocs.map((doc, i) => (
+                <DocRow
+                  key={doc.key}
+                  doc={doc}
+                  docState={doc}
+                  onToggleCheck={() => {}}
+                  onUpload={() => {}}
+                  isLast={i === otherDocs.length - 1}
+                />
+              ))}
+              <TouchableOpacity
+                style={styles.addOtherDocBtn}
+                onPress={handleAddOtherDocument}
+              >
+                <Text style={styles.addOtherDocBtnText}>+ Add Document</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Modals — same as web */}
+      <Modal
+        visible={preAuthPopupVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreAuthPopupVisible(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>🚧 Documents Pending</Text>
+            <Text style={styles.popupText}>
+              Please upload the documents first to go to Pre-Auth.
+            </Text>
+            <TouchableOpacity
+              style={styles.popupBtn}
+              onPress={() => setPreAuthPopupVisible(false)}
+            >
+              <Text style={styles.popupBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={finalAuthPopupVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFinalAuthPopupVisible(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>🚧 Documents Pending</Text>
+            <Text style={styles.popupText}>
+              Please upload all Final Auth documents first to go to Final Auth.
+            </Text>
+            <TouchableOpacity
+              style={styles.popupBtn}
+              onPress={() => setFinalAuthPopupVisible(false)}
+            >
+              <Text style={styles.popupBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 
@@ -579,10 +921,11 @@ const PatientDetails = ({ route, navigation }) => {
   }
 
   // ── MOBILE LAYOUT ──
+  // ── MOBILE LAYOUT ──
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#F1F5F9" }}>
       <HeaderLoginSignUp navigation={navigation} />
-      <View style={{ flex: 1 }}>{renderCard()}</View>
+      <View style={{ flex: 1 }}>{renderMobileCard()}</View>
     </SafeAreaView>
   );
 };
@@ -911,6 +1254,123 @@ const styles = StyleSheet.create({
   popupBtnText: {
     color: "#fff",
     fontWeight: "600",
+  },
+});
+const mobileStyles = StyleSheet.create({
+  card: { flex: 1, backgroundColor: "#F1F5F9" },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#F1F5F9",
+  },
+  cardTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  backBtn: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 6,
+    backgroundColor: "#fff",
+  },
+  backBtnText: { fontSize: 13, fontWeight: "500", color: "#555" },
+
+  pageTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  pageSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 16,
+    lineHeight: 17,
+  },
+
+  patientCard: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 14,
+  },
+  patientCardTop: { flexDirection: "row", alignItems: "flex-start" },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FDE68A",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  avatarText: { fontWeight: "700", color: "#92400E", fontSize: 15 },
+  patientName: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  patientId: { fontSize: 12, color: "#6B7280", marginTop: 3 },
+  activeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1,
+    borderColor: "#BBF0CE",
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#16A34A",
+    marginRight: 5,
+  },
+  activeBadgeText: { fontSize: 10, color: "#16A34A", fontWeight: "600" },
+
+  patientMetaGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  metaCell: { width: "50%", marginBottom: 10 },
+  metaLabel: {
+    fontSize: 10,
+    color: "#9CA3AF",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    marginBottom: 3,
+  },
+  metaValue: { fontSize: 13, fontWeight: "600", color: "#111827" },
+  metaLink: { color: "#2563EB" },
+
+  progressCard: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 16,
+  },
+  progressLabel: { fontSize: 12, color: "#6B7280", marginBottom: 8 },
+  progressBarTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#E5E7EB",
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#2563EB",
+    borderRadius: 4,
+  },
+  progressCount: {
+    fontSize: 12,
+    color: "#374151",
+    marginTop: 8,
+    fontWeight: "600",
+    textAlign: "right",
   },
 });
 
