@@ -321,25 +321,27 @@ const MobileStepper = ({ currentStep }) => (
       return (
         <React.Fragment key={step.id}>
           <View style={ms.stepItem}>
-            <View
-              style={[
-                ms.circle,
-                isActive && ms.circleActive,
-                isDone && ms.circleDone,
-              ]}
-            >
-              {isDone ? (
-                <Feather name="check" size={10} color="#fff" />
-              ) : (
-                <Text
-                  style={[
-                    ms.circleText,
-                    (isActive || isDone) && { color: "#fff" },
-                  ]}
-                >
-                  {step.id}
-                </Text>
-              )}
+            <View style={ms.circleRow}>
+              <View
+                style={[
+                  ms.circle,
+                  isActive && ms.circleActive,
+                  isDone && ms.circleDone,
+                ]}
+              >
+                {isDone ? (
+                  <Feather name="check" size={10} color="#fff" />
+                ) : (
+                  <Text
+                    style={[
+                      ms.circleText,
+                      (isActive || isDone) && { color: "#fff" },
+                    ]}
+                  >
+                    {step.id}
+                  </Text>
+                )}
+              </View>
             </View>
             <Text
               style={[
@@ -352,7 +354,9 @@ const MobileStepper = ({ currentStep }) => (
             </Text>
           </View>
           {index < STEPS.length - 1 && (
-            <View style={[ms.line, isDone && ms.lineDone]} />
+            <View style={ms.lineWrap}>
+              <View style={[ms.line, isDone && ms.lineDone]} />
+            </View>
           )}
         </React.Fragment>
       );
@@ -470,17 +474,28 @@ const UploadCard = ({ label, doc, onPick, onClear }) => (
         justifyContent: "space-between",
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          flex: 1,
+          minWidth: 0,
+          marginRight: 10,
+        }}
+      >
         <Feather
           name={doc ? "check-circle" : "upload-cloud"}
           size={18}
           color={doc ? "#16A34A" : "#6B7280"}
         />
-        <View>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827" }}>
             {label}
           </Text>
           <Text
+            numberOfLines={1}
+            ellipsizeMode="middle"
             style={{
               fontSize: 11,
               color: doc ? "#16A34A" : "#9CA3AF",
@@ -499,6 +514,7 @@ const UploadCard = ({ label, doc, onPick, onClear }) => (
           borderRadius: 6,
           paddingHorizontal: 12,
           paddingVertical: 6,
+          flexShrink: 0,
         }}
       >
         <Text
@@ -514,6 +530,55 @@ const UploadCard = ({ label, doc, onPick, onClear }) => (
     </View>
   </View>
 );
+
+const QuickUploadSection = ({
+  prescriptionDoc,
+  insuranceDoc,
+  onPickPrescription,
+  onPickInsurance,
+  onClearPrescription,
+  onClearInsurance,
+  onContinue,
+  canProceed,
+}) => {
+  const filesCount = (prescriptionDoc ? 1 : 0) + (insuranceDoc ? 1 : 0);
+
+  return (
+    <View style={qu.wrapper}>
+      <View style={qu.card}>
+        <View style={qu.headerRow}>
+          <Text style={qu.title}>Quick upload</Text>
+          <Text style={qu.counter}>{filesCount}/2 files</Text>
+        </View>
+        <Text style={qu.subtitle}>
+          Skip patient selection — upload these two files to continue
+        </Text>
+
+        <UploadCard
+          label="Prescription"
+          doc={prescriptionDoc}
+          onPick={onPickPrescription}
+          onClear={onClearPrescription}
+        />
+        <UploadCard
+          label="Insurance policy"
+          doc={insuranceDoc}
+          onPick={onPickInsurance}
+          onClear={onClearInsurance}
+        />
+
+        <TouchableOpacity
+          style={[qu.continueBtn, !canProceed && { opacity: 0.4 }]}
+          disabled={!canProceed}
+          onPress={onContinue}
+        >
+          <Text style={qu.continueText}>Continue</Text>
+          <Feather name="arrow-right" size={14} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 const CodeChip = ({ code, onRemove }) => (
   <View style={mc.codeRow}>
@@ -1833,6 +1898,18 @@ const PARequests = ({ navigation, route }) => {
   // ── Step renderers ─────────────────────────────────────────────────────────
   const renderStep1 = (animRef, isMobile) => (
     <Animated.View style={{ transform: [{ translateX: animRef }] }}>
+      {isMobile && (
+        <QuickUploadSection
+          prescriptionDoc={prescriptionDoc}
+          insuranceDoc={insuranceDoc}
+          onPickPrescription={() => pickDocument(setPrescriptionDoc)}
+          onPickInsurance={() => pickDocument(setInsuranceDoc)}
+          onClearPrescription={() => setPrescriptionDoc(null)}
+          onClearInsurance={() => setInsuranceDoc(null)}
+          onContinue={() => handleProceedWithoutPatient(animRef)}
+          canProceed={canProceedWithoutPatient}
+        />
+      )}
       <View
         style={{
           flexDirection: isMobile ? "column" : "row",
@@ -1988,56 +2065,57 @@ const PARequests = ({ navigation, route }) => {
 
         {/* ── RIGHT: Quick upload panel ── */}
         {/* ── RIGHT: Quick upload panel ── */}
-        <View
-          style={{
-            flex: 1,
-            paddingHorizontal: isMobile ? 16 : 0,
-            paddingTop: isMobile ? 20 : 0,
-            ...(Platform.OS === "web" && !isMobile
-              ? { position: "sticky", top: 20, alignSelf: "flex-start" }
-              : {}),
-          }}
-        >
-          <Text
+        {/* ── RIGHT: Quick upload panel (desktop only — mobile uses QuickUploadSection above) ── */}
+        {!isMobile && (
+          <View
             style={{
-              fontSize: 15,
-              fontWeight: "700",
-              color: "#111827",
-              marginBottom: 4,
+              flex: 1,
+              ...(Platform.OS === "web"
+                ? { position: "sticky", top: 20, alignSelf: "flex-start" }
+                : {}),
             }}
           >
-            Or upload documents directly
-          </Text>
-          <Text style={{ fontSize: 12, color: "#6B7280", marginBottom: 16 }}>
-            Skip patient selection — upload these two documents to continue
-          </Text>
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: "700",
+                color: "#111827",
+                marginBottom: 4,
+              }}
+            >
+              Or upload documents directly
+            </Text>
+            <Text style={{ fontSize: 12, color: "#6B7280", marginBottom: 16 }}>
+              Skip patient selection — upload these two documents to continue
+            </Text>
 
-          <UploadCard
-            label="Prescription"
-            doc={prescriptionDoc}
-            onPick={() => pickDocument(setPrescriptionDoc)}
-            onClear={() => setPrescriptionDoc(null)}
-          />
-          <UploadCard
-            label="Insurance Policy"
-            doc={insuranceDoc}
-            onPick={() => pickDocument(setInsuranceDoc)}
-            onClear={() => setInsuranceDoc(null)}
-          />
+            <UploadCard
+              label="Prescription"
+              doc={prescriptionDoc}
+              onPick={() => pickDocument(setPrescriptionDoc)}
+              onClear={() => setPrescriptionDoc(null)}
+            />
+            <UploadCard
+              label="Insurance Policy"
+              doc={insuranceDoc}
+              onPick={() => pickDocument(setInsuranceDoc)}
+              onClear={() => setInsuranceDoc(null)}
+            />
 
-          <TouchableOpacity
-            style={[
-              sif.nextBtn,
-              { marginTop: 20, alignSelf: "flex-start" },
-              !canProceedWithoutPatient && { opacity: 0.4 },
-            ]}
-            disabled={!canProceedWithoutPatient}
-            onPress={() => handleProceedWithoutPatient(animRef)}
-          >
-            <Text style={sif.nextText}>Continue</Text>
-            <Feather name="arrow-right" size={14} color="#fff" />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={[
+                sif.nextBtn,
+                { marginTop: 20, alignSelf: "flex-start" },
+                !canProceedWithoutPatient && { opacity: 0.4 },
+              ]}
+              disabled={!canProceedWithoutPatient}
+              onPress={() => handleProceedWithoutPatient(animRef)}
+            >
+              <Text style={sif.nextText}>Continue</Text>
+              <Feather name="arrow-right" size={14} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </Animated.View>
   );
@@ -2440,12 +2518,22 @@ const ws = StyleSheet.create({
 const ms = StyleSheet.create({
   container: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start", // ← changed from "center"
     paddingHorizontal: 16,
     paddingVertical: 16,
     marginBottom: 4,
   },
-  stepItem: { alignItems: "center", gap: 4 },
+  stepItem: {
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 0,
+    width: 62, // ← fixed width so labels wrap consistently
+  },
+  circleRow: {
+    height: 36, // ← fixed row height, circle always centers here
+    justifyContent: "center",
+    alignItems: "center",
+  },
   circle: {
     width: 36,
     height: 36,
@@ -2455,6 +2543,7 @@ const ms = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
+    flexShrink: 0,
   },
   circleActive: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
   circleDone: { backgroundColor: "#16A34A", borderColor: "#16A34A" },
@@ -2466,22 +2555,14 @@ const ms = StyleSheet.create({
     textAlign: "center",
     maxWidth: 55,
   },
-  line: { flex: 1, height: 2, backgroundColor: "#E5E7EB", marginBottom: 14 },
+  lineWrap: {
+    flex: 1,
+    height: 36, // ← matches circleRow height
+    justifyContent: "center",
+  },
+  line: { height: 2, backgroundColor: "#E5E7EB" },
   lineDone: { backgroundColor: "#16A34A" },
-  // Add inside mc StyleSheet:
-  emptyCodesBox: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    backgroundColor: "#FAFAFA",
-  },
-  emptyCodesText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    textAlign: "center",
-  },
+  // ...keep emptyCodesBox / emptyCodesText as-is
 });
 
 const pr = StyleSheet.create({
@@ -3167,6 +3248,40 @@ const mob = StyleSheet.create({
     backgroundColor: "#FAFAFA",
   },
   filterText: { fontSize: 12, color: "#374151" },
+});
+const qu = StyleSheet.create({
+  wrapper: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    padding: 14,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  title: { fontSize: 15, fontWeight: "700", color: "#111827" },
+  counter: { fontSize: 12, fontWeight: "500", color: "#9CA3AF" },
+  subtitle: { fontSize: 12, color: "#6B7280", marginBottom: 14 },
+  continueBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#16A34A",
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  continueText: { fontSize: 13, fontWeight: "600", color: "#fff" },
 });
 
 export default PARequests;
