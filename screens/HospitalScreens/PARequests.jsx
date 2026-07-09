@@ -11,11 +11,13 @@ import {
   ImageBackground,
   Animated,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { API_URL } from "../../env-vars";
@@ -260,6 +262,341 @@ const buildPreAuthAnalysisData = ({
   };
 };
 
+const normalizeLivePreAuthStructuredData = (analysisData) => {
+  const ext = analysisData?.autofill_extracted || {};
+  const structured = analysisData?.structured_data || {};
+  const bill = ext.billing_details || {};
+  const admission = ext.admission_details || {};
+
+  return {
+    source_filename:
+      structured.source_filename || "PreAuth_Live_Upload_Documents.pdf",
+    patient_details: {
+      ...(ext.patient_details || {}),
+      ...(structured.patient_details || {}),
+    },
+    insurance_details: {
+      ...(ext.insurance_details || {}),
+      ...(structured.insurance_details || {}),
+    },
+    hospital_details: {
+      ...(ext.hospital_details || {}),
+      ...(structured.hospital_details || {}),
+      admission_date:
+        structured.hospital_details?.admission_date ||
+        ext.hospital_details?.admission_date ||
+        admission.admission_date,
+      discharge_date:
+        structured.hospital_details?.discharge_date ||
+        ext.hospital_details?.discharge_date ||
+        admission.discharge_date,
+    },
+    diagnosis_and_procedures: {
+      ...(ext.diagnosis_and_procedures || {}),
+      ...(structured.diagnosis_and_procedures || {}),
+    },
+    claim_details: {
+      pre_hospitalization_amount: bill.pre_hospitalization_expenses,
+      bill_amount: bill.total_bill_amount || bill.hospitalization_expenses,
+      claimed_amount: bill.total_bill_amount || bill.hospitalization_expenses,
+      post_hospitalization_amount: bill.post_hospitalization_expenses,
+      health_checkup_cost: bill.health_checkup_cost,
+      ambulance_charges: bill.ambulance_charges,
+      other_charges: bill.other_charges,
+      pre_hosp_period_days: admission.pre_hospitalization_period_days,
+      post_hosp_period_days: admission.post_hospitalization_period_days,
+      ...(ext.claim_details || {}),
+      ...(structured.claim_details || {}),
+    },
+    bank_details: {
+      ...(ext.bank_details || {}),
+      ...(structured.bank_details || {}),
+    },
+    document_metadata: {
+      ...(ext.document_metadata || {}),
+      ...(structured.document_metadata || {}),
+      document_date:
+        ext.document_metadata?.document_date ||
+        structured.document_metadata?.document_date ||
+        new Date().toISOString(),
+      source: "hospital-preauth-live-upload",
+    },
+  };
+};
+
+const extractCodesFromPreAuthAnalysis = (
+  analysisData,
+  ref = "Extracted from uploaded pre-auth documents via Kokoro AI",
+) => {
+  const diag =
+    analysisData?.structured_data?.diagnosis_and_procedures ||
+    analysisData?.autofill_extracted?.diagnosis_and_procedures ||
+    {};
+
+  const diagnosisCodes = [];
+  const procedureCodes = [];
+  const seenDiag = new Set();
+  const seenProc = new Set();
+
+  const addDiag = (id, label) => {
+    const normalizedId = String(id ?? "").trim();
+    if (!normalizedId || seenDiag.has(normalizedId)) return;
+    diagnosisCodes.push({
+      id: normalizedId,
+      label: String(label || normalizedId),
+      ref,
+    });
+    seenDiag.add(normalizedId);
+  };
+
+  const addProc = (id, label) => {
+    const normalizedId = String(id ?? "").trim();
+    if (!normalizedId || seenProc.has(normalizedId)) return;
+    procedureCodes.push({
+      id: normalizedId,
+      label: String(label || normalizedId),
+    });
+    seenProc.add(normalizedId);
+  };
+
+  addDiag(diag.primary_icd_code, diag.primary_diagnosis);
+  addDiag(diag.additional_icd_code, diag.additional_diagnosis);
+
+  if (Array.isArray(diag.icd_codes)) {
+    diag.icd_codes.forEach((code) => {
+      const id = code?.code || code?.icd_code || code?.id || code;
+      const label =
+        code?.description || code?.diagnosis || code?.label || String(id || "");
+      addDiag(id, label);
+    });
+  }
+
+  addProc(
+    diag.procedure_1_icd_pcs || diag.primary_icd_pcs_code,
+    diag.procedure_1,
+  );
+  addProc(diag.procedure_2_icd_pcs, diag.procedure_2);
+  addProc(diag.procedure_3_icd_pcs, diag.procedure_3);
+
+  if (Array.isArray(diag.cpt_codes)) {
+    diag.cpt_codes.forEach((code) => {
+      const id = code?.code || code?.cpt_code || code?.id || code;
+      const label =
+        code?.description || code?.procedure || code?.label || String(id || "");
+      addProc(id, label);
+    });
+  }
+
+  return { diagnosisCodes, procedureCodes };
+};
+
+const buildLivePreAuthPatient = (analysisData, getAvatarProps) => {
+  const data = normalizeLivePreAuthStructuredData(analysisData);
+  const patient = data.patient_details || {};
+  const insurance = data.insurance_details || {};
+  const diagnosis = data.diagnosis_and_procedures || {};
+  const name = firstFilled(patient.name, "Live Upload Patient");
+  const generatedId = `live-preauth-${Date.now()}`;
+  const policyNumber = firstFilled(
+    insurance.policy_number,
+    insurance.policy_id,
+    insurance.certificate_number,
+  );
+  const memberId = firstFilled(
+    insurance.insurer_id_card,
+    insurance.member_id,
+    insurance.certificate_number,
+    generatedId,
+  );
+  const { initials, color, textColor } = getAvatarProps(name);
+
+  return {
+    id: generatedId,
+    user_id: null,
+    isLivePreAuth: true,
+    rawPatient: {
+      ...patient,
+      ...insurance,
+      live_preauth: true,
+    },
+    name,
+    age: patient.age || "—",
+    gender: patient.gender || "—",
+    procedure: firstFilled(
+      diagnosis.primary_diagnosis,
+      diagnosis.procedure_1,
+      diagnosis.procedure_details,
+      "—",
+    ),
+    status: "Eligible",
+    initials,
+    color,
+    textColor,
+    insurer: firstFilled(insurance.insurance_company, insurance.tpa_name, "—"),
+    memberId,
+    policyId: policyNumber || `POL-${generatedId}`,
+    policyNumber,
+    policyVersion: insurance.policy_version || "2024.1",
+    provider: data.hospital_details?.treating_doctor || "—",
+    providerNPI: data.hospital_details?.provider_npi || "—",
+    providerOrg: data.hospital_details?.hospital_name || "—",
+    service: firstFilled(
+      diagnosis.procedure_1,
+      diagnosis.procedure_details,
+      "—",
+    ),
+    phoneNumber: patient.phone || patient.phone_number || "—",
+    hospitalName: data.hospital_details?.hospital_name || "—",
+  };
+};
+
+const buildLivePreAuthAnalysisData = ({
+  analysisData,
+  patient,
+  diagnosisCodes,
+  procedureCodes,
+  serviceFormData,
+}) => {
+  const data = normalizeLivePreAuthStructuredData(analysisData);
+  const service = serviceFormData || {};
+  const selectedRaw = rawPatientFrom(patient);
+  const diagCodes = Array.isArray(diagnosisCodes) ? diagnosisCodes : [];
+  const procCodes = Array.isArray(procedureCodes) ? procedureCodes : [];
+  const urgencyLevel = firstFilled(service.urgencyLevel, "Routine");
+  const isEmergency = String(urgencyLevel).toLowerCase() === "emergent";
+  const patientName = firstFilled(
+    selectedRaw.name,
+    patient?.name,
+    data.patient_details?.name,
+  );
+  const insurer = firstFilled(
+    service.insurer,
+    patient?.insurer,
+    data.insurance_details?.insurance_company,
+    data.insurance_details?.tpa_name,
+  );
+  const primaryDiagnosis = firstFilled(
+    diagCodes[0]?.label,
+    data.diagnosis_and_procedures?.primary_diagnosis,
+  );
+  const primaryIcdCode = firstFilled(
+    diagCodes[0]?.id,
+    data.diagnosis_and_procedures?.primary_icd_code,
+  );
+  const additionalDiagnosis = firstFilled(
+    diagCodes[1]?.label,
+    data.diagnosis_and_procedures?.additional_diagnosis,
+  );
+  const additionalIcdCode = firstFilled(
+    diagCodes[1]?.id,
+    data.diagnosis_and_procedures?.additional_icd_code,
+  );
+  const serviceType = firstFilled(
+    service.serviceType,
+    procCodes[0]?.label,
+    data.diagnosis_and_procedures?.procedure_1,
+    data.diagnosis_and_procedures?.procedure_details,
+  );
+
+  return {
+    ...analysisData,
+    flow: "preauth_live",
+    patient_data: {
+      ...selectedRaw,
+      ...data.patient_details,
+      ...data.insurance_details,
+    },
+    preauth_context: {
+      urgencyLevel,
+      serviceType,
+      diagnosisCodes: diagCodes,
+      procedureCodes: procCodes,
+    },
+    structured_data: {
+      ...data,
+      source_filename: `PreAuth_${patientName || "Live_Upload"}.pdf`,
+      patient_details: {
+        ...data.patient_details,
+        name: patientName,
+        age: firstFilled(
+          selectedRaw.age,
+          patient?.age,
+          data.patient_details?.age,
+        ),
+        gender: firstFilled(
+          selectedRaw.gender,
+          patient?.gender,
+          data.patient_details?.gender,
+        ),
+        phone: firstFilled(
+          selectedRaw.phone,
+          selectedRaw.phone_number,
+          patient?.phoneNumber,
+          data.patient_details?.phone,
+        ),
+      },
+      insurance_details: {
+        ...data.insurance_details,
+        policy_number: firstFilled(
+          patient?.policyNumber,
+          patient?.policyId,
+          data.insurance_details?.policy_number,
+        ),
+        insurance_company: insurer,
+        tpa_name: firstFilled(
+          data.insurance_details?.tpa_name,
+          String(insurer).toLowerCase().includes("medi") ? "Medi Assist" : "",
+        ),
+        insurer_id_card: firstFilled(
+          patient?.memberId,
+          data.insurance_details?.insurer_id_card,
+        ),
+      },
+      hospital_details: {
+        ...data.hospital_details,
+        treating_doctor: firstFilled(
+          service.provider,
+          data.hospital_details?.treating_doctor,
+        ),
+        admission_type: isEmergency ? "emergency" : "planned",
+        type_of_admission: isEmergency ? "emergency" : "planned",
+        pre_auth_obtained: "no",
+      },
+      diagnosis_and_procedures: {
+        ...data.diagnosis_and_procedures,
+        primary_diagnosis: primaryDiagnosis,
+        primary_icd_code: primaryIcdCode,
+        additional_diagnosis: additionalDiagnosis,
+        additional_icd_code: additionalIcdCode,
+        procedure_1: serviceType,
+        procedure_1_icd_pcs: firstFilled(
+          procCodes[0]?.id,
+          data.diagnosis_and_procedures?.procedure_1_icd_pcs,
+        ),
+        procedure_2: firstFilled(
+          procCodes[1]?.label,
+          data.diagnosis_and_procedures?.procedure_2,
+        ),
+        procedure_2_icd_pcs: firstFilled(
+          procCodes[1]?.id,
+          data.diagnosis_and_procedures?.procedure_2_icd_pcs,
+        ),
+        procedure_details: serviceType,
+        hospitalization_cause: primaryDiagnosis,
+        proposed_line_surgical_management: procCodes.length > 0,
+        proposed_line_medical_management: procCodes.length === 0,
+        is_planned_hospitalization: !isEmergency,
+        is_emergency_hospitalization: isEmergency,
+      },
+      document_metadata: {
+        ...data.document_metadata,
+        source: "hospital-preauth-live-upload",
+        document_date: new Date().toISOString(),
+      },
+    },
+  };
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SHARED SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -455,6 +792,113 @@ const EmptyState = ({ onNewRequest, isMobile }) => (
     </TouchableOpacity>
   </View>
 );
+
+const LivePreAuthUploadPanel = ({
+  docs,
+  onUpload,
+  onRemove,
+  onRun,
+  loading,
+  error,
+  isMobile,
+}) => {
+  const items = [
+    {
+      key: "prescription",
+      title: "Doctor Prescription",
+      subtitle: "Treatment plan, diagnosis, or prescription",
+    },
+    {
+      key: "insurance",
+      title: "Insurance Policy",
+      subtitle: "Policy card or policy document",
+    },
+  ];
+
+  return (
+    <View style={[live.card, isMobile && live.cardMobile]}>
+      <View style={live.headerRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={live.title}>Run Pre-Auth With Live Docs</Text>
+          <Text style={live.subtitle}>
+            Upload these two documents to extract text now and continue to form
+            fill without selecting a stored patient.
+          </Text>
+        </View>
+        {loading && <ActivityIndicator color="#2563EB" size="small" />}
+      </View>
+
+      <View style={[live.docGrid, isMobile && live.docGridMobile]}>
+        {items.map((item) => {
+          const file = docs[item.key];
+          const isUploaded = !!file;
+          return (
+            <View
+              key={item.key}
+              style={[live.docCard, isUploaded && live.docCardUploaded]}
+            >
+              <View style={live.docIcon}>
+                <Feather
+                  name={isUploaded ? "check" : "file-text"}
+                  size={16}
+                  color={isUploaded ? "#fff" : "#2563EB"}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={live.docTitle}>{item.title}</Text>
+                <Text style={live.docSubtitle}>{item.subtitle}</Text>
+                {isUploaded && (
+                  <Text style={live.fileName} numberOfLines={1}>
+                    {file.name || file.filename || "Selected file"}
+                  </Text>
+                )}
+              </View>
+              {isUploaded ? (
+                <TouchableOpacity
+                  style={live.removeBtn}
+                  onPress={() => onRemove(item.key)}
+                >
+                  <Feather name="x" size={14} color="#DC2626" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={live.uploadBtn}
+                  onPress={() => onUpload(item.key)}
+                >
+                  <Text style={live.uploadText}>Upload</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })}
+      </View>
+
+      {error && <Text style={live.errorText}>{error}</Text>}
+
+      <View style={live.footerRow}>
+        <Text style={live.orText}>or select an existing patient below</Text>
+        <TouchableOpacity
+          style={[
+            live.runBtn,
+            (loading || !docs.prescription || !docs.insurance) &&
+              live.runBtnDisabled,
+          ]}
+          onPress={onRun}
+          disabled={loading || !docs.prescription || !docs.insurance}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Text style={live.runText}>Run Pre-Auth</Text>
+              <Feather name="arrow-right" size={14} color="#fff" />
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 const UploadCard = ({ label, doc, onPick, onClear }) => (
   <View
@@ -690,7 +1134,16 @@ const ServiceInfoForm = ({
   );
   const [urgencyLevel, setUrgencyLevel] = useState("Routine");
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [serviceType, setServiceType] = useState("");
+  const [serviceType, setServiceType] = useState(
+    patient?.procedure !== "—" ? patient?.procedure || "" : "",
+  );
+
+  useEffect(() => {
+    setInsuranceProvider(
+      patient?.insurer !== "—" ? patient?.insurer || "" : "",
+    );
+    setServiceType(patient?.procedure !== "—" ? patient?.procedure || "" : "");
+  }, [patient]);
 
   // Pre-select doctor if patient already has one linked
   useEffect(() => {
@@ -1256,6 +1709,13 @@ const PARequests = ({ navigation, route }) => {
   const [nextCursor, setNextCursor] = useState(null);
   const [serviceFormData, setServiceFormData] = useState({});
   const [preAuthAnalysisData, setPreAuthAnalysisData] = useState(null);
+  const [livePreAuthAnalysisData, setLivePreAuthAnalysisData] = useState(null);
+  const [livePreAuthDocs, setLivePreAuthDocs] = useState({
+    prescription: null,
+    insurance: null,
+  });
+  const [livePreAuthLoading, setLivePreAuthLoading] = useState(false);
+  const [livePreAuthError, setLivePreAuthError] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateError, setUpdateError] = useState(null);
   const [doctors, setDoctors] = useState([]);
@@ -1325,6 +1785,8 @@ const PARequests = ({ navigation, route }) => {
   const handleSelectPatient = async (patient, animRef) => {
     setSelectedPatient(patient);
     setPreAuthAnalysisData(null);
+    setLivePreAuthAnalysisData(null);
+    setLivePreAuthError(null);
     fetchDoctorsForPatient(patient.memberId);
 
     // Fetch both sources in parallel
@@ -1381,6 +1843,12 @@ const PARequests = ({ navigation, route }) => {
     setAiError(null);
 
     try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        setAiError("Not authenticated.");
+        return;
+      }
+
       const token = await AsyncStorage.getItem("token");
       if (!token) {
         setAiError("Not authenticated.");
@@ -1895,6 +2363,145 @@ const PARequests = ({ navigation, route }) => {
     }
   }, []);
 
+  const handleLivePreAuthDocUpload = useCallback((key) => {
+    setLivePreAuthError(null);
+
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".pdf,.jpg,.jpeg,.png";
+      input.onchange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setLivePreAuthDocs((prev) => ({ ...prev, [key]: file }));
+      };
+      input.click();
+      return;
+    }
+
+    DocumentPicker.getDocumentAsync({
+      type: ["application/pdf", "image/*"],
+      multiple: false,
+      copyToCacheDirectory: true,
+    })
+      .then((result) => {
+        if (result.canceled) return;
+        const file = result.assets?.[0];
+        if (!file) return;
+        setLivePreAuthDocs((prev) => ({ ...prev, [key]: file }));
+      })
+      .catch((err) => {
+        console.error("Live pre-auth doc picker error:", err);
+        setLivePreAuthError("Could not open document picker.");
+      });
+  }, []);
+
+  const handleLivePreAuthDocRemove = useCallback((key) => {
+    setLivePreAuthDocs((prev) => ({ ...prev, [key]: null }));
+  }, []);
+
+  const appendLivePreAuthFile = (formData, fieldName, file, fallbackName) => {
+    if (Platform.OS === "web") {
+      formData.append(fieldName, file.file || file, file.name || fallbackName);
+      return;
+    }
+
+    formData.append(fieldName, {
+      uri: file.uri,
+      name: file.name || fallbackName,
+      type: file.mimeType || file.type || "application/octet-stream",
+    });
+  };
+
+  const handleRunLivePreAuth = async (animRef) => {
+    if (!livePreAuthDocs.prescription || !livePreAuthDocs.insurance) {
+      const message =
+        "Upload both the doctor prescription and insurance policy to run pre-auth.";
+      setLivePreAuthError(message);
+      Alert.alert("Documents required", message);
+      return;
+    }
+
+    setLivePreAuthLoading(true);
+    setLivePreAuthError(null);
+    setPreAuthAnalysisData(null);
+    setLivePreAuthAnalysisData(null);
+
+    try {
+      const formData = new FormData();
+      appendLivePreAuthFile(
+        formData,
+        "doctor_prescription",
+        livePreAuthDocs.prescription,
+        "prescription.pdf",
+      );
+      appendLivePreAuthFile(
+        formData,
+        "insurance_policy",
+        livePreAuthDocs.insurance,
+        "insurance_policy.pdf",
+      );
+
+      const headers = {};
+      const token =
+        (await AsyncStorage.getItem("token")) ||
+        (await AsyncStorage.getItem("@token")) ||
+        (await AsyncStorage.getItem("hospital_token"));
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const res = await fetch(
+        `${API_URL}/medilocker/insurance/preauth/analyze`,
+        {
+          method: "POST",
+          headers,
+          body: formData,
+        },
+      );
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        let message = text || `Pre-auth analysis failed (${res.status})`;
+        try {
+          const parsed = JSON.parse(text);
+          message = parsed.detail || parsed.message || message;
+        } catch {}
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      if (data?.error) throw new Error(data.error);
+
+      const livePatient = buildLivePreAuthPatient(data, getAvatarProps);
+      const extractedCodes = extractCodesFromPreAuthAnalysis(data);
+
+      setLivePreAuthAnalysisData(data);
+      setSelectedPatient(livePatient);
+      setDiagnosisSummary(null);
+      setDoctors([]);
+      setDoctorsLoading(false);
+      setDiagnosisCodes(extractedCodes.diagnosisCodes);
+      setProcedureCodes(extractedCodes.procedureCodes);
+      setServiceFormData({
+        insurer: livePatient.insurer !== "—" ? livePatient.insurer || "" : "",
+        urgencyLevel: "Routine",
+        provider:
+          livePatient.provider !== "—" ? livePatient.provider || "" : "",
+        doctorId: "",
+        serviceType:
+          livePatient.procedure !== "—" ? livePatient.procedure || "" : "",
+      });
+      setCurrentStep(2);
+      animateSlide(animRef, "right");
+    } catch (err) {
+      console.error("handleRunLivePreAuth error:", err);
+      const message = err.message || "Pre-auth analysis failed.";
+      setLivePreAuthError(message);
+      Alert.alert("Pre-auth failed", message);
+    } finally {
+      setLivePreAuthLoading(false);
+    }
+  };
+
   // ── Step renderers ─────────────────────────────────────────────────────────
   const renderStep1 = (animRef, isMobile) => (
     <Animated.View style={{ transform: [{ translateX: animRef }] }}>
@@ -1926,6 +2533,15 @@ const PARequests = ({ navigation, route }) => {
               {isMobile && <Text style={mob.sectionSub}>Choose patient</Text>}
             </View>
           </View>
+          <LivePreAuthUploadPanel
+            docs={livePreAuthDocs}
+            onUpload={handleLivePreAuthDocUpload}
+            onRemove={handleLivePreAuthDocRemove}
+            onRun={() => handleRunLivePreAuth(animRef)}
+            loading={livePreAuthLoading}
+            error={livePreAuthError}
+            isMobile={isMobile}
+          />
           <View style={isMobile ? mob.searchRow : sh.searchRow}>
             <View style={isMobile ? mob.searchBox : sh.searchBox}>
               <Feather
@@ -2222,6 +2838,20 @@ const PARequests = ({ navigation, route }) => {
         updateError={updateError}
         onPrevious={() => handlePrevious(animRef)}
         onNext={async () => {
+          if (selectedPatient?.isLivePreAuth) {
+            setPreAuthAnalysisData(
+              buildLivePreAuthAnalysisData({
+                analysisData: livePreAuthAnalysisData,
+                patient: selectedPatient,
+                diagnosisCodes,
+                procedureCodes,
+                serviceFormData,
+              }),
+            );
+            handleNext(animRef);
+            return;
+          }
+
           // No real patient (came from "upload documents directly" flow)
           if (!selectedPatient?.user_id) {
             setPreAuthAnalysisData(
@@ -2596,6 +3226,90 @@ const spc = StyleSheet.create({
   info: { flex: 1 },
   name: { fontSize: 14, fontWeight: "700", color: "#111827" },
   meta: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+});
+
+const live = StyleSheet.create({
+  card: {
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 10,
+    backgroundColor: "#F8FBFF",
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 8,
+    padding: 14,
+  },
+  cardMobile: { marginHorizontal: 16 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 12,
+  },
+  title: { fontSize: 15, fontWeight: "700", color: "#111827" },
+  subtitle: { fontSize: 12, color: "#6B7280", marginTop: 3, lineHeight: 17 },
+  docGrid: { flexDirection: "row", gap: 12 },
+  docGridMobile: { flexDirection: "column" },
+  docCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    padding: 12,
+  },
+  docCardUploaded: { borderColor: "#86EFAC", backgroundColor: "#F0FDF4" },
+  docIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  docTitle: { fontSize: 13, fontWeight: "700", color: "#111827" },
+  docSubtitle: { fontSize: 11, color: "#6B7280", marginTop: 2 },
+  fileName: { fontSize: 11, color: "#15803D", marginTop: 5, maxWidth: 220 },
+  uploadBtn: {
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: "#EFF6FF",
+  },
+  uploadText: { color: "#2563EB", fontSize: 12, fontWeight: "700" },
+  removeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FEE2E2",
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 12,
+  },
+  orText: { fontSize: 12, color: "#6B7280" },
+  runBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  runBtnDisabled: { opacity: 0.55 },
+  runText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  errorText: { color: "#DC2626", fontSize: 12, marginTop: 10 },
 });
 
 const sh = StyleSheet.create({
