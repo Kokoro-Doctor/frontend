@@ -2001,17 +2001,17 @@ const PARequests = ({ navigation, route }) => {
         {isStarHealth ? (
           <StarHealthPreAuth
             navigation={navigation}
-            route={{ params: { analysisData } }}
+            route={{ params: { analysisData, patient: selectedPatient } }}
           />
         ) : isCareHealth ? (
           <CarehealthPreauth
             navigation={navigation}
-            route={{ params: { analysisData } }}
+            route={{ params: { analysisData, patient: selectedPatient } }}
           />
         ) : (
           <PreAuthMediAssistCombinedForms
             navigation={navigation}
-            route={{ params: { analysisData } }}
+            route={{ params: { analysisData, patient: selectedPatient } }}
           />
         )}
       </Animated.View>

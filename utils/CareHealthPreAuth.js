@@ -2213,6 +2213,7 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
   </div>
 
 </div>
+
 <!-- SECTION C -->
 
 <div class="treating-section">

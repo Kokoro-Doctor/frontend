@@ -63,7 +63,7 @@ import {
 // ── Layout components ─────────────────────────────────────────────────────────
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
-
+import { listPatientDocuments } from "../../utils/HospitalStaffDocsService";
 // ─────────────────────────────────────────────────────────────────────────────
 //  STEP CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,12 +78,31 @@ const STEPS = [
 // ─────────────────────────────────────────────────────────────────────────────
 export default function StarHealthCombinedForms({ navigation, route }) {
   const analysisData = route?.params?.analysisData;
+  const patient = route?.params?.patient;
   const { width } = useWindowDimensions();
   const dischargeSummaryIframeRef = useRef(null);
 
   // ── Step state ─────────────────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState(0); // 0=FormA, 1=FormB, 2=DS
   const isDischargeSummaryStep = currentStep === 2;
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const handleGoToProfile = async () => {
+    if (isProfileLoading) return;
+    setIsProfileLoading(true);
+    try {
+      const data = await listPatientDocuments(patient.id);
+      navigation.navigate("PatientDetails", {
+        patient,
+        preloadedDocuments: data?.documents || [],
+      });
+    } catch (e) {
+      // fallback — agar fetch fail ho jaye tab bhi navigate ho jaye,
+      // PatientDetails khud fetchDocuments() call kar lega
+      navigation.navigate("PatientDetails", { patient });
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
 
   // ── Form A state ───────────────────────────────────────────────────────────
   const formASeed = useMemo(
@@ -534,9 +553,9 @@ export default function StarHealthCombinedForms({ navigation, route }) {
   // ─────────────────────────────────────────────────────────────────────────
   const ButtonPanel = () => (
     <View style={stylesWeb.buttonContainer}>
-      <TouchableOpacity style={stylesWeb.outlineBtnWeb}>
+      {/* <TouchableOpacity style={stylesWeb.outlineBtnWeb}>
         <Text style={stylesWeb.outlineTextWeb}>Open in editor</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <TouchableOpacity
         style={[stylesWeb.primaryBtnWeb, isDownloading && { opacity: 0.6 }]}
@@ -550,12 +569,23 @@ export default function StarHealthCombinedForms({ navigation, route }) {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity style={stylesWeb.greenOutlineBtnWeb}>
+      {/* <TouchableOpacity style={stylesWeb.greenOutlineBtnWeb}>
         <Text style={stylesWeb.greenOutlineTextWeb}>Analyze another claim</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
-      <TouchableOpacity style={stylesWeb.greenBtnWeb}>
+      {/* <TouchableOpacity style={stylesWeb.greenBtnWeb}>
         <Text style={stylesWeb.greenTextWeb}>Set up date Integration</Text>
+      </TouchableOpacity> */}
+      <TouchableOpacity
+        style={[stylesWeb.profileBtn, isProfileLoading && { opacity: 0.6 }]}
+        onPress={handleGoToProfile}
+        disabled={isProfileLoading}
+      >
+        {isProfileLoading ? (
+          <ActivityIndicator size="small" color="#0b0787ff" />
+        ) : (
+          <Text style={stylesWeb.profileText}>Go to Profile</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -1036,4 +1066,17 @@ const stylesWeb = StyleSheet.create({
     alignItems: "center",
   },
   greenTextWeb: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  profileBtn: {
+    backgroundColor: "#d9ddf0ff",
+    paddingVertical: 13,
+    borderRadius: 8,
+    alignItems: "center",
+    borderColor: "#2620ddff",
+    borderWidth: 1,
+  },
+  profileText: {
+    color: "#0b0787ff",
+    fontSize: 13.5,
+    fontWeight: "600",
+  },
 });

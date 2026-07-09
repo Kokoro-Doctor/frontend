@@ -824,7 +824,11 @@ const MobileAnalysisView = ({
             target_screen: targetScreen,
           });
 
-          navigation.navigate(targetScreen, { analysisData });
+          // navigation.navigate(targetScreen, { analysisData });
+          navigation.navigate(targetScreen, {
+            analysisData,
+            patient: selectedPatient,
+          });
         }}
       >
         <Text
@@ -1562,7 +1566,8 @@ const HospitalInsuranceClaim = ({ navigation }) => {
   };
 
   const handlePatientSelect = async (patient) => {
-    setSelectedPatient(patient);
+    const normalizedPatient = { ...patient, id: patient.id || patient.user_id };
+    setSelectedPatient(normalizedPatient);
     setPatientDropdownOpen(false);
 
     // Step 2 pe le jao aur loading shuru karo
@@ -2746,6 +2751,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                                   );
                                   navigation.navigate(targetScreen, {
                                     analysisData,
+                                    patient: selectedPatient,
                                   });
                                 }}
                               >
@@ -2802,140 +2808,171 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                 </TouchableOpacity>
 
                 <Modal
-  visible={patientDropdownOpen}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setPatientDropdownOpen(false)}
->
-  <TouchableOpacity
-    style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }}
-    activeOpacity={1}
-    onPress={() => setPatientDropdownOpen(false)}
-  >
-    <View
-      style={{
-        position: "absolute",
-        top: 130,
-        left: 16,
-        width: 280,
-        maxHeight: 360,
-        backgroundColor: "#fff",
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: "#E2E8F0",
-        overflow: "hidden",
-      }}
-    >
-      <View
-        style={{
-          paddingHorizontal: 14,
-          paddingVertical: 10,
-          backgroundColor: "#F8FAFC",
-          borderBottomWidth: 1,
-          borderBottomColor: "#E2E8F0",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 11, color: "#64748B", fontWeight: "700" }}>
-          SELECT PATIENT
-        </Text>
-        <TouchableOpacity onPress={() => setPatientDropdownOpen(false)}>
-          <Feather name="x" size={14} color="#94A3B8" />
-        </TouchableOpacity>
-      </View>
+                  visible={patientDropdownOpen}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setPatientDropdownOpen(false)}
+                >
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }}
+                    activeOpacity={1}
+                    onPress={() => setPatientDropdownOpen(false)}
+                  >
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: 130,
+                        left: 16,
+                        width: 280,
+                        maxHeight: 360,
+                        backgroundColor: "#fff",
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: "#E2E8F0",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <View
+                        style={{
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          backgroundColor: "#F8FAFC",
+                          borderBottomWidth: 1,
+                          borderBottomColor: "#E2E8F0",
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: "#64748B",
+                            fontWeight: "700",
+                          }}
+                        >
+                          SELECT PATIENT
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => setPatientDropdownOpen(false)}
+                        >
+                          <Feather name="x" size={14} color="#94A3B8" />
+                        </TouchableOpacity>
+                      </View>
 
-      {patientLoading ? (
-        <View style={{ padding: 20, alignItems: "center" }}>
-          <ActivityIndicator size="small" color="#2563EB" />
-          <Text style={{ color: "#64748B", fontSize: 13, marginTop: 8 }}>
-            Loading patients...
-          </Text>
-        </View>
-      ) : patientList.length === 0 ? (
-        <View style={{ padding: 16 }}>
-          <Text style={{ color: "#94A3B8", fontSize: 13, textAlign: "center" }}>
-            No patients found
-          </Text>
-        </View>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={true}
-          style={{ maxHeight: 300 }}
-        >
-          {patientList.map((p, i) => (
-            <TouchableOpacity
-              key={p.user_id || i}
-              onPress={() => handlePatientSelect(p)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                borderBottomWidth: i < patientList.length - 1 ? 1 : 0,
-                borderBottomColor: "#E2E8F0",
-                backgroundColor:
-                  selectedPatient?.user_id === p.user_id ? "#EFF6FF" : "#fff",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: "#0F172A",
-                  flex: 1,
-                  marginRight: 8,
-                }}
-                numberOfLines={1}
-              >
-                {p.name || "Unknown"}
-              </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                {p.age ? (
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: "#fff",
-                      backgroundColor: "#2563EB",
-                      paddingHorizontal: 6,
-                      paddingVertical: 2,
-                      borderRadius: 4,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {p.age}y
-                  </Text>
-                ) : null}
-                {p.gender ? (
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: "#059669",
-                      backgroundColor: "#DCFCE7",
-                      paddingHorizontal: 6,
-                      paddingVertical: 2,
-                      borderRadius: 4,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {p.gender.charAt(0).toUpperCase()}
-                  </Text>
-                ) : null}
-                {p.phoneNumber ? (
-                  <Text style={{ fontSize: 11, color: "#64748B" }}>
-                    {p.phoneNumber}
-                  </Text>
-                ) : null}
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
-    </View>
-  </TouchableOpacity>
-</Modal>
+                      {patientLoading ? (
+                        <View style={{ padding: 20, alignItems: "center" }}>
+                          <ActivityIndicator size="small" color="#2563EB" />
+                          <Text
+                            style={{
+                              color: "#64748B",
+                              fontSize: 13,
+                              marginTop: 8,
+                            }}
+                          >
+                            Loading patients...
+                          </Text>
+                        </View>
+                      ) : patientList.length === 0 ? (
+                        <View style={{ padding: 16 }}>
+                          <Text
+                            style={{
+                              color: "#94A3B8",
+                              fontSize: 13,
+                              textAlign: "center",
+                            }}
+                          >
+                            No patients found
+                          </Text>
+                        </View>
+                      ) : (
+                        <ScrollView
+                          showsVerticalScrollIndicator={true}
+                          style={{ maxHeight: 300 }}
+                        >
+                          {patientList.map((p, i) => (
+                            <TouchableOpacity
+                              key={p.user_id || i}
+                              onPress={() => handlePatientSelect(p)}
+                              style={{
+                                paddingHorizontal: 14,
+                                paddingVertical: 12,
+                                borderBottomWidth:
+                                  i < patientList.length - 1 ? 1 : 0,
+                                borderBottomColor: "#E2E8F0",
+                                backgroundColor:
+                                  selectedPatient?.user_id === p.user_id
+                                    ? "#EFF6FF"
+                                    : "#fff",
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: "600",
+                                  color: "#0F172A",
+                                  flex: 1,
+                                  marginRight: 8,
+                                }}
+                                numberOfLines={1}
+                              >
+                                {p.name || "Unknown"}
+                              </Text>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 6,
+                                }}
+                              >
+                                {p.age ? (
+                                  <Text
+                                    style={{
+                                      fontSize: 11,
+                                      color: "#fff",
+                                      backgroundColor: "#2563EB",
+                                      paddingHorizontal: 6,
+                                      paddingVertical: 2,
+                                      borderRadius: 4,
+                                      fontWeight: "600",
+                                    }}
+                                  >
+                                    {p.age}y
+                                  </Text>
+                                ) : null}
+                                {p.gender ? (
+                                  <Text
+                                    style={{
+                                      fontSize: 11,
+                                      color: "#059669",
+                                      backgroundColor: "#DCFCE7",
+                                      paddingHorizontal: 6,
+                                      paddingVertical: 2,
+                                      borderRadius: 4,
+                                      fontWeight: "600",
+                                    }}
+                                  >
+                                    {p.gender.charAt(0).toUpperCase()}
+                                  </Text>
+                                ) : null}
+                                {p.phoneNumber ? (
+                                  <Text
+                                    style={{ fontSize: 11, color: "#64748B" }}
+                                  >
+                                    {p.phoneNumber}
+                                  </Text>
+                                ) : null}
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
               </View>
               {/* ── Insurer Dropdown — Mobile ── */}
               <View style={{ position: "relative", marginLeft: 8 }}>
@@ -3367,7 +3404,7 @@ const HospitalInsuranceClaim = ({ navigation }) => {
                           selectedPatient,
                           selectedInsurer,
                         );
-                        navigation.navigate(targetScreen, { analysisData });
+                        navigation.navigate(targetScreen, { analysisData, patient: selectedPatient  });
                       }}
                     >
                       <Text

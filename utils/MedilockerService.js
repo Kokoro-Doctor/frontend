@@ -213,6 +213,43 @@ export const savePrescriptionToMedilocker = async (userId, prescriptionPdfBase64
     }
 };
 
+// export const extractStructuredData = async (files) => {
+//     const apiUrl = `${medilocker_API}/prescription`;
+
+//     const requestBody = {
+//         files: files,
+//     };
+
+//     const requestBodyString = JSON.stringify(requestBody);
+
+//     try {
+//         const response = await fetch(apiUrl, {
+//             method: "POST",
+//             headers: {
+//                 "Content-Type": "application/json",
+//             },
+//             body: requestBodyString,
+//         });
+
+//         if (!response.ok) {
+//             throw new Error(`Extraction failed with status ${response.status}`);
+//         }
+
+//         const responseText = await response.text();
+
+//         let data;
+//         try {
+//             data = JSON.parse(responseText);
+//             return data;
+//         }
+//         catch (parseError) {
+//             throw new Error(`Failed to parse response: ${parseError.message}`);
+//         }
+
+//     } catch (err) {
+//         throw new Error(`Error: ${err.message}`);
+//     }
+// };
 export const extractStructuredData = async (files) => {
     const apiUrl = `${medilocker_API}/prescription`;
 
@@ -231,11 +268,22 @@ export const extractStructuredData = async (files) => {
             body: requestBodyString,
         });
 
-        if (!response.ok) {
-            throw new Error(`Extraction failed with status ${response.status}`);
-        }
-
         const responseText = await response.text();
+
+        if (!response.ok) {
+            let errorDetail = responseText;
+            try {
+                const errorJson = JSON.parse(responseText);
+                errorDetail = errorJson.detail || errorJson.message || JSON.stringify(errorJson);
+            } catch (_) {
+                // responseText wasn't JSON, use as-is
+            }
+            console.error("[Medilocker] extractStructuredData error", {
+                status: response.status,
+                errorDetail,
+            });
+            throw new Error(`Extraction failed with status ${response.status}: ${errorDetail}`);
+        }
 
         let data;
         try {

@@ -949,7 +949,7 @@ const PatientAuthModal = ({
                   maxHeight:
                     Platform.OS === "web"
                       ? 600
-                      : Dimensions.get("window").height * 0.78,
+                      : Dimensions.get("window").height * 0.62-0.65,
                 }}
                 contentContainerStyle={{
                   paddingBottom: 12,
@@ -1373,7 +1373,8 @@ const styles = StyleSheet.create({
   mobileCard: {
     borderRadius: 16,
     paddingBottom: 20,
-    maxHeight: "85%",
+    maxHeight: "100%",
+    overflow:"hidden"
   },
   modeToggle: {
     flexDirection: "row",
@@ -1461,7 +1462,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   phoneContainerWithDropdown: {
-    marginBottom: 220,
+    //marginBottom: 220,
+    marginBottom: Platform.OS === "web" ? 220 : 140
   },
   countryCodeContainer: {
     position: "relative",
