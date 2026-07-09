@@ -17,7 +17,6 @@ import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import * as DocumentPicker from "expo-document-picker";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { API_URL } from "../../env-vars";
@@ -984,6 +983,8 @@ const QuickUploadSection = ({
   onClearInsurance,
   onContinue,
   canProceed,
+  loading = false,
+  error = null,
 }) => {
   const filesCount = (prescriptionDoc ? 1 : 0) + (insuranceDoc ? 1 : 0);
 
@@ -1012,13 +1013,24 @@ const QuickUploadSection = ({
         />
 
         <TouchableOpacity
-          style={[qu.continueBtn, !canProceed && { opacity: 0.4 }]}
-          disabled={!canProceed}
+          style={[qu.continueBtn, (!canProceed || loading) && { opacity: 0.4 }]}
+          disabled={!canProceed || loading}
           onPress={onContinue}
         >
-          <Text style={qu.continueText}>Continue</Text>
-          <Feather name="arrow-right" size={14} color="#fff" />
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Text style={qu.continueText}>Continue</Text>
+              <Feather name="arrow-right" size={14} color="#fff" />
+            </>
+          )}
         </TouchableOpacity>
+        {error ? (
+          <Text style={{ marginTop: 10, color: "#DC2626", fontSize: 12 }}>
+            {error}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -1728,42 +1740,8 @@ const PARequests = ({ navigation, route }) => {
   const [autoSelecting, setAutoSelecting] = useState(
     !!route?.params?.skipToStep2,
   );
-  const [prescriptionDoc, setPrescriptionDoc] = useState(null); // { name }
-  const [insuranceDoc, setInsuranceDoc] = useState(null);
-  const pickDocument = async (setter) => {
-    if (Platform.OS === "web") {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".pdf,.jpg,.jpeg,.png";
-      input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        setter({ name: file.name, file });
-      };
-      input.click();
-    } else {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["application/pdf", "image/jpeg", "image/png"],
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-      const asset = result.assets?.[0];
-      if (!asset) return;
-      setter({ name: asset.name, uri: asset.uri, mimeType: asset.mimeType });
-    }
-  };
-
-  const canProceedWithoutPatient = !!prescriptionDoc && !!insuranceDoc;
-
-  const handleProceedWithoutPatient = (animRef) => {
-    setSelectedPatient((p) => p || { name: "—", insurer: "—", user_id: null });
-    setServiceFormData((prev) => ({
-      ...prev,
-      prescriptionDoc,
-      insuranceDoc,
-    }));
-    handleNext(animRef);
-  };
+  const canProceedWithoutPatient =
+    !!livePreAuthDocs.prescription && !!livePreAuthDocs.insurance;
 
   // ── Lifted state: shared between Step 3 → Step 4 ──────────────────────────
   const [diagnosisCodes, setDiagnosisCodes] = useState([]); // ✅ start empty, filled from API
@@ -1843,74 +1821,60 @@ const PARequests = ({ navigation, route }) => {
     setAiError(null);
 
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        setAiError("Not authenticated.");
-        return;
-      }
+      if (selectedPatient?.isLivePreAuth) {
+        const {
+          diagnosisCodes: suggestedDiagCodes,
+          procedureCodes: suggestedProcCodes,
+        } = extractCodesFromPreAuthAnalysis(livePreAuthAnalysisData);
 
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        setAiError("Not authenticated.");
-        return;
-      }
-
-      let res;
-
-      if (selectedPatient?.user_id) {
-        // existing flow — patient was actually selected
-        res = await fetch(
-          `${API_URL}/medilocker/users/${selectedPatient.user_id}/insurance/autofill-stored`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          },
+        const existingDiagIds = new Set(diagnosisCodes.map((c) => c.id));
+        const freshDiag = suggestedDiagCodes.filter(
+          (c) => !existingDiagIds.has(c.id),
         );
-      } else {
-        // no patient — use the two files uploaded in Step 1
-        if (!prescriptionDoc && !insuranceDoc) {
-          setAiError("No patient selected and no documents uploaded.");
+
+        const existingProcIds = new Set(procedureCodes.map((c) => c.id));
+        const freshProc = suggestedProcCodes.filter(
+          (c) => !existingProcIds.has(c.id),
+        );
+
+        if (suggestedDiagCodes.length === 0 && suggestedProcCodes.length === 0) {
+          setAiError(
+            "No ICD or procedure codes found in the uploaded pre-auth documents.",
+          );
           return;
         }
 
-        const formData = new FormData();
-        if (Platform.OS === "web") {
-          if (prescriptionDoc?.file)
-            formData.append(
-              "prescription",
-              prescriptionDoc.file,
-              prescriptionDoc.name,
-            );
-          if (insuranceDoc?.file)
-            formData.append(
-              "insurance_policy",
-              insuranceDoc.file,
-              insuranceDoc.name,
-            );
-        } else {
-          if (prescriptionDoc?.uri)
-            formData.append("prescription", {
-              uri: prescriptionDoc.uri,
-              name: prescriptionDoc.name,
-              type: prescriptionDoc.mimeType || "application/octet-stream",
-            });
-          if (insuranceDoc?.uri)
-            formData.append("insurance_policy", {
-              uri: insuranceDoc.uri,
-              name: insuranceDoc.name,
-              type: insuranceDoc.mimeType || "application/octet-stream",
-            });
-        }
-
-        res = await fetch(`${API_URL}/medilocker/insurance/autofill-upload`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
+        if (freshDiag.length > 0)
+          setDiagnosisCodes([...diagnosisCodes, ...freshDiag]);
+        if (freshProc.length > 0)
+          setProcedureCodes([...procedureCodes, ...freshProc]);
+        return;
       }
+
+      if (!selectedPatient?.user_id) {
+        setAiError("Select a patient or run pre-auth from uploaded documents first.");
+        return;
+      }
+
+      const token =
+        (await AsyncStorage.getItem("token")) ||
+        (await AsyncStorage.getItem("@token")) ||
+        (await AsyncStorage.getItem("hospital_token"));
+      if (!token) {
+        setAiError("Not authenticated.");
+        return;
+      }
+
+      const res = await fetch(
+        `${API_URL}/medilocker/users/${selectedPatient.user_id}/insurance/autofill-stored`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
@@ -2507,14 +2471,16 @@ const PARequests = ({ navigation, route }) => {
     <Animated.View style={{ transform: [{ translateX: animRef }] }}>
       {isMobile && (
         <QuickUploadSection
-          prescriptionDoc={prescriptionDoc}
-          insuranceDoc={insuranceDoc}
-          onPickPrescription={() => pickDocument(setPrescriptionDoc)}
-          onPickInsurance={() => pickDocument(setInsuranceDoc)}
-          onClearPrescription={() => setPrescriptionDoc(null)}
-          onClearInsurance={() => setInsuranceDoc(null)}
-          onContinue={() => handleProceedWithoutPatient(animRef)}
+          prescriptionDoc={livePreAuthDocs.prescription}
+          insuranceDoc={livePreAuthDocs.insurance}
+          onPickPrescription={() => handleLivePreAuthDocUpload("prescription")}
+          onPickInsurance={() => handleLivePreAuthDocUpload("insurance")}
+          onClearPrescription={() => handleLivePreAuthDocRemove("prescription")}
+          onClearInsurance={() => handleLivePreAuthDocRemove("insurance")}
+          onContinue={() => handleRunLivePreAuth(animRef)}
           canProceed={canProceedWithoutPatient}
+          loading={livePreAuthLoading}
+          error={livePreAuthError}
         />
       )}
       <View
@@ -2533,15 +2499,6 @@ const PARequests = ({ navigation, route }) => {
               {isMobile && <Text style={mob.sectionSub}>Choose patient</Text>}
             </View>
           </View>
-          <LivePreAuthUploadPanel
-            docs={livePreAuthDocs}
-            onUpload={handleLivePreAuthDocUpload}
-            onRemove={handleLivePreAuthDocRemove}
-            onRun={() => handleRunLivePreAuth(animRef)}
-            loading={livePreAuthLoading}
-            error={livePreAuthError}
-            isMobile={isMobile}
-          />
           <View style={isMobile ? mob.searchRow : sh.searchRow}>
             <View style={isMobile ? mob.searchBox : sh.searchBox}>
               <Feather
@@ -2679,8 +2636,6 @@ const PARequests = ({ navigation, route }) => {
           />
         )}
 
-        {/* ── RIGHT: Quick upload panel ── */}
-        {/* ── RIGHT: Quick upload panel ── */}
         {/* ── RIGHT: Quick upload panel (desktop only — mobile uses QuickUploadSection above) ── */}
         {!isMobile && (
           <View
@@ -2691,45 +2646,15 @@ const PARequests = ({ navigation, route }) => {
                 : {}),
             }}
           >
-            <Text
-              style={{
-                fontSize: 15,
-                fontWeight: "700",
-                color: "#111827",
-                marginBottom: 4,
-              }}
-            >
-              Or upload documents directly
-            </Text>
-            <Text style={{ fontSize: 12, color: "#6B7280", marginBottom: 16 }}>
-              Skip patient selection — upload these two documents to continue
-            </Text>
-
-            <UploadCard
-              label="Prescription"
-              doc={prescriptionDoc}
-              onPick={() => pickDocument(setPrescriptionDoc)}
-              onClear={() => setPrescriptionDoc(null)}
+            <LivePreAuthUploadPanel
+              docs={livePreAuthDocs}
+              onUpload={handleLivePreAuthDocUpload}
+              onRemove={handleLivePreAuthDocRemove}
+              onRun={() => handleRunLivePreAuth(animRef)}
+              loading={livePreAuthLoading}
+              error={livePreAuthError}
+              isMobile={false}
             />
-            <UploadCard
-              label="Insurance Policy"
-              doc={insuranceDoc}
-              onPick={() => pickDocument(setInsuranceDoc)}
-              onClear={() => setInsuranceDoc(null)}
-            />
-
-            <TouchableOpacity
-              style={[
-                sif.nextBtn,
-                { marginTop: 20, alignSelf: "flex-start" },
-                !canProceedWithoutPatient && { opacity: 0.4 },
-              ]}
-              disabled={!canProceedWithoutPatient}
-              onPress={() => handleProceedWithoutPatient(animRef)}
-            >
-              <Text style={sif.nextText}>Continue</Text>
-              <Feather name="arrow-right" size={14} color="#fff" />
-            </TouchableOpacity>
           </View>
         )}
       </View>
