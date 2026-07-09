@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import {
   StyleSheet,
   View,
@@ -42,17 +48,18 @@ export default function StarHealthPreAuth({ navigation, route }) {
   const [previewFrameHeight, setPreviewFrameHeight] = useState(1400);
   const [editedHtml, setEditedHtml] = useState(null);
 
-  const htmlPreview = useMemo(
-    () => {
-        // console.log("form for HTML generation:", form);
-        // console.log("signatureImage for HTML generation:", signatureImage);
-        return generateInsuranceFormHTML(form, signatureImage);
-    },
-    [form, signatureImage],
-  );
+  const htmlPreview = useMemo(() => {
+    // console.log("form for HTML generation:", form);
+    // console.log("signatureImage for HTML generation:", signatureImage);
+    return generateInsuranceFormHTML(form, signatureImage);
+  }, [form, signatureImage]);
 
-  useEffect(() => { setForm(formSeed); }, [formSeed]);
-  useEffect(() => { setEditedHtml(null); }, [formSeed]);
+  useEffect(() => {
+    setForm(formSeed);
+  }, [formSeed]);
+  useEffect(() => {
+    setEditedHtml(null);
+  }, [formSeed]);
 
   const syncPreviewFrameHeight = useCallback(() => {
     if (Platform.OS !== "web") return;
@@ -111,7 +118,10 @@ export default function StarHealthPreAuth({ navigation, route }) {
     try {
       await downloadInsuranceClaim(form, signatureImage, getHtmlOverride());
     } catch (e) {
-      Alert.alert("Download Error", "Could not generate the PDF. Please try again.");
+      Alert.alert(
+        "Download Error",
+        "Could not generate the PDF. Please try again.",
+      );
     } finally {
       setIsDownloading(false);
     }
@@ -159,7 +169,8 @@ export default function StarHealthPreAuth({ navigation, route }) {
       <View style={styles.root}>
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            Star Health pre-auth form generated. Review below, make any final edits, then download.
+            Star Health pre-auth form generated. Review below, make any final
+            edits, then download.
           </Text>
         </View>
 
@@ -170,24 +181,35 @@ export default function StarHealthPreAuth({ navigation, route }) {
         </View>
 
         {/* Form scroll */}
-       {/* Form preview */}
-{Platform.OS === "web" ? (
-  <ScrollView horizontal showsHorizontalScrollIndicator scrollEventThrottle={16}>
-    <View style={{ minWidth: 900, padding: 12 }}>
-      <Text style={{ fontSize: 13, color: "#374151" }}>{fileName}</Text>
-      <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 6 }}>
-        Download the form to view the full Star Health pre-auth PDF.
-      </Text>
-    </View>
-  </ScrollView>
-) : (
-  <WebView
-    originWhitelist={["*"]}
-    source={{ html: htmlPreview }}
-    style={{ width: "100%", height: 600 }}
-    scalesPageToFit={Platform.OS === "android"}
-  />
-)}
+        {/* Form preview */}
+        {Platform.OS === "web" ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator
+            style={{ width: "100%" }}
+          >
+            <iframe
+              ref={previewFrameRef}
+              srcDoc={htmlPreview}
+              onLoad={syncPreviewFrameHeight}
+              style={{
+                width: "210mm",
+                height: previewFrameHeight,
+                border: "none",
+                display: "block",
+                backgroundColor: "#fff",
+              }}
+              title="Star Health Pre-Auth Preview (Mobile)"
+            />
+          </ScrollView>
+        ) : (
+          <WebView
+            originWhitelist={["*"]}
+            source={{ html: htmlPreview }}
+            style={{ width: "100%", height: 600 }}
+            scalesPageToFit={Platform.OS === "android"}
+          />
+        )}
 
         {/* Buttons below on mobile */}
         <View style={{ paddingTop: 16 }}>
@@ -203,13 +225,13 @@ export default function StarHealthPreAuth({ navigation, route }) {
       {/* Info banner — full width above the two-column row */}
       <View style={styles.infoBox}>
         <Text style={styles.infoText}>
-          Star Health pre-auth form generated. Review below, make any final edits, then download.
+          Star Health pre-auth form generated. Review below, make any final
+          edits, then download.
         </Text>
       </View>
 
       {/* Two-column row */}
       <View style={styles.contentRow}>
-
         {/* LEFT — form card */}
         <View style={styles.formCol}>
           {/* Card header */}

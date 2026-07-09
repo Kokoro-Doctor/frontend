@@ -1803,18 +1803,18 @@ const HospitalPatientManagement = ({ navigation }) => {
                 return (
                   <View key={patient.id}>
                     <TouchableOpacity
-                      onPress={() => openDetail(patient)}
-                      style={[
-                        styles.mobilePatientRow,
-                        !isExpanded &&
-                          index < filteredPatients.length - 1 &&
-                          styles.patientRowBorder,
-                        isExpanded && {
-                          backgroundColor: "#F0F6FF",
-                          borderBottomWidth: 0,
-                        },
-                      ]}
-                    >
+  onPress={() => handleAddDocPress(patient)}
+  style={[
+    styles.mobilePatientRow,
+    !isExpanded &&
+      index < filteredPatients.length - 1 &&
+      styles.patientRowBorder,
+    isExpanded && {
+      backgroundColor: "#F0F6FF",
+      borderBottomWidth: 0,
+    },
+  ]}
+>
                       <Avatar initials={patient.initials} size={38} />
                       <View style={{ flex: 1 }}>
                         <Text
@@ -1862,24 +1862,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                       </Text>
                     </TouchableOpacity>
 
-                    {/* Inline expanded detail */}
-                    {isExpanded && (
-                      <MobileInlineDetail
-                        patient={patient}
-                        navigation={navigation}
-                      />
-                    )}
-
-                    {/* Bottom border after expanded block */}
-                    {isExpanded && index < filteredPatients.length - 1 && (
-                      <View
-                        style={{
-                          height: 1,
-                          backgroundColor: "#F1F5F9",
-                          marginHorizontal: 0,
-                        }}
-                      />
-                    )}
+                    
                   </View>
                 );
               })}
