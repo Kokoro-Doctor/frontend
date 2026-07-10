@@ -17,12 +17,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { ActivityIndicator } from "react-native";
-import * as DocumentPicker from "expo-document-picker";
 import { Animated } from "react-native";
-import { API_URL } from "../../env-vars";
 
 const steps = [
-  { label: "Choose Method", sub: "API or upload" },
+  { label: "Choose Method", sub: "API or manual" },
   { label: "Validate & Review", sub: "Check completeness" },
   { label: "Integration Complete", sub: "Dashboard unlocked" },
 ];
@@ -36,20 +34,12 @@ const methods = [
     desc: "Connect directly via AWS credentials or hospital API endpoint. Automatic data sync — no manual uploads needed.",
   },
   {
-    key: "excel",
-    icon: "📊",
-    title: "Excel Upload",
-    badge: "No technical setup",
-    badgeColor: "#2563EB",
-    desc: "Upload structured Excel files for your doctor database, patient records, and patient list. Simple and immediate.",
-  },
-  {
     key: "manual",
     icon: "✏️",
     title: "Manual Entry",
     badge: "No file needed",
     badgeColor: "#2563EB",
-    desc: "No API or Excel? Add doctors and their patients directly. Register one doctor at a time.",
+    desc: "Add doctors and their patients directly. Register one doctor at a time.",
   },
 ];
 
@@ -106,125 +96,8 @@ const AIIntegrationScreen = ({ navigation }) => {
   };
   const isFormValid = accessKey.trim() !== "" && secretKey.trim() !== "";
 
-  const uploadDoctors = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: [
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "application/vnd.ms-excel",
-          "text/csv",
-        ],
-      });
-
-      if (!result.assets || result.assets.length === 0) return;
-
-      const file = result.assets[0];
-
-      // ✅ Show UI instantly
-      setUploadingDone(true);
-
-      // ✅ Start progress immediately
-      progress.setValue(0);
-
-      Animated.timing(progress, {
-        toValue: 0.7, // ⛔ stop at 70% initially
-        duration: 1500,
-        useNativeDriver: false,
-      }).start();
-
-      // 🔥 API runs in background (no blocking UI)
-      const formData = new FormData();
-      formData.append("hospital_id", "HOSP_8FBF9714");
-
-      const blob = await fetch(file.uri).then((res) => res.blob());
-      formData.append("file", blob, file.name || "upload.xlsx");
-
-      const response = await fetch(
-        `${API_URL}/hospitals/staff/import-doctors`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      const data = await response.json();
-
-      setDoctorCount(data?.total_rows || 0);
-      setErrorCount(data?.errors?.length || 0);
-
-      // ✅ Finish remaining 10%
-      Animated.timing(progress, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: false,
-      }).start(() => {
-        setUploadingDone(false);
-        setShowSuccessScreen(true);
-      });
-    } catch (error) {
-      console.log("Doctor upload error:", error);
-    }
-  };
-
-  const uploadPatients = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: [
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "application/vnd.ms-excel",
-          "text/csv",
-        ],
-      });
-
-      if (!result.assets || result.assets.length === 0) return;
-
-      const file = result.assets[0];
-
-      // ✅ Show UI instantly
-      setUploadingDone(true);
-
-      // ✅ Start progress immediately
-      progress.setValue(0);
-
-      Animated.timing(progress, {
-        toValue: 0.7, // ⛔ stop at 70% initially
-        duration: 1500,
-        useNativeDriver: false,
-      }).start();
-
-      // 🔥 API runs in background (no blocking UI)
-      const formData = new FormData();
-      formData.append("hospital_id", "HOSP_8FBF9714");
-
-      const blob = await fetch(file.uri).then((res) => res.blob());
-      formData.append("file", blob, file.name || "upload.xlsx");
-
-      const response = await fetch(
-        `${API_URL}/hospitals/staff/import-patients`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      const data = await response.json();
-
-      setDoctorCount(data?.total_rows || 0);
-      setErrorCount(data?.errors?.length || 0);
-
-      // ✅ Finish remaining 10%
-      Animated.timing(progress, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: false,
-      }).start(() => {
-        setUploadingDone(false);
-        setShowSuccessScreen(true);
-      });
-    } catch (error) {
-      console.log("Patient upload error:", error);
-    }
-  };
+  const uploadDoctors = () => {};
+  const uploadPatients = () => {};
 
   return (
     <>
@@ -688,30 +561,19 @@ const AIIntegrationScreen = ({ navigation }) => {
                   description={`Connect directly via AWS credentials or \nhospital API endpoint.Automatic data sync — \nno manual uploads needed.`}
                 />
 
-                <Text style={stylesMobile.sectionTitle}>Excel Upload</Text>
-                <Card
-                  value="excel"
-                  showIcon={true}
-                  title="Excel Upload"
-                  subtitle="No technical setup"
-                  description={`Upload structured Excel files for your doctor \ndatabase, patient records, and patient list. \nSimple and immediate.`}
-                />
-
                 <Text style={stylesMobile.sectionTitle}>Manual Upload</Text>
                 <Card
                   value="manual"
                   showIcon={true}
                   title="Manual Entry"
                   subtitle="No file needed"
-                  description={`No API or Excel? Add doctors and their \npatients directly. Register one \ndoctor at a time.`}
+                  description={`No API? Add doctors and their \npatients directly. Register one \ndoctor at a time.`}
                 />
                 <TouchableOpacity
                   style={stylesMobile.button}
                   onPress={() => {
                     if (selected === "api") {
                       setShowAPIScreen(true);
-                    } else if (selected === "excel") {
-                      setShowExcelScreen(true);
                     } else if (selected === "manual") {
                       navigation.navigate("ManualDataIntegration"); // ✅ redirect here
                     }
