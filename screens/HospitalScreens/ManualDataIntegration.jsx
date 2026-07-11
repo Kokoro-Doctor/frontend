@@ -16,6 +16,8 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
 import { API_URL } from "../../env-vars";
 import { Calendar } from "react-native-calendars";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as DocumentPicker from "expo-document-picker";
 
 const steps = [
   { label: "Choose Method", sub: "API or upload" },
@@ -87,6 +89,34 @@ const DOC_CONFIG = [
     accept: ".pdf,.jpg,.jpeg,.png",
   },
 ];
+
+const getHospitalSession = async () => {
+  if (Platform.OS === "web") {
+    return {
+      token: localStorage.getItem("token"),
+      hospitalId: localStorage.getItem("hospital_id"),
+    };
+  }
+
+  const [hospitalToken, token, hospitalId, sessionRaw] = await Promise.all([
+    AsyncStorage.getItem("hospital_token"),
+    AsyncStorage.getItem("token"),
+    AsyncStorage.getItem("hospital_id"),
+    AsyncStorage.getItem("hospital_session"),
+  ]);
+
+  let sessionHospitalId = null;
+  if (sessionRaw) {
+    try {
+      sessionHospitalId = JSON.parse(sessionRaw)?.hospital_id || null;
+    } catch (_) {}
+  }
+
+  return {
+    token: hospitalToken || token,
+    hospitalId: hospitalId || sessionHospitalId,
+  };
+};
 
 const getInitials = (name = "") => {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -180,29 +210,32 @@ const ManualDataIntegration = ({ navigation, route }) => {
   // PATIENT DOCUMENT PICKER — mobile
   // ─────────────────────────────────────────────
   const openDocPickerMobile = async (docKey) => {
-    // react-native-document-picker is optional — gracefully degrade
     try {
-      const DocumentPicker = require("react-native-document-picker");
-      const res = await DocumentPicker.default.pickSingle({
-        type: [DocumentPicker.types.pdf, DocumentPicker.types.images],
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/*"],
+        copyToCacheDirectory: true,
+        multiple: false,
       });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
       setPatientDocs((prev) => ({
         ...prev,
         [docKey]: {
-          file: res,
-          name: res.name,
+          file: {
+            uri: asset.uri,
+            name: asset.name,
+            type: asset.mimeType || "application/octet-stream",
+          },
+          name: asset.name,
           uploading: false,
           uploaded: false,
           error: "",
         },
       }));
     } catch (err) {
-      if (
-        err?.code !== "DOCUMENT_PICKER_CANCELED" &&
-        err?.message !== "User canceled document picker"
-      ) {
-        console.warn("Document picker unavailable:", err.message);
-      }
+      console.warn("Document picker unavailable:", err.message);
     }
   };
 
@@ -217,9 +250,10 @@ const ManualDataIntegration = ({ navigation, route }) => {
   // ADD DOCTOR API
   // ─────────────────────────────────────────────
   const callAddDoctorAPI = async (snapshot) => {
-    const token = Platform.OS === "web" ? localStorage.getItem("token") : null;
-    const hospitalId =
-      Platform.OS === "web" ? localStorage.getItem("hospital_id") : null;
+    const { token, hospitalId } = await getHospitalSession();
+    if (!token || !hospitalId) {
+      throw new Error("Hospital session is missing. Please sign in again.");
+    }
 
     let phone = snapshot.phoneNo.trim();
     if (phone && !phone.startsWith("+")) {
@@ -227,7 +261,7 @@ const ManualDataIntegration = ({ navigation, route }) => {
     }
 
     const body = {
-      hospital_id: hospitalId, // ← REPLACE hardcoded value with this
+      hospital_id: hospitalId,
       phone,
       name: snapshot.fullName.trim(),
       specialization: snapshot.specialization.trim() || snapshot.department,
@@ -272,22 +306,16 @@ const ManualDataIntegration = ({ navigation, route }) => {
   };
 
   const callAddPatientAPI = async (doctorId, patientSnapshot) => {
-    const token = Platform.OS === "web" ? localStorage.getItem("token") : null;
-
-    const hospitalId =
-      Platform.OS === "web" ? localStorage.getItem("hospital_id") : null;
-    console.log("TOKEN =>", token);
-    console.log("HOSPITAL ID =>", hospitalId);
-    console.log("DOCTOR ID =>", doctorId);
-    console.log("PATIENT SNAPSHOT =>", patientSnapshot);
-    console.log("SELECTED DOCTOR =>", selectedDoctor);
+    const { token } = await getHospitalSession();
+    if (!token) {
+      throw new Error("Hospital session is missing. Please sign in again.");
+    }
 
     let phone = patientSnapshot.phoneNo?.trim();
 
     if (phone && !phone.startsWith("+")) {
       phone = "+91" + phone.replace(/^0+/, "");
     }
-    console.log("hospitalIdNumber :", hospitalId);
     // ─────────────────────────────────────
     // VALIDATE REQUIRED DOCUMENTS
     // ─────────────────────────────────────
@@ -309,7 +337,6 @@ const ManualDataIntegration = ({ navigation, route }) => {
     const formData = new FormData();
 
     // Required
-    formData.append("hospital_id", hospitalId);
     formData.append("phone", phone);
     formData.append("name", patientSnapshot.fullName.trim());
 
@@ -330,6 +357,10 @@ const ManualDataIntegration = ({ navigation, route }) => {
       formData.append("gender", patientSnapshot.gender);
     }
 
+    if (patientSnapshot.insurer?.trim()) {
+      formData.append("insurer", patientSnapshot.insurer.trim());
+    }
+
     // ─────────────────────────────────────
     // DOCUMENTS
     // ─────────────────────────────────────
@@ -339,62 +370,16 @@ const ManualDataIntegration = ({ navigation, route }) => {
 
     formData.append("prescription", patientDocs.prescription.file);
 
-    console.log("INSURANCE FILE =>", patientDocs.insurance);
-    console.log("HOSPITAL BILL FILE =>", patientDocs.hospitalBill);
-    console.log("PRESCRIPTION FILE =>", patientDocs.prescription);
-
-    console.log("INSURANCE REAL FILE =>", patientDocs.insurance?.file);
-
-    console.log("HOSPITAL BILL REAL FILE =>", patientDocs.hospitalBill?.file);
-
-    console.log("PRESCRIPTION REAL FILE =>", patientDocs.prescription?.file);
-
-    // ─────────────────────────────────────
-    // API CALL
-    // ─────────────────────────────────────
-    // const res = await fetch(`${API_URL}/hospitals/staff/add-patient`, {
-    //   method: "POST",
-    //   headers: {
-    //     ...(token && {
-    //       Authorization: `Bearer ${token}`,
-    //     }),
-
-    //     // ⚠️ DO NOT SET CONTENT-TYPE
-    //     // Browser automatically sets multipart boundary
-    //   },
-    //   body: formData,
-    // });
-
-    // const text = await res.text();
-    console.log("FormData:>", formData);
-    console.log("FORMDATA HOSPITAL_ID =>", formData.get("hospital_id"));
-    for (let pair of formData.entries()) {
-      console.log("FORMDATA ENTRY =>", pair[0], pair[1]);
-    }
-    let res;
-
-    try {
-      res = await fetch(`${API_URL}/hospitals/staff/add-patient`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      console.log("FETCH RESPONSE RECEIVED");
-      console.log("STATUS =>", res.status);
-      console.log("FormData :-", formData);
-    } catch (err) {
-      console.log("FETCH FAILED =>", err);
-      alert("FETCH FAILED");
-      throw err;
-    }
+    const res = await fetch(`${API_URL}/hospitals/staff/add-patient`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
 
     const text = await res.text();
-
-    console.log("RAW RESPONSE =>", text);
 
     if (!res.ok) {
       let msg = "Failed to add patient";
@@ -415,15 +400,15 @@ const ManualDataIntegration = ({ navigation, route }) => {
   // FETCH DOCTOR LIST API
   // ─────────────────────────────────────────────
   const fetchDoctorList = async () => {
-    const token = Platform.OS === "web" ? localStorage.getItem("token") : null;
-
-    const hospitalId =
-      Platform.OS === "web" ? localStorage.getItem("hospital_id") : null;
-
     setListLoading(true);
     setListError("");
 
     try {
+      const { token, hospitalId } = await getHospitalSession();
+      if (!token || !hospitalId) {
+        throw new Error("Hospital session is missing. Please sign in again.");
+      }
+
       const res = await fetch(
         `${API_URL}/doctorsService/doctors?hospital_id=${hospitalId}`,
         {
@@ -551,7 +536,7 @@ const ManualDataIntegration = ({ navigation, route }) => {
 
     try {
       setIsSavingMobile(true);
-      const response = await callAddPatientAPI(docId, patientForm);
+      await callAddPatientAPI(docId, patientForm);
 
       // Extract patient_id from response — adjust key if backend differs
       // const patientId =
@@ -603,7 +588,8 @@ const ManualDataIntegration = ({ navigation, route }) => {
     try {
       setIsSavingMobile(true);
       const success = await savePatient();
-      if (success) setPatientSaved(true);
+      if (!success) return;
+
       setCurrentStep(2);
       setShowPatientForm(false);
       setShowDoctorList(true);
@@ -1713,10 +1699,7 @@ const ManualDataIntegration = ({ navigation, route }) => {
                 {/* ── DOCUMENT UPLOAD ROW (MOBILE) ── */}
                 <View style={{ marginBottom: 16 }}>
                   <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>
-                    Upload Documents{" "}
-                    <Text style={{ color: "#9CA3AF", fontWeight: "400" }}>
-                      (optional)
-                    </Text>
+                    Upload Documents <Text style={styles.required}>*</Text>
                   </Text>
                   {renderDocumentUploadRow(true)}
                 </View>
