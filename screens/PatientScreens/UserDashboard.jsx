@@ -998,11 +998,11 @@ const UserDashboard = ({ navigation }) => {
       )}
       {(Platform.OS !== "web" || width < 1000) && (
         <ScrollView style={styles.appContainer}>
-          <StatusBar barStyle="light-content" backgroundColor="#fff" />
+          <StatusBar barStyle="dark-content" backgroundColor="#fff" />
           <View
             style={[
               styles.header,
-              Platform.OS === "web" ? { height: "auto" } : { height: "15%" },
+              Platform.OS === "web" ? { height: "auto" } : { minHeight: 56 },
             ]}
           >
             <HeaderLoginSignUp navigation={navigation} />
@@ -1307,10 +1307,7 @@ const UserDashboard = ({ navigation }) => {
             </View>
 
             {/* Document List */}
-            <ScrollView
-              style={styles.appDocumentList}
-              showsVerticalScrollIndicator={false}
-            >
+            <View style={styles.appDocumentList}>
               {currentDocuments.map((row, index) => {
                 const tag = getTagColor(row.type);
                 return (
@@ -1376,7 +1373,7 @@ const UserDashboard = ({ navigation }) => {
                   </View>
                 );
               })}
-            </ScrollView>
+            </View>
 
             {/* Pagination */}
             <View style={styles.appPaginationRow}>
@@ -1535,6 +1532,18 @@ const styles = StyleSheet.create({
     boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
     borderRadius: 5,
   },
+  // appUserDetailSection: {
+  //   borderWidth: 1,
+  //   height: "auto",
+  //   minHeight: 90,
+  //   width: "98%",
+  //   borderColor: "#fff",
+  //   backgroundColor: "#fff",
+  //   alignSelf: "center",
+  //   flexDirection: "row",
+  //   boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
+  //   borderRadius: 5,
+  // },
   appUserDetailSection: {
     borderWidth: 1,
     height: "10%",
@@ -1543,7 +1552,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignSelf: "center",
     flexDirection: "row",
-    boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
+    ...Platform.select({
+      web: { boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+      },
+    }),
     borderRadius: 5,
   },
   userImageBox: {
@@ -1556,8 +1574,8 @@ const styles = StyleSheet.create({
   },
   appUserImageBox: {
     borderWidth: 1,
-    height: "32%",
-    width: "15%",
+    height: 56,
+    width: 56,
     marginVertical: "1%",
     marginHorizontal: "0.5%",
     borderColor: "#c8c7c7ff",
@@ -1622,7 +1640,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   appPackDetails: {
-    height: "31%",
+    //height: "31%",
     width: "100%",
     flexDirection: "column",
     borderColor: "red",
@@ -1634,7 +1652,7 @@ const styles = StyleSheet.create({
   },
   appPackTextBox: {
     backgroundColor: "#E3F1FFBF",
-    height: "50%",
+    height: 22,
     width: "43%",
   },
   packDetailsText: {
@@ -1654,10 +1672,10 @@ const styles = StyleSheet.create({
     width: "76%",
   },
   appDateSection: {
-    height: "50%",
+    height: "auto",
     width: "100%",
     borderColor: "#e0e0e0ff",
-    marginVertical: "0.5%",
+    marginVertical: 4,
   },
   doctorAssignedDetails: {
     height: "48%",
@@ -1665,7 +1683,7 @@ const styles = StyleSheet.create({
     marginVertical: "1.5%",
   },
   appDoctorAssignedDetails: {
-    height: "36%",
+    height: "auto",
     width: "100%",
     marginVertical: "1.8%",
   },
@@ -1693,7 +1711,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   appHeadingText: {
-    height: "10%",
+    //height: "10%",
     width: "98%",
     borderColor: "#fff",
     backgroundColor: "#fff",
@@ -1702,7 +1720,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 600,
     paddingHorizontal: "1%",
-    paddingVertical: "0.2%",
+    paddingVertical: 8,
     borderRadius: 5,
   },
   cardSection: {
@@ -1732,13 +1750,32 @@ const styles = StyleSheet.create({
     boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
     borderRadius: 5,
   },
+  // appCardView: {
+  //   borderWidth: 2,
+  //   borderColor: "#f3f0f0ff",
+  //   height: 140,
+  //   width: "48%",
+  //   backgroundColor: "#fff",
+  //   boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
+  //   borderRadius: 5,
+  //   marginBottom: "2%",
+  // },
   appCardView: {
     borderWidth: 2,
     borderColor: "#f3f0f0ff",
-    height: "48%",
+    height: 140,
     width: "48%",
     backgroundColor: "#fff",
-    boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;",
+    ...Platform.select({
+      web: { boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+      },
+    }),
     borderRadius: 5,
     marginBottom: "2%",
   },
@@ -1749,8 +1786,8 @@ const styles = StyleSheet.create({
     marginHorizontal: "4%",
   },
   appCardIcon: {
-    height: "34%",
-    width: "24%",
+    height: 36,
+    width: 36,
     marginVertical: "5%",
     marginHorizontal: "6%",
   },
@@ -1775,7 +1812,7 @@ const styles = StyleSheet.create({
     marginHorizontal: "4%",
   },
   appCardSpecificDataSection: {
-    height: "32%",
+    height: "auto",
     width: "84%",
     marginVertical: "0.5%",
     marginHorizontal: "4%",
@@ -1967,6 +2004,17 @@ const styles = StyleSheet.create({
     marginVertical: "1%",
     boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
   },
+  // appMedilockerSection: {
+  //   width: "98%",
+  //   minHeight: 400,
+  //   backgroundColor: "#fff",
+  //   borderRadius: 5,
+  //   alignSelf: "center",
+  //   padding: "3%",
+  //   marginVertical: "1%",
+  //   boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+  //   marginBottom: "4%",
+  // },
   appMedilockerSection: {
     width: "98%",
     minHeight: 400,
@@ -1975,7 +2023,16 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     padding: "3%",
     marginVertical: "1%",
-    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+    ...Platform.select({
+      web: { boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+      },
+    }),
     marginBottom: "4%",
   },
   medilockerHeader: {
@@ -2186,7 +2243,7 @@ const styles = StyleSheet.create({
 
   // Mobile Document List Styles
   appDocumentList: {
-    maxHeight: 280,
+    //maxHeight: 280,
     marginBottom: 10,
   },
 
@@ -2346,15 +2403,37 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
   },
+  // appFacingIssueSection: {
+  //   borderWidth: 1,
+  //   height: "auto",
+  //   minHeight: 70,
+  //   width: "98%",
+  //   alignSelf: "center",
+  //   backgroundColor: "#fff",
+  //   borderRadius: 8,
+  //   boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+  //   marginBottom: "8%",
+  //   borderColor: "#bbbbbbff",
+  // },
   appFacingIssueSection: {
     borderWidth: 1,
-    height: "12%",
+    height: "auto",
+    minHeight: 70,
     width: "98%",
     alignSelf: "center",
     backgroundColor: "#fff",
     borderRadius: 8,
-    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
-    marginBottom: "8%",
+    ...Platform.select({
+      web: { boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+      },
+    }),
+    marginBottom: "28%",
     borderColor: "#bbbbbbff",
   },
   facingIssueInnerBox: {
@@ -2409,7 +2488,7 @@ const styles = StyleSheet.create({
   },
   appIssueDocItem: {
     minWidth: 120,
-    maxWidth: 70,
+    maxWidth: 160,
     height: "100%",
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -2511,6 +2590,18 @@ const styles = StyleSheet.create({
   },
   /* SUBSCRIBED DOCTOR CARD */
 
+  // subscribedDoctorCard: {
+  //   width: "98%",
+  //   alignSelf: "center",
+  //   backgroundColor: "#fff",
+  //   borderRadius: 12,
+  //   padding: 14,
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   justifyContent: "space-between",
+  //   marginBottom: "3%",
+  //   boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+  // },
   subscribedDoctorCard: {
     width: "98%",
     alignSelf: "center",
@@ -2521,7 +2612,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: "3%",
-    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+    ...Platform.select({
+      web: { boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+      },
+    }),
   },
 
   subscribedDoctorLeft: {
@@ -2586,6 +2686,15 @@ const styles = StyleSheet.create({
   },
   /* UPCOMING APPOINTMENT CARD */
 
+  // upcomingCard: {
+  //   width: "98%",
+  //   alignSelf: "center",
+  //   backgroundColor: "#fff",
+  //   borderRadius: 16,
+  //   padding: 16,
+  //   marginBottom: "3%",
+  //   boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+  // },
   upcomingCard: {
     width: "98%",
     alignSelf: "center",
@@ -2593,7 +2702,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: "3%",
-    boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px",
+    ...Platform.select({
+      web: { boxShadow: "rgba(100,100,111,0.2) 0px 7px 29px 0px" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+      },
+    }),
   },
 
   upcomingDoctorRow: {
