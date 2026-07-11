@@ -231,11 +231,25 @@ export const extractStructuredData = async (files) => {
             body: requestBodyString,
         });
 
-        if (!response.ok) {
-            throw new Error(`Extraction failed with status ${response.status}`);
-        }
-
         const responseText = await response.text();
+
+        if (!response.ok) {
+            let errorData = {};
+            try {
+                errorData = responseText ? JSON.parse(responseText) : {};
+            } catch (_) {
+                errorData = { detail: responseText };
+            }
+
+            const detail = errorData.detail || errorData.message;
+            const message = detail
+                ? `Extraction failed: ${detail}`
+                : `Extraction failed with status ${response.status}`;
+            const error = new Error(message);
+            error.status = response.status;
+            error.details = errorData;
+            throw error;
+        }
 
         let data;
         try {
@@ -247,6 +261,6 @@ export const extractStructuredData = async (files) => {
         }
 
     } catch (err) {
-        throw new Error(`Error: ${err.message}`);
+        throw err instanceof Error ? err : new Error(`Error: ${err}`);
     }
 };
