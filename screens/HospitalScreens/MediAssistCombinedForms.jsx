@@ -800,8 +800,8 @@ export default function MediAssistCombinedForms({ navigation, route }) {
                 style={styles.mobileHtmlPreview}
               />
             </View>
-          ) : activePreview && Platform.OS === "web" ? (
-            <HtmlFormPreview minHeight={500} />
+          ) : activePreview ? (
+            <HtmlFormPreview minHeight={800} />
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator>
               <View style={{ minWidth: 1300 }}>
@@ -810,6 +810,26 @@ export default function MediAssistCombinedForms({ navigation, route }) {
             </ScrollView>
           )}
         </View>
+        <TouchableOpacity
+          style={[
+            stylesWeb.primaryBtnWeb,
+            { marginBottom: 12 },
+            isDownloading && { opacity: 0.6 },
+          ]}
+          onPress={handleDownload}
+          disabled={isDownloading}
+        >
+          {isDownloading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={stylesWeb.primaryTextWeb}>
+              Download{" "}
+              {isDischargeSummaryStep
+                ? "Discharge Summary"
+                : `Form ${STEPS[currentStep].key}`}
+            </Text>
+          )}
+        </TouchableOpacity>
 
         {/* Mobile nav buttons */}
         <NavButtons />

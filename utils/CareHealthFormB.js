@@ -4,7 +4,7 @@
  * UPDATED: Added injury/legal section (g through vi)
  */
 import { Platform, Alert } from "react-native";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 // Embedded logo for PDF/HTML rendering

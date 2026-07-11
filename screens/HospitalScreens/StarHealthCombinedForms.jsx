@@ -733,7 +733,7 @@ export default function StarHealthCombinedForms({ navigation, route }) {
                 style={styles.mobileHtmlPreview}
               />
             </View>
-          ) : activePreview && Platform.OS === "web" ? (
+          ) : activePreview ? (
             <HtmlFormPreview minHeight={500} />
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator>

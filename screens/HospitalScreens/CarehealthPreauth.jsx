@@ -869,9 +869,10 @@ export default function StarHealthPreAuth({ navigation, route }) {
     try {
       await downloadInsuranceClaim(form, signatureImage, getHtmlOverride());
     } catch (e) {
+      console.error("PDF DOWNLOAD ERROR:", e?.message, e?.stack); // add this
       Alert.alert(
         "Download Error",
-        "Could not generate the PDF. Please try again.",
+        `Could not generate the PDF: ${e?.message || "unknown error"}`, // temp: show real reason
       );
     } finally {
       setIsDownloading(false);
@@ -939,29 +940,32 @@ export default function StarHealthPreAuth({ navigation, route }) {
         </View>
 
         <View style={styles.mobileCard}>
-  {Platform.OS === "web" ? (
-    <iframe
-      ref={previewMode ? previewFrameRef : editFrameRef}
-      srcDoc={previewMode ? htmlPreview : editableHtml}
-      onLoad={syncPreviewFrameHeight}
-      style={{
-        width: "100%",
-        height: Math.max(500, previewFrameHeight),
-        border: "none",
-        display: "block",
-        backgroundColor: "#fff",
-      }}
-      title="Care Health Pre-Auth Preview"
-    />
-  ) : (
-    <WebView
-      originWhitelist={["*"]}
-      source={{ html: previewMode ? htmlPreview : editableHtml }}
-      style={{ width: "100%", height: Math.max(500, previewFrameHeight) }}
-      scalesPageToFit={Platform.OS === "android"}
-    />
-  )}
-</View>
+          {Platform.OS === "web" ? (
+            <iframe
+              ref={previewMode ? previewFrameRef : editFrameRef}
+              srcDoc={previewMode ? htmlPreview : editableHtml}
+              onLoad={syncPreviewFrameHeight}
+              style={{
+                width: "100%",
+                height: Math.max(500, previewFrameHeight),
+                border: "none",
+                display: "block",
+                backgroundColor: "#fff",
+              }}
+              title="Care Health Pre-Auth Preview"
+            />
+          ) : (
+            <WebView
+              originWhitelist={["*"]}
+              source={{ html: previewMode ? htmlPreview : editableHtml }}
+              style={{
+                width: "100%",
+                height: Math.max(500, previewFrameHeight),
+              }}
+              scalesPageToFit={Platform.OS === "android"}
+            />
+          )}
+        </View>
 
         <View style={{ marginTop: 8 }}>
           <ButtonsPanel />
@@ -974,12 +978,12 @@ export default function StarHealthPreAuth({ navigation, route }) {
   return (
     <View style={styles.root}>
       {/* Info banner — full width above the two-column row */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            Care Health pre-auth form generated. Review below, make any final
-            edits, then download.
-          </Text>
-        </View>
+      <View style={styles.infoBox}>
+        <Text style={styles.infoText}>
+          Care Health pre-auth form generated. Review below, make any final
+          edits, then download.
+        </Text>
+      </View>
 
       {/* Two-column row */}
       <View style={styles.contentRow}>
