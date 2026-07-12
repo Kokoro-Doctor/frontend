@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as DocumentPicker from "expo-document-picker";
 import { API_URL } from "../../env-vars";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
@@ -285,18 +286,30 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
   // ── Document picker — mobile
   const openDocPickerMobile = async (docKey) => {
     try {
-      const DocumentPicker = require("react-native-document-picker");
-      const res = await DocumentPicker.default.pickSingle({
-        type: [DocumentPicker.types.pdf, DocumentPicker.types.images],
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/*"],
+        copyToCacheDirectory: true,
+        multiple: false,
       });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
       setPatientDocs((prev) => ({
         ...prev,
-        [docKey]: { file: res, name: res.name, uploaded: false, error: "" },
+        [docKey]: {
+          file: {
+            uri: asset.uri,
+            name: asset.name,
+            type: asset.mimeType || "application/octet-stream",
+          },
+          name: asset.name,
+          uploaded: false,
+          error: "",
+        },
       }));
     } catch (err) {
-      if (err?.code !== "DOCUMENT_PICKER_CANCELED") {
-        console.warn("Document picker error:", err?.message);
-      }
+      console.warn("Document picker error:", err?.message);
     }
   };
 
@@ -309,11 +322,12 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
     const token =
       Platform.OS === "web"
         ? localStorage.getItem("token")
-        : await AsyncStorage.getItem("token");
-    const hospitalId =
-      Platform.OS === "web"
-        ? localStorage.getItem("hospital_id")
-        : await AsyncStorage.getItem("hospital_id");
+        : (await AsyncStorage.getItem("hospital_token")) ||
+          (await AsyncStorage.getItem("token"));
+
+    if (!token) {
+      throw new Error("Hospital session is missing. Please sign in again.");
+    }
 
     if (!patientDocs.insurance?.file)
       throw new Error("Insurance policy document is required");
@@ -328,7 +342,6 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
     }
 
     const formData = new FormData();
-    formData.append("hospital_id", hospitalId);
     formData.append("phone", phone);
     formData.append("name", form.fullName.trim());
     if (form.dob) formData.append("date_of_birth", form.dob);
