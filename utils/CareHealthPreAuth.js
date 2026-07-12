@@ -2212,6 +2212,7 @@ export function generateInsuranceFormHTML(
   </div>
 
 </div>
+
 <!-- SECTION C -->
 
 <div class="treating-section">

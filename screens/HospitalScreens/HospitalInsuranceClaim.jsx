@@ -824,7 +824,11 @@ const MobileAnalysisView = ({
             target_screen: targetScreen,
           });
 
-          navigation.navigate(targetScreen, { analysisData });
+          // navigation.navigate(targetScreen, { analysisData });
+          navigation.navigate(targetScreen, {
+            analysisData,
+            patient: selectedPatient,
+          });
         }}
       >
         <Text
@@ -1574,7 +1578,8 @@ const findInsurerByName = (name) => {
   };
 
   const handlePatientSelect = async (patient) => {
-    setSelectedPatient(patient);
+    const normalizedPatient = { ...patient, id: patient.id || patient.user_id };
+    setSelectedPatient(normalizedPatient);
     setPatientDropdownOpen(false);
 
     // Step 2 pe le jao aur loading shuru karo
@@ -2782,6 +2787,7 @@ const findInsurerByName = (name) => {
                                   );
                                   navigation.navigate(targetScreen, {
                                     analysisData,
+                                    patient: selectedPatient,
                                   });
                                 }}
                               >
@@ -3434,7 +3440,7 @@ const findInsurerByName = (name) => {
                           selectedPatient,
                           selectedInsurer,
                         );
-                        navigation.navigate(targetScreen, { analysisData });
+                        navigation.navigate(targetScreen, { analysisData, patient: selectedPatient  });
                       }}
                     >
                       <Text

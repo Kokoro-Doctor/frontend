@@ -213,6 +213,43 @@ export const savePrescriptionToMedilocker = async (userId, prescriptionPdfBase64
     }
 };
 
+// export const extractStructuredData = async (files) => {
+//     const apiUrl = `${medilocker_API}/prescription`;
+
+//     const requestBody = {
+//         files: files,
+//     };
+
+//     const requestBodyString = JSON.stringify(requestBody);
+
+//     try {
+//         const response = await fetch(apiUrl, {
+//             method: "POST",
+//             headers: {
+//                 "Content-Type": "application/json",
+//             },
+//             body: requestBodyString,
+//         });
+
+//         if (!response.ok) {
+//             throw new Error(`Extraction failed with status ${response.status}`);
+//         }
+
+//         const responseText = await response.text();
+
+//         let data;
+//         try {
+//             data = JSON.parse(responseText);
+//             return data;
+//         }
+//         catch (parseError) {
+//             throw new Error(`Failed to parse response: ${parseError.message}`);
+//         }
+
+//     } catch (err) {
+//         throw new Error(`Error: ${err.message}`);
+//     }
+// };
 export const extractStructuredData = async (files) => {
     const apiUrl = `${medilocker_API}/prescription`;
 

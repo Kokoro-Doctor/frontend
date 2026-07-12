@@ -23,6 +23,7 @@ import {
 } from "../../utils/StarHealthPreAuth";
 import { mapToStarHealthFormA } from "../../utils/StarHealthMapper";
 import { Ionicons } from "@expo/vector-icons";
+import { listPatientDocuments } from "../../utils/HospitalStaffDocsService";
 
 /**
  * StarHealthPreAuth
@@ -31,6 +32,7 @@ import { Ionicons } from "@expo/vector-icons";
  */
 export default function StarHealthPreAuth({ navigation, route }) {
   const analysisData = route?.params?.analysisData;
+  const patient = route?.params?.patient;
   const { width } = useWindowDimensions();
   const isMobile = width < 1000;
 
@@ -47,6 +49,25 @@ export default function StarHealthPreAuth({ navigation, route }) {
   const previewFrameRef = useRef(null);
   const [previewFrameHeight, setPreviewFrameHeight] = useState(1400);
   const [editedHtml, setEditedHtml] = useState(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+
+  const handleGoToProfile = async () => {
+    if (isProfileLoading) return;
+    setIsProfileLoading(true);
+    try {
+      const data = await listPatientDocuments(patient.id);
+      navigation.navigate("PatientDetails", {
+        patient,
+        preloadedDocuments: data?.documents || [],
+      });
+    } catch (e) {
+      // fallback — agar fetch fail ho jaye tab bhi navigate ho jaye,
+      // PatientDetails khud fetchDocuments() call kar lega
+      navigation.navigate("PatientDetails", { patient });
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
 
   const htmlPreview = useMemo(() => {
     // console.log("form for HTML generation:", form);
@@ -134,9 +155,9 @@ export default function StarHealthPreAuth({ navigation, route }) {
   const ButtonsPanel = () => (
     <View style={styles.buttonsPanel}>
       {/* Open in editor */}
-      <TouchableOpacity style={styles.outlineBtn}>
+      {/* <TouchableOpacity style={styles.outlineBtn}>
         <Text style={styles.outlineText}>Open in editor</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* Download */}
       <TouchableOpacity
@@ -152,13 +173,24 @@ export default function StarHealthPreAuth({ navigation, route }) {
       </TouchableOpacity>
 
       {/* Analyze another */}
-      <TouchableOpacity style={styles.greenOutlineBtn}>
+      {/* <TouchableOpacity style={styles.greenOutlineBtn}>
         <Text style={styles.greenOutlineText}>Analyze another claim</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* Set up integration */}
-      <TouchableOpacity style={styles.greenBtn}>
+      {/* <TouchableOpacity style={styles.greenBtn}>
         <Text style={styles.greenText}>Set up date Integration</Text>
+      </TouchableOpacity> */}
+      <TouchableOpacity
+        style={[styles.profileBtn, isProfileLoading && { opacity: 0.6 }]}
+        onPress={handleGoToProfile}
+        disabled={isProfileLoading}
+      >
+        {isProfileLoading ? (
+          <ActivityIndicator size="small" color="#0b0787ff" />
+        ) : (
+          <Text style={styles.profileText}>Go to Profile</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -415,6 +447,19 @@ const styles = StyleSheet.create({
   greenText: {
     color: "#fff",
     fontSize: 13,
+    fontWeight: "600",
+  },
+  profileBtn: {
+    backgroundColor: "#d9ddf0ff",
+    paddingVertical: 13,
+    borderRadius: 8,
+    alignItems: "center",
+    borderColor: "#2620ddff",
+    borderWidth: 1,
+  },
+  profileText: {
+    color: "#0b0787ff",
+    fontSize: 13.5,
     fontWeight: "600",
   },
 });

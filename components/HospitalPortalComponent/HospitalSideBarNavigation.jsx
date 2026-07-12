@@ -69,7 +69,7 @@ const HospitalSidebarNavigation = ({ closeSidebar, activeItem = "Home" }) => {
       navigation.navigate("HospitalInsuranceClaim");
     } else if (menu === "Post OP Patients") {
       navigation.navigate("PostOpCare");
-    } else if (menu === "Medi Claim Agent") {
+    } else if (menu === "Final Auth") {
       navigation.navigate("HospitalInsuranceClaim");
     }else if (menu === "Pre Auth") {
       navigation.navigate("PARequests");

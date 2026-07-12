@@ -37,8 +37,9 @@ import { mapToFormA, mapToFormB } from "../../utils/PreAuthMediAssistMapper";
 import {
   downloadMediAssistFormA,
   generateMediAssistFormAHTML,
-  generateMediAssistFormAPage2HTML
+  generateMediAssistFormAPage2HTML,
 } from "../../utils/PreAuthMediAssistFormA";
+import { listPatientDocuments } from "../../utils/HospitalStaffDocsService";
 // import {
 //   downloadMediAssistFormB,
 //   generateMediAssistFormBHTML,
@@ -57,6 +58,7 @@ const STEPS = [
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
   const analysisData = route?.params?.analysisData;
+  const patient = route?.params?.patient;
   const { width } = useWindowDimensions();
 
   // ── Step state ─────────────────────────────────────────────────────────────
@@ -67,6 +69,24 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
   const [formA, setFormA] = useState(() => formASeed);
   const [signatureA, setSignatureA] = useState(null);
   const [previewA, setPreviewA] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const handleGoToProfile = async () => {
+    if (isProfileLoading) return;
+    setIsProfileLoading(true);
+    try {
+      const data = await listPatientDocuments(patient.id);
+      navigation.navigate("PatientDetails", {
+        patient,
+        preloadedDocuments: data?.documents || [],
+      });
+    } catch (e) {
+      // fallback — agar fetch fail ho jaye tab bhi navigate ho jaye,
+      // PatientDetails khud fetchDocuments() call kar lega
+      navigation.navigate("PatientDetails", { patient });
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
 
   useEffect(() => {
     setFormA(formASeed);
@@ -173,12 +193,12 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
   //   else setPreviewB((p) => !p);
   // };
   const activeHtml = useMemo(
-  () =>
-    currentStep === 0
-      ? generateMediAssistFormAHTML(formA, signatureA)
-      : generateMediAssistFormAPage2HTML(formA, signatureA),
-  [formA, signatureA, currentStep],
-);
+    () =>
+      currentStep === 0
+        ? generateMediAssistFormAHTML(formA, signatureA)
+        : generateMediAssistFormAPage2HTML(formA, signatureA),
+    [formA, signatureA, currentStep],
+  );
   const isFirst = currentStep === 0;
   const isLast = currentStep === STEPS.length - 1;
   const activePreview = previewA;
@@ -433,11 +453,11 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
                   {/* RIGHT → BUTTON PANEL */}
                   <View style={stylesWeb.buttonSidePanel}>
                     <View style={stylesWeb.buttonContainer}>
-                      <TouchableOpacity style={stylesWeb.outlineBtnWeb}>
+                      {/* <TouchableOpacity style={stylesWeb.outlineBtnWeb}>
                         <Text style={stylesWeb.outlineTextWeb}>
                           Open in editor
                         </Text>
-                      </TouchableOpacity>
+                      </TouchableOpacity> */}
 
                       <TouchableOpacity
                         style={[
@@ -456,16 +476,30 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
                         )}
                       </TouchableOpacity>
 
-                      <TouchableOpacity style={stylesWeb.greenOutlineBtnWeb}>
+                      {/* <TouchableOpacity style={stylesWeb.greenOutlineBtnWeb}>
                         <Text style={stylesWeb.greenOutlineTextWeb}>
                           Analyze another claim
                         </Text>
-                      </TouchableOpacity>
+                      </TouchableOpacity> */}
 
-                      <TouchableOpacity style={stylesWeb.greenBtnWeb}>
+                      {/* <TouchableOpacity style={stylesWeb.greenBtnWeb}>
                         <Text style={stylesWeb.greenTextWeb}>
                           Set up date Integration
                         </Text>
+                      </TouchableOpacity> */}
+                      <TouchableOpacity
+                        style={[
+                          stylesWeb.profileBtn,
+                          isProfileLoading && { opacity: 0.6 },
+                        ]}
+                        onPress={handleGoToProfile}
+                        disabled={isProfileLoading}
+                      >
+                        {isProfileLoading ? (
+                          <ActivityIndicator size="small" color="#0b0787ff" />
+                        ) : (
+                          <Text style={stylesWeb.profileText}>Go to Profile</Text>
+                        )}
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -515,30 +549,30 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
 
         {/* Form card */}
         {/* Form card */}
-<View style={styles.mobileCard}>
-  {activePreview ? (
-    Platform.OS === "web" ? (
-      <iframe
-        srcDoc={activeHtml}
-        style={{ width: "100%", border: "none", minHeight: 500 }}
-        title={`Form ${STEPS[currentStep].key} Preview`}
-      />
-    ) : (
-      <WebView
-        originWhitelist={["*"]}
-        source={{ html: activeHtml }}
-        style={{ width: "100%", height: 600 }}
-        scalesPageToFit={Platform.OS === "android"}
-      />
-    )
-  ) : (
-    <ScrollView horizontal showsHorizontalScrollIndicator>
-      <View style={{ minWidth: 1300 }}>
-        <ActiveFormContent />
-      </View>
-    </ScrollView>
-  )}
-</View>
+        <View style={styles.mobileCard}>
+          {activePreview ? (
+            Platform.OS === "web" ? (
+              <iframe
+                srcDoc={activeHtml}
+                style={{ width: "100%", border: "none", minHeight: 500 }}
+                title={`Form ${STEPS[currentStep].key} Preview`}
+              />
+            ) : (
+              <WebView
+                originWhitelist={["*"]}
+                source={{ html: activeHtml }}
+                style={{ width: "100%", height: 600 }}
+                scalesPageToFit={Platform.OS === "android"}
+              />
+            )
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <View style={{ minWidth: 1300 }}>
+                <ActiveFormContent />
+              </View>
+            </ScrollView>
+          )}
+        </View>
 
         {/* Mobile nav buttons */}
         <NavButtons />
@@ -844,6 +878,19 @@ const stylesWeb = StyleSheet.create({
   greenTextWeb: {
     color: "#fff",
     fontSize: 13,
+    fontWeight: "600",
+  },
+  profileBtn: {
+    backgroundColor: "#d9ddf0ff",
+    paddingVertical: 13,
+    borderRadius: 8,
+    alignItems: "center",
+    borderColor: "#2620ddff",
+    borderWidth: 1,
+  },
+  profileText: {
+    color: "#0b0787ff",
+    fontSize: 13.5,
     fontWeight: "600",
   },
 });
