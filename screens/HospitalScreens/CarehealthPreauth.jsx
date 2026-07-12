@@ -882,9 +882,10 @@ export default function StarHealthPreAuth({ navigation, route }) {
     try {
       await downloadInsuranceClaim(form, signatureImage, getHtmlOverride());
     } catch (e) {
+      console.error("PDF DOWNLOAD ERROR:", e?.message, e?.stack); // add this
       Alert.alert(
         "Download Error",
-        "Could not generate the PDF. Please try again.",
+        `Could not generate the PDF: ${e?.message || "unknown error"}`, // temp: show real reason
       );
     } finally {
       setIsDownloading(false);

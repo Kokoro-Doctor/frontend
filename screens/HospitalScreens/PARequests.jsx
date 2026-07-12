@@ -11,7 +11,9 @@ import {
   ImageBackground,
   Animated,
   ActivityIndicator,
+  Alert,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -259,6 +261,341 @@ const buildPreAuthAnalysisData = ({
   };
 };
 
+const normalizeLivePreAuthStructuredData = (analysisData) => {
+  const ext = analysisData?.autofill_extracted || {};
+  const structured = analysisData?.structured_data || {};
+  const bill = ext.billing_details || {};
+  const admission = ext.admission_details || {};
+
+  return {
+    source_filename:
+      structured.source_filename || "PreAuth_Live_Upload_Documents.pdf",
+    patient_details: {
+      ...(ext.patient_details || {}),
+      ...(structured.patient_details || {}),
+    },
+    insurance_details: {
+      ...(ext.insurance_details || {}),
+      ...(structured.insurance_details || {}),
+    },
+    hospital_details: {
+      ...(ext.hospital_details || {}),
+      ...(structured.hospital_details || {}),
+      admission_date:
+        structured.hospital_details?.admission_date ||
+        ext.hospital_details?.admission_date ||
+        admission.admission_date,
+      discharge_date:
+        structured.hospital_details?.discharge_date ||
+        ext.hospital_details?.discharge_date ||
+        admission.discharge_date,
+    },
+    diagnosis_and_procedures: {
+      ...(ext.diagnosis_and_procedures || {}),
+      ...(structured.diagnosis_and_procedures || {}),
+    },
+    claim_details: {
+      pre_hospitalization_amount: bill.pre_hospitalization_expenses,
+      bill_amount: bill.total_bill_amount || bill.hospitalization_expenses,
+      claimed_amount: bill.total_bill_amount || bill.hospitalization_expenses,
+      post_hospitalization_amount: bill.post_hospitalization_expenses,
+      health_checkup_cost: bill.health_checkup_cost,
+      ambulance_charges: bill.ambulance_charges,
+      other_charges: bill.other_charges,
+      pre_hosp_period_days: admission.pre_hospitalization_period_days,
+      post_hosp_period_days: admission.post_hospitalization_period_days,
+      ...(ext.claim_details || {}),
+      ...(structured.claim_details || {}),
+    },
+    bank_details: {
+      ...(ext.bank_details || {}),
+      ...(structured.bank_details || {}),
+    },
+    document_metadata: {
+      ...(ext.document_metadata || {}),
+      ...(structured.document_metadata || {}),
+      document_date:
+        ext.document_metadata?.document_date ||
+        structured.document_metadata?.document_date ||
+        new Date().toISOString(),
+      source: "hospital-preauth-live-upload",
+    },
+  };
+};
+
+const extractCodesFromPreAuthAnalysis = (
+  analysisData,
+  ref = "Extracted from uploaded pre-auth documents via Kokoro AI",
+) => {
+  const diag =
+    analysisData?.structured_data?.diagnosis_and_procedures ||
+    analysisData?.autofill_extracted?.diagnosis_and_procedures ||
+    {};
+
+  const diagnosisCodes = [];
+  const procedureCodes = [];
+  const seenDiag = new Set();
+  const seenProc = new Set();
+
+  const addDiag = (id, label) => {
+    const normalizedId = String(id ?? "").trim();
+    if (!normalizedId || seenDiag.has(normalizedId)) return;
+    diagnosisCodes.push({
+      id: normalizedId,
+      label: String(label || normalizedId),
+      ref,
+    });
+    seenDiag.add(normalizedId);
+  };
+
+  const addProc = (id, label) => {
+    const normalizedId = String(id ?? "").trim();
+    if (!normalizedId || seenProc.has(normalizedId)) return;
+    procedureCodes.push({
+      id: normalizedId,
+      label: String(label || normalizedId),
+    });
+    seenProc.add(normalizedId);
+  };
+
+  addDiag(diag.primary_icd_code, diag.primary_diagnosis);
+  addDiag(diag.additional_icd_code, diag.additional_diagnosis);
+
+  if (Array.isArray(diag.icd_codes)) {
+    diag.icd_codes.forEach((code) => {
+      const id = code?.code || code?.icd_code || code?.id || code;
+      const label =
+        code?.description || code?.diagnosis || code?.label || String(id || "");
+      addDiag(id, label);
+    });
+  }
+
+  addProc(
+    diag.procedure_1_icd_pcs || diag.primary_icd_pcs_code,
+    diag.procedure_1,
+  );
+  addProc(diag.procedure_2_icd_pcs, diag.procedure_2);
+  addProc(diag.procedure_3_icd_pcs, diag.procedure_3);
+
+  if (Array.isArray(diag.cpt_codes)) {
+    diag.cpt_codes.forEach((code) => {
+      const id = code?.code || code?.cpt_code || code?.id || code;
+      const label =
+        code?.description || code?.procedure || code?.label || String(id || "");
+      addProc(id, label);
+    });
+  }
+
+  return { diagnosisCodes, procedureCodes };
+};
+
+const buildLivePreAuthPatient = (analysisData, getAvatarProps) => {
+  const data = normalizeLivePreAuthStructuredData(analysisData);
+  const patient = data.patient_details || {};
+  const insurance = data.insurance_details || {};
+  const diagnosis = data.diagnosis_and_procedures || {};
+  const name = firstFilled(patient.name, "Live Upload Patient");
+  const generatedId = `live-preauth-${Date.now()}`;
+  const policyNumber = firstFilled(
+    insurance.policy_number,
+    insurance.policy_id,
+    insurance.certificate_number,
+  );
+  const memberId = firstFilled(
+    insurance.insurer_id_card,
+    insurance.member_id,
+    insurance.certificate_number,
+    generatedId,
+  );
+  const { initials, color, textColor } = getAvatarProps(name);
+
+  return {
+    id: generatedId,
+    user_id: null,
+    isLivePreAuth: true,
+    rawPatient: {
+      ...patient,
+      ...insurance,
+      live_preauth: true,
+    },
+    name,
+    age: patient.age || "—",
+    gender: patient.gender || "—",
+    procedure: firstFilled(
+      diagnosis.primary_diagnosis,
+      diagnosis.procedure_1,
+      diagnosis.procedure_details,
+      "—",
+    ),
+    status: "Eligible",
+    initials,
+    color,
+    textColor,
+    insurer: firstFilled(insurance.insurance_company, insurance.tpa_name, "—"),
+    memberId,
+    policyId: policyNumber || `POL-${generatedId}`,
+    policyNumber,
+    policyVersion: insurance.policy_version || "2024.1",
+    provider: data.hospital_details?.treating_doctor || "—",
+    providerNPI: data.hospital_details?.provider_npi || "—",
+    providerOrg: data.hospital_details?.hospital_name || "—",
+    service: firstFilled(
+      diagnosis.procedure_1,
+      diagnosis.procedure_details,
+      "—",
+    ),
+    phoneNumber: patient.phone || patient.phone_number || "—",
+    hospitalName: data.hospital_details?.hospital_name || "—",
+  };
+};
+
+const buildLivePreAuthAnalysisData = ({
+  analysisData,
+  patient,
+  diagnosisCodes,
+  procedureCodes,
+  serviceFormData,
+}) => {
+  const data = normalizeLivePreAuthStructuredData(analysisData);
+  const service = serviceFormData || {};
+  const selectedRaw = rawPatientFrom(patient);
+  const diagCodes = Array.isArray(diagnosisCodes) ? diagnosisCodes : [];
+  const procCodes = Array.isArray(procedureCodes) ? procedureCodes : [];
+  const urgencyLevel = firstFilled(service.urgencyLevel, "Routine");
+  const isEmergency = String(urgencyLevel).toLowerCase() === "emergent";
+  const patientName = firstFilled(
+    selectedRaw.name,
+    patient?.name,
+    data.patient_details?.name,
+  );
+  const insurer = firstFilled(
+    service.insurer,
+    patient?.insurer,
+    data.insurance_details?.insurance_company,
+    data.insurance_details?.tpa_name,
+  );
+  const primaryDiagnosis = firstFilled(
+    diagCodes[0]?.label,
+    data.diagnosis_and_procedures?.primary_diagnosis,
+  );
+  const primaryIcdCode = firstFilled(
+    diagCodes[0]?.id,
+    data.diagnosis_and_procedures?.primary_icd_code,
+  );
+  const additionalDiagnosis = firstFilled(
+    diagCodes[1]?.label,
+    data.diagnosis_and_procedures?.additional_diagnosis,
+  );
+  const additionalIcdCode = firstFilled(
+    diagCodes[1]?.id,
+    data.diagnosis_and_procedures?.additional_icd_code,
+  );
+  const serviceType = firstFilled(
+    service.serviceType,
+    procCodes[0]?.label,
+    data.diagnosis_and_procedures?.procedure_1,
+    data.diagnosis_and_procedures?.procedure_details,
+  );
+
+  return {
+    ...analysisData,
+    flow: "preauth_live",
+    patient_data: {
+      ...selectedRaw,
+      ...data.patient_details,
+      ...data.insurance_details,
+    },
+    preauth_context: {
+      urgencyLevel,
+      serviceType,
+      diagnosisCodes: diagCodes,
+      procedureCodes: procCodes,
+    },
+    structured_data: {
+      ...data,
+      source_filename: `PreAuth_${patientName || "Live_Upload"}.pdf`,
+      patient_details: {
+        ...data.patient_details,
+        name: patientName,
+        age: firstFilled(
+          selectedRaw.age,
+          patient?.age,
+          data.patient_details?.age,
+        ),
+        gender: firstFilled(
+          selectedRaw.gender,
+          patient?.gender,
+          data.patient_details?.gender,
+        ),
+        phone: firstFilled(
+          selectedRaw.phone,
+          selectedRaw.phone_number,
+          patient?.phoneNumber,
+          data.patient_details?.phone,
+        ),
+      },
+      insurance_details: {
+        ...data.insurance_details,
+        policy_number: firstFilled(
+          patient?.policyNumber,
+          patient?.policyId,
+          data.insurance_details?.policy_number,
+        ),
+        insurance_company: insurer,
+        tpa_name: firstFilled(
+          data.insurance_details?.tpa_name,
+          String(insurer).toLowerCase().includes("medi") ? "Medi Assist" : "",
+        ),
+        insurer_id_card: firstFilled(
+          patient?.memberId,
+          data.insurance_details?.insurer_id_card,
+        ),
+      },
+      hospital_details: {
+        ...data.hospital_details,
+        treating_doctor: firstFilled(
+          service.provider,
+          data.hospital_details?.treating_doctor,
+        ),
+        admission_type: isEmergency ? "emergency" : "planned",
+        type_of_admission: isEmergency ? "emergency" : "planned",
+        pre_auth_obtained: "no",
+      },
+      diagnosis_and_procedures: {
+        ...data.diagnosis_and_procedures,
+        primary_diagnosis: primaryDiagnosis,
+        primary_icd_code: primaryIcdCode,
+        additional_diagnosis: additionalDiagnosis,
+        additional_icd_code: additionalIcdCode,
+        procedure_1: serviceType,
+        procedure_1_icd_pcs: firstFilled(
+          procCodes[0]?.id,
+          data.diagnosis_and_procedures?.procedure_1_icd_pcs,
+        ),
+        procedure_2: firstFilled(
+          procCodes[1]?.label,
+          data.diagnosis_and_procedures?.procedure_2,
+        ),
+        procedure_2_icd_pcs: firstFilled(
+          procCodes[1]?.id,
+          data.diagnosis_and_procedures?.procedure_2_icd_pcs,
+        ),
+        procedure_details: serviceType,
+        hospitalization_cause: primaryDiagnosis,
+        proposed_line_surgical_management: procCodes.length > 0,
+        proposed_line_medical_management: procCodes.length === 0,
+        is_planned_hospitalization: !isEmergency,
+        is_emergency_hospitalization: isEmergency,
+      },
+      document_metadata: {
+        ...data.document_metadata,
+        source: "hospital-preauth-live-upload",
+        document_date: new Date().toISOString(),
+      },
+    },
+  };
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SHARED SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -320,25 +657,27 @@ const MobileStepper = ({ currentStep }) => (
       return (
         <React.Fragment key={step.id}>
           <View style={ms.stepItem}>
-            <View
-              style={[
-                ms.circle,
-                isActive && ms.circleActive,
-                isDone && ms.circleDone,
-              ]}
-            >
-              {isDone ? (
-                <Feather name="check" size={10} color="#fff" />
-              ) : (
-                <Text
-                  style={[
-                    ms.circleText,
-                    (isActive || isDone) && { color: "#fff" },
-                  ]}
-                >
-                  {step.id}
-                </Text>
-              )}
+            <View style={ms.circleRow}>
+              <View
+                style={[
+                  ms.circle,
+                  isActive && ms.circleActive,
+                  isDone && ms.circleDone,
+                ]}
+              >
+                {isDone ? (
+                  <Feather name="check" size={10} color="#fff" />
+                ) : (
+                  <Text
+                    style={[
+                      ms.circleText,
+                      (isActive || isDone) && { color: "#fff" },
+                    ]}
+                  >
+                    {step.id}
+                  </Text>
+                )}
+              </View>
             </View>
             <Text
               style={[
@@ -351,7 +690,9 @@ const MobileStepper = ({ currentStep }) => (
             </Text>
           </View>
           {index < STEPS.length - 1 && (
-            <View style={[ms.line, isDone && ms.lineDone]} />
+            <View style={ms.lineWrap}>
+              <View style={[ms.line, isDone && ms.lineDone]} />
+            </View>
           )}
         </React.Fragment>
       );
@@ -450,6 +791,250 @@ const EmptyState = ({ onNewRequest, isMobile }) => (
     </TouchableOpacity>
   </View>
 );
+
+const LivePreAuthUploadPanel = ({
+  docs,
+  onUpload,
+  onRemove,
+  onRun,
+  loading,
+  error,
+  isMobile,
+}) => {
+  const items = [
+    {
+      key: "prescription",
+      title: "Doctor Prescription",
+      subtitle: "Treatment plan, diagnosis, or prescription",
+    },
+    {
+      key: "insurance",
+      title: "Insurance Policy",
+      subtitle: "Policy card or policy document",
+    },
+  ];
+
+  return (
+    <View style={[live.card, isMobile && live.cardMobile]}>
+      <View style={live.headerRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={live.title}>Run Pre-Auth With Live Docs</Text>
+          <Text style={live.subtitle}>
+            Upload these two documents to extract text now and continue to form
+            fill without selecting a stored patient.
+          </Text>
+        </View>
+        {loading && <ActivityIndicator color="#2563EB" size="small" />}
+      </View>
+
+      <View style={[live.docGrid, isMobile && live.docGridMobile]}>
+        {items.map((item) => {
+          const file = docs[item.key];
+          const isUploaded = !!file;
+          return (
+            <View
+              key={item.key}
+              style={[live.docCard, isUploaded && live.docCardUploaded]}
+            >
+              <View style={live.docIcon}>
+                <Feather
+                  name={isUploaded ? "check" : "file-text"}
+                  size={16}
+                  color={isUploaded ? "#fff" : "#2563EB"}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={live.docTitle}>{item.title}</Text>
+                <Text style={live.docSubtitle}>{item.subtitle}</Text>
+                {isUploaded && (
+                  <Text style={live.fileName} numberOfLines={1}>
+                    {file.name || file.filename || "Selected file"}
+                  </Text>
+                )}
+              </View>
+              {isUploaded ? (
+                <TouchableOpacity
+                  style={live.removeBtn}
+                  onPress={() => onRemove(item.key)}
+                >
+                  <Feather name="x" size={14} color="#DC2626" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={live.uploadBtn}
+                  onPress={() => onUpload(item.key)}
+                >
+                  <Text style={live.uploadText}>Upload</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          );
+        })}
+      </View>
+
+      {error && <Text style={live.errorText}>{error}</Text>}
+
+      <View style={live.footerRow}>
+        <Text style={live.orText}>or select an existing patient below</Text>
+        <TouchableOpacity
+          style={[
+            live.runBtn,
+            (loading || !docs.prescription || !docs.insurance) &&
+              live.runBtnDisabled,
+          ]}
+          onPress={onRun}
+          disabled={loading || !docs.prescription || !docs.insurance}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Text style={live.runText}>Run Pre-Auth</Text>
+              <Feather name="arrow-right" size={14} color="#fff" />
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const UploadCard = ({ label, doc, onPick, onClear }) => (
+  <View
+    style={{
+      borderWidth: 1,
+      borderColor: doc ? "#BBF0CE" : "#E5E7EB",
+      backgroundColor: doc ? "#F0FDF4" : "#FAFAFA",
+      borderRadius: 10,
+      padding: 16,
+      marginBottom: 12,
+    }}
+  >
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          flex: 1,
+          minWidth: 0,
+          marginRight: 10,
+        }}
+      >
+        <Feather
+          name={doc ? "check-circle" : "upload-cloud"}
+          size={18}
+          color={doc ? "#16A34A" : "#6B7280"}
+        />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827" }}>
+            {label}
+          </Text>
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="middle"
+            style={{
+              fontSize: 11,
+              color: doc ? "#16A34A" : "#9CA3AF",
+              marginTop: 2,
+            }}
+          >
+            {doc ? doc.name : "No file chosen"}
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity
+        onPress={doc ? onClear : onPick}
+        style={{
+          borderWidth: 1,
+          borderColor: doc ? "#BBF0CE" : "#D1D5DB",
+          borderRadius: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          flexShrink: 0,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "600",
+            color: doc ? "#16A34A" : "#374151",
+          }}
+        >
+          {doc ? "Change" : "Upload"}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+const QuickUploadSection = ({
+  prescriptionDoc,
+  insuranceDoc,
+  onPickPrescription,
+  onPickInsurance,
+  onClearPrescription,
+  onClearInsurance,
+  onContinue,
+  canProceed,
+  loading = false,
+  error = null,
+}) => {
+  const filesCount = (prescriptionDoc ? 1 : 0) + (insuranceDoc ? 1 : 0);
+
+  return (
+    <View style={qu.wrapper}>
+      <View style={qu.card}>
+        <View style={qu.headerRow}>
+          <Text style={qu.title}>Quick upload</Text>
+          <Text style={qu.counter}>{filesCount}/2 files</Text>
+        </View>
+        <Text style={qu.subtitle}>
+          Skip patient selection — upload these two files to continue
+        </Text>
+
+        <UploadCard
+          label="Prescription"
+          doc={prescriptionDoc}
+          onPick={onPickPrescription}
+          onClear={onClearPrescription}
+        />
+        <UploadCard
+          label="Insurance policy"
+          doc={insuranceDoc}
+          onPick={onPickInsurance}
+          onClear={onClearInsurance}
+        />
+
+        <TouchableOpacity
+          style={[qu.continueBtn, (!canProceed || loading) && { opacity: 0.4 }]}
+          disabled={!canProceed || loading}
+          onPress={onContinue}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Text style={qu.continueText}>Continue</Text>
+              <Feather name="arrow-right" size={14} color="#fff" />
+            </>
+          )}
+        </TouchableOpacity>
+        {error ? (
+          <Text style={{ marginTop: 10, color: "#DC2626", fontSize: 12 }}>
+            {error}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+};
 
 const CodeChip = ({ code, onRemove }) => (
   <View style={mc.codeRow}>
@@ -561,7 +1146,16 @@ const ServiceInfoForm = ({
   );
   const [urgencyLevel, setUrgencyLevel] = useState("Routine");
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [serviceType, setServiceType] = useState("");
+  const [serviceType, setServiceType] = useState(
+    patient?.procedure !== "—" ? patient?.procedure || "" : "",
+  );
+
+  useEffect(() => {
+    setInsuranceProvider(
+      patient?.insurer !== "—" ? patient?.insurer || "" : "",
+    );
+    setServiceType(patient?.procedure !== "—" ? patient?.procedure || "" : "");
+  }, [patient]);
 
   // Pre-select doctor if patient already has one linked
   useEffect(() => {
@@ -1127,6 +1721,13 @@ const PARequests = ({ navigation, route }) => {
   const [nextCursor, setNextCursor] = useState(null);
   const [serviceFormData, setServiceFormData] = useState({});
   const [preAuthAnalysisData, setPreAuthAnalysisData] = useState(null);
+  const [livePreAuthAnalysisData, setLivePreAuthAnalysisData] = useState(null);
+  const [livePreAuthDocs, setLivePreAuthDocs] = useState({
+    prescription: null,
+    insurance: null,
+  });
+  const [livePreAuthLoading, setLivePreAuthLoading] = useState(false);
+  const [livePreAuthError, setLivePreAuthError] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateError, setUpdateError] = useState(null);
   const [doctors, setDoctors] = useState([]);
@@ -1139,6 +1740,8 @@ const PARequests = ({ navigation, route }) => {
   const [autoSelecting, setAutoSelecting] = useState(
     !!route?.params?.skipToStep2,
   );
+  const canProceedWithoutPatient =
+    !!livePreAuthDocs.prescription && !!livePreAuthDocs.insurance;
 
   // ── Lifted state: shared between Step 3 → Step 4 ──────────────────────────
   const [diagnosisCodes, setDiagnosisCodes] = useState([]); // ✅ start empty, filled from API
@@ -1160,6 +1763,8 @@ const PARequests = ({ navigation, route }) => {
   const handleSelectPatient = async (patient, animRef) => {
     setSelectedPatient(patient);
     setPreAuthAnalysisData(null);
+    setLivePreAuthAnalysisData(null);
+    setLivePreAuthError(null);
     fetchDoctorsForPatient(patient.memberId);
 
     // Fetch both sources in parallel
@@ -1216,15 +1821,47 @@ const PARequests = ({ navigation, route }) => {
     setAiError(null);
 
     try {
-      const token = await AsyncStorage.getItem("token");
+      if (selectedPatient?.isLivePreAuth) {
+        const {
+          diagnosisCodes: suggestedDiagCodes,
+          procedureCodes: suggestedProcCodes,
+        } = extractCodesFromPreAuthAnalysis(livePreAuthAnalysisData);
 
-      if (!token) {
-        setAiError("Not authenticated.");
+        const existingDiagIds = new Set(diagnosisCodes.map((c) => c.id));
+        const freshDiag = suggestedDiagCodes.filter(
+          (c) => !existingDiagIds.has(c.id),
+        );
+
+        const existingProcIds = new Set(procedureCodes.map((c) => c.id));
+        const freshProc = suggestedProcCodes.filter(
+          (c) => !existingProcIds.has(c.id),
+        );
+
+        if (suggestedDiagCodes.length === 0 && suggestedProcCodes.length === 0) {
+          setAiError(
+            "No ICD or procedure codes found in the uploaded pre-auth documents.",
+          );
+          return;
+        }
+
+        if (freshDiag.length > 0)
+          setDiagnosisCodes([...diagnosisCodes, ...freshDiag]);
+        if (freshProc.length > 0)
+          setProcedureCodes([...procedureCodes, ...freshProc]);
         return;
       }
 
       if (!selectedPatient?.user_id) {
-        setAiError("No patient selected.");
+        setAiError("Select a patient or run pre-auth from uploaded documents first.");
+        return;
+      }
+
+      const token =
+        (await AsyncStorage.getItem("token")) ||
+        (await AsyncStorage.getItem("@token")) ||
+        (await AsyncStorage.getItem("hospital_token"));
+      if (!token) {
+        setAiError("Not authenticated.");
         return;
       }
 
@@ -1243,7 +1880,7 @@ const PARequests = ({ navigation, route }) => {
         const errData = await res.json().catch(() => ({}));
         if (res.status === 404) {
           setAiError(
-            "No uploaded documents found for this patient. Ask them to upload documents via the patient app first.",
+            "No uploaded documents found. Ask them to upload documents via the patient app first.",
           );
         } else {
           setAiError(errData.message || `Server error ${res.status}`);
@@ -1690,117 +2327,337 @@ const PARequests = ({ navigation, route }) => {
     }
   }, []);
 
+  const handleLivePreAuthDocUpload = useCallback((key) => {
+    setLivePreAuthError(null);
+
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".pdf,.jpg,.jpeg,.png";
+      input.onchange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setLivePreAuthDocs((prev) => ({ ...prev, [key]: file }));
+      };
+      input.click();
+      return;
+    }
+
+    DocumentPicker.getDocumentAsync({
+      type: ["application/pdf", "image/*"],
+      multiple: false,
+      copyToCacheDirectory: true,
+    })
+      .then((result) => {
+        if (result.canceled) return;
+        const file = result.assets?.[0];
+        if (!file) return;
+        setLivePreAuthDocs((prev) => ({ ...prev, [key]: file }));
+      })
+      .catch((err) => {
+        console.error("Live pre-auth doc picker error:", err);
+        setLivePreAuthError("Could not open document picker.");
+      });
+  }, []);
+
+  const handleLivePreAuthDocRemove = useCallback((key) => {
+    setLivePreAuthDocs((prev) => ({ ...prev, [key]: null }));
+  }, []);
+
+  const appendLivePreAuthFile = (formData, fieldName, file, fallbackName) => {
+    if (Platform.OS === "web") {
+      formData.append(fieldName, file.file || file, file.name || fallbackName);
+      return;
+    }
+
+    formData.append(fieldName, {
+      uri: file.uri,
+      name: file.name || fallbackName,
+      type: file.mimeType || file.type || "application/octet-stream",
+    });
+  };
+
+  const handleRunLivePreAuth = async (animRef) => {
+    if (!livePreAuthDocs.prescription || !livePreAuthDocs.insurance) {
+      const message =
+        "Upload both the doctor prescription and insurance policy to run pre-auth.";
+      setLivePreAuthError(message);
+      Alert.alert("Documents required", message);
+      return;
+    }
+
+    setLivePreAuthLoading(true);
+    setLivePreAuthError(null);
+    setPreAuthAnalysisData(null);
+    setLivePreAuthAnalysisData(null);
+
+    try {
+      const formData = new FormData();
+      appendLivePreAuthFile(
+        formData,
+        "doctor_prescription",
+        livePreAuthDocs.prescription,
+        "prescription.pdf",
+      );
+      appendLivePreAuthFile(
+        formData,
+        "insurance_policy",
+        livePreAuthDocs.insurance,
+        "insurance_policy.pdf",
+      );
+
+      const headers = {};
+      const token =
+        (await AsyncStorage.getItem("token")) ||
+        (await AsyncStorage.getItem("@token")) ||
+        (await AsyncStorage.getItem("hospital_token"));
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const res = await fetch(
+        `${API_URL}/medilocker/insurance/preauth/analyze`,
+        {
+          method: "POST",
+          headers,
+          body: formData,
+        },
+      );
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        let message = text || `Pre-auth analysis failed (${res.status})`;
+        try {
+          const parsed = JSON.parse(text);
+          message = parsed.detail || parsed.message || message;
+        } catch {}
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      if (data?.error) throw new Error(data.error);
+
+      const livePatient = buildLivePreAuthPatient(data, getAvatarProps);
+      const extractedCodes = extractCodesFromPreAuthAnalysis(data);
+
+      setLivePreAuthAnalysisData(data);
+      setSelectedPatient(livePatient);
+      setDiagnosisSummary(null);
+      setDoctors([]);
+      setDoctorsLoading(false);
+      setDiagnosisCodes(extractedCodes.diagnosisCodes);
+      setProcedureCodes(extractedCodes.procedureCodes);
+      setServiceFormData({
+        insurer: livePatient.insurer !== "—" ? livePatient.insurer || "" : "",
+        urgencyLevel: "Routine",
+        provider:
+          livePatient.provider !== "—" ? livePatient.provider || "" : "",
+        doctorId: "",
+        serviceType:
+          livePatient.procedure !== "—" ? livePatient.procedure || "" : "",
+      });
+      setCurrentStep(2);
+      animateSlide(animRef, "right");
+    } catch (err) {
+      console.error("handleRunLivePreAuth error:", err);
+      const message = err.message || "Pre-auth analysis failed.";
+      setLivePreAuthError(message);
+      Alert.alert("Pre-auth failed", message);
+    } finally {
+      setLivePreAuthLoading(false);
+    }
+  };
+
   // ── Step renderers ─────────────────────────────────────────────────────────
   const renderStep1 = (animRef, isMobile) => (
     <Animated.View style={{ transform: [{ translateX: animRef }] }}>
-      <View style={isMobile ? mob.sectionHeader : sh.header}>
-        <View>
-          <Text style={isMobile ? mob.sectionTitle : sh.title}>
-            Select Patient
-          </Text>
-          {isMobile && <Text style={mob.sectionSub}>Choose patient</Text>}
-        </View>
-        <TouchableOpacity style={sh.newReqBtn}>
-          <Feather
-            name="plus"
-            size={14}
-            color="#fff"
-            style={{ marginRight: 4 }}
-          />
-          <Text style={sh.newReqText}>New PA Request</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={isMobile ? mob.searchRow : sh.searchRow}>
-        <View style={isMobile ? mob.searchBox : sh.searchBox}>
-          <Feather
-            name="search"
-            size={14}
-            color="#9CA3AF"
-            style={{ marginRight: 8 }}
-          />
-          <TextInput
-            placeholder="Search For Patient"
-            placeholderTextColor="#9CA3AF"
-            value={searchText}
-            onChangeText={setSearchText}
-            style={isMobile ? mob.searchInput : sh.searchInput}
-          />
-        </View>
-        <View style={isMobile ? mob.filterBox : sh.filterBox}>
-          <Text style={isMobile ? mob.filterText : sh.filterText}>
-            {statusFilter}
-          </Text>
-          <Feather
-            name="chevron-down"
-            size={13}
-            color="#374151"
-            style={{ marginLeft: 6 }}
-          />
-        </View>
-      </View>
-      {/* {filteredPatients.length > 0 ? (
-        <View style={isMobile ? { paddingHorizontal: 16 } : {}}>
-          {filteredPatients.map((p) => (
-            <PatientRow
-              key={p.id}
-              patient={p}
-              onSelect={(pat) => handleSelectPatient(pat, animRef)}
-              isSelected={selectedPatient?.id === p.id}
-            />
-          ))}
-        </View>
-      ) : (
-        <EmptyState onNewRequest={() => {}} isMobile={isMobile} />
-      )} */}
-      {patientsLoading && (
-        <View style={{ padding: 32, alignItems: "center" }}>
-          <Text style={{ color: "#6B7280", fontSize: 13 }}>
-            Loading patients...
-          </Text>
-        </View>
+      {isMobile && (
+        <QuickUploadSection
+          prescriptionDoc={livePreAuthDocs.prescription}
+          insuranceDoc={livePreAuthDocs.insurance}
+          onPickPrescription={() => handleLivePreAuthDocUpload("prescription")}
+          onPickInsurance={() => handleLivePreAuthDocUpload("insurance")}
+          onClearPrescription={() => handleLivePreAuthDocRemove("prescription")}
+          onClearInsurance={() => handleLivePreAuthDocRemove("insurance")}
+          onContinue={() => handleRunLivePreAuth(animRef)}
+          canProceed={canProceedWithoutPatient}
+          loading={livePreAuthLoading}
+          error={livePreAuthError}
+        />
       )}
-      {!patientsLoading && patientsError && (
-        <View style={{ padding: 24, alignItems: "center" }}>
-          <Text style={{ color: "#DC2626", fontSize: 13, textAlign: "center" }}>
-            {patientsError}
-          </Text>
-          <TouchableOpacity
-            style={{ marginTop: 12, padding: 10 }}
-            onPress={() => fetchPatients()}
-          >
-            <Text style={{ color: "#2563EB", fontWeight: "600" }}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {!patientsLoading &&
-        !patientsError &&
-        (filteredPatients.length > 0 ? (
-          <View style={isMobile ? { paddingHorizontal: 16 } : {}}>
-            {filteredPatients.map((p, index) => (
-              <PatientRow
-                key={p.id || p.user_id || `patient-${index}`}
-                patient={p}
-                onSelect={(pat) => handleSelectPatient(pat, animRef)}
-                isSelected={selectedPatient?.id === p.id}
+      <View
+        style={{
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : "flex-start",
+        }}
+      >
+        {/* ── LEFT: Patient selection ── */}
+        <View style={{ flex: isMobile ? undefined : 1.3 }}>
+          <View style={isMobile ? mob.sectionHeader : sh.header}>
+            <View>
+              <Text style={isMobile ? mob.sectionTitle : sh.title}>
+                Select Patient
+              </Text>
+              {isMobile && <Text style={mob.sectionSub}>Choose patient</Text>}
+            </View>
+          </View>
+          <View style={isMobile ? mob.searchRow : sh.searchRow}>
+            <View style={isMobile ? mob.searchBox : sh.searchBox}>
+              <Feather
+                name="search"
+                size={14}
+                color="#9CA3AF"
+                style={{ marginRight: 8 }}
               />
-            ))}
-            {/* Pagination — only show if more pages exist */}
-            {nextCursor && (
-              <TouchableOpacity
-                style={{ padding: 16, alignItems: "center" }}
-                onPress={() => fetchPatients(nextCursor)}
+              <TextInput
+                placeholder="Search For Patient"
+                placeholderTextColor="#9CA3AF"
+                value={searchText}
+                onChangeText={setSearchText}
+                style={isMobile ? mob.searchInput : sh.searchInput}
+              />
+            </View>
+            <View style={isMobile ? mob.filterBox : sh.filterBox}>
+              <Text style={isMobile ? mob.filterText : sh.filterText}>
+                {statusFilter}
+              </Text>
+              <Feather
+                name="chevron-down"
+                size={13}
+                color="#374151"
+                style={{ marginLeft: 6 }}
+              />
+            </View>
+          </View>
+
+          {patientsLoading && (
+            <View style={{ padding: 32, alignItems: "center" }}>
+              <Text style={{ color: "#6B7280", fontSize: 13 }}>
+                Loading patients...
+              </Text>
+            </View>
+          )}
+          {!patientsLoading && patientsError && (
+            <View style={{ padding: 24, alignItems: "center" }}>
+              <Text
+                style={{ color: "#DC2626", fontSize: 13, textAlign: "center" }}
               >
-                <Text
-                  style={{ color: "#2563EB", fontWeight: "600", fontSize: 13 }}
-                >
-                  Load more patients
+                {patientsError}
+              </Text>
+              <TouchableOpacity
+                style={{ marginTop: 12, padding: 10 }}
+                onPress={() => fetchPatients()}
+              >
+                <Text style={{ color: "#2563EB", fontWeight: "600" }}>
+                  Retry
                 </Text>
               </TouchableOpacity>
-            )}
+            </View>
+          )}
+          {!patientsLoading &&
+            !patientsError &&
+            (filteredPatients.length > 0 ? (
+              <View
+                style={
+                  Platform.OS === "web"
+                    ? { maxHeight: 480, overflowY: "auto" }
+                    : { maxHeight: 480 }
+                }
+              >
+                {Platform.OS === "web" ? (
+                  <View style={isMobile ? { paddingHorizontal: 16 } : {}}>
+                    {filteredPatients.map((p, index) => (
+                      <PatientRow
+                        key={p.id || p.user_id || `patient-${index}`}
+                        patient={p}
+                        onSelect={(pat) => handleSelectPatient(pat, animRef)}
+                        isSelected={selectedPatient?.id === p.id}
+                      />
+                    ))}
+                    {nextCursor && (
+                      <TouchableOpacity
+                        style={{ padding: 16, alignItems: "center" }}
+                        onPress={() => fetchPatients(nextCursor)}
+                      >
+                        <Text
+                          style={{
+                            color: "#2563EB",
+                            fontWeight: "600",
+                            fontSize: 13,
+                          }}
+                        >
+                          Load more patients
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : (
+                  <ScrollView nestedScrollEnabled>
+                    <View style={isMobile ? { paddingHorizontal: 16 } : {}}>
+                      {filteredPatients.map((p, index) => (
+                        <PatientRow
+                          key={p.id || p.user_id || `patient-${index}`}
+                          patient={p}
+                          onSelect={(pat) => handleSelectPatient(pat, animRef)}
+                          isSelected={selectedPatient?.id === p.id}
+                        />
+                      ))}
+                      {nextCursor && (
+                        <TouchableOpacity
+                          style={{ padding: 16, alignItems: "center" }}
+                          onPress={() => fetchPatients(nextCursor)}
+                        >
+                          <Text
+                            style={{
+                              color: "#2563EB",
+                              fontWeight: "600",
+                              fontSize: 13,
+                            }}
+                          >
+                            Load more patients
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </ScrollView>
+                )}
+              </View>
+            ) : (
+              <EmptyState onNewRequest={() => {}} isMobile={isMobile} />
+            ))}
+        </View>
+
+        {/* ── DIVIDER ── */}
+        {!isMobile && (
+          <View
+            style={{
+              width: 1,
+              backgroundColor: "#E5E7EB",
+              marginHorizontal: 20,
+            }}
+          />
+        )}
+
+        {/* ── RIGHT: Quick upload panel (desktop only — mobile uses QuickUploadSection above) ── */}
+        {!isMobile && (
+          <View
+            style={{
+              flex: 1,
+              ...(Platform.OS === "web"
+                ? { position: "sticky", top: 20, alignSelf: "flex-start" }
+                : {}),
+            }}
+          >
+            <LivePreAuthUploadPanel
+              docs={livePreAuthDocs}
+              onUpload={handleLivePreAuthDocUpload}
+              onRemove={handleLivePreAuthDocRemove}
+              onRun={() => handleRunLivePreAuth(animRef)}
+              loading={livePreAuthLoading}
+              error={livePreAuthError}
+              isMobile={false}
+            />
           </View>
-        ) : (
-          <EmptyState onNewRequest={() => {}} isMobile={isMobile} />
-        ))}
+        )}
+      </View>
     </Animated.View>
   );
 
@@ -1906,7 +2763,37 @@ const PARequests = ({ navigation, route }) => {
         updateError={updateError}
         onPrevious={() => handlePrevious(animRef)}
         onNext={async () => {
-          if (!selectedPatient?.user_id) return;
+          if (selectedPatient?.isLivePreAuth) {
+            setPreAuthAnalysisData(
+              buildLivePreAuthAnalysisData({
+                analysisData: livePreAuthAnalysisData,
+                patient: selectedPatient,
+                diagnosisCodes,
+                procedureCodes,
+                serviceFormData,
+              }),
+            );
+            handleNext(animRef);
+            return;
+          }
+
+          // No real patient (came from "upload documents directly" flow)
+          if (!selectedPatient?.user_id) {
+            setPreAuthAnalysisData(
+              buildPreAuthAnalysisData({
+                patient: selectedPatient,
+                updatedUser: null,
+                diagnosisSummary,
+                diagnosisCodes,
+                procedureCodes,
+                serviceFormData,
+              }),
+            );
+            handleNext(animRef); // advance to Step 5 directly
+            return;
+          }
+
+          // Existing flow — real patient selected, update via API
           setUpdateLoading(true);
           setUpdateError(null);
 
@@ -1920,8 +2807,8 @@ const PARequests = ({ navigation, route }) => {
                 : undefined,
             insurer: serviceFormData.insurer,
             urgencyLevel: serviceFormData.urgencyLevel,
-            doctorId: serviceFormData.doctorId, // ✅ ADD THIS
-            policyNumber: selectedPatient.policyNumber, // ✅ ADD THIS if needed
+            doctorId: serviceFormData.doctorId,
+            policyNumber: selectedPatient.policyNumber,
           });
 
           setUpdateLoading(false);
@@ -1938,7 +2825,7 @@ const PARequests = ({ navigation, route }) => {
                 serviceFormData,
               }),
             );
-            handleNext(animRef); // advance to Step 5
+            handleNext(animRef);
           } else {
             setUpdateError(result.error || "Failed to submit. Try again.");
           }
@@ -2124,10 +3011,21 @@ const PARequests = ({ navigation, route }) => {
             contentContainerStyle={{ paddingBottom: 40 }}
           >
             <Text style={mob.title}>PA Requests</Text>
-            <MobileStepper currentStep={currentStep} />
-            <View style={{ overflow: "hidden" }}>
-              {renderCurrentStep(slideAnimMob, true)}
-            </View>
+            {autoSelecting ? (
+              <View style={{ padding: 60, alignItems: "center" }}>
+                <ActivityIndicator size="large" color="#2563EB" />
+                <Text style={{ marginTop: 12, color: "#6B7280", fontSize: 13 }}>
+                  Loading patient details...
+                </Text>
+              </View>
+            ) : (
+              <>
+                <MobileStepper currentStep={currentStep} />
+                <View style={{ overflow: "hidden" }}>
+                  {renderCurrentStep(slideAnimMob, true)}
+                </View>
+              </>
+            )}
           </ScrollView>
         </SafeAreaView>
       )}
@@ -2175,12 +3073,22 @@ const ws = StyleSheet.create({
 const ms = StyleSheet.create({
   container: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start", // ← changed from "center"
     paddingHorizontal: 16,
     paddingVertical: 16,
     marginBottom: 4,
   },
-  stepItem: { alignItems: "center", gap: 4 },
+  stepItem: {
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 0,
+    width: 62, // ← fixed width so labels wrap consistently
+  },
+  circleRow: {
+    height: 36, // ← fixed row height, circle always centers here
+    justifyContent: "center",
+    alignItems: "center",
+  },
   circle: {
     width: 36,
     height: 36,
@@ -2190,6 +3098,7 @@ const ms = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
+    flexShrink: 0,
   },
   circleActive: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
   circleDone: { backgroundColor: "#16A34A", borderColor: "#16A34A" },
@@ -2201,22 +3110,14 @@ const ms = StyleSheet.create({
     textAlign: "center",
     maxWidth: 55,
   },
-  line: { flex: 1, height: 2, backgroundColor: "#E5E7EB", marginBottom: 14 },
+  lineWrap: {
+    flex: 1,
+    height: 36, // ← matches circleRow height
+    justifyContent: "center",
+  },
+  line: { height: 2, backgroundColor: "#E5E7EB" },
   lineDone: { backgroundColor: "#16A34A" },
-  // Add inside mc StyleSheet:
-  emptyCodesBox: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    backgroundColor: "#FAFAFA",
-  },
-  emptyCodesText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    textAlign: "center",
-  },
+  // ...keep emptyCodesBox / emptyCodesText as-is
 });
 
 const pr = StyleSheet.create({
@@ -2250,6 +3151,90 @@ const spc = StyleSheet.create({
   info: { flex: 1 },
   name: { fontSize: 14, fontWeight: "700", color: "#111827" },
   meta: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+});
+
+const live = StyleSheet.create({
+  card: {
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 10,
+    backgroundColor: "#F8FBFF",
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 8,
+    padding: 14,
+  },
+  cardMobile: { marginHorizontal: 16 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 12,
+  },
+  title: { fontSize: 15, fontWeight: "700", color: "#111827" },
+  subtitle: { fontSize: 12, color: "#6B7280", marginTop: 3, lineHeight: 17 },
+  docGrid: { flexDirection: "row", gap: 12 },
+  docGridMobile: { flexDirection: "column" },
+  docCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    padding: 12,
+  },
+  docCardUploaded: { borderColor: "#86EFAC", backgroundColor: "#F0FDF4" },
+  docIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  docTitle: { fontSize: 13, fontWeight: "700", color: "#111827" },
+  docSubtitle: { fontSize: 11, color: "#6B7280", marginTop: 2 },
+  fileName: { fontSize: 11, color: "#15803D", marginTop: 5, maxWidth: 220 },
+  uploadBtn: {
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: "#EFF6FF",
+  },
+  uploadText: { color: "#2563EB", fontSize: 12, fontWeight: "700" },
+  removeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FEE2E2",
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 12,
+  },
+  orText: { fontSize: 12, color: "#6B7280" },
+  runBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  runBtnDisabled: { opacity: 0.55 },
+  runText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  errorText: { color: "#DC2626", fontSize: 12, marginTop: 10 },
 });
 
 const sh = StyleSheet.create({
@@ -2902,6 +3887,40 @@ const mob = StyleSheet.create({
     backgroundColor: "#FAFAFA",
   },
   filterText: { fontSize: 12, color: "#374151" },
+});
+const qu = StyleSheet.create({
+  wrapper: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    padding: 14,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  title: { fontSize: 15, fontWeight: "700", color: "#111827" },
+  counter: { fontSize: 12, fontWeight: "500", color: "#9CA3AF" },
+  subtitle: { fontSize: 12, color: "#6B7280", marginBottom: 14 },
+  continueBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#16A34A",
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  continueText: { fontSize: 13, fontWeight: "600", color: "#fff" },
 });
 
 export default PARequests;

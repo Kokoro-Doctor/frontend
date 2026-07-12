@@ -1255,7 +1255,7 @@ const AutofillView = ({ analysisData, isMobile }) => {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════
 
-const HospitalInsuranceClaim = ({ navigation }) => {
+const HospitalInsuranceClaim = ({ navigation, route }) => {
   const [claimFiles, setClaimFiles] = useState([]);
   const { width, height } = useWindowDimensions();
   const [currentStep, setCurrentStep] = useState(0);
@@ -1285,6 +1285,18 @@ const HospitalInsuranceClaim = ({ navigation }) => {
 
   // Get TPA list from centralized configuration
   const insurerList = getTPADropdownList();
+
+// Try to match a free-text insurer name (from patient record) to a known TPA entry.
+const findInsurerByName = (name) => {
+  if (!name) return null;
+  const normalized = name.trim().toLowerCase();
+  return (
+    insurerList.find((ins) => ins.name?.trim().toLowerCase() === normalized) ||
+    insurerList.find((ins) => ins.name?.trim().toLowerCase().includes(normalized)) ||
+    insurerList.find((ins) => normalized.includes(ins.name?.trim().toLowerCase())) ||
+    null
+  );
+};
 
   const isAnyUploaded = Object.values(uploadSections).some(Boolean);
 
@@ -1658,6 +1670,30 @@ const HospitalInsuranceClaim = ({ navigation }) => {
       setProcessingStage("");
     }
   };
+  useEffect(() => {
+  const { preselectedPatientId, preselectedInsurerName, skipToStep2 } =
+    route?.params || {};
+
+  if (skipToStep2 && preselectedPatientId) {
+    const matchedInsurer = findInsurerByName(preselectedInsurerName);
+    if (matchedInsurer) {
+      setSelectedInsurer(matchedInsurer); // patient record wins — skip extraction guesswork
+    }
+    // if no match, selectedInsurer stays null and your existing
+    // getUpdatedFilesScreen() logic will fall back to extracting
+    // insurer from analysisData (documents) as it already does.
+
+    handlePatientSelect({
+      user_id: preselectedPatientId,
+      id: preselectedPatientId,
+    });
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [
+  route?.params?.preselectedPatientId,
+  route?.params?.preselectedInsurerName,
+  route?.params?.skipToStep2,
+]);
 
   const openAiModal = () => {
     setAiAnalysisModalOpen(true);

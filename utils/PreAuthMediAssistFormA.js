@@ -4,7 +4,7 @@
  * Add Form B as a parallel module (e.g. MediAssistFormB.js + MediAssistFormB.jsx) using the same pattern.
  */
 import { Platform, Alert } from "react-native";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 

@@ -1,5 +1,5 @@
 import { Platform, Alert } from "react-native";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import { Asset } from "expo-asset";
@@ -313,9 +313,8 @@ export function generateInsuranceFormHTML(
     };
   });
   const chronicChecked = (key) => f.chronicIllnesses?.[key]?.present === true;
-const chronicMonth = (key) => f.chronicIllnesses?.[key]?.month ?? "  ";
-const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
-
+  const chronicMonth = (key) => f.chronicIllnesses?.[key]?.month ?? "  ";
+  const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -2059,9 +2058,9 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
       e) Contact Number :
     </div>
 
-<div class="insured-box-group phone-code">${charBoxHtml((f.contactNumber ?? "").slice(0,5), 5)}</div>
+<div class="insured-box-group phone-code">${charBoxHtml((f.contactNumber ?? "").slice(0, 5), 5)}</div>
 <span class="dash">-</span>
-<div class="insured-box-group phone-number">${charBoxHtml((f.contactNumber ?? "").slice(5,10) || (f.contactNumber ?? ""), 10)}</div>
+<div class="insured-box-group phone-number">${charBoxHtml((f.contactNumber ?? "").slice(5, 10) || (f.contactNumber ?? ""), 10)}</div>
 
   </div>
 
@@ -2116,12 +2115,12 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
       j) Currently do you have any other Mediclaim/Health Insurance :
     </div>
 
-    <span class="gender-box" style="${f.otherInsurance === 'yes' ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">
-  ${f.otherInsurance === 'yes' ? '✓' : ''}
+    <span class="gender-box" style="${f.otherInsurance === "yes" ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">
+  ${f.otherInsurance === "yes" ? "✓" : ""}
 </span>
 <span class="gender-text">Yes</span>
-<span class="gender-box" style="${f.otherInsurance === 'no' ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">
-  ${f.otherInsurance === 'no' ? '✓' : ''}
+<span class="gender-box" style="${f.otherInsurance === "no" ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">
+  ${f.otherInsurance === "no" ? "✓" : ""}
 </span>
 <span class="gender-text">No</span>
 
@@ -2158,12 +2157,12 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
       k) Do you have a family physician :
     </div>
 
-    <span class="gender-box" style="${f.hasFamilyPhysician === 'yes' ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">
-  ${f.hasFamilyPhysician === 'yes' ? '✓' : ''}
+    <span class="gender-box" style="${f.hasFamilyPhysician === "yes" ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">
+  ${f.hasFamilyPhysician === "yes" ? "✓" : ""}
 </span>
 <span class="gender-text">Yes</span>
-<span class="gender-box" style="${f.hasFamilyPhysician === 'no' ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">
-  ${f.hasFamilyPhysician === 'no' ? '✓' : ''}
+<span class="gender-box" style="${f.hasFamilyPhysician === "no" ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">
+  ${f.hasFamilyPhysician === "no" ? "✓" : ""}
 </span>
 <span class="gender-text">No</span>
 
@@ -2186,9 +2185,9 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
       m) Contact Number, if any :
     </div>
 
-    <div class="insured-box-group phone-code">${charBoxHtml((f.familyPhysicianContact ?? "").slice(0,5), 5)}</div>
+    <div class="insured-box-group phone-code">${charBoxHtml((f.familyPhysicianContact ?? "").slice(0, 5), 5)}</div>
 <span class="dash">-</span>
-<div class="insured-box-group phone-number">${charBoxHtml((f.familyPhysicianContact ?? "").slice(5,10) || (f.familyPhysicianContact ?? ""), 10)}</div>
+<div class="insured-box-group phone-number">${charBoxHtml((f.familyPhysicianContact ?? "").slice(5, 10) || (f.familyPhysicianContact ?? ""), 10)}</div>
 
   </div>
 
@@ -2240,7 +2239,7 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
 
     <span class="colon">:</span>
 
-<div class="treating-box-group phone-code">${charBoxHtml((f.treatingDoctorContact ?? "").slice(0,6), 6)}</div>
+<div class="treating-box-group phone-code">${charBoxHtml((f.treatingDoctorContact ?? "").slice(0, 6), 6)}</div>
 <span class="dash">-</span>
 <div class="treating-box-group phone-number">${charBoxHtml((f.treatingDoctorContact ?? "").slice(6) || (f.treatingDoctorContact ?? ""), 12)}</div>
   </div>
@@ -2290,11 +2289,11 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
       Date of first consultation :
     </div>
 
-    <div class="treating-box-group date-box">${charBoxHtml((f.firstConsultationDate ?? "").slice(0,2), 2)}</div>
+    <div class="treating-box-group date-box">${charBoxHtml((f.firstConsultationDate ?? "").slice(0, 2), 2)}</div>
 <span class="slash">/</span>
-<div class="treating-box-group date-box">${charBoxHtml((f.firstConsultationDate ?? "").slice(2,4), 2)}</div>
+<div class="treating-box-group date-box">${charBoxHtml((f.firstConsultationDate ?? "").slice(2, 4), 2)}</div>
 <span class="slash">/</span>
-<div class="treating-box-group year-box">${charBoxHtml((f.firstConsultationDate ?? "").slice(4,8), 4)}</div>
+<div class="treating-box-group year-box">${charBoxHtml((f.firstConsultationDate ?? "").slice(4, 8), 4)}</div>
 
 
     <span class="date-format">(DD/MM/YYYY)</span>
@@ -2349,13 +2348,13 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
     g) Proposed line of treatment :
   </div>
 
-  <span class="square-box" style="${f.proposedMedical ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedMedical ? '✓' : ''}</span>
+  <span class="square-box" style="${f.proposedMedical ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">${f.proposedMedical ? "✓" : ""}</span>
 <span class="treating-option">Medical Management</span>
-<span class="square-box" style="${f.proposedSurgical ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedSurgical ? '✓' : ''}</span>
+<span class="square-box" style="${f.proposedSurgical ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">${f.proposedSurgical ? "✓" : ""}</span>
 <span class="treating-option">Surgical Management</span>
-<span class="square-box" style="${f.proposedIntensiveCare ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedIntensiveCare ? '✓' : ''}</span>
+<span class="square-box" style="${f.proposedIntensiveCare ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">${f.proposedIntensiveCare ? "✓" : ""}</span>
 <span class="treating-option">Intensive care</span>
-<span class="square-box" style="${f.proposedInvestigation ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedInvestigation ? '✓' : ''}</span>
+<span class="square-box" style="${f.proposedInvestigation ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">${f.proposedInvestigation ? "✓" : ""}</span>
 <span class="treating-option">Investigation</span>
 
 
@@ -2364,7 +2363,7 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
 <!-- non allopathic -->
 <div class="treating-row treatment-sub-row">
 
- <span class="square-box" style="${f.proposedNonAllopathic ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.proposedNonAllopathic ? '✓' : ''}</span>
+ <span class="square-box" style="${f.proposedNonAllopathic ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">${f.proposedNonAllopathic ? "✓" : ""}</span>
 <span class="treating-option">Non allopathic treatment</span>
 
 
@@ -2460,9 +2459,9 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
   </div>
 
   <span class="square-box"></span>
-  <span class="square-box" style="${f.isRta ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.isRta ? '✓' : ''}</span>
+  <span class="square-box" style="${f.isRta ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">${f.isRta ? "✓" : ""}</span>
 <span class="treating-option">Yes</span>
-<span class="square-box" style="${!f.isRta && f.isRta !== undefined && f.isRta !== null ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}"></span>
+<span class="square-box" style="${!f.isRta && f.isRta !== undefined && f.isRta !== null ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}"></span>
 <span class="treating-option">No</span>
 
 
@@ -2470,11 +2469,11 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
     ii) Date of injury :
   </div>
 
-  <div class="treating-box-group date-group">${charBoxHtml((f.dateOfInjury ?? "").slice(0,2), 2)}</div>
+  <div class="treating-box-group date-group">${charBoxHtml((f.dateOfInjury ?? "").slice(0, 2), 2)}</div>
 <span class="slash">/</span>
-<div class="treating-box-group date-group">${charBoxHtml((f.dateOfInjury ?? "").slice(2,4), 2)}</div>
+<div class="treating-box-group date-group">${charBoxHtml((f.dateOfInjury ?? "").slice(2, 4), 2)}</div>
 <span class="slash">/</span>
-<div class="treating-box-group year-group">${charBoxHtml((f.dateOfInjury ?? "").slice(4,8), 4)}</div>
+<div class="treating-box-group year-group">${charBoxHtml((f.dateOfInjury ?? "").slice(4, 8), 4)}</div>
 
 
   <span class="date-note">(DD/MM/YYYY)</span>
@@ -2594,11 +2593,11 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
         a) Date of Admission :
       </span>
 
-      <div class="admission-date-group">${charBoxHtml((f.admissionDate ?? "").slice(0,2), 2)}</div>
+      <div class="admission-date-group">${charBoxHtml((f.admissionDate ?? "").slice(0, 2), 2)}</div>
 <span class="slash">/</span>
-<div class="admission-date-group">${charBoxHtml((f.admissionDate ?? "").slice(2,4), 2)}</div>
+<div class="admission-date-group">${charBoxHtml((f.admissionDate ?? "").slice(2, 4), 2)}</div>
 <span class="slash">/</span>
-<div class="admission-year-group">${charBoxHtml((f.admissionDate ?? "").slice(4,8), 4)}</div>
+<div class="admission-year-group">${charBoxHtml((f.admissionDate ?? "").slice(4, 8), 4)}</div>
 
 
       <span class="admission-note">(DD/MM/YYYY)</span>
@@ -2610,9 +2609,9 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
         b) Time of Admission :
       </span>
 
-      <div class="admission-time-group">${charBoxHtml((f.admissionTime ?? "").slice(0,2), 2)}</div>
+      <div class="admission-time-group">${charBoxHtml((f.admissionTime ?? "").slice(0, 2), 2)}</div>
 <span class="colon">:</span>
-<div class="admission-time-group">${charBoxHtml((f.admissionTime ?? "").slice(2,4), 2)}</div>
+<div class="admission-time-group">${charBoxHtml((f.admissionTime ?? "").slice(2, 4), 2)}</div>
 
 
       <span class="admission-note">(HH:MM)</span>
@@ -2629,9 +2628,9 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
     </span>
 
     <span class="square-box"></span>
-    <span class="square-box" style="${f.isEmergency ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.isEmergency ? '✓' : ''}</span>
+    <span class="square-box" style="${f.isEmergency ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">${f.isEmergency ? "✓" : ""}</span>
 <span class="admission-option">Emergency</span>
-<span class="square-box" style="${f.isPlanned ? 'background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;' : ''}">${f.isPlanned ? '✓' : ''}</span>
+<span class="square-box" style="${f.isPlanned ? "background:#1565C0;color:#fff;font-size:14px;display:inline-flex;align-items:center;justify-content:center;" : ""}">${f.isPlanned ? "✓" : ""}</span>
 <span class="admission-option">Planned</span>
 
 
@@ -2797,8 +2796,8 @@ const chronicYear = (key) => f.chronicIllnesses?.[key]?.year ?? "  ";
 
     <div class="chronic-right-section">
 
-      <div class="month-box-group">${charBoxHtml(chronicMonth('diabetes'), 2)}</div>
-<div class="year-box-group">${charBoxHtml(chronicYear('diabetes'), 2)}</div>
+      <div class="month-box-group">${charBoxHtml(chronicMonth("diabetes"), 2)}</div>
+<div class="year-box-group">${charBoxHtml(chronicYear("diabetes"), 2)}</div>
 
       <span class="month-note">(MM/YY)</span>
 

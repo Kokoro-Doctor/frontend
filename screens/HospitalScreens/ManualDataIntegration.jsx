@@ -119,12 +119,6 @@ const ManualDataIntegration = ({ navigation, route }) => {
   const [patientDocs, setPatientDocs] = useState({ ...EMPTY_PATIENT_DOCS });
   const [docsUploading, setDocsUploading] = useState(false);
 
-  // ── Excel Upload State ──
-  const [uploadFile, setUploadFile] = useState(null);
-  const [uploadStatus, setUploadStatus] = useState("idle");
-  const [uploadResult, setUploadResult] = useState(null);
-  const [uploadError, setUploadError] = useState("");
-
   // ── Doctor List View State ──
   const [showDoctorList, setShowDoctorList] = useState(false);
   const [doctorList, setDoctorList] = useState([]);
@@ -217,105 +211,6 @@ const ManualDataIntegration = ({ navigation, route }) => {
   // ─────────────────────────────────────────────
   const removeDoc = (docKey) => {
     setPatientDocs((prev) => ({ ...prev, [docKey]: null }));
-  };
-
-  // ─────────────────────────────────────────────
-  // FILE PICKER  (web only — Excel)
-  // ─────────────────────────────────────────────
-  const openFilePicker = () => {
-    if (Platform.OS === "web") {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".xlsx,.csv";
-      input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          setUploadFile(file);
-          setUploadStatus("idle");
-          setUploadError("");
-          setUploadResult(null);
-
-          try {
-            if (file.name.endsWith(".csv")) {
-              const text = await file.text();
-              const lines = text.split("\n").filter((l) => l.trim().length > 0);
-              const count = Math.max(0, lines.length - 1);
-              setUploadResult((prev) => ({ ...prev, total_patients: count }));
-            } else {
-              const count = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                  const binary = ev.target.result;
-                  const matches = binary.match(/<row /g);
-                  resolve(matches ? Math.max(0, matches.length - 1) : null);
-                };
-                reader.onerror = () => resolve(null);
-                reader.readAsBinaryString(file);
-              });
-              setUploadResult((prev) => ({ ...prev, total_patients: count }));
-            }
-          } catch (_) {}
-        }
-      };
-      input.click();
-    }
-  };
-
-  // ─────────────────────────────────────────────
-  // EXCEL UPLOAD API
-  // ─────────────────────────────────────────────
-  const handleExcelUpload = async () => {
-    if (!uploadFile) {
-      setUploadError("Please select an Excel file first.");
-      return;
-    }
-
-    const docId = selectedDoctor?.doctor_id || selectedDoctor?.id;
-    if (!docId) {
-      setUploadError("No doctor selected.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("doctor_id", docId);
-    formData.append("file", uploadFile);
-
-    try {
-      setUploadStatus("uploading");
-      setUploadError("");
-
-      const res = await fetch(`${API_URL}/hospitals/staff/import-patients`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const text = await res.text();
-
-      if (res.status === 202 || res.ok) {
-        const data = JSON.parse(text);
-        setUploadResult((prev) => ({
-          total_patients: prev?.total_patients ?? null,
-          staging_id: data.staging_id,
-          eta_hours: data.eta_hours ?? 24,
-          message: data.message,
-          successfully_added: data.successfully_added ?? null,
-          error_count: data.error_count ?? 0,
-          doctor_imported: data.doctor_imported ?? null,
-        }));
-        setUploadStatus("success");
-        setUploadFile(null);
-      } else {
-        let msg = `Upload failed (${res.status})`;
-        try {
-          const err = JSON.parse(text);
-          msg = err.message || err.error || msg;
-        } catch (_) {}
-        throw new Error(msg);
-      }
-    } catch (err) {
-      setUploadStatus("error");
-      setUploadError(err.message || "Upload failed. Please try again.");
-    }
   };
 
   // ─────────────────────────────────────────────
@@ -776,9 +671,11 @@ const ManualDataIntegration = ({ navigation, route }) => {
               // If a file is already chosen, tapping the box re-opens picker
               // (cancel button handles removal separately)
               if (!isUploading) {
-                Platform.OS === "web"
-                  ? openDocPicker(cfg.key)
-                  : openDocPickerMobile(cfg.key);
+                if (Platform.OS === "web") {
+                  openDocPicker(cfg.key);
+                } else {
+                  openDocPickerMobile(cfg.key);
+                }
               }
             }}
             activeOpacity={0.8}
@@ -847,281 +744,6 @@ const ManualDataIntegration = ({ navigation, route }) => {
           </TouchableOpacity>
         );
       })}
-    </View>
-  );
-
-  // ─────────────────────────────────────────────
-  // EXCEL UPLOAD SECTION — WEB
-  // ─────────────────────────────────────────────
-  const renderWebExcelSection = () => (
-    <View style={styles.excelSection}>
-      <Text style={styles.excelSectionTitle}>
-        Adding many patients? Upload via Excel for faster entry
-      </Text>
-
-      <Text style={styles.excelUploadHeading}>Excel Upload</Text>
-
-      {uploadStatus !== "success" ? (
-        <>
-          <TouchableOpacity
-            style={styles.excelDropzone}
-            onPress={openFilePicker}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.excelUploadIcon}>⬆</Text>
-            <Text style={styles.excelDropText}>
-              Upload patient list (.xlsx or .csv){" "}
-              <Text style={styles.excelClickHere}>Click here</Text>
-            </Text>
-            {uploadFile && (
-              <Text style={styles.excelFileName}>📄 {uploadFile.name}</Text>
-            )}
-          </TouchableOpacity>
-
-          {uploadStatus === "error" && (
-            <View style={styles.excelErrorBanner}>
-              <Text style={styles.excelErrorText}>⚠️ {uploadError}</Text>
-            </View>
-          )}
-
-          <View style={styles.excelActionsRow}>
-            <TouchableOpacity
-              style={[
-                styles.excelUploadBtn,
-                (!uploadFile || uploadStatus === "uploading") && {
-                  opacity: 0.5,
-                },
-              ]}
-              onPress={handleExcelUpload}
-              disabled={!uploadFile || uploadStatus === "uploading"}
-            >
-              {uploadStatus === "uploading" ? (
-                <View
-                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-                >
-                  <ActivityIndicator color="#fff" size="small" />
-                  <Text style={styles.excelUploadBtnText}>Uploading...</Text>
-                </View>
-              ) : (
-                <Text style={styles.excelUploadBtnText}>Upload File</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.excelTemplateBox}>
-              <TouchableOpacity style={styles.excelTemplateBtn}>
-                <Text style={styles.excelTemplateBtnText}>
-                  Download Template
-                </Text>
-              </TouchableOpacity>
-              <Text style={styles.excelTemplateHint}>
-                Not sure of format? Download our template first
-              </Text>
-            </View>
-          </View>
-        </>
-      ) : (
-        <>
-          <View style={styles.excelSuccessBox}>
-            <Text style={styles.excelSuccessCheckmark}>✓</Text>
-            <Text style={styles.excelSuccessLabel}>Upload done</Text>
-          </View>
-
-          <View style={styles.excelStatsRow}>
-            <View style={[styles.excelStatCard, styles.excelStatCardNeutral]}>
-              <Text style={styles.excelStatNumber}>
-                {uploadResult?.total_patients ?? "—"}
-              </Text>
-              <Text style={[styles.excelStatLabel, { color: "#6B7280" }]}>
-                Total Patient
-              </Text>
-            </View>
-            <View style={[styles.excelStatCard, styles.excelStatCardSuccess]}>
-              <Text style={[styles.excelStatNumber, { color: "#16A34A" }]}>
-                {uploadResult?.successfully_added ?? "—"}
-              </Text>
-              <Text style={[styles.excelStatLabel, { color: "#16A34A" }]}>
-                Successfully added
-              </Text>
-            </View>
-            <View style={[styles.excelStatCard, styles.excelStatCardError]}>
-              <Text style={[styles.excelStatNumber, { color: "#DC2626" }]}>
-                {uploadResult?.error_count ?? 0}
-              </Text>
-              <Text style={[styles.excelStatLabel, { color: "#DC2626" }]}>
-                Error detected
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.excelEtaNote}>
-            📋 Staging ID: {uploadResult?.staging_id} · Data live within{" "}
-            {uploadResult?.eta_hours ?? 24}h
-          </Text>
-
-          <TouchableOpacity
-            style={styles.excelSaveDoneBtn}
-            onPress={handlePatientSaveDone}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.excelSaveDoneBtnText}>Save & Done</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => {
-              setUploadStatus("idle");
-              setUploadResult(null);
-              setUploadError("");
-            }}
-            style={{ marginTop: 12 }}
-          >
-            <Text style={styles.excelUploadAnother}>Upload another file</Text>
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
-  );
-
-  // ─────────────────────────────────────────────
-  // EXCEL UPLOAD SECTION — MOBILE
-  // ─────────────────────────────────────────────
-  const renderMobileExcelSection = () => (
-    <View style={styles.mobileExcelSection}>
-      <Text style={styles.mobileExcelTitle}>
-        Adding many patients? Upload via Excel for faster entry
-      </Text>
-
-      <Text style={styles.excelUploadHeading}>Excel Upload</Text>
-
-      {uploadStatus !== "success" ? (
-        <>
-          <TouchableOpacity
-            style={styles.mobileExcelDropzone}
-            onPress={openFilePicker}
-            activeOpacity={0.8}
-          >
-            <Text style={{ fontSize: 32, color: "#2563EB", marginBottom: 8 }}>
-              ⬆
-            </Text>
-            <Text style={styles.mobileExcelDropText}>
-              Upload patient list (.xlsx or .csv){" "}
-              <Text style={styles.excelClickHere}>Click here</Text>
-            </Text>
-            {uploadFile && (
-              <Text style={styles.excelFileName}>📄 {uploadFile.name}</Text>
-            )}
-          </TouchableOpacity>
-
-          {uploadStatus === "error" && (
-            <View style={styles.excelErrorBanner}>
-              <Text style={styles.excelErrorText}>⚠️ {uploadError}</Text>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={[
-              styles.mobilePrimaryBtn,
-              (!uploadFile || uploadStatus === "uploading") && { opacity: 0.5 },
-            ]}
-            onPress={handleExcelUpload}
-            disabled={!uploadFile || uploadStatus === "uploading"}
-          >
-            {uploadStatus === "uploading" ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  justifyContent: "center",
-                }}
-              >
-                <ActivityIndicator color="#fff" size="small" />
-                <Text style={styles.mobileBtnText}>Uploading...</Text>
-              </View>
-            ) : (
-              <Text style={styles.mobileBtnText}>Upload Excel File</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.mobileTemplateBtn}>
-            <Text style={styles.mobileTemplateBtnText}>Download Template</Text>
-          </TouchableOpacity>
-          <Text style={[styles.excelTemplateHint, { marginBottom: 8 }]}>
-            Not sure of format? Download our template first
-          </Text>
-        </>
-      ) : (
-        <>
-          <View style={styles.mobileExcelSuccessBox}>
-            <Text style={styles.excelSuccessCheckmark}>✓</Text>
-            <Text style={styles.excelSuccessLabel}>Upload done</Text>
-          </View>
-
-          <View style={styles.mobileExcelStatsRow}>
-            <View
-              style={[styles.mobileExcelStatCard, styles.excelStatCardNeutral]}
-            >
-              <Text style={styles.mobileExcelStatNumber}>
-                {uploadResult?.doctor_imported ?? "—"}
-              </Text>
-              <Text style={[styles.mobileExcelStatLabel, { color: "#374151" }]}>
-                Doctor{"\n"}Imported
-              </Text>
-            </View>
-            <View
-              style={[styles.mobileExcelStatCard, styles.excelStatCardSuccess]}
-            >
-              <Text
-                style={[styles.mobileExcelStatNumber, { color: "#16A34A" }]}
-              >
-                {uploadResult?.total_patients ?? "—"}
-              </Text>
-              <Text style={[styles.mobileExcelStatLabel, { color: "#16A34A" }]}>
-                patients{"\n"}records
-              </Text>
-            </View>
-            <View
-              style={[styles.mobileExcelStatCard, styles.excelStatCardError]}
-            >
-              <Text
-                style={[styles.mobileExcelStatNumber, { color: "#DC2626" }]}
-              >
-                {uploadResult?.error_count ?? 0}
-              </Text>
-              <Text style={[styles.mobileExcelStatLabel, { color: "#DC2626" }]}>
-                Error{"\n"}detected
-              </Text>
-            </View>
-          </View>
-
-          <Text
-            style={[
-              styles.excelEtaNote,
-              { textAlign: "center", marginBottom: 16 },
-            ]}
-          >
-            Data will be live within {uploadResult?.eta_hours ?? 24}h
-          </Text>
-
-          <TouchableOpacity
-            style={styles.mobileSaveDoneBtn}
-            onPress={handlePatientSaveDone}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.mobileBtnText}>Save & Done</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => {
-              setUploadStatus("idle");
-              setUploadResult(null);
-              setUploadError("");
-            }}
-            style={{ marginTop: 12, alignItems: "center" }}
-          >
-            <Text style={styles.excelUploadAnother}>Upload another file</Text>
-          </TouchableOpacity>
-        </>
-      )}
     </View>
   );
 
@@ -1488,8 +1110,6 @@ const ManualDataIntegration = ({ navigation, route }) => {
                           </TouchableOpacity>
                         </View>
 
-                        {/* ── EXCEL UPLOAD (WEB) ── */}
-                        {renderWebExcelSection()}
                       </View>
                     </ScrollView>
                   ) : showDoctorList ? (
@@ -1615,9 +1235,6 @@ const ManualDataIntegration = ({ navigation, route }) => {
                                     onPress={() => {
                                       setLastSaved(false);
                                       setSelectedDoctor(doc);
-                                      setUploadStatus("idle");
-                                      setUploadResult(null);
-                                      setUploadFile(null);
                                       setPatientDocs({ ...EMPTY_PATIENT_DOCS });
                                       setShowPatientForm(true);
                                     }}
@@ -2154,8 +1771,6 @@ const ManualDataIntegration = ({ navigation, route }) => {
                   )}
                 </TouchableOpacity>
 
-                {/* ── EXCEL UPLOAD (MOBILE) ── */}
-                {renderMobileExcelSection()}
               </>
             ) : !showDoctorList ? (
               /* ── MOBILE DOCTOR FORM ── */
@@ -2395,9 +2010,6 @@ const ManualDataIntegration = ({ navigation, route }) => {
                       onPress={() => {
                         setLastSaved(false);
                         setSelectedDoctor(doc);
-                        setUploadStatus("idle");
-                        setUploadResult(null);
-                        setUploadFile(null);
                         setPatientDocs({ ...EMPTY_PATIENT_DOCS });
                         setShowPatientForm(true);
                       }}
