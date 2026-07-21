@@ -36,6 +36,7 @@ import PreAuthMediAssistFormAContent from "../../components/HospitalPortalCompon
 import { mapToFormA, mapToFormB } from "../../utils/PreAuthMediAssistMapper";
 import {
   downloadMediAssistFormA,
+  downloadMediAssistFormAPage2,
   generateMediAssistFormAHTML,
   generateMediAssistFormAPage2HTML,
 } from "../../utils/PreAuthMediAssistFormA";
@@ -161,7 +162,11 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
     if (isDownloading) return;
     setIsDownloading(true);
     try {
-      await downloadMediAssistFormA(formA, signatureA);
+      if (currentStep === 0) {
+        await downloadMediAssistFormA(formA, signatureA);
+      } else {
+        await downloadMediAssistFormAPage2(formA, signatureA);
+      }
     } catch {
       Alert.alert(
         "Download Error",
@@ -498,7 +503,9 @@ export default function PreAuthMediAssistCombinedForms({ navigation, route }) {
                         {isProfileLoading ? (
                           <ActivityIndicator size="small" color="#0b0787ff" />
                         ) : (
-                          <Text style={stylesWeb.profileText}>Go to Profile</Text>
+                          <Text style={stylesWeb.profileText}>
+                            Go to Profile
+                          </Text>
                         )}
                       </TouchableOpacity>
                     </View>

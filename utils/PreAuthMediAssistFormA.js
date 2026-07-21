@@ -2636,3 +2636,84 @@ export async function downloadMediAssistFormA(form, signatureDataUrl = null) {
     Alert.alert("Saved", `PDF saved to:\n${destUri}`);
   }
 }
+
+export async function downloadMediAssistFormAPage2(
+  form,
+  signatureDataUrl = null,
+) {
+  const patientName =
+    String(form?.primaryName ?? "")
+      .trim()
+      .replace(/\s+/g, "_") || "Patient";
+  const date = new Date().toISOString().split("T")[0];
+  const fileName = `MediAssistFormA_InsuranceClaim_Page2_${patientName}_${date}.pdf`;
+  const html = generateMediAssistFormAPage2HTML(form, signatureDataUrl);
+
+  if (Platform.OS === "web") {
+    const html2pdf = (await import("html2pdf.js")).default;
+
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(html, "text/html");
+    const styleEl = parsed.querySelector("style");
+    const rootEl = parsed.querySelector(".page");
+
+    if (!styleEl || !rootEl)
+      throw new Error("HTML template missing style or .page");
+
+    const injStyle = document.createElement("style");
+    injStyle.setAttribute("data-ins-pdf", "1");
+    injStyle.textContent = styleEl.textContent;
+    document.head.appendChild(injStyle);
+
+    const host = document.createElement("div");
+    host.setAttribute("data-ins-pdf", "1");
+    host.style.cssText =
+      "position:fixed;left:-9999px;top:0;width:210mm;background:#fff;";
+    host.appendChild(document.importNode(rootEl, true));
+    document.body.appendChild(host);
+
+    try {
+      await new Promise((res) =>
+        requestAnimationFrame(() => requestAnimationFrame(res)),
+      );
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: fileName,
+          image: { type: "png", quality: 1 },
+          html2canvas: {
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+          },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(host.firstElementChild)
+        .save(fileName);
+    } finally {
+      injStyle.remove();
+      host.remove();
+    }
+    return;
+  }
+
+  const { uri } = await Print.printToFileAsync({ html });
+  const destDir =
+    FileSystem["documentDirectory"] ?? FileSystem["cacheDirectory"] ?? "";
+  const destUri = destDir + fileName;
+  await FileSystem.copyAsync({ from: uri, to: destUri });
+  try {
+    await FileSystem.deleteAsync(uri, { idempotent: true });
+  } catch (_) {}
+
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(destUri, {
+      mimeType: "application/pdf",
+      dialogTitle: "Save or Share Insurance Claim PDF",
+      UTI: "com.adobe.pdf",
+    });
+  } else {
+    Alert.alert("Saved", `PDF saved to:\n${destUri}`);
+  }
+}
