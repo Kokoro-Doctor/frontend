@@ -271,18 +271,21 @@ export const extractStructuredData = async (files) => {
         const responseText = await response.text();
 
         if (!response.ok) {
-            let errorDetail = responseText;
+            let errorData = {};
             try {
-                const errorJson = JSON.parse(responseText);
-                errorDetail = errorJson.detail || errorJson.message || JSON.stringify(errorJson);
+                errorData = responseText ? JSON.parse(responseText) : {};
             } catch (_) {
-                // responseText wasn't JSON, use as-is
+                errorData = { detail: responseText };
             }
-            console.error("[Medilocker] extractStructuredData error", {
-                status: response.status,
-                errorDetail,
-            });
-            throw new Error(`Extraction failed with status ${response.status}: ${errorDetail}`);
+
+            const detail = errorData.detail || errorData.message;
+            const message = detail
+                ? `Extraction failed: ${detail}`
+                : `Extraction failed with status ${response.status}`;
+            const error = new Error(message);
+            error.status = response.status;
+            error.details = errorData;
+            throw error;
         }
 
         let data;
@@ -295,6 +298,6 @@ export const extractStructuredData = async (files) => {
         }
 
     } catch (err) {
-        throw new Error(`Error: ${err.message}`);
+        throw err instanceof Error ? err : new Error(`Error: ${err}`);
     }
 };

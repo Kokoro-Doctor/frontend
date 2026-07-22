@@ -344,7 +344,6 @@ import {
   ImageBackground,
   StyleSheet,
   View,
-  Dimensions,
   Platform,
   TouchableOpacity,
   useWindowDimensions,
@@ -382,155 +381,77 @@ const DoctorsSubscribers = ({ navigation }) => {
     }, [setChatbotConfig])
   );
 
-  useEffect(() => {
-    console.log("🧠 Auth user from context:", user);
-    console.log("🩺 Derived doctorId:", doctorId);
+  const fetchSubscribers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
+      const response = await fetch(
+        `${API_URL}/booking/doctors/${doctorId}/patients`
+      );
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          payload.detail ||
+            payload.message ||
+            `Request failed (${response.status})`
+        );
+      }
+
+      if (!Array.isArray(payload.patients)) {
+        throw new Error("Invalid patient data received");
+      }
+
+      const patients = payload.patients
+        .map(({ user: userProfile, relation }) => {
+          const userId = userProfile?.user_id || relation?.user_id;
+          if (!userId) return null;
+
+          const linkedAt = relation?.created_at || relation?.updated_at;
+          return {
+            user_id: userId,
+            name:
+              userProfile?.name ||
+              userProfile?.full_name ||
+              userProfile?.username ||
+              "Unknown",
+            age: userProfile?.age ?? "-",
+            gender: userProfile?.gender ?? "-",
+            condition: userProfile?.condition ?? "-",
+            image: userProfile?.profile_image ?? null,
+            status: relation?.status || "ACTIVE",
+            relationType: relation?.relation_type || "-",
+            date: linkedAt ? linkedAt.split("T")[0] : "-",
+            time: userProfile?.preferred_time || "-",
+          };
+        })
+        .filter(Boolean);
+
+      setSubscribers(patients);
+    } catch (error) {
+      console.error("Failed to load doctor patients:", error);
+      setSubscribers([]);
+      setError(error.message || "Failed to load patients");
+    } finally {
+      setLoading(false);
+    }
+  }, [doctorId]);
+
+  useEffect(() => {
     if (!doctorId) {
-      console.warn("❌ doctorId not available yet");
-      setLoading(false); // FIX: Stop loading if no doctorId
+      setLoading(false);
       setError("Doctor ID not available");
       return;
     }
 
     fetchSubscribers();
-  }, [doctorId]);
+  }, [doctorId, fetchSubscribers]);
 
-  const fetchSubscribers = async () => {
-    try {
-      setLoading(true);
-      setError(null); // Clear previous errors
-
-      console.log("🚀 Fetching subscribers for doctor:", doctorId);
-      console.log(
-        "📡 URL:",
-        `${API_URL}/booking/doctors/${doctorId}/subscribers`
-      );
-
-      // 1️⃣ Fetch subscriptions
-      const subRes = await fetch(
-        `${API_URL}/booking/doctors/${doctorId}/subscribers`
-      );
-
-      console.log("📥 Subscription response status:", subRes.status);
-
-      // FIX: Check if response is OK
-      if (!subRes.ok) {
-        throw new Error(`HTTP error! status: ${subRes.status}`);
-      }
-
-      const subscriptions = await subRes.json();
-      console.log("📦 Raw subscriptions response:", subscriptions);
-
-      // FIX: Handle different response formats
-      let subsArray = subscriptions;
-      if (subscriptions.data && Array.isArray(subscriptions.data)) {
-        subsArray = subscriptions.data;
-      } else if (
-        subscriptions.subscriptions &&
-        Array.isArray(subscriptions.subscriptions)
-      ) {
-        subsArray = subscriptions.subscriptions;
-      }
-
-      if (!Array.isArray(subsArray)) {
-        console.error("❌ Subscriptions is NOT an array:", subscriptions);
-        setSubscribers([]);
-        setError("Invalid data format received");
-        return;
-      }
-
-      console.log("✅ Total subscriptions:", subsArray.length);
-
-      // FIX: Handle empty array
-      if (subsArray.length === 0) {
-        console.log("ℹ️ No subscriptions found");
-        setSubscribers([]);
-        return;
-      }
-
-      // 2️⃣ Fetch user details
-      const usersWithDetails = await Promise.all(
-        subsArray.map(async (sub) => {
-          try {
-            console.log("👤 Fetching user for user_id:", sub.user_id);
-
-            const userRes = await fetch(`${API_URL}/users/${sub.user_id}`);
-
-            if (!userRes.ok) {
-              console.warn(
-                `⚠️ Failed to fetch user ${sub.user_id}: ${userRes.status}`
-              );
-              return null;
-            }
-
-            const userData = await userRes.json();
-            console.log("✅ User data received:", userData);
-
-            const userProfile = userData.user || userData;
-
-            return {
-              user_id: sub.user_id,
-              name:
-                userProfile.name ||
-                userProfile.full_name ||
-                userProfile.username ||
-                "Unknown",
-              age: userProfile.age ?? "-",
-              gender: userProfile.gender ?? "-",
-              condition: userProfile.condition ?? "-",
-              image: userProfile.profile_image ?? null,
-              status: sub.status,
-              date: sub.start_date ? sub.start_date.split("T")[0] : "-",
-              time: userProfile.preferred_time || "-",
-            };
-          } catch (err) {
-            console.error(
-              "❌ Failed to fetch user details for:",
-              sub.user_id,
-              err
-            );
-            return null;
-          }
-        })
-      );
-
-      // Merge duplicates by user_id
-      const mergedUsers = [];
-      const userMap = {};
-
-      usersWithDetails.filter(Boolean).forEach((user) => {
-        if (userMap[user.user_id]) {
-          // merge statuses if user already exists
-          const existing = userMap[user.user_id];
-          existing.status = Array.from(
-            new Set([...existing.status.split(", "), user.status])
-          ).join(", ");
-        } else {
-          userMap[user.user_id] = { ...user };
-        }
-      });
-
-      for (const key in userMap) {
-        mergedUsers.push(userMap[key]);
-      }
-
-      console.log("🎯 Final merged subscribers:", mergedUsers);
-      setSubscribers(mergedUsers);
-    } catch (error) {
-      console.error("🔥 Error in fetchSubscribers:", error);
-      setError(error.message || "Failed to load subscribers");
-    } finally {
-      console.log("✅ fetchSubscribers completed");
-      setLoading(false);
-    }
-  };
-
-  // Filter subscribers based on search
+  // Filter connected patients based on search
+  const searchTerm = (searchText || searchQuery).trim().toLowerCase();
   const filteredSubscribers = subscribers.filter(
-    (sub) =>
-      sub.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      sub.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (patient) => patient.name.toLowerCase().includes(searchTerm)
   );
 
   return (
@@ -554,7 +475,7 @@ const DoctorsSubscribers = ({ navigation }) => {
                   <View style={styles.contentContainer}>
                     <View style={styles.upperPart}>
                       <View style={styles.headingRow}>
-                        <Text style={styles.containerText}>Your Subscribers</Text>
+                        <Text style={styles.containerText}>Your Patients</Text>
                       </View>
                       <View style={styles.upperBox}>
                         <View style={styles.SearchBox}>
@@ -579,7 +500,7 @@ const DoctorsSubscribers = ({ navigation }) => {
                           <Text
                             style={{ textAlign: "center", marginTop: "2%" }}
                           >
-                            Loading subscribers...
+                            Loading patients...
                           </Text>
                         ) : error ? (
                           <View style={styles.lowerCenterSection}>
@@ -614,8 +535,8 @@ const DoctorsSubscribers = ({ navigation }) => {
                             />
                             <Text style={styles.inviteSubscriberText}>
                               {searchText
-                                ? "No matching subscribers found"
-                                : "No subscribers found"}
+                                ? "No matching patients found"
+                                : "No patients found"}
                             </Text>
                           </View>
                         )}
@@ -635,7 +556,7 @@ const DoctorsSubscribers = ({ navigation }) => {
             <HeaderLoginSignUp navigation={navigation} isDoctorPortal={true} />
           </View>
           <View style={styles.appHeadingRow}>
-            <Text style={styles.appContainerText}>Your Subscribers</Text>
+            <Text style={styles.appContainerText}>Your Patients</Text>
           </View>
           <View style={{ flexDirection: "row" }}>
             <View
@@ -688,7 +609,7 @@ const DoctorsSubscribers = ({ navigation }) => {
             <ScrollView>
               {loading ? (
                 <Text style={{ textAlign: "center", marginTop: "2%" }}>
-                  Loading subscribers...
+                  Loading patients...
                 </Text>
               ) : error ? (
                 <View style={styles.appLowerCenterSection}>
@@ -723,8 +644,8 @@ const DoctorsSubscribers = ({ navigation }) => {
                   />
                   <Text style={styles.appInviteSubscriberText}>
                     {searchQuery
-                      ? "No matching subscribers found"
-                      : "No subscribers found"}
+                      ? "No matching patients found"
+                      : "No patients found"}
                   </Text>
                 </View>
               )}

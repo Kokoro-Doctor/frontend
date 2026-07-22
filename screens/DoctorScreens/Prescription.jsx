@@ -23,8 +23,21 @@ import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLo
 import BackButton from "../../components/PatientScreenComponents/BackButton";
 import { extractStructuredData } from "../../utils/MedilockerService";
 import * as DocumentPicker from "expo-document-picker";
+import { EncodingType, readAsStringAsync } from "expo-file-system/legacy";
 
 const { width, height } = Dimensions.get("window");
+const PRESCRIPTION_UPLOAD_ACCEPT =
+  ".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,.tif,.tiff,.bmp";
+const PRESCRIPTION_UPLOAD_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/heic",
+  "image/heif",
+  "image/webp",
+  "image/tiff",
+  "image/bmp",
+];
 
 const Prescription = ({ navigation, route }) => {
   const { width } = useWindowDimensions();
@@ -49,7 +62,7 @@ const Prescription = ({ navigation, route }) => {
       const input = document.createElement("input");
       input.type = "file";
       input.multiple = true;
-      input.accept = ".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt";
+      input.accept = PRESCRIPTION_UPLOAD_ACCEPT;
       input.style.display = "none";
 
       input.addEventListener("change", (e) => {
@@ -89,7 +102,7 @@ const Prescription = ({ navigation, route }) => {
     const result = await DocumentPicker.getDocumentAsync({
       multiple: true,
       copyToCacheDirectory: true,
-      type: "*/*", // Allow all file types
+      type: PRESCRIPTION_UPLOAD_TYPES,
     });
 
     if (!result.canceled) {
@@ -103,8 +116,7 @@ const Prescription = ({ navigation, route }) => {
     }
   };
 
-  // Convert File object to base64
-  const fileToBase64 = (file) => {
+  const readBlobAsBase64 = (blob, filename = "file") => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -120,104 +132,17 @@ const Prescription = ({ navigation, route }) => {
           );
           reject(
             new Error(`Failed to parse base64 result: ${parseError.message}`)
-            // try {
-            //   // Check if this is a mobile file (from DocumentPicker) or web file
-            //   if (file.uri) {
-            //     // Mobile file - use fetch to read from URI
-            //     console.log(
-            //       "[fileToBase64] Mobile file detected, reading from URI:",
-            //       file.uri
           );
-          //   fetch(file.uri)
-          //     .then((response) => response.blob())
-          //     .then((blob) => {
-          //       const reader = new FileReader();
-          //       reader.onload = () => {
-          //         try {
-          //           const result = reader.result;
-          //           const base64String = result.split(",")[1];
-          //           console.log(
-          //             "[fileToBase64] Mobile file converted successfully"
-          //           );
-          //           resolve(base64String);
-          //         } catch (parseError) {
-          //           console.error(
-          //             "[fileToBase64] Error parsing base64 result:",
-          //             parseError
-          //           );
-          //           reject(
-          //             new Error(
-          //               `Failed to parse base64 result: ${parseError.message}`
-          //             )
-          //           );
-          //         }
-          //       };
-          //       reader.onerror = (err) => {
-          //         console.error("[fileToBase64] FileReader error:", err);
-          //         reject(
-          //           new Error(
-          //             `Failed to read file "${file.name}": ${
-          //               err.message || "Unknown error"
-          //             }`
-          //           )
-          //         );
-          //       };
-          //       reader.readAsDataURL(blob);
-          //     })
-          //     .catch((fetchError) => {
-          //       console.error("[fileToBase64] Fetch error:", fetchError);
-          //       reject(
-          //         new Error(
-          //           `Failed to fetch file "${file.name}": ${fetchError.message}`
-          //         )
-          //       );
-          //     });
-          // } else {
-          //   // Web file - use FileReader directly
-          //   console.log("[fileToBase64] Web file detected");
-          //   const reader = new FileReader();
-          //   reader.onload = () => {
-          //     try {
-          //       const result = reader.result;
-          //       const base64String = result.split(",")[1];
-          //       console.log("[fileToBase64] Web file converted successfully");
-          //       resolve(base64String);
-          //     } catch (parseError) {
-          //       console.error(
-          //         "[fileToBase64] Error parsing base64 result:",
-          //         parseError
-          //       );
-          //       reject(
-          //         new Error(
-          //           `Failed to parse base64 result: ${parseError.message}`
-          //         )
-          //       );
-          //     }
-          //   };
-          //   reader.onerror = (err) => {
-          //     console.error("[fileToBase64] FileReader error:", {
-          //       error: err,
-          //       filename: file.name,
-          //     });
-          //     reject(
-          //       new Error(
-          //         `Failed to read file "${file.name}": ${
-          //           err.message || "Unknown error"
-          //         }`
-          //       )
-          //     );
-          //   };
-          //   reader.readAsDataURL(file);
         }
       };
       reader.onerror = (err) => {
         console.error("[fileToBase64] FileReader error:", {
           error: err,
-          filename: file.name,
+          filename,
         });
         reject(
           new Error(
-            `Failed to read file "${file.name}": ${
+            `Failed to read file "${filename}": ${
               err.message || "Unknown error"
             }`
           )
@@ -225,19 +150,53 @@ const Prescription = ({ navigation, route }) => {
       };
 
       try {
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(blob);
       } catch (readError) {
         console.error("[fileToBase64] Error starting file read:", readError);
         reject(
           new Error(
-            `Failed to start reading file "${file.name}": ${readError.message}`
+            `Failed to start reading file "${filename}": ${readError.message}`
           )
         );
-        // } catch (error) {
-        //   console.error("[fileToBase64] Unexpected error:", error);
-        //   reject(new Error(`Unexpected error: ${error.message}`));
       }
     });
+  };
+
+  // Convert web File/Blob or native DocumentPicker asset to base64.
+  const fileToBase64 = async (file) => {
+    if (!file) {
+      throw new Error("No file selected");
+    }
+
+    if (Platform.OS !== "web" && file.uri) {
+      try {
+        return await readAsStringAsync(file.uri, {
+          encoding: EncodingType.Base64,
+        });
+      } catch (fileSystemError) {
+        console.error("[fileToBase64] Native file read error:", {
+          error: fileSystemError,
+          filename: file.name,
+          uri: file.uri,
+        });
+        throw new Error(
+          `Failed to read file "${file.name}": ${fileSystemError.message}`
+        );
+      }
+    }
+
+    if (file.uri && typeof file.arrayBuffer !== "function") {
+      const response = await fetch(file.uri);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch file "${file.name}": ${response.status}`
+        );
+      }
+      const blob = await response.blob();
+      return readBlobAsBase64(blob, file.name);
+    }
+
+    return readBlobAsBase64(file, file.name);
   };
 
   const handleDrop = (e) => {
@@ -1648,26 +1607,11 @@ const stylesMobile = StyleSheet.create({
     fontWeight: "700",
     color: "#FF7072",
   },
-  metaText: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#eee",
-    marginVertical: 16,
-  },
   sectionLabel: {
     fontSize: 16,
     fontWeight: "600",
     color: "#FF7072",
     marginBottom: 8,
-  },
-  rxText: {
-    fontSize: 14,
-    color: "#444",
-    lineHeight: 22,
   },
   editBtn: {
     marginTop: 20,
