@@ -1837,7 +1837,10 @@ const PARequests = ({ navigation, route }) => {
           (c) => !existingProcIds.has(c.id),
         );
 
-        if (suggestedDiagCodes.length === 0 && suggestedProcCodes.length === 0) {
+        if (
+          suggestedDiagCodes.length === 0 &&
+          suggestedProcCodes.length === 0
+        ) {
           setAiError(
             "No ICD or procedure codes found in the uploaded pre-auth documents.",
           );
@@ -1852,7 +1855,9 @@ const PARequests = ({ navigation, route }) => {
       }
 
       if (!selectedPatient?.user_id) {
-        setAiError("Select a patient or run pre-auth from uploaded documents first.");
+        setAiError(
+          "Select a patient or run pre-auth from uploaded documents first.",
+        );
         return;
       }
 
@@ -2116,7 +2121,14 @@ const PARequests = ({ navigation, route }) => {
     if (hasAutoSelectedRef.current) return;
     if (!route?.params?.skipToStep2) return;
 
-    const passedPatient = route.params.preselectedPatient;
+    let passedPatient = route.params.preselectedPatient;
+    if (typeof passedPatient === "string") {
+      try {
+        passedPatient = JSON.parse(passedPatient);
+      } catch (err) {
+        console.warn("Failed to parse preselectedPatient route param:", err);
+      }
+    }
 
     const run = async (patientToUse) => {
       hasAutoSelectedRef.current = true;

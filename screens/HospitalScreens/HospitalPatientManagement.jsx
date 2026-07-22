@@ -245,7 +245,13 @@ const SelectRow = ({ label, value, options, onSelect, placeholder }) => {
   );
 };
 
-const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
+const AddPatientForm = ({
+  onSave,
+  onSaveAndAnother,
+  onSaveForPreAuth,
+  isMobile = false,
+  navigation,
+}) => {
   const [form, setForm] = useState({
     fullName: "",
     dob: "",
@@ -317,6 +323,105 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
     setPatientDocs((prev) => ({ ...prev, [docKey]: null }));
   };
 
+  const validateRequiredFields = () => {
+    if (!form.fullName.trim()) {
+      alert("Full name is required");
+      return false;
+    }
+    if (!form.phone.trim()) {
+      alert("Phone number is required");
+      return false;
+    }
+    if (!patientDocs.insurance?.file) {
+      alert("Insurance policy document is required");
+      return false;
+    }
+    if (!patientDocs.hospitalBill?.file) {
+      alert("Hospital bill document is required");
+      return false;
+    }
+    if (!patientDocs.prescription?.file) {
+      alert("Prescription document is required");
+      return false;
+    }
+    return true;
+  };
+
+  const buildSavedPatient = (response) => {
+    const responsePatient = response?.patient || response?.data?.patient || {};
+    const actualId =
+      responsePatient.user_id ||
+      responsePatient.patient_id ||
+      responsePatient.id ||
+      responsePatient._id ||
+      response?.user_id ||
+      response?.patient_id ||
+      generatedId;
+
+    return {
+      id: actualId,
+      user_id: actualId,
+      patient_id:
+        responsePatient.patient_id ||
+        responsePatient.id ||
+        response?.patient_id ||
+        actualId,
+      name: responsePatient.full_name || responsePatient.name || form.fullName,
+      age: form.dob
+        ? new Date().getFullYear() - parseInt(form.dob.slice(-4) || 2000)
+        : "—",
+      insurer:
+        responsePatient.insurer ||
+        responsePatient.insurance_provider ||
+        form.insurer ||
+        "—",
+      procedure: responsePatient.diagnosis || form.procedure || "—",
+      status: "Discharged",
+      claims: 0,
+      initials: getInitials(form.fullName),
+      dob: responsePatient.date_of_birth || form.dob,
+      gender: responsePatient.gender || form.gender,
+      policy:
+        responsePatient.policy_number || responsePatient.policy || form.policy,
+      policyNumber:
+        responsePatient.policy_number || responsePatient.policy || form.policy,
+      phone: responsePatient.phone || responsePatient.mobile || form.phone,
+      phoneNumber:
+        responsePatient.phone || responsePatient.mobile || form.phone,
+      admitted: responsePatient.admission_date || form.admissionDate,
+      discharged: "—",
+      hasClaim: false,
+      rawPatient: {
+        ...responsePatient,
+        id: actualId,
+        user_id: actualId,
+        patient_id:
+          responsePatient.patient_id ||
+          responsePatient.id ||
+          response?.patient_id ||
+          actualId,
+        full_name:
+          responsePatient.full_name || responsePatient.name || form.fullName,
+        name:
+          responsePatient.name || responsePatient.full_name || form.fullName,
+        phone: responsePatient.phone || responsePatient.mobile || form.phone,
+        date_of_birth: responsePatient.date_of_birth || form.dob,
+        gender: responsePatient.gender || form.gender,
+        policy_number:
+          responsePatient.policy_number ||
+          responsePatient.policy ||
+          form.policy,
+        insurer:
+          responsePatient.insurer ||
+          responsePatient.insurance_provider ||
+          form.insurer,
+        admission_date: responsePatient.admission_date || form.admissionDate,
+        diagnosis: responsePatient.diagnosis || form.procedure,
+        doctor_name: responsePatient.doctor_name || form.doctor,
+      },
+    };
+  };
+
   // ── API call (mirrors ManualDataIntegration.callAddPatientAPI)
   const callAddPatientAPI = async () => {
     const token =
@@ -376,115 +481,63 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
     return JSON.parse(text);
   };
 
-  const handleSave = async () => {
-    if (!form.fullName.trim()) {
-      alert("Full name is required");
-      return;
-    }
-    if (!form.phone.trim()) {
-      alert("Phone number is required");
-      return;
-    }
-    if (!patientDocs.insurance?.file) {
-      alert("Insurance policy document is required");
-      return;
-    }
-    if (!patientDocs.hospitalBill?.file) {
-      alert("Hospital bill document is required");
-      return;
-    }
-    if (!patientDocs.prescription?.file) {
-      alert("Prescription document is required");
-      return;
-    }
+  const persistPatient = async () => {
+    if (!validateRequiredFields()) return null;
 
     try {
       setIsSaving(true);
       const response = await callAddPatientAPI();
-      const savedPatient = {
-        id:
-          response?.patient?.patient_id || response?.patient_id || generatedId,
-        name: form.fullName,
-        age: form.dob
-          ? new Date().getFullYear() - parseInt(form.dob.slice(-4) || 2000)
-          : "—",
-        insurer: form.insurer || "—",
-        procedure: form.procedure || "—",
-        status: "Discharged",
-        claims: 0,
-        initials: getInitials(form.fullName),
-        dob: form.dob,
-        gender: form.gender,
-        policy: form.policy,
-        phone: form.phone,
-        admitted: form.admissionDate,
-        discharged: "—",
-        hasClaim: false,
-      };
+      const savedPatient = buildSavedPatient(response);
       setSavedName(form.fullName);
       setSavedMessage(savedPatient.id);
-      onSave(savedPatient);
+      return savedPatient;
     } catch (err) {
       alert(err.message);
+      return null;
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSave = async () => {
+    const savedPatient = await persistPatient();
+    if (!savedPatient) return;
+    onSave(savedPatient);
   };
 
   const handleSaveAnother = async () => {
-    if (!form.fullName.trim()) {
-      alert("Full name is required");
-      return;
-    }
-    if (!form.phone.trim()) {
-      alert("Phone number is required");
-      return;
-    }
-    if (!patientDocs.insurance?.file) {
-      alert("Insurance policy document is required");
-      return;
-    }
-    if (!patientDocs.hospitalBill?.file) {
-      alert("Hospital bill document is required");
-      return;
-    }
-    if (!patientDocs.prescription?.file) {
-      alert("Prescription document is required");
-      return;
-    }
+    const savedPatient = await persistPatient();
+    if (!savedPatient) return;
+    onSaveAndAnother(savedPatient, form.fullName, savedPatient.id);
+  };
 
-    try {
-      setIsSaving(true);
-      const response = await callAddPatientAPI();
-      const savedPatient = {
-        id:
-          response?.patient?.patient_id || response?.patient_id || generatedId,
-        name: form.fullName,
-        age: form.dob
-          ? new Date().getFullYear() - parseInt(form.dob.slice(-4) || 2000)
-          : "—",
-        insurer: form.insurer || "—",
-        procedure: form.procedure || "—",
-        status: "Discharged",
-        claims: 0,
-        initials: getInitials(form.fullName),
-        dob: form.dob,
-        gender: form.gender,
-        policy: form.policy,
-        phone: form.phone,
-        admitted: form.admissionDate,
-        discharged: "—",
-        hasClaim: false,
-      };
-      onSaveAndAnother(savedPatient, form.fullName, savedPatient.id);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setIsSaving(false);
+  const handleSaveAndGoToPreAuth = async () => {
+    const savedPatient = await persistPatient();
+    if (!savedPatient) return;
+
+    onSaveForPreAuth ? onSaveForPreAuth(savedPatient) : onSave(savedPatient);
+
+    const redirectPayload = {
+      skipToStep2: true,
+      fromNewPatient: true,
+      preselectedPatient: savedPatient,
+      preselectedPatientId:
+        savedPatient.user_id || savedPatient.patient_id || savedPatient.id,
+    };
+
+    if (navigation) {
+      navigation.navigate("PARequests", {
+        skipToStep2: true,
+        fromNewPatient: true,
+        preselectedPatient:
+          Platform.OS === "web" ? JSON.stringify(savedPatient) : savedPatient,
+        preselectedPatientId:
+          savedPatient.user_id || savedPatient.patient_id || savedPatient.id,
+      });
     }
   };
 
-  // ── Shared document upload row renderer
+  // ?? Shared document upload row renderer
   const renderDocRow = (mobile = false) => (
     <View style={{ flexDirection: "row", gap: mobile ? 10 : 14, marginTop: 4 }}>
       {DOC_CONFIG.map((cfg) => {
@@ -917,7 +970,6 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
             <Text style={styles.saveBtnText}>Save Patient</Text>
           )}
         </TouchableOpacity>
-
         <TouchableOpacity
           style={[styles.saveMoreBtn, isSaving && { opacity: 0.6 }]}
           onPress={handleSaveAnother}
@@ -936,7 +988,27 @@ const AddPatientForm = ({ onSave, onSaveAndAnother, isMobile = false }) => {
             </Text>
           )}
         </TouchableOpacity>
-
+        {/* NEW: Go to PreAuth button */}{" "}
+        <TouchableOpacity
+          style={[styles.saveBtn, isSaving && { opacity: 0.6 }]}
+          onPress={handleSaveAndGoToPreAuth}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={styles.saveBtnText}>Saving...</Text>
+            </View>
+          ) : (
+            <Text style={styles.saveBtnText}>Go to PreAuth</Text>
+          )}
+        </TouchableOpacity>
         {savedMessage !== "" && (
           <View style={styles.savedPill}>
             <Text style={styles.savedPillText}>
@@ -1450,7 +1522,7 @@ const MobileInlineDetail = ({ patient, navigation }) => {
 };
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────
-const HospitalPatientManagement = ({ navigation }) => {
+const HospitalPatientManagement = ({ navigation, route }) => {
   // const [patients, setPatients] = useState(INITIAL_PATIENTS);
   const [patients, setPatients] = useState([]);
   const [patientsLoading, setPatientsLoading] = useState(false);
@@ -1489,7 +1561,7 @@ const HospitalPatientManagement = ({ navigation }) => {
   const tabs = [
     { key: "opd_registration", label: "OPD Registration" },
     { key: "view", label: "View All Patients" },
-    { key: "add_patients", label: "+ Add Patients" },
+    { key: "add_patients", label: "+ Add Patient Manually(Without ABHA)" },
     // { key: "add_doctor", label: "+ Add Doctor" },
   ];
 
@@ -1608,6 +1680,10 @@ const HospitalPatientManagement = ({ navigation }) => {
     closeAddPatientForm();
   };
 
+  const handleSavePatientForPreAuth = (newPatient) => {
+    setPatients((prev) => [newPatient, ...prev]);
+  };
+
   const handleSaveAndAnother = (newPatient, name, id) => {
     setPatients((prev) => [newPatient, ...prev]);
     setToast({ visible: true, name, id });
@@ -1628,6 +1704,14 @@ const HospitalPatientManagement = ({ navigation }) => {
       setActiveTab(tabKey);
     }
   };
+
+  useEffect(() => {
+    if (route?.params?.initialTab === "opd_registration") {
+      closeDetail();
+      setActiveTab("opd_registration");
+      formAnim.setValue(0);
+    }
+  }, [formAnim, route?.params?.initialTab]);
 
   // Interpolations for detail panel
   const listFlex = slideAnim.interpolate({
@@ -1816,18 +1900,18 @@ const HospitalPatientManagement = ({ navigation }) => {
                 return (
                   <View key={patient.id}>
                     <TouchableOpacity
-  onPress={() => handleAddDocPress(patient)}
-  style={[
-    styles.mobilePatientRow,
-    !isExpanded &&
-      index < filteredPatients.length - 1 &&
-      styles.patientRowBorder,
-    isExpanded && {
-      backgroundColor: "#F0F6FF",
-      borderBottomWidth: 0,
-    },
-  ]}
->
+                      onPress={() => handleAddDocPress(patient)}
+                      style={[
+                        styles.mobilePatientRow,
+                        !isExpanded &&
+                          index < filteredPatients.length - 1 &&
+                          styles.patientRowBorder,
+                        isExpanded && {
+                          backgroundColor: "#F0F6FF",
+                          borderBottomWidth: 0,
+                        },
+                      ]}
+                    >
                       <Avatar initials={patient.initials} size={38} />
                       <View style={{ flex: 1 }}>
                         <Text
@@ -1874,8 +1958,6 @@ const HospitalPatientManagement = ({ navigation }) => {
                         {isExpanded ? "∨" : "›"}
                       </Text>
                     </TouchableOpacity>
-
-                    
                   </View>
                 );
               })}
@@ -2042,7 +2124,9 @@ const HospitalPatientManagement = ({ navigation }) => {
             )}
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={openAddPatientForm}>
-            <Text style={styles.addBtnText}>+ Add Patients</Text>
+            <Text style={styles.addBtnText}>
+              + Add Patient Manually(Without ABHA)
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -2257,6 +2341,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                 key={toast.id || "form"}
                 onSave={handleSavePatient}
                 onSaveAndAnother={handleSaveAndAnother}
+                navigation={navigation}
               />
             </Animated.View>
           </>
@@ -2467,6 +2552,7 @@ const HospitalPatientManagement = ({ navigation }) => {
                 onSave={handleSavePatient}
                 onSaveAndAnother={handleSaveAndAnother}
                 isMobile={true}
+                navigation={navigation}
               />
             </View>
           </Animated.View>
@@ -3254,6 +3340,13 @@ const mobileDetailStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  goToPreAuthBtn: {
+    backgroundColor: "#7C3AED",
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  goToPreAuthBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
 });
 // ─── MOBILE FORM STYLES ───────────────────────────────────────
 const mobileFormStyles = StyleSheet.create({
