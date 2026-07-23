@@ -1864,7 +1864,6 @@
 //                       </Text>
 //                     </TouchableOpacity>
 
-                    
 //                   </View>
 //                 );
 //               })}
@@ -2327,7 +2326,7 @@
 //             },
 //           ]}
 //         >
-        
+
 //           <View style={styles.mobileDetailHeader}>
 //             <TouchableOpacity
 //               onPress={closeDetail}
@@ -2360,7 +2359,7 @@
 //           ]}
 //           pointerEvents={isFormOpen ? "auto" : "none"}
 //         >
-          
+
 //           <View style={styles.mobileDetailHeader}>
 //             <TouchableOpacity
 //               onPress={closeAddPatientForm}
@@ -2371,7 +2370,7 @@
 //             </TouchableOpacity>
 //             <Text style={styles.mobileDetailTitle}>Add Patient</Text>
 //           </View>
-          
+
 //           <AddPatientForm
 //             key={toast.id || "form"}
 //             onSave={handleSavePatient}
@@ -3386,7 +3385,6 @@
 
 // export default HospitalPatientManagement;
 
-
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
@@ -3712,7 +3710,7 @@ const AddPatientForm = ({
     setPatientDocs((prev) => ({ ...prev, [docKey]: null }));
   };
 
-  const validateRequiredFields = () => {
+  const validateRequiredFields = (requireHospitalBill = true) => {
     if (!form.fullName.trim()) {
       alert("Full name is required");
       return false;
@@ -3725,7 +3723,7 @@ const AddPatientForm = ({
       alert("Insurance policy document is required");
       return false;
     }
-    if (!patientDocs.hospitalBill?.file) {
+    if (requireHospitalBill && !patientDocs.hospitalBill?.file) {
       alert("Hospital bill document is required");
       return false;
     }
@@ -3746,19 +3744,22 @@ const AddPatientForm = ({
     //   response?.user_id ||
     //   response?.patient_id ||
     //   generatedId;
-    const responsePatient = response?.patient || response?.data?.patient || response?.user || {};
-  const actualId =
-    responsePatient.user_id ||
-    responsePatient.patient_id ||
-    responsePatient.id ||
-    responsePatient._id ||
-    response?.user_id ||
-    response?.patient_id;
+    const responsePatient =
+      response?.patient || response?.data?.patient || response?.user || {};
+    const actualId =
+      responsePatient.user_id ||
+      responsePatient.patient_id ||
+      responsePatient.id ||
+      responsePatient._id ||
+      response?.user_id ||
+      response?.patient_id;
 
-  if (!actualId) {
-    console.error("[AddPatient] No real patient ID in response:", response);
-    throw new Error("Patient saved but no ID returned from server. Please refresh and try again.");
-  }
+    if (!actualId) {
+      console.error("[AddPatient] No real patient ID in response:", response);
+      throw new Error(
+        "Patient saved but no ID returned from server. Please refresh and try again.",
+      );
+    }
 
     return {
       id: actualId,
@@ -3825,7 +3826,7 @@ const AddPatientForm = ({
   };
 
   // ── API call (mirrors ManualDataIntegration.callAddPatientAPI)
-  const callAddPatientAPI = async () => {
+  const callAddPatientAPI = async (requireHospitalBill = true) => {
     const token =
       Platform.OS === "web"
         ? localStorage.getItem("token")
@@ -3838,7 +3839,7 @@ const AddPatientForm = ({
 
     if (!patientDocs.insurance?.file)
       throw new Error("Insurance policy document is required");
-    if (!patientDocs.hospitalBill?.file)
+    if (requireHospitalBill && !patientDocs.hospitalBill?.file)
       throw new Error("Hospital bill document is required");
     if (!patientDocs.prescription?.file)
       throw new Error("Prescription document is required");
@@ -3859,7 +3860,9 @@ const AddPatientForm = ({
       formData.append("admission_date", form.admissionDate);
     if (form.procedure) formData.append("diagnosis", form.procedure);
     formData.append("insurance_policy", patientDocs.insurance.file);
-    formData.append("hospital_bill", patientDocs.hospitalBill.file);
+    if (patientDocs.hospitalBill?.file) {
+      formData.append("hospital_bill", patientDocs.hospitalBill.file);
+    }
     formData.append("prescription", patientDocs.prescription.file);
 
     const res = await fetch(`${API_URL}/hospitals/staff/add-patient`, {
@@ -3876,61 +3879,71 @@ const AddPatientForm = ({
       let msg = "Failed to add patient";
       try {
         const err = JSON.parse(text);
-        msg = err.message || err.error || err.detail || msg;
+        const raw = err.message || err.error || err.detail || err.errors || msg;
+        // Flatten to a readable string no matter what shape the backend sends
+        if (typeof raw === "string") {
+          msg = raw;
+        } else if (Array.isArray(raw)) {
+          msg = raw
+            .map((e) =>
+              typeof e === "string" ? e : e.message || JSON.stringify(e),
+            )
+            .join("\n");
+        } else if (raw && typeof raw === "object") {
+          msg = Object.entries(raw)
+            .map(
+              ([k, v]) =>
+                `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`,
+            )
+            .join("\n");
+        }
       } catch (_) {}
       throw new Error(msg);
     }
     return JSON.parse(text);
   };
 
-  const persistPatient = async () => {
-    if (!validateRequiredFields()) return null;
+  const persistPatient = async (requireHospitalBill = true) => {
+    if (!validateRequiredFields(requireHospitalBill)) return null;
 
     try {
       setIsSaving(true);
-      const response = await callAddPatientAPI();
-      console.log("[AddPatient] RAW RESPONSE:", JSON.stringify(response, null, 2));
+      const response = await callAddPatientAPI(requireHospitalBill);
       const savedPatient = buildSavedPatient(response);
       setSavedName(form.fullName);
       setSavedMessage(savedPatient.id);
       return savedPatient;
     } catch (err) {
-      alert(err.message);
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : JSON.stringify(err);
+      alert(message);
       return null;
     } finally {
       setIsSaving(false);
     }
   };
 
-
-
   const handleSave = async () => {
-    const savedPatient = await persistPatient();
+    const savedPatient = await persistPatient(true); // hospital bill required
     if (!savedPatient) return;
     onSave(savedPatient);
   };
 
   const handleSaveAnother = async () => {
-    const savedPatient = await persistPatient();
+    const savedPatient = await persistPatient(true); // hospital bill required
     if (!savedPatient) return;
     onSaveAndAnother(savedPatient, form.fullName, savedPatient.id);
   };
 
-
-
   const handleSaveAndGoToPreAuth = async () => {
-    const savedPatient = await persistPatient();
+    const savedPatient = await persistPatient(false); // hospital bill NOT required
     if (!savedPatient) return;
 
     onSaveForPreAuth ? onSaveForPreAuth(savedPatient) : onSave(savedPatient);
-
-    const redirectPayload = {
-      skipToStep2: true,
-      fromNewPatient: true,
-      preselectedPatient: savedPatient,
-      preselectedPatientId:
-        savedPatient.user_id || savedPatient.patient_id || savedPatient.id,
-    };
 
     if (navigation) {
       navigation.navigate("PARequests", {
@@ -3943,7 +3956,6 @@ const AddPatientForm = ({
       });
     }
   };
-
   // ?? Shared document upload row renderer
   const renderDocRow = (mobile = false) => (
     <View style={{ flexDirection: "row", gap: mobile ? 10 : 14, marginTop: 4 }}>
@@ -4968,7 +4980,7 @@ const HospitalPatientManagement = ({ navigation, route }) => {
   const tabs = [
     { key: "opd_registration", label: "OPD Registration" },
     { key: "view", label: "View All Patients" },
-    { key: "add_patients", label: "+ Add Patient Manually(Without ABHA)" },
+    { key: "add_patients", label: "+ Add Patient Manually (Without ABHA)" },
     // { key: "add_doctor", label: "+ Add Doctor" },
   ];
 
@@ -5532,7 +5544,7 @@ const HospitalPatientManagement = ({ navigation, route }) => {
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={openAddPatientForm}>
             <Text style={styles.addBtnText}>
-              + Add Patient Manually(Without ABHA)
+              + Add Patient Manually (Without ABHA)
             </Text>
           </TouchableOpacity>
         </View>
