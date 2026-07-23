@@ -5087,11 +5087,27 @@ const ServiceInfoForm = ({
   }, [patient]);
 
   // Pre-select doctor if patient already has one linked
+  // useEffect(() => {
+  //   if (doctors.length === 1) {
+  //     setSelectedDoctor(doctors[0]);
+  //   }
+  // }, [doctors]);
   useEffect(() => {
+    if (patient?.provider && patient.provider !== "—") {
+      const match = doctors.find(
+        (d) =>
+          d.doctorname === patient.provider ||
+          (patient.doctorId && d.doctor_id === patient.doctorId),
+      );
+      setSelectedDoctor(
+        match || { doctorname: patient.provider, doctor_id: patient.doctorId || null },
+      );
+      return;
+    }
     if (doctors.length === 1) {
       setSelectedDoctor(doctors[0]);
     }
-  }, [doctors]);
+  }, [doctors, patient]);
 
   const doctorOptions = doctors.map((d) => ({
     label: d.doctorname,
@@ -5972,7 +5988,8 @@ const PARequests = ({ navigation, route }) => {
         policyId: policyNumber || p.policy_id || `POL-${id}`,
         policyNumber,
         policyVersion: p.policy_version || "2024.1",
-        provider: p.provider || "—",
+        provider: p.provider || p.doctor_name || p.doctorname || "—",
+        doctorId: p.doctor_id || p.doctorId || null,
         providerNPI: p.provider_npi || "—",
         providerOrg: p.provider_org || "—",
         service: p.service || p.procedure || "—",
