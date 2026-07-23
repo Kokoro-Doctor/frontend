@@ -1864,7 +1864,6 @@
 //                       </Text>
 //                     </TouchableOpacity>
 
-                    
 //                   </View>
 //                 );
 //               })}
@@ -2327,7 +2326,7 @@
 //             },
 //           ]}
 //         >
-        
+
 //           <View style={styles.mobileDetailHeader}>
 //             <TouchableOpacity
 //               onPress={closeDetail}
@@ -2360,7 +2359,7 @@
 //           ]}
 //           pointerEvents={isFormOpen ? "auto" : "none"}
 //         >
-          
+
 //           <View style={styles.mobileDetailHeader}>
 //             <TouchableOpacity
 //               onPress={closeAddPatientForm}
@@ -2371,7 +2370,7 @@
 //             </TouchableOpacity>
 //             <Text style={styles.mobileDetailTitle}>Add Patient</Text>
 //           </View>
-          
+
 //           <AddPatientForm
 //             key={toast.id || "form"}
 //             onSave={handleSavePatient}
@@ -3386,7 +3385,6 @@
 
 // export default HospitalPatientManagement;
 
-
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
@@ -3422,12 +3420,7 @@ const INSURERS = [
   "ICICI Lombard",
   "Care Health",
 ];
-const DOCTORS = [
-  "Dr. Arjun Mehta",
-  "Dr. Kavitha Rao",
-  "Dr. Suresh Pillai",
-  "Dr. Anita Singh",
-];
+
 const GENDERS = ["Male", "Female", "Other"];
 const EMPTY_PATIENT_DOCS = {
   insurance: null,
@@ -3640,6 +3633,7 @@ const AddPatientForm = ({
   onSaveForPreAuth,
   isMobile = false,
   navigation,
+  doctors = [],
 }) => {
   const [form, setForm] = useState({
     fullName: "",
@@ -3746,19 +3740,22 @@ const AddPatientForm = ({
     //   response?.user_id ||
     //   response?.patient_id ||
     //   generatedId;
-    const responsePatient = response?.patient || response?.data?.patient || response?.user || {};
-  const actualId =
-    responsePatient.user_id ||
-    responsePatient.patient_id ||
-    responsePatient.id ||
-    responsePatient._id ||
-    response?.user_id ||
-    response?.patient_id;
+    const responsePatient =
+      response?.patient || response?.data?.patient || response?.user || {};
+    const actualId =
+      responsePatient.user_id ||
+      responsePatient.patient_id ||
+      responsePatient.id ||
+      responsePatient._id ||
+      response?.user_id ||
+      response?.patient_id;
 
-  if (!actualId) {
-    console.error("[AddPatient] No real patient ID in response:", response);
-    throw new Error("Patient saved but no ID returned from server. Please refresh and try again.");
-  }
+    if (!actualId) {
+      console.error("[AddPatient] No real patient ID in response:", response);
+      throw new Error(
+        "Patient saved but no ID returned from server. Please refresh and try again.",
+      );
+    }
 
     return {
       id: actualId,
@@ -3889,7 +3886,10 @@ const AddPatientForm = ({
     try {
       setIsSaving(true);
       const response = await callAddPatientAPI();
-      console.log("[AddPatient] RAW RESPONSE:", JSON.stringify(response, null, 2));
+      console.log(
+        "[AddPatient] RAW RESPONSE:",
+        JSON.stringify(response, null, 2),
+      );
       const savedPatient = buildSavedPatient(response);
       setSavedName(form.fullName);
       setSavedMessage(savedPatient.id);
@@ -4151,7 +4151,7 @@ const AddPatientForm = ({
           <Text style={mobileFormStyles.label}>Assign Doctor</Text>
           <MobileSelectField
             value={form.doctor}
-            options={DOCTORS}
+            options={doctors.map((d) => d.name)}
             onSelect={(v) => set("doctor", v)}
             placeholder="Select Doctor"
           />
@@ -4342,7 +4342,7 @@ const AddPatientForm = ({
         <SelectRow
           label="Assign Doctor"
           value={form.doctor}
-          options={DOCTORS}
+          options={doctors.map((d) => d.name)}
           onSelect={(v) => set("doctor", v)}
           placeholder="Select Doctor"
         />
@@ -4474,143 +4474,143 @@ const MobileSelectField = ({ value, options, onSelect, placeholder }) => {
   );
 };
 // ─── PATIENT DETAIL PANEL ─────────────────────────────────────
-const PatientDetailPanel = ({ patient, onClose, navigation }) => {
-  const [assignedDoctor, setAssignedDoctor] = useState("Assign Doctor");
-  const [doctorDropOpen, setDoctorDropOpen] = useState(false);
+// const PatientDetailPanel = ({ patient, onClose, navigation }) => {
+//   const [assignedDoctor, setAssignedDoctor] = useState("Assign Doctor");
+//   const [doctorDropOpen, setDoctorDropOpen] = useState(false);
 
-  return (
-    <ScrollView
-      style={styles.detailPanel}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 30 }}
-    >
-      <View style={styles.detailPatientRow}>
-        <Avatar initials={patient.initials} size={38} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: "700", color: "#111827" }}>
-            {patient.name}
-          </Text>
-          <Text style={{ fontSize: 12, color: "#6B7280" }}>
-            {patient.id} · Age {patient.age} · {patient.insurer} ·{" "}
-            {patient.procedure}
-          </Text>
-        </View>
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            borderWidth: 1.5,
-            borderColor: "#D1D5DB",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontSize: 13, color: "#6B7280" }}>⊙</Text>
-        </View>
-      </View>
+//   return (
+//     <ScrollView
+//       style={styles.detailPanel}
+//       showsVerticalScrollIndicator={false}
+//       contentContainerStyle={{ paddingBottom: 30 }}
+//     >
+//       <View style={styles.detailPatientRow}>
+//         <Avatar initials={patient.initials} size={38} />
+//         <View style={{ flex: 1 }}>
+//           <Text style={{ fontSize: 15, fontWeight: "700", color: "#111827" }}>
+//             {patient.name}
+//           </Text>
+//           <Text style={{ fontSize: 12, color: "#6B7280" }}>
+//             {patient.id} · Age {patient.age} · {patient.insurer} ·{" "}
+//             {patient.procedure}
+//           </Text>
+//         </View>
+//         <View
+//           style={{
+//             width: 28,
+//             height: 28,
+//             borderRadius: 14,
+//             borderWidth: 1.5,
+//             borderColor: "#D1D5DB",
+//             justifyContent: "center",
+//             alignItems: "center",
+//           }}
+//         >
+//           <Text style={{ fontSize: 13, color: "#6B7280" }}>⊙</Text>
+//         </View>
+//       </View>
 
-      <View style={styles.detailBody}>
-        <View style={styles.detailLeft}>
-          <Text style={styles.detailSectionTitle}>Insurance Claims</Text>
-          <View style={styles.detailSectionBox}>
-            {patient.hasClaim ? (
-              <Text style={{ fontSize: 13, color: "#374151" }}>
-                Claim filed and under review.
-              </Text>
-            ) : (
-              <View style={{ alignItems: "flex-start", gap: 10 }}>
-                <View style={styles.fileIconBox}>
-                  <Text style={{ fontSize: 28 }}>📄</Text>
-                </View>
-                <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
-                  No insurance claim filed yet for this patient
-                </Text>
-                <TouchableOpacity style={styles.greenBtn}>
-                  <Text style={styles.greenBtnText}>File claim Now</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
+//       <View style={styles.detailBody}>
+//         <View style={styles.detailLeft}>
+//           <Text style={styles.detailSectionTitle}>Insurance Claims</Text>
+//           <View style={styles.detailSectionBox}>
+//             {patient.hasClaim ? (
+//               <Text style={{ fontSize: 13, color: "#374151" }}>
+//                 Claim filed and under review.
+//               </Text>
+//             ) : (
+//               <View style={{ alignItems: "flex-start", gap: 10 }}>
+//                 <View style={styles.fileIconBox}>
+//                   <Text style={{ fontSize: 28 }}>📄</Text>
+//                 </View>
+//                 <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
+//                   No insurance claim filed yet for this patient
+//                 </Text>
+//                 <TouchableOpacity style={styles.greenBtn}>
+//                   <Text style={styles.greenBtnText}>File claim Now</Text>
+//                 </TouchableOpacity>
+//               </View>
+//             )}
+//           </View>
 
-          <Text style={[styles.detailSectionTitle, { marginTop: 20 }]}>
-            Post Ops
-          </Text>
-          <View style={styles.detailSectionBox}>
-            <View style={{ alignItems: "flex-start", gap: 10 }}>
-              <View style={styles.fileIconBox}>
-                <Text style={{ fontSize: 28 }}>📄</Text>
-              </View>
-              <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
-                Upload Prescription And reports & do{" "}
-                <Text style={{ color: "#2563EB", fontWeight: "600" }}>
-                  AI-Powered Full Case Review
-                </Text>
-              </Text>
-              <TouchableOpacity
-                style={styles.greenBtn}
-                onPress={() =>
-                  navigation && navigation.navigate("HospitalPostOpCare")
-                }
-              >
-                <Text style={styles.greenBtnText}>Post Ops Care</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+//           <Text style={[styles.detailSectionTitle, { marginTop: 20 }]}>
+//             Post Ops
+//           </Text>
+//           <View style={styles.detailSectionBox}>
+//             <View style={{ alignItems: "flex-start", gap: 10 }}>
+//               <View style={styles.fileIconBox}>
+//                 <Text style={{ fontSize: 28 }}>📄</Text>
+//               </View>
+//               <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
+//                 Upload Prescription And reports & do{" "}
+//                 <Text style={{ color: "#2563EB", fontWeight: "600" }}>
+//                   AI-Powered Full Case Review
+//                 </Text>
+//               </Text>
+//               <TouchableOpacity
+//                 style={styles.greenBtn}
+//                 onPress={() =>
+//                   navigation && navigation.navigate("HospitalPostOpCare")
+//                 }
+//               >
+//                 <Text style={styles.greenBtnText}>Post Ops Care</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </View>
+//         </View>
 
-        <View style={styles.detailRight}>
-          <Text style={styles.detailSectionTitle}>Patients Details</Text>
-          <View style={styles.detailInfoBox}>
-            <View style={styles.detailGrid}>
-              <DetailCell label="DOB" value={patient.dob} />
-              <DetailCell label="Gender" value={patient.gender} />
-              <DetailCell label="Policy" value={patient.policy} />
-              <DetailCell label="Phone" value={patient.phone} />
-              <DetailCell label="Admitted" value={patient.admitted} />
-              <DetailCell label="Discharged" value={patient.discharged} />
-            </View>
-            <View style={{ position: "relative", zIndex: 20, marginTop: 4 }}>
-              <TouchableOpacity
-                style={styles.assignDoctorBtn}
-                onPress={() => setDoctorDropOpen(!doctorDropOpen)}
-              >
-                <Text style={{ fontSize: 13, color: "#374151", flex: 1 }}>
-                  {assignedDoctor}
-                </Text>
-                <Text style={{ color: "#6B7280", fontSize: 12 }}>▾</Text>
-              </TouchableOpacity>
-              {doctorDropOpen && (
-                <View style={styles.assignDoctorMenu}>
-                  {DOCTORS.map((doc) => (
-                    <TouchableOpacity
-                      key={doc}
-                      style={styles.assignDoctorItem}
-                      onPress={() => {
-                        setAssignedDoctor(doc);
-                        setDoctorDropOpen(false);
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 13,
-                          color: assignedDoctor === doc ? "#2563EB" : "#374151",
-                          fontWeight: assignedDoctor === doc ? "700" : "400",
-                        }}
-                      >
-                        {doc}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-      </View>
-    </ScrollView>
-  );
-};
+//         <View style={styles.detailRight}>
+//           <Text style={styles.detailSectionTitle}>Patients Details</Text>
+//           <View style={styles.detailInfoBox}>
+//             <View style={styles.detailGrid}>
+//               <DetailCell label="DOB" value={patient.dob} />
+//               <DetailCell label="Gender" value={patient.gender} />
+//               <DetailCell label="Policy" value={patient.policy} />
+//               <DetailCell label="Phone" value={patient.phone} />
+//               <DetailCell label="Admitted" value={patient.admitted} />
+//               <DetailCell label="Discharged" value={patient.discharged} />
+//             </View>
+//             <View style={{ position: "relative", zIndex: 20, marginTop: 4 }}>
+//               <TouchableOpacity
+//                 style={styles.assignDoctorBtn}
+//                 onPress={() => setDoctorDropOpen(!doctorDropOpen)}
+//               >
+//                 <Text style={{ fontSize: 13, color: "#374151", flex: 1 }}>
+//                   {assignedDoctor}
+//                 </Text>
+//                 <Text style={{ color: "#6B7280", fontSize: 12 }}>▾</Text>
+//               </TouchableOpacity>
+//               {doctorDropOpen && (
+//                 <View style={styles.assignDoctorMenu}>
+//                   {DOCTORS.map((doc) => (
+//                     <TouchableOpacity
+//                       key={doc}
+//                       style={styles.assignDoctorItem}
+//                       onPress={() => {
+//                         setAssignedDoctor(doc);
+//                         setDoctorDropOpen(false);
+//                       }}
+//                     >
+//                       <Text
+//                         style={{
+//                           fontSize: 13,
+//                           color: assignedDoctor === doc ? "#2563EB" : "#374151",
+//                           fontWeight: assignedDoctor === doc ? "700" : "400",
+//                         }}
+//                       >
+//                         {doc}
+//                       </Text>
+//                     </TouchableOpacity>
+//                   ))}
+//                 </View>
+//               )}
+//             </View>
+//           </View>
+//         </View>
+//       </View>
+//     </ScrollView>
+//   );
+// };
 
 // ─── SUCCESS TOAST MODAL ──────────────────────────────────────
 const SuccessToast = ({ visible, patientName, patientId, onDismiss }) => {
@@ -4648,7 +4648,7 @@ const SuccessToast = ({ visible, patientName, patientId, onDismiss }) => {
 };
 
 // ─── MOBILE INLINE PATIENT DETAIL ────────────────────────────
-const MobileInlineDetail = ({ patient, navigation }) => {
+const MobileInlineDetail = ({ patient, navigation, doctors = [] }) => {
   const [assignedDoctor, setAssignedDoctor] = useState("Assign Doctor");
   const [doctorDropOpen, setDoctorDropOpen] = useState(false);
   const [claimFiles, setClaimFiles] = useState([
@@ -4741,7 +4741,7 @@ const MobileInlineDetail = ({ patient, navigation }) => {
             </TouchableOpacity>
             {doctorDropOpen && (
               <View style={mobileDetailStyles.doctorMenu}>
-                {DOCTORS.map((doc) => (
+                {doctors.map((doc) => (
                   <TouchableOpacity
                     key={doc}
                     style={mobileDetailStyles.doctorMenuItem}
@@ -4940,6 +4940,8 @@ const HospitalPatientManagement = ({ navigation, route }) => {
   const [docsModalPatient, setDocsModalPatient] = useState(null);
   const { width } = useWindowDimensions();
   const [addDocLoading, setAddDocLoading] = useState(false);
+  const [doctors, setDoctors] = useState([]);
+  const [doctorsLoading, setDoctorsLoading] = useState(false);
   const handleAddDocPress = async (patient) => {
     setAddDocLoading(true);
     try {
@@ -5011,9 +5013,44 @@ const HospitalPatientManagement = ({ navigation, route }) => {
     }
   }, []);
 
+  const fetchDoctors = useCallback(async () => {
+    try {
+      setDoctorsLoading(true);
+      const token = await AsyncStorage.getItem("token");
+      const hospitalId = await AsyncStorage.getItem("hospital_id");
+      if (!token || !hospitalId) return;
+
+      const res = await fetch(`${API_URL}/hospitals/${hospitalId}/doctors`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        console.error("fetchDoctors failed:", res.status);
+        return;
+      }
+
+      const data = await res.json();
+      const mapped = (data.doctors || []).map((d) => ({
+        id: d.doctor.doctor_id,
+        name: d.doctor.doctorname,
+        patientCount: d.patient_count,
+      }));
+      setDoctors(mapped);
+    } catch (err) {
+      console.error("fetchDoctors error:", err);
+    } finally {
+      setDoctorsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPatients();
-  }, [fetchPatients]);
+    fetchDoctors();
+  }, [fetchPatients, fetchDoctors]);
 
   const filteredPatients = patients.filter((p) => {
     const matchSearch =
@@ -5745,6 +5782,7 @@ const HospitalPatientManagement = ({ navigation, route }) => {
                 onSave={handleSavePatient}
                 onSaveAndAnother={handleSaveAndAnother}
                 navigation={navigation}
+                doctors={doctors}
               />
             </Animated.View>
           </>
@@ -5956,6 +5994,7 @@ const HospitalPatientManagement = ({ navigation, route }) => {
                 onSaveAndAnother={handleSaveAndAnother}
                 isMobile={true}
                 navigation={navigation}
+                doctors={doctors}
               />
             </View>
           </Animated.View>
