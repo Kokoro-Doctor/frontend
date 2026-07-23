@@ -365,6 +365,118 @@ function applyStarHealthExtractedFallbacks(form, analysisData) {
   return next;
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// applyTemplateKeyAliases
+//
+// The HTML template in StarHealthPreAuth.js reads many field names that
+// never get set anywhere above (e.g. `patientAge`, `natureOfIllness`,
+// `icd10Code`, `icuCharges`, chronic-illness checkboxes, etc). Those fields
+// were always rendering blank regardless of extraction quality, because
+// the mapper output and the template's expected keys used different names,
+// or because a whole backend section (part_c_cashless_request,
+// chronic_illness_history) was never read at all.
+//
+// This function is purely ADDITIVE — it only fills a template key if it is
+// currently empty, by copying from an already-mapped equivalent key
+// (renaming) or by reading directly from analysisData for sections that
+// were never wired up before. It never removes or overwrites anything a
+// prior step already set, so existing behavior is preserved exactly; this
+// only adds values where the form would previously have shown blank.
+// ─────────────────────────────────────────────────────────────────────────
+function applyTemplateKeyAliases(form, analysisData) {
+  const data = resolveData(analysisData);
+  const patient = data.patient_details || {};
+  const insurance = data.insurance_details || {};
+  const hospital = data.hospital_details || {};
+  const diagnosis = data.diagnosis_and_procedures || {};
+  const chronic = data.chronic_illness_history || {};
+  const ar = analysisData?.autofill_result || {};
+  const sectionD = ar.section_d_hospitalization || ar.section_d || {};
+  const partB = ar.part_b_hospital_section || {};
+  const partC = ar.part_c_cashless_request || {};
+
+  const next = { ...form };
+  const aliasIfEmpty = (key, ...candidates) => {
+    if (next[key]) return;
+    const val = firstValue(...candidates);
+    if (val) next[key] = val;
+  };
+  const aliasCheckboxIfEmpty = (key, ...candidates) => {
+    if (next[key]) return;
+    const val = firstValue(...candidates);
+    if (val) next[key] = val;
+  };
+
+  // ── Category A: simple rename aliases (data already mapped under a
+  //    different key name above) ──────────────────────────────────────
+  aliasIfEmpty("patientAge", next.ageYears);
+  aliasIfEmpty("patientAgeMonths", next.ageMonths);
+  aliasIfEmpty("natureOfIllness", next.diagnosis);
+  aliasIfEmpty("dateOfAdmission", next.admissionDate);
+  aliasIfEmpty("timeOfAdmission", next.admissionTime);
+  aliasIfEmpty("companyName", next.insuranceCompanyName, next.tpaId);
+  aliasIfEmpty("roomType", next.roomCategory);
+  aliasIfEmpty("insuredCardId", next.certificateNumber);
+  aliasIfEmpty("patientContact", next.primaryPhone);
+  aliasIfEmpty("patientContactNumber", next.primaryPhone);
+  aliasIfEmpty("patientDob", next.dob);
+  aliasIfEmpty("patientEmail", next.primaryEmail);
+  aliasIfEmpty("patientInsuredName", next.primaryName, next.hospitalizedName);
+  aliasIfEmpty("treatingDoctorName", next.treatingDoctor);
+  aliasIfEmpty("doctorContact", next.hospPhone, next.hospitalPhone);
+  aliasIfEmpty(
+    "currentAddress",
+    [next.primaryAddressRow1, next.primaryAddressRow2].filter(Boolean).join(" ").trim(),
+  );
+  aliasIfEmpty("insuranceDetails", next.insuranceCompanyName);
+  aliasIfEmpty("expectedHospitalStay", next.expectedDaysStay);
+
+  // ── Category B: backend has this data, but no prior step read it ────
+  aliasIfEmpty("icd10Code", diagnosis.primary_icd_code, partB.primary_icd_code);
+  aliasIfEmpty("icd10pcsCode", diagnosis.procedure_1_icd_pcs, partB.procedure_1_icd_pcs);
+  aliasIfEmpty("employeeId", insurance.employee_id, sectionD.employee_id);
+  aliasIfEmpty("rohiniId", hospital.rohini_id, partC.rohini_id);
+  aliasIfEmpty("criticalFindings", diagnosis.relevant_critical_findings);
+  aliasIfEmpty("ailmentDuration", diagnosis.duration_of_ailment_days);
+  aliasIfEmpty("firstConsultationDate", diagnosis.date_of_first_consultation);
+  aliasIfEmpty("pastHistory", diagnosis.past_history_of_ailment);
+  aliasIfEmpty("injuryOccur", diagnosis.injury_cause, diagnosis.hospitalization_cause);
+  aliasIfEmpty("investigation", diagnosis.route_of_drug_administration);
+  aliasIfEmpty("routeDrugAdministration", diagnosis.route_of_drug_administration);
+  aliasIfEmpty("expectedDeliveryDate", data.maternity_details?.expected_delivery_date);
+
+  // Part-C cashless-request charges — this whole backend section was
+  // never read by any step above.
+  aliasIfEmpty("dateOfAdmission", partC.admission_date);
+  aliasIfEmpty("roomRentCharges", partC.room_rent_per_day);
+  aliasIfEmpty("investigationDiagnosticCost", partC.investigation_cost);
+  aliasIfEmpty("icuCharges", partC.icu_charges);
+  aliasIfEmpty("otCharges", partC.ot_charges);
+  aliasIfEmpty("professionalFees", partC.surgeon_anesthesia_fees);
+  aliasIfEmpty("medicinesConsumables", partC.medicines_consumables);
+  aliasIfEmpty("otherHospitalExpenses", partC.other_expenses);
+  aliasIfEmpty("packageCharges", partC.package_charges);
+  aliasIfEmpty("totalHospitalizationCost", partC.total_expected_cost);
+  aliasIfEmpty("daysInICU", data.admission_details?.days_in_icu);
+  aliasIfEmpty("surgeryGrade", data.admission_details?.level_of_surgery);
+
+  // Chronic illness history checkboxes — backend section was never read.
+  aliasCheckboxIfEmpty("diabetesHistory", chronic.diabetes);
+  aliasCheckboxIfEmpty("heartDiseaseHistory", chronic.heart_disease);
+  aliasCheckboxIfEmpty("osteoarthritisHistory", chronic.osteoarthritis);
+  aliasCheckboxIfEmpty("asthmaHistory", chronic.asthma_copd);
+  aliasCheckboxIfEmpty("cancerHistory", chronic.cancer);
+  aliasCheckboxIfEmpty("alcoholHistory", chronic.alcohol_drug_abuse);
+  aliasCheckboxIfEmpty("hivHistory", chronic.hiv_std);
+  aliasCheckboxIfEmpty("rheumatoidHistory", chronic.rheumatoid_arthritis);
+  aliasCheckboxIfEmpty("strokeHistory", chronic.cerebrovascular_accident);
+  aliasCheckboxIfEmpty("liverHistory", chronic.liver_disease);
+  aliasCheckboxIfEmpty("kidneyHistory", chronic.kidney_disease);
+  aliasCheckboxIfEmpty("otherAilmentHistory", chronic.other);
+
+  return next;
+}
+
 export function mapToStarHealthFormA(analysisData) {
   const base = mapToFormA(analysisData);
 
@@ -550,7 +662,8 @@ export function mapToStarHealthFormA(analysisData) {
     hospitalDateYear: digitsOnly(base.declarationDate ?? "").slice(4, 8),
   };
 
-  return applyStarHealthExtractedFallbacks(mapped, analysisData);
+  const withFallbacks = applyStarHealthExtractedFallbacks(mapped, analysisData);
+  return applyTemplateKeyAliases(withFallbacks, analysisData);
 }
 
 
@@ -739,5 +852,6 @@ export function mapToStarHealthFormB(analysisData) {
     hospitalDateYear: digitsOnly(base.declarationDate ?? "").slice(4, 8),
   };
 
-  return applyStarHealthExtractedFallbacks(mapped, analysisData);
+  const withFallbacks = applyStarHealthExtractedFallbacks(mapped, analysisData);
+  return applyTemplateKeyAliases(withFallbacks, analysisData);
 }
