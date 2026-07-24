@@ -3952,6 +3952,7 @@ import { API_URL } from "../../env-vars";
 import PreAuthMediAssistCombinedForms from "../../screens/HospitalScreens/PreAuthMediAssistCombinedForms";
 import StarHealthPreAuth from "../../screens/HospitalScreens/StarHealthPreAuth";
 import CarehealthPreauth from "../../screens/HospitalScreens/CarehealthPreauth";
+import AdityaBirlaHealthPreauth from "../../screens/HospitalScreens/AdityaBirlaHealthPreauth";
 
 // ─── STEPS ────────────────────────────────────────────────────────────────────
 const STEPS = [
@@ -6841,6 +6842,14 @@ const PARequests = ({ navigation, route }) => {
       insurerRaw.includes("carehealth") ||
       insurerRaw.includes("care");
 
+    const isAdityaBirla =
+      insurerRaw.includes("aditya birla health") ||
+      insurerRaw.includes("adityabirlahealth") ||
+      insurerRaw.includes("aditya birla") ||
+      insurerRaw.includes("adityabirla") ||
+      insurerRaw.includes("aditya") ||
+      insurerRaw.includes("birla");
+
     return (
       <Animated.View style={{ transform: [{ translateX: animRef }] }}>
         {isStarHealth ? (
@@ -6853,6 +6862,11 @@ const PARequests = ({ navigation, route }) => {
             navigation={navigation}
             route={{ params: { analysisData, patient: selectedPatient } }}
           />
+        ) : isAdityaBirla ? (
+          <AdityaBirlaHealthPreauth
+            navigation={navigation}
+            route={{ params: { analysisData, patient: selectedPatient } }}
+          />
         ) : (
           <PreAuthMediAssistCombinedForms
             navigation={navigation}
@@ -6861,17 +6875,17 @@ const PARequests = ({ navigation, route }) => {
         )}
       </Animated.View>
     );
-  };
+  };// ← ADD THIS closing brace + semicolon for renderStep5
+
   const renderCurrentStep = (animRef, isMobile) => {
     if (currentStep === 1) return renderStep1(animRef, isMobile);
     if (currentStep === 2) return renderStep2(animRef, isMobile);
     if (currentStep === 3) return renderStep3(animRef, isMobile);
     if (currentStep === 4) return renderStep4(animRef, isMobile);
-    if (currentStep === 5) return renderStep5(animRef); // ← add this
+    if (currentStep === 5) return renderStep5(animRef);
     return null;
   };
-
-  return (
+   return (
     <>
       {/* ── WEB ── */}
       {Platform.OS === "web" && width > 1000 && (
