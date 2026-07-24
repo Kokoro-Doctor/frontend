@@ -30,7 +30,7 @@ const INSURERS = [
   "All Insurers",
   "Star Health",
   "Medi Assist",
-  "ICICI Lombard",
+  "Aditya Birla Health",
   "Care Health",
 ];
 
