@@ -1429,13 +1429,14 @@ export function generateInsuranceFormHTML(
       </span>
       <span class="insured-check-text" style="margin-left:16px;">c. Age:</span>
       <div class="insured-box-row">
-        ${charBoxHtml(f.ageYears ?? "", 2)}
+        ${placeholderBoxRowHtml(`${f.ageYears ?? ""}${f.ageMonths ?? ""}`, [
+          "Y",
+          "Y",
+          "M",
+          "M",
+        ])}
       </div>
-      <span class="insured-check-text">Years</span>
-      <div class="insured-box-row">
-        ${charBoxHtml(f.ageMonths ?? "", 2)}
-      </div>
-      <span class="insured-check-text">Months</span>
+      <span class="insured-check-text">Years Months</span>
     </div>
   </div>
 
@@ -2044,7 +2045,26 @@ export async function downloadInsuranceClaim(
     let injectedStyle = null;
     let host = null;
 
-    try {
+    const waitForImages = (root) => {
+      const imgs = Array.from(root.querySelectorAll("img"));
+      return Promise.all(
+        imgs.map((img) => {
+          if (img.complete && img.naturalWidth > 0) {
+            return img.decode
+              ? img.decode().catch(() => {})
+              : Promise.resolve();
+          }
+          return new Promise((resolve) => {
+            img.addEventListener("load", () => resolve(), { once: true });
+            img.addEventListener("error", () => resolve(), { once: true });
+          }).then(() =>
+            img.decode ? img.decode().catch(() => {}) : undefined,
+          );
+        }),
+      );
+    };
+
+    const renderPdf = async () => {
       const html2pdfModule = await import("html2pdf.js");
       const html2pdf = html2pdfModule?.default || html2pdfModule;
       if (typeof html2pdf !== "function") {
@@ -2078,6 +2098,8 @@ export async function downloadInsuranceClaim(
       await new Promise((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(resolve)),
       );
+      await waitForImages(captureEl);
+
       await html2pdf()
         .set({
           margin: 0,
@@ -2093,14 +2115,34 @@ export async function downloadInsuranceClaim(
         })
         .from(captureEl)
         .save();
+    };
+
+    try {
+      try {
+        await renderPdf();
+      } catch (firstError) {
+        if (injectedStyle) {
+          injectedStyle.remove();
+          injectedStyle = null;
+        }
+        if (host) {
+          host.remove();
+          host = null;
+        }
+        console.warn("PDF export attempt 1 failed, retrying:", firstError);
+        await renderPdf();
+      }
     } catch (error) {
       console.error("Insurance claim PDF export failed on web:", error);
-      if (!openPrintWindow(html)) {
-        triggerBrowserFileDownload(
-          new Blob([html], { type: "text/html" }),
-          fileName.replace(/\.pdf$/i, ".html"),
-        );
+      if (injectedStyle) {
+        injectedStyle.remove();
+        injectedStyle = null;
       }
+      if (host) {
+        host.remove();
+        host = null;
+      }
+      throw error;
     } finally {
       if (injectedStyle) injectedStyle.remove();
       if (host) host.remove();
