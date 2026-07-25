@@ -2530,17 +2530,17 @@ export function generateInsuranceFormHTML(
       <div class="section-b-right section-b-gender-options">
 
         <div class="section-b-option">
-          <span class="section-b-checkbox"></span>
+          <span class="section-b-checkbox">${String(f.gender || "").trim().toLowerCase() === "male" ? "&#10003;" : ""}</span>
           <span contenteditable="true">Male</span>
         </div>
 
         <div class="section-b-option">
-          <span class="section-b-checkbox"></span>
+          <span class="section-b-checkbox">${String(f.gender || "").trim().toLowerCase() === "female" ? "&#10003;" : ""}</span>
           <span contenteditable="true">Female</span>
         </div>
 
         <div class="section-b-option">
-          <span class="section-b-checkbox"></span>
+          <span class="section-b-checkbox">${!!f.gender && !["male", "female"].includes(String(f.gender).trim().toLowerCase()) ? "&#10003;" : ""}</span>
           <span contenteditable="true">Third Gender</span>
         </div>
 
@@ -2660,10 +2660,10 @@ export function generateInsuranceFormHTML(
 
       <div class="section-b-right section-b-yesno">
         <span>Yes</span>
-        <span class="section-b-checkbox"></span>
+        <span class="section-b-checkbox">${isYes(f.bCurrentlyOther) ? "&#10003;" : ""}</span>
 
         <span class="section-b-no-gap">No</span>
-        <span class="section-b-checkbox"></span>
+        <span class="section-b-checkbox">${!isYes(f.bCurrentlyOther) ? "&#10003;" : ""}</span>
       </div>
     </div>
 
@@ -2694,10 +2694,10 @@ export function generateInsuranceFormHTML(
 
       <div class="section-b-right section-b-yesno">
         <span>Yes</span>
-        <span class="section-b-checkbox"></span>
+        <span class="section-b-checkbox">${isYes(f.hasFamilyPhysician) ? "&#10003;" : ""}</span>
 
         <span class="section-b-no-gap">No</span>
-        <span class="section-b-checkbox"></span>
+        <span class="section-b-checkbox">${!isYes(f.hasFamilyPhysician) ? "&#10003;" : ""}</span>
       </div>
     </div>
 
@@ -3153,10 +3153,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${f.rta ? "&#10003;" : ""}</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${!f.rta ? "&#10003;" : ""}</span>
           </div>
         </div>
 
@@ -3167,10 +3167,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${f.injuryDate ? "&#10003;" : ""}</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${!f.injuryDate ? "&#10003;" : ""}</span>
           </div>
         </div>
 
@@ -3181,10 +3181,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${isYes(f.reportedToPolice) ? "&#10003;" : ""}</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${!isYes(f.reportedToPolice) ? "&#10003;" : ""}</span>
           </div>
         </div>
 
@@ -3195,10 +3195,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${f.firYes ? "&#10003;" : ""}</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${!f.firYes ? "&#10003;" : ""}</span>
           </div>
         </div>
 
@@ -3210,10 +3210,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap section-d-top-box-align">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${f.substanceAbuse ? "&#10003;" : ""}</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${!f.substanceAbuse ? "&#10003;" : ""}</span>
           </div>
         </div>
 
@@ -3223,10 +3223,10 @@ export function generateInsuranceFormHTML(
           </div>
 
           <div class="section-d-yesno-wrap">
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${isYes(f.substanceAbuseTest) ? "&#10003;" : ""}</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box"></span>
+            <span class="section-d-mini-box">${!isYes(f.substanceAbuseTest) ? "&#10003;" : ""}</span>
           </div>
         </div>
 
@@ -3348,12 +3348,12 @@ export function generateInsuranceFormHTML(
 
         <div class="section-e-option">
           <span>Emergency</span>
-          <span class="section-e-checkbox"></span>
+          <span class="section-e-checkbox">${String(f.admissionType || "").toLowerCase().includes("emerg") ? "&#10003;" : ""}</span>
         </div>
 
         <div class="section-e-option">
           <span>Planned</span>
-          <span class="section-e-checkbox"></span>
+          <span class="section-e-checkbox">${String(f.admissionType || "").toLowerCase().includes("plan") ? "&#10003;" : ""}</span>
         </div>
 
       </div>
