@@ -460,6 +460,20 @@ function applyTemplateKeyAliases(form, analysisData) {
   aliasIfEmpty("daysInICU", data.admission_details?.days_in_icu);
   aliasIfEmpty("surgeryGrade", data.admission_details?.level_of_surgery);
 
+  // Emergency/Planned admission type — backend has this under
+  // admission_details.type_of_admission, never read before.
+  aliasIfEmpty("admissionType", data.admission_details?.type_of_admission);
+
+  // "Do you have a family Physician" — no backend field exists for this at
+  // all (source documents don't carry it). Left empty so the template's
+  // default-No checkbox logic applies, per your request that unanswered
+  // Yes/No fields should default to No rather than showing nothing.
+  aliasIfEmpty("hasFamilyPhysician", "");
+
+  // "Test conducted to establish substance abuse" — no dedicated backend
+  // field; defaults to No via the same template logic.
+  aliasIfEmpty("substanceAbuseTest", "");
+
   // Chronic illness history checkboxes — backend section was never read.
   aliasCheckboxIfEmpty("diabetesHistory", chronic.diabetes);
   aliasCheckboxIfEmpty("heartDiseaseHistory", chronic.heart_disease);
