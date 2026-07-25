@@ -429,7 +429,7 @@ function applyTemplateKeyAliases(form, analysisData) {
     [next.primaryAddressRow1, next.primaryAddressRow2].filter(Boolean).join(" ").trim(),
   );
   aliasIfEmpty("insuranceDetails", next.insuranceCompanyName);
-  aliasIfEmpty("expectedHospitalStay", next.expectedDaysStay);
+  aliasIfEmpty("expectedHospitalStay", data.admission_details?.expected_days_stay);
 
   // ── Category B: backend has this data, but no prior step read it ────
   aliasIfEmpty("icd10Code", diagnosis.primary_icd_code, partB.primary_icd_code);
