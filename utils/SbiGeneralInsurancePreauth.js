@@ -23,7 +23,7 @@ async function loadAssetAsBase64(moduleRequire) {
 export async function getSbiLogoBase64() {
   try {
     return await loadAssetAsBase64(
-      require("../assets/HospitalPortal/Images/sbi_health.PNG"),
+      require("../assets/HospitalPortal/Images/sbi_health.png"),
     );
   } catch (e) {
     console.warn("SBI logo load error", e);
