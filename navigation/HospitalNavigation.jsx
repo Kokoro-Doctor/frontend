@@ -30,6 +30,7 @@ import CareHealthPreAuth from "../screens/HospitalScreens/CareHealthPreauthForm"
 import PreAuthStarHealth from "../screens/HospitalScreens/PreAuthStarHealthForm";
 import PatientDetails from "../components/HospitalPortalComponent/PatientDetails";
 import AdityaBirlaHealthPreauth from "../screens/HospitalScreens/AdityaBirlaHealthPreauth";
+import SbiGeneralInsurancePreauth from "../screens/HospitalScreens/SbiGeneralInsurancePreauth";
 
 const Stack = createNativeStackNavigator();
 
@@ -199,6 +200,11 @@ const HospitalAppNavigation = ({ navigation }) => {
         <Stack.Screen 
           name="AdityaBirlaHealthPreauth" 
           component={AdityaBirlaHealthPreauth} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="SbiGeneralInsurancePreauth" 
+          component={SbiGeneralInsurancePreauth} 
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

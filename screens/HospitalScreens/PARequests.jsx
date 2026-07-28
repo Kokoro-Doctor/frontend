@@ -3953,6 +3953,7 @@ import PreAuthMediAssistCombinedForms from "../../screens/HospitalScreens/PreAut
 import StarHealthPreAuth from "../../screens/HospitalScreens/StarHealthPreAuth";
 import CarehealthPreauth from "../../screens/HospitalScreens/CarehealthPreauth";
 import AdityaBirlaHealthPreauth from "../../screens/HospitalScreens/AdityaBirlaHealthPreauth";
+import SbiGeneralInsurancePreauth from "../../screens/HospitalScreens/SbiGeneralInsurancePreauth";
 
 // ─── STEPS ────────────────────────────────────────────────────────────────────
 const STEPS = [
@@ -6842,13 +6843,20 @@ const PARequests = ({ navigation, route }) => {
       insurerRaw.includes("carehealth") ||
       insurerRaw.includes("care");
 
-    const isAdityaBirla =
+   const isAdityaBirla =
       insurerRaw.includes("aditya birla health") ||
       insurerRaw.includes("adityabirlahealth") ||
       insurerRaw.includes("aditya birla") ||
       insurerRaw.includes("adityabirla") ||
       insurerRaw.includes("aditya") ||
       insurerRaw.includes("birla");
+
+    const isSbiGeneral =
+      insurerRaw === "sbi" ||
+      insurerRaw.includes("sbi insurance") ||
+      insurerRaw.includes("sbi general insurance") ||
+      insurerRaw.includes("sbi general") ||
+      insurerRaw.includes("Sbi");
 
     return (
       <Animated.View style={{ transform: [{ translateX: animRef }] }}>
@@ -6864,6 +6872,11 @@ const PARequests = ({ navigation, route }) => {
           />
         ) : isAdityaBirla ? (
           <AdityaBirlaHealthPreauth
+            navigation={navigation}
+            route={{ params: { analysisData, patient: selectedPatient } }}
+          />
+        ) : isSbiGeneral ? (
+          <SbiGeneralInsurancePreauth
             navigation={navigation}
             route={{ params: { analysisData, patient: selectedPatient } }}
           />
