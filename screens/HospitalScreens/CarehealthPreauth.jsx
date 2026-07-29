@@ -755,7 +755,17 @@ export default function StarHealthPreAuth({ navigation, route }) {
   }, []);
 
   useEffect(() => {
-    setForm(formSeed);
+    let nextForm = formSeed;
+    if (Platform.OS === "web") {
+      const loggedInHospitalName = localStorage.getItem("hospital_name");
+      if (
+        loggedInHospitalName &&
+        !String(formSeed.tpaHospitalName ?? "").trim()
+      ) {
+        nextForm = { ...formSeed, tpaHospitalName: loggedInHospitalName };
+      }
+    }
+    setForm(nextForm);
   }, [formSeed]);
   useEffect(() => {
     setEditedHtml(null);
