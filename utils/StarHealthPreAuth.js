@@ -53,9 +53,7 @@ function escHtml(s) {
 }
 
 function checkBox(checked) {
-  return checked
-    ? `<span class="cb cb-checked">&#10003;</span>`
-    : `<span class="cb"></span>`;
+  return `<span class="cb${checked ? " cb-checked" : ""}" onclick="this.classList.toggle('cb-checked')">&#10003;</span>`;
 }
 
 function signatureBlockHtml(dataUrl) {
@@ -94,6 +92,26 @@ function isNo(value) {
       .trim()
       .toLowerCase() === "no"
   );
+}
+
+// Known hospital addresses, keyed by a lowercase match against the hospital name.
+// Add more entries here as needed — key is matched with `.includes()`.
+const KNOWN_HOSPITAL_ADDRESSES = [
+  {
+    match: "bhandari",
+    address: "53-54, SCHEME NO 54, VIJAY NAGAR, INDORE, M.P.",
+  },
+];
+
+function getKnownHospitalAddress(hospitalName) {
+  const name = String(hospitalName ?? "")
+    .trim()
+    .toLowerCase();
+  if (!name) return "";
+  const found = KNOWN_HOSPITAL_ADDRESSES.find((entry) =>
+    name.includes(entry.match),
+  );
+  return found ? found.address : "";
 }
 
 function relationshipChecked(value, key) {
@@ -324,7 +342,7 @@ export function generateInsuranceFormHTML(
   html, body { width: 100%; background: #fff; }
   .insurance-form-root {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 6.5px;
+    font-size: 10px;
     color: #111;
     background: #fff;
     padding: 4mm;
@@ -381,12 +399,12 @@ export function generateInsuranceFormHTML(
     font-family: Georgia, "Times New Roman", serif;
   }
   .header-company-line {
-    font-size: 7.2px;
+    font-size: 8.5px;
     line-height: 1.4;
     color: #222;
   }
   .header-company-line-compact {
-    font-size: 6.8px;
+    font-size: 10px;
     line-height: 1.4;
     
   }
@@ -420,7 +438,7 @@ export function generateInsuranceFormHTML(
     color: #333;
   }
   .header-fill-note {
-    font-size: 6.5px;
+    font-size: 10px;
     color: #4a4a4a;
   }
   .header-claim-no {
@@ -430,7 +448,7 @@ export function generateInsuranceFormHTML(
     white-space: nowrap;
   }
   .header-claim-no-label {
-    font-size: 7px;
+    font-size: 10px;
     color: #333;
   }
   .header-claim-no-line {
@@ -441,7 +459,7 @@ export function generateInsuranceFormHTML(
   .header-block-note {
     border: 0.5px solid #777;
     padding: 0.5px 3px;
-    font-size: 6px;
+    font-size: 10px;
     color: #444;
     line-height: 1.15;
   }
@@ -506,7 +524,7 @@ export function generateInsuranceFormHTML(
     flex: 1;
   }
   .section-a-label {
-    font-size: 6px;
+    font-size: 10px;
     color: #333;
     white-space: nowrap;
   }
@@ -667,6 +685,9 @@ export function generateInsuranceFormHTML(
     font-size: 6px;
     text-align: center;
     line-height: 7px;
+    color: transparent;
+    cursor: pointer;
+    user-select: none;
   }
   .cb-checked { background: #1565C0; color: #fff; }
   .text-field {
@@ -705,7 +726,7 @@ export function generateInsuranceFormHTML(
   background: #1f1f1f;
   color: #fff;
   text-align: center;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: bold;
   padding: 2px 0;
   letter-spacing: 0.2px;
@@ -719,27 +740,27 @@ export function generateInsuranceFormHTML(
 }
 
 .section-a-subtitle{
-  font-size: 7px;
+  font-size: 10px;
   font-weight: bold;
   color: #333;
 }
 
 .section-a-subtitles{
-  font-size: 7px;
+  font-size: 10px;
   font-weight: bold;
   color: #333;
   margin-left: 320px;
 }
 
 .section-a-block{
-  font-size: 6px;
+  font-size: 10px;
   font-weight: bold;
   color: #333;
 }
 
 .section-a-main-heading{
   text-align: center;
-  font-size: 6.2px;
+  font-size: 10px;
   font-weight: bold;
   color: #333;
   margin: 5px 0 8px;
@@ -759,7 +780,7 @@ export function generateInsuranceFormHTML(
 
 .section-a-ui-label{
   width: 46mm;
-  font-size: 6px;
+  font-size: 10px;
   color: #333;
   line-height: 1.2;
   flex-shrink: 0;
@@ -780,7 +801,7 @@ export function generateInsuranceFormHTML(
   width: 100%;
   min-height: 18px;
   border-bottom: 0.6px solid #6f6f6f;
-  font-size: 6.3px;
+  font-size: 10px;
   color: #333;
   padding: 2px 4px;
   line-height: 1.4;
@@ -805,7 +826,7 @@ export function generateInsuranceFormHTML(
 
 .section-a-sub-label{
   width: 24mm;
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
@@ -824,7 +845,7 @@ export function generateInsuranceFormHTML(
 .section-bar-text{
   transform: rotate(90deg);
   white-space: nowrap;
-  font-size: 5.5px;
+  font-size: 10px;
   font-weight: bold;
   letter-spacing: 0.4px;
 }
@@ -843,7 +864,7 @@ export function generateInsuranceFormHTML(
 
 .section-b-title{
   text-align: center;
-  font-size: 6px;
+  font-size: 10px;
   font-weight: bold;
   color: #4a4a4a;
   margin-bottom: 12px;
@@ -865,12 +886,12 @@ export function generateInsuranceFormHTML(
 
 .section-b-alpha{
   width: 10px;
-  font-size: 6px;
+  font-size: 10px;
   color: #333;
 }
 
 .section-b-label{
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   line-height: 1.2;
 }
@@ -899,7 +920,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-b-inline-text{
-  font-size: 5.5px;
+  font-size: 10px;
   color: #444;
   white-space: nowrap;
 }
@@ -914,8 +935,22 @@ export function generateInsuranceFormHTML(
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 5.6px;
+  font-size: 10px;
   color: #333;
+}
+
+.section-b-checkbox,
+.section-d-mini-box,
+.section-e-checkbox {
+  text-align: center;
+  color: transparent;
+  cursor: pointer;
+  user-select: none;
+}
+.section-b-checkbox.chk-on,
+.section-d-mini-box.chk-on,
+.section-e-checkbox.chk-on {
+  color: #000;
 }
 
 .section-b-checkbox{
@@ -934,7 +969,7 @@ export function generateInsuranceFormHTML(
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
 }
 
@@ -952,7 +987,7 @@ export function generateInsuranceFormHTML(
 
 .section-b-sub-label{
   width: 26mm;
-  font-size: 5.5px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
@@ -962,7 +997,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-b-bottom-note{
-  font-size: 5.5px;
+  font-size: 10px;
   color: #555;
   white-space: nowrap;
   margin-left: 10px;
@@ -982,7 +1017,7 @@ export function generateInsuranceFormHTML(
 
 .section-c-title{
   text-align: center;
-  font-size: 6px;
+  font-size: 10px;
   font-weight: bold;
   color: #444;
   margin-bottom: 14px;
@@ -1008,13 +1043,13 @@ export function generateInsuranceFormHTML(
 
 .section-c-alpha{
   width: 10px;
-  font-size: 6px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
 
 .section-c-label{
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   line-height: 1.25;
 }
@@ -1043,7 +1078,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-c-inline-text{
-  font-size: 5.5px;
+  font-size: 10px;
   color: #444;
   white-space: nowrap;
 }
@@ -1057,13 +1092,15 @@ export function generateInsuranceFormHTML(
 
 .section-c-sub-label{
   width: 58mm;
-  font-size: 5.6px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
 
 .section-c-diagnosis-row{
   margin-top: 2px;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 .section-c-icd-wrap{
@@ -1073,7 +1110,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-c-icd-label{
-  font-size: 5.6px;
+  font-size: 10px;
   color: #333;
   white-space: nowrap;
 }
@@ -1097,7 +1134,7 @@ export function generateInsuranceFormHTML(
 .section-c-treatment-item{
   display: flex;
   align-items: center;
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
 }
 
@@ -1111,7 +1148,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-c-bracket{
-  font-size: 6px;
+  font-size: 10px;
   line-height: 1;
 }
 
@@ -1151,13 +1188,13 @@ export function generateInsuranceFormHTML(
 
 .section-d-alpha{
   width: 10px;
-  font-size: 6px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
 
 .section-d-label{
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   line-height: 1.25;
 }
@@ -1174,7 +1211,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-d-inline-text{
-  font-size: 5.5px;
+  font-size: 10px;
   color: #444;
   white-space: nowrap;
 }
@@ -1192,7 +1229,7 @@ export function generateInsuranceFormHTML(
 
 .section-d-sub-label{
   width: 55mm;
-  font-size: 5.5px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
@@ -1224,7 +1261,7 @@ export function generateInsuranceFormHTML(
 
 .section-d-accident-label{
   width: 60mm;
-  font-size: 5.5px;
+  font-size: 10px;
   color: #333;
   line-height: 1.35;
 }
@@ -1237,7 +1274,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-d-yn-text{
-  font-size: 5.5px;
+  font-size: 10px;
   color: #333;
   margin-right: 4px;
 }
@@ -1275,7 +1312,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-d-maternity-label{
-  font-size: 5.5px;
+  font-size: 10px;
   color: #333;
   white-space: nowrap;
 }
@@ -1300,7 +1337,7 @@ export function generateInsuranceFormHTML(
 
 .section-e-title{
   text-align: center;
-  font-size: 6px;
+  font-size: 10px;
   font-weight: bold;
   color: #444;
   margin-bottom: 14px;
@@ -1326,13 +1363,13 @@ export function generateInsuranceFormHTML(
 
 .section-e-alpha{
   width: 10px;
-  font-size: 6px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
 
 .section-e-label{
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   line-height: 1.25;
 }
@@ -1349,7 +1386,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-e-inline-text{
-  font-size: 5.5px;
+  font-size: 10px;
   color: #444;
   white-space: nowrap;
 }
@@ -1374,7 +1411,7 @@ export function generateInsuranceFormHTML(
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 5.7px;
+  font-size: 10px;
   color: #333;
 }
 
@@ -1397,7 +1434,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-e-history-header{
-  font-size: 5.6px;
+  font-size: 10px;
   color: #444;
   margin-bottom: 4px;
 }
@@ -1410,7 +1447,7 @@ export function generateInsuranceFormHTML(
 
 .section-e-history-label{
   width: 58mm;
-  font-size: 5.5px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
   line-height: 1.2;
@@ -1439,7 +1476,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-e-days-text{
-  font-size: 5.5px;
+  font-size: 10px;
   color: #444;
   white-space: nowrap;
 }
@@ -1475,13 +1512,13 @@ export function generateInsuranceFormHTML(
 
 .section-f-alpha{
   width: 10px;
-  font-size: 6px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
 
 .section-f-label{
-  font-size: 5.7px;
+  font-size: 10px;
   color: #333;
   line-height: 1.25;
 }
@@ -1517,7 +1554,7 @@ export function generateInsuranceFormHTML(
 
 .section-g-title{
   text-align: center;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: bold;
   color: #333;
   letter-spacing: 0.2px;
@@ -1526,7 +1563,7 @@ export function generateInsuranceFormHTML(
 
 .section-g-subtitle{
   text-align: center;
-  font-size: 5.3px;
+  font-size: 10px;
   color: #444;
   margin-top: 1px;
   margin-bottom: 14px;
@@ -1547,14 +1584,14 @@ export function generateInsuranceFormHTML(
 
 .section-g-alpha{
   width: 10px;
-  font-size: 6px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
 
 .section-g-label{
   flex: 1;
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   line-height: 1.2;
 }
@@ -1562,7 +1599,7 @@ export function generateInsuranceFormHTML(
 .section-g-colon{
   width: 8px;
   text-align: center;
-  font-size: 6px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
@@ -1603,13 +1640,13 @@ export function generateInsuranceFormHTML(
 }
 
 .section-g-signature-caption{
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   line-height: 1.2;
 }
 
 .section-g-signature-subcaption{
-  font-size: 5.4px;
+  font-size: 10px;
   color: #444;
   margin-top: 1px;
 }
@@ -1629,7 +1666,7 @@ export function generateInsuranceFormHTML(
 
 .section-h-title{
   text-align: center;
-  font-size: 6.2px;
+  font-size: 10px;
   font-weight: bold;
   color: #3b3b3b;
   margin-bottom: 10px;
@@ -1645,14 +1682,14 @@ export function generateInsuranceFormHTML(
 .section-h-alpha{
   width: 10px;
   flex-shrink: 0;
-  font-size: 5.7px;
+  font-size: 10px;
   color: #333;
   line-height: 1.45;
 }
 
 .section-h-text{
   flex: 1;
-  font-size: 5.55px;
+  font-size: 10px;
   color: #333;
   line-height: 1.55;
   text-align: left;
@@ -1677,7 +1714,7 @@ export function generateInsuranceFormHTML(
 
 .section-i-title{
   text-align: center;
-  font-size: 6.2px;
+  font-size: 10px;
   font-weight: bold;
   color: #333;
   text-decoration: underline;
@@ -1691,7 +1728,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-i-intro-text{
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   white-space: nowrap;
 }
@@ -1713,7 +1750,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-i-para{
-  font-size: 5.7px;
+  font-size: 10px;
   color: #333;
   line-height: 1.6;
   text-align: left;
@@ -1739,21 +1776,21 @@ export function generateInsuranceFormHTML(
 
 .section-i-alpha{
   width: 10px;
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
 
 .section-i-label{
   flex: 1;
-  font-size: 5.7px;
+  font-size: 10px;
   color: #333;
 }
 
 .section-i-colon{
   width: 8px;
   text-align: center;
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
   flex-shrink: 0;
 }
@@ -1786,13 +1823,13 @@ export function generateInsuranceFormHTML(
 }
 
 .section-i-footer-label{
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
 }
 
 .section-i-footer-colon{
   margin: 0 4px;
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
 }
 
@@ -1829,7 +1866,7 @@ export function generateInsuranceFormHTML(
 
 .section-j-title{
   text-align: center;
-  font-size: 6.4px;
+  font-size: 10px;
   font-weight: bold;
   color: #333;
   margin-bottom: 14px;
@@ -1845,14 +1882,14 @@ export function generateInsuranceFormHTML(
 .section-j-alpha{
   width: 10px;
   flex-shrink: 0;
-  font-size: 5.7px;
+  font-size: 10px;
   color: #333;
   line-height: 1.55;
 }
 
 .section-j-text{
   flex: 1;
-  font-size: 5.5px;
+  font-size: 10px;
   color: #333;
   line-height: 1.65;
   text-align: left;
@@ -1872,7 +1909,7 @@ export function generateInsuranceFormHTML(
 
 .section-j-sign-left,
 .section-j-sign-right{
-  font-size: 5.8px;
+  font-size: 10px;
   color: #333;
 }
 
@@ -1889,13 +1926,13 @@ export function generateInsuranceFormHTML(
 }
 
 .section-j-footer-label{
-  font-size: 5.7px;
+  font-size: 10px;
   color: #333;
 }
 
 .section-j-footer-colon{
   margin: 0 3px;
-  font-size: 5.7px;
+  font-size: 10px;
   color: #333;
 }
 
@@ -1917,7 +1954,7 @@ export function generateInsuranceFormHTML(
   min-height:18px;
   border-bottom:0.6px solid #6f6f6f;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -1937,7 +1974,7 @@ export function generateInsuranceFormHTML(
   min-height:18px;
   border-bottom:0.6px solid #6f6f6f;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -1957,7 +1994,7 @@ export function generateInsuranceFormHTML(
   min-height:18px;
   border-bottom:0.6px solid #6f6f6f;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -1977,7 +2014,7 @@ export function generateInsuranceFormHTML(
   min-height:18px;
   border-bottom:0.6px solid #6f6f6f;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -1998,7 +2035,7 @@ export function generateInsuranceFormHTML(
 
   border-bottom:0.6px solid #6f6f6f;
 
-  font-size:6px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
 
@@ -2017,7 +2054,7 @@ export function generateInsuranceFormHTML(
   min-height:18px;
   border-bottom:0.6px solid #6b6b6b;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2036,7 +2073,7 @@ export function generateInsuranceFormHTML(
   min-height:18px;
   border-bottom:0.6px solid #6b6b6b;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2055,7 +2092,7 @@ export function generateInsuranceFormHTML(
 }
 
 .section-i-inline-text{
-  font-size:5.5px;
+  font-size: 10px;
   color:#444;
   white-space:nowrap;
 }
@@ -2065,7 +2102,7 @@ export function generateInsuranceFormHTML(
   min-height:18px;
   border-bottom:0.6px solid #6b6b6b;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2082,7 +2119,7 @@ export function generateInsuranceFormHTML(
   min-height:18px;
   border-bottom:0.6px solid #6b6b6b;
 
-  font-size:6px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2104,7 +2141,7 @@ export function generateInsuranceFormHTML(
 
 .section-e-history-label{
   width:58mm;
-  font-size:5.5px;
+  font-size: 10px;
   color:#333;
   flex-shrink:0;
   line-height:1.2;
@@ -2115,7 +2152,7 @@ export function generateInsuranceFormHTML(
 
   border-bottom:0.6px solid #6b6b6b;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2140,7 +2177,7 @@ export function generateInsuranceFormHTML(
 
   border-bottom:0.6px solid #6b6b6b;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2161,7 +2198,7 @@ export function generateInsuranceFormHTML(
 
   border-bottom:0.6px solid #6a6a6a;
 
-  font-size:6.3px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2183,7 +2220,7 @@ export function generateInsuranceFormHTML(
 
   border-bottom:0.6px solid #6c6c6c;
 
-  font-size:6px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2208,7 +2245,7 @@ export function generateInsuranceFormHTML(
 
   border-bottom:0.6px solid #6c6c6c;
 
-  font-size:6px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2232,7 +2269,7 @@ export function generateInsuranceFormHTML(
 
   border-bottom:0.6px solid #6c6c6c;
 
-  font-size:6px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2254,7 +2291,7 @@ export function generateInsuranceFormHTML(
 
   padding:2px 4px;
 
-  font-size:5.8px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2282,7 +2319,7 @@ export function generateInsuranceFormHTML(
 
   padding:2px 4px;
 
-  font-size:5.8px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2314,7 +2351,7 @@ export function generateInsuranceFormHTML(
 
   border-bottom:0.6px solid #6b6b6b;
 
-  font-size:6px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2337,7 +2374,7 @@ export function generateInsuranceFormHTML(
 
   border-bottom:0.6px solid #6b6b6b;
 
-  font-size:6px;
+  font-size: 10px;
   color:#333;
   font-weight:bold;
   line-height:1.4;
@@ -2363,6 +2400,16 @@ export function generateInsuranceFormHTML(
   margin-right:10px;
 }
 </style>
+<script>
+  function toggleChk(el, group) {
+    if (group) {
+      document.querySelectorAll('[data-chk-group="' + group + '"]').forEach(function (e) {
+        if (e !== el) e.classList.remove('chk-on');
+      });
+    }
+    el.classList.toggle('chk-on');
+  }
+</script>
 </head>
 <body>
 <div class="insurance-form-root">
@@ -2460,7 +2507,7 @@ export function generateInsuranceFormHTML(
 
         <div class="section-a-ui-line-wrap">
           <div class="section-a-ui-line-text" contenteditable="true">
-            ${f.hospitalAddress || ""}
+            ${f.hospitalAddress || getKnownHospitalAddress(f.hospitalName)}
           </div>
         </div>
       </div>
@@ -2530,17 +2577,17 @@ export function generateInsuranceFormHTML(
       <div class="section-b-right section-b-gender-options">
 
         <div class="section-b-option">
-          <span class="section-b-checkbox">${String(f.gender || "").trim().toLowerCase() === "male" ? "&#10003;" : ""}</span>
+          <span class="section-b-checkbox${String(f.gender || "").trim().toLowerCase() === "male" ? " chk-on" : ""}" data-chk-group="gender" onclick="toggleChk(this,'gender')">&#10003;</span>
           <span contenteditable="true">Male</span>
         </div>
 
         <div class="section-b-option">
-          <span class="section-b-checkbox">${String(f.gender || "").trim().toLowerCase() === "female" ? "&#10003;" : ""}</span>
+          <span class="section-b-checkbox${String(f.gender || "").trim().toLowerCase() === "female" ? " chk-on" : ""}" data-chk-group="gender" onclick="toggleChk(this,'gender')">&#10003;</span>
           <span contenteditable="true">Female</span>
         </div>
 
         <div class="section-b-option">
-          <span class="section-b-checkbox">${!!f.gender && !["male", "female"].includes(String(f.gender).trim().toLowerCase()) ? "&#10003;" : ""}</span>
+          <span class="section-b-checkbox${!!f.gender && !["male", "female"].includes(String(f.gender).trim().toLowerCase()) ? " chk-on" : ""}" data-chk-group="gender" onclick="toggleChk(this,'gender')">&#10003;</span>
           <span contenteditable="true">Third Gender</span>
         </div>
 
@@ -2660,10 +2707,10 @@ export function generateInsuranceFormHTML(
 
       <div class="section-b-right section-b-yesno">
         <span>Yes</span>
-        <span class="section-b-checkbox">${isYes(f.bCurrentlyOther) ? "&#10003;" : ""}</span>
+        <span class="section-b-checkbox${isYes(f.bCurrentlyOther) ? " chk-on" : ""}" data-chk-group="bCurrentlyOther" onclick="toggleChk(this,'bCurrentlyOther')">&#10003;</span>
 
         <span class="section-b-no-gap">No</span>
-        <span class="section-b-checkbox">${!isYes(f.bCurrentlyOther) ? "&#10003;" : ""}</span>
+        <span class="section-b-checkbox${!isYes(f.bCurrentlyOther) ? " chk-on" : ""}" data-chk-group="bCurrentlyOther" onclick="toggleChk(this,'bCurrentlyOther')">&#10003;</span>
       </div>
     </div>
 
@@ -2694,10 +2741,10 @@ export function generateInsuranceFormHTML(
 
       <div class="section-b-right section-b-yesno">
         <span>Yes</span>
-        <span class="section-b-checkbox">${isYes(f.hasFamilyPhysician) ? "&#10003;" : ""}</span>
+        <span class="section-b-checkbox${isYes(f.hasFamilyPhysician) ? " chk-on" : ""}" data-chk-group="hasFamilyPhysician" onclick="toggleChk(this,'hasFamilyPhysician')">&#10003;</span>
 
         <span class="section-b-no-gap">No</span>
-        <span class="section-b-checkbox">${!isYes(f.hasFamilyPhysician) ? "&#10003;" : ""}</span>
+        <span class="section-b-checkbox${!isYes(f.hasFamilyPhysician) ? " chk-on" : ""}" data-chk-group="hasFamilyPhysician" onclick="toggleChk(this,'hasFamilyPhysician')">&#10003;</span>
       </div>
     </div>
 
@@ -3153,10 +3200,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box">${f.rta ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${f.rta ? " chk-on" : ""}" data-chk-group="rta" onclick="toggleChk(this,'rta')">&#10003;</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box">${!f.rta ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${!f.rta ? " chk-on" : ""}" data-chk-group="rta" onclick="toggleChk(this,'rta')">&#10003;</span>
           </div>
         </div>
 
@@ -3167,10 +3214,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box">${f.injuryDate ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${f.injuryDate ? " chk-on" : ""}" data-chk-group="injuryDateFlag" onclick="toggleChk(this,'injuryDateFlag')">&#10003;</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box">${!f.injuryDate ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${!f.injuryDate ? " chk-on" : ""}" data-chk-group="injuryDateFlag" onclick="toggleChk(this,'injuryDateFlag')">&#10003;</span>
           </div>
         </div>
 
@@ -3181,10 +3228,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box">${isYes(f.reportedToPolice) ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${isYes(f.reportedToPolice) ? " chk-on" : ""}" data-chk-group="reportedToPolice" onclick="toggleChk(this,'reportedToPolice')">&#10003;</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box">${!isYes(f.reportedToPolice) ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${!isYes(f.reportedToPolice) ? " chk-on" : ""}" data-chk-group="reportedToPolice" onclick="toggleChk(this,'reportedToPolice')">&#10003;</span>
           </div>
         </div>
 
@@ -3195,10 +3242,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box">${f.firYes ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${f.firYes ? " chk-on" : ""}" data-chk-group="firYes" onclick="toggleChk(this,'firYes')">&#10003;</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box">${!f.firYes ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${!f.firYes ? " chk-on" : ""}" data-chk-group="firYes" onclick="toggleChk(this,'firYes')">&#10003;</span>
           </div>
         </div>
 
@@ -3210,10 +3257,10 @@ export function generateInsuranceFormHTML(
 
           <div class="section-d-yesno-wrap section-d-top-box-align">
             <span class="section-d-yn-text">Yes</span>
-            <span class="section-d-mini-box">${f.substanceAbuse ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${f.substanceAbuse ? " chk-on" : ""}" data-chk-group="substanceAbuse" onclick="toggleChk(this,'substanceAbuse')">&#10003;</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box">${!f.substanceAbuse ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${!f.substanceAbuse ? " chk-on" : ""}" data-chk-group="substanceAbuse" onclick="toggleChk(this,'substanceAbuse')">&#10003;</span>
           </div>
         </div>
 
@@ -3223,10 +3270,10 @@ export function generateInsuranceFormHTML(
           </div>
 
           <div class="section-d-yesno-wrap">
-            <span class="section-d-mini-box">${isYes(f.substanceAbuseTest) ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${isYes(f.substanceAbuseTest) ? " chk-on" : ""}" data-chk-group="substanceAbuseTest" onclick="toggleChk(this,'substanceAbuseTest')">&#10003;</span>
 
             <span class="section-d-yn-text section-d-no-space">No</span>
-            <span class="section-d-mini-box">${!isYes(f.substanceAbuseTest) ? "&#10003;" : ""}</span>
+            <span class="section-d-mini-box${!isYes(f.substanceAbuseTest) ? " chk-on" : ""}" data-chk-group="substanceAbuseTest" onclick="toggleChk(this,'substanceAbuseTest')">&#10003;</span>
           </div>
         </div>
 
@@ -3348,12 +3395,12 @@ export function generateInsuranceFormHTML(
 
         <div class="section-e-option">
           <span>Emergency</span>
-          <span class="section-e-checkbox">${String(f.admissionType || "").toLowerCase().includes("emerg") ? "&#10003;" : ""}</span>
+          <span class="section-e-checkbox${String(f.admissionType || "").toLowerCase().includes("emerg") ? " chk-on" : ""}" data-chk-group="admissionType" onclick="toggleChk(this,'admissionType')">&#10003;</span>
         </div>
 
         <div class="section-e-option">
           <span>Planned</span>
-          <span class="section-e-checkbox">${String(f.admissionType || "").toLowerCase().includes("plan") ? "&#10003;" : ""}</span>
+          <span class="section-e-checkbox${String(f.admissionType || "").toLowerCase().includes("plan") ? " chk-on" : ""}" data-chk-group="admissionType" onclick="toggleChk(this,'admissionType')">&#10003;</span>
         </div>
 
       </div>
