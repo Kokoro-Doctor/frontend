@@ -20,9 +20,9 @@ import { WebView } from "react-native-webview";
 import {
   downloadInsuranceClaim,
   generateInsuranceFormHTML,
-} from "../../utils/CareHealthPreAuth";
+} from "../../utils/SbiGeneralInsurancePreauth";
 //import { mapToFormB } from "../../utils/CareHealthMapper";
-import { mapToCareHealthPreAuth } from "../../utils/CareHealthPreAuthMapper";
+import { mapToSbiGeneralInsurancePreauth } from "../../utils/SbiGeneralInsurancePreAuthMapper";
 import { Ionicons } from "@expo/vector-icons";
 import { listPatientDocuments } from "../../utils/HospitalStaffDocsService";
 
@@ -39,7 +39,7 @@ export default function StarHealthPreAuth({ navigation, route }) {
 
   console.log("analysisData", analysisData);
   const formSeed = useMemo(() => {
-    const data = mapToCareHealthPreAuth(analysisData);
+    const data = mapToSbiGeneralInsurancePreauth(analysisData);
     console.log("Mapped Data", data);
     return data;
   }, [analysisData]);
@@ -78,9 +78,11 @@ export default function StarHealthPreAuth({ navigation, route }) {
     // console.log("signatureImage for HTML generation:", signatureImage);
     return generateInsuranceFormHTML(form, signatureImage);
   }, [form, signatureImage]);
+  const previewSrcDoc = editedHtml || htmlPreview;
 
   const editableHtml = useMemo(() => {
-    if (!htmlPreview) return htmlPreview;
+    const base = editedHtml || htmlPreview;
+    if (!base) return base;
 
     const zoomStyle = `<style id="__edit_zoom_style__">html { zoom: 1.3; }</style>`;
 
@@ -251,10 +253,10 @@ export default function StarHealthPreAuth({ navigation, route }) {
 })();
 <\/script>`;
 
-    return htmlPreview
+    return base
       .replace("</head>", zoomStyle + "</head>")
       .replace("</body>", script + "</body>");
-  }, [htmlPreview]);
+  }, [htmlPreview, editedHtml]);
 
   // const injectEditableScript = useCallback(() => {
   //   if (Platform.OS !== "web") return;
@@ -755,17 +757,7 @@ export default function StarHealthPreAuth({ navigation, route }) {
   }, []);
 
   useEffect(() => {
-    let nextForm = formSeed;
-    if (Platform.OS === "web") {
-      const loggedInHospitalName = localStorage.getItem("hospital_name");
-      if (
-        loggedInHospitalName &&
-        !String(formSeed.tpaHospitalName ?? "").trim()
-      ) {
-        nextForm = { ...formSeed, tpaHospitalName: loggedInHospitalName };
-      }
-    }
-    setForm(nextForm);
+    setForm(formSeed);
   }, [formSeed]);
   useEffect(() => {
     setEditedHtml(null);
@@ -876,12 +868,26 @@ export default function StarHealthPreAuth({ navigation, route }) {
     return `<!DOCTYPE html>\n${clone.outerHTML}`;
   }, []);
 
+  const captureCurrentEdits = useCallback(() => {
+    if (Platform.OS !== "web") return;
+    if (previewMode) return;
+    const doc = editFrameRef.current?.contentDocument;
+    const captured = buildDocumentHtml(doc);
+    if (captured) setEditedHtml(captured);
+  }, [previewMode, buildDocumentHtml]);
+
+  const togglePreviewMode = useCallback(() => {
+    if (!previewMode) {
+      captureCurrentEdits();
+    }
+    setPreviewMode((p) => !p);
+  }, [previewMode, captureCurrentEdits]);
+
   const getHtmlOverride = useCallback(() => {
-    if (Platform.OS === "web") {
-      const iframeDoc = previewMode
-        ? previewFrameRef.current?.contentDocument
-        : editFrameRef.current?.contentDocument;
-      return buildDocumentHtml(iframeDoc) || editedHtml;
+    if (Platform.OS === "web" && !previewMode) {
+      const iframeDoc = editFrameRef.current?.contentDocument;
+      const fresh = buildDocumentHtml(iframeDoc);
+      if (fresh) return fresh;
     }
     return editedHtml;
   }, [buildDocumentHtml, editedHtml, previewMode]);
@@ -965,7 +971,7 @@ export default function StarHealthPreAuth({ navigation, route }) {
         <View style={{ alignItems: "flex-end", marginBottom: 8 }}>
           <TouchableOpacity
             style={styles.toggleBtn}
-            onPress={() => setPreviewMode((p) => !p)}
+            onPress={togglePreviewMode}
           >
             <Text style={styles.toggleBtnText}>
               {previewMode ? "Edit Fields" : "Preview"}
@@ -977,7 +983,7 @@ export default function StarHealthPreAuth({ navigation, route }) {
           {Platform.OS === "web" ? (
             <iframe
               ref={previewMode ? previewFrameRef : editFrameRef}
-              srcDoc={previewMode ? htmlPreview : editableHtml}
+              srcDoc={previewMode ? previewSrcDoc : editableHtml}
               onLoad={syncPreviewFrameHeight}
               style={{
                 width: "100%",
@@ -1014,8 +1020,8 @@ export default function StarHealthPreAuth({ navigation, route }) {
       {/* Info banner — full width above the two-column row */}
       <View style={styles.infoBox}>
         <Text style={styles.infoText}>
-          Care Health pre-auth form generated. Review below, make any final
-          edits, then download.
+          Sbi General Insurance pre-auth form generated. Review below, make any
+          final edits, then download.
         </Text>
       </View>
 
@@ -1046,7 +1052,7 @@ export default function StarHealthPreAuth({ navigation, route }) {
             </View>
 
             <TouchableOpacity
-              onPress={() => setPreviewMode((p) => !p)}
+              onPress={togglePreviewMode}
               style={styles.toggleBtn}
             >
               <Text style={styles.toggleBtnText}>
@@ -1061,7 +1067,7 @@ export default function StarHealthPreAuth({ navigation, route }) {
             <View style={styles.iframeWrapper}>
               <iframe
                 ref={previewFrameRef}
-                srcDoc={htmlPreview}
+                srcDoc={previewSrcDoc}
                 onLoad={() => {
                   syncPreviewFrameHeight();
                 }}
