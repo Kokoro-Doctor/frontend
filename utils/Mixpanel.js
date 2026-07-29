@@ -61,7 +61,7 @@ if (Platform.OS === "web") {
 
   // 🔥 Track function
   const trackEvent = (eventName, properties = {}) => {
-    console.log(`📊 Tracking event: ${eventName}`, properties);
+    //console.log(`📊 Tracking event: ${eventName}`, properties);
 
     // Get fresh distinct_id (in case it was updated)
     currentDistinctId =
@@ -113,16 +113,16 @@ if (Platform.OS === "web") {
 
     xhr.onload = () => {
       if (xhr.status === 200) {
-        console.log(
-          `✅ Event "${eventName}" sent successfully:`,
-          xhr.responseText,
-        );
+        // console.log(
+        //   `✅ Event "${eventName}" sent successfully:`,
+        //   xhr.responseText,
+        // );
       } else {
-        console.error(
-          `❌ Failed to send event "${eventName}":`,
-          xhr.status,
-          xhr.responseText,
-        );
+        // console.error(
+        //   `❌ Failed to send event "${eventName}":`,
+        //   xhr.status,
+        //   xhr.responseText,
+        // );
       }
     };
 
@@ -260,9 +260,9 @@ if (Platform.OS === "web") {
     },
   };
 
-  console.log("✅ Custom Mixpanel implementation loaded");
-  console.log("📍 Initial Distinct ID:", currentDistinctId);
-  console.log("🖥️ System Info:", getSystemInfo());
+  // console.log("✅ Custom Mixpanel implementation loaded");
+  // console.log("📍 Initial Distinct ID:", currentDistinctId);
+  // console.log("🖥️ System Info:", getSystemInfo());
 }
 
 export const trackButton = (buttonName, screenName, extraProps = {}) => {
