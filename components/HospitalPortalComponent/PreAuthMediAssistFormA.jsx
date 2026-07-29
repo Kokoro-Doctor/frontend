@@ -34,6 +34,7 @@ function CharBoxRow({
 }) {
   const padded = padChars(value, length);
   const chars = padded.split("");
+  const inputRefs = React.useRef([]);
 
   const handleCell = (idx, t) => {
     const last = (t || "").slice(-1);
@@ -41,6 +42,18 @@ function CharBoxRow({
     const arr = padChars(value, length).split("");
     arr[idx] = nextChar;
     onChange(arr.join(""));
+
+    // Auto-advance to next box when a character was typed
+    if (last !== "" && idx < length - 1) {
+      inputRefs.current[idx + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (idx, e) => {
+    // Move back on backspace when the current box is already empty
+    if (e.nativeEvent.key === "Backspace" && chars[idx] === " " && idx > 0) {
+      inputRefs.current[idx - 1]?.focus();
+    }
   };
 
   return (
@@ -48,11 +61,13 @@ function CharBoxRow({
       {Array.from({ length }).map((_, i) => (
         <TextInput
           key={i}
+          ref={(el) => (inputRefs.current[i] = el)}
           style={boxStyle || styles.squareBox}
           maxLength={1}
           keyboardType={keyboardType}
           value={chars[i] === " " ? "" : chars[i]}
           onChangeText={(t) => handleCell(i, t)}
+          onKeyPress={(e) => handleKeyPress(i, e)}
         />
       ))}
     </View>
@@ -62,6 +77,7 @@ function HintBoxRow({ hints, value, onChange, boxStyle, rowStyle }) {
   const length = hints.length;
   const padded = padChars(value, length);
   const chars = padded.split("");
+  const inputRefs = React.useRef([]);
 
   const handleCell = (idx, t) => {
     const last = (t || "").slice(-1);
@@ -69,6 +85,16 @@ function HintBoxRow({ hints, value, onChange, boxStyle, rowStyle }) {
     const arr = padChars(value, length).split("");
     arr[idx] = nextChar;
     onChange(arr.join(""));
+
+    if (last !== "" && idx < length - 1) {
+      inputRefs.current[idx + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (idx, e) => {
+    if (e.nativeEvent.key === "Backspace" && chars[idx] === " " && idx > 0) {
+      inputRefs.current[idx - 1]?.focus();
+    }
   };
 
   return (
@@ -76,12 +102,14 @@ function HintBoxRow({ hints, value, onChange, boxStyle, rowStyle }) {
       {hints.map((h, i) => (
         <TextInput
           key={i}
+          ref={(el) => (inputRefs.current[i] = el)}
           style={boxStyle || styles.hintBox}
           maxLength={1}
           placeholder={h}
           placeholderTextColor="#aaa"
           value={chars[i] === " " ? "" : chars[i]}
           onChangeText={(t) => handleCell(i, t)}
+          onKeyPress={(e) => handleKeyPress(i, e)}
         />
       ))}
     </View>
