@@ -256,6 +256,16 @@ function applyStarHealthExtractedFallbacks(form, analysisData) {
     padChars(digitsOnly(v).slice(0, 10), 10),
   );
   setIfPresent("primaryEmail", firstValue(sectionA.email, patient.email));
+  setIfPresent(
+  "hospitalAddress",
+  firstValue(sectionD.hospital_address, hospital.address, hospital.full_address),
+  (v) => v,
+);
+setIfPresent(
+  "hospitalEmail",
+  firstValue(sectionD.hospital_email, hospital.hospital_email, hospital.email),
+);
+  
 
   setIfPresent(
     "bCurrentlyOther",
@@ -658,7 +668,7 @@ export function mapToStarHealthFormA(analysisData) {
     otherDocuments: false,
     anyOtherDocument: false,
 
-    hospitalAddress: "",
+    hospitalAddress: base.hospitalAddress ?? "",
     hospitalCity: "",
     hospitalState: "",
     hospitalPinCode: "",
@@ -848,7 +858,8 @@ export function mapToStarHealthFormB(analysisData) {
     otherDocuments: false,
     anyOtherDocument: false,
 
-    hospitalAddress: "",
+    // hospitalAddress: "",
+    hospitalAddress: base.hospitalAddress ?? "",
     hospitalCity: "",
     hospitalState: "",
     hospitalPinCode: "",

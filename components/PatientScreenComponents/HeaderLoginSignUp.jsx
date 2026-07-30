@@ -116,12 +116,12 @@ const HeaderLoginSignUp = ({ isDoctorPortal = false, user: userOverride }) => {
     try {
       const state = navigation.getState();
 
-      console.log("FULL NAV STATE =>", JSON.stringify(state, null, 2));
+      //console.log("FULL NAV STATE =>", JSON.stringify(state, null, 2));
 
       if (state?.routes) {
         const currentRoute = state.routes[state.index];
 
-        console.log("CURRENT ROUTE =>", currentRoute?.name);
+        //console.log("CURRENT ROUTE =>", currentRoute?.name);
         if (
           currentRoute?.name === "HospitalPortalLandingPage" ||
           currentRoute?.name === "HospitalDashboard"

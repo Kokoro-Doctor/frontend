@@ -42,7 +42,7 @@ const App = () => {
     initGoogleSignin();
 
     // Test Mixpanel immediately
-    console.log("🔥 Firing test Mixpanel event...");
+    //console.log("🔥 Firing test Mixpanel event...");
 
     mixpanel.track("Web App Loaded", {
       url: Platform.OS === "web" ? window.location.pathname : "mobile",
@@ -56,7 +56,7 @@ const App = () => {
 
     // Additional test after delay
     setTimeout(() => {
-      console.log("🔥 Firing delayed test event...");
+      //console.log("🔥 Firing delayed test event...");
       mixpanel.track("Test Event After Delay");
     }, 2000);
   }, []);

@@ -5,7 +5,7 @@ const medilocker_API = `${API_URL}/medilocker`;
 
 // Debug: log API base on first Medilocker call (helps verify live vs local)
 if (typeof window !== "undefined") {
-  console.log("[Medilocker] API base", { API_URL, medilocker_API });
+  //console.log("[Medilocker] API base", { API_URL, medilocker_API });
 }
 
 export const FetchFromServer = async (email) => {
