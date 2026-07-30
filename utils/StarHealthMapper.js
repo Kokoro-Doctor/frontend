@@ -406,15 +406,16 @@ function applyTemplateKeyAliases(form, analysisData) {
   const partC = ar.part_c_cashless_request || {};
 
   const next = { ...form };
+  const hasValue = (v) => v !== undefined && v !== null && v !== "";
   const aliasIfEmpty = (key, ...candidates) => {
-    if (next[key]) return;
+    if (hasValue(next[key])) return;
     const val = firstValue(...candidates);
-    if (val) next[key] = val;
+    if (hasValue(val)) next[key] = val;
   };
   const aliasCheckboxIfEmpty = (key, ...candidates) => {
-    if (next[key]) return;
+    if (hasValue(next[key])) return;
     const val = firstValue(...candidates);
-    if (val) next[key] = val;
+    if (hasValue(val)) next[key] = val;
   };
 
   // ── Category A: simple rename aliases (data already mapped under a
