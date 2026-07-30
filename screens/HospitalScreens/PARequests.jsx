@@ -6220,7 +6220,13 @@ const PARequests = ({ navigation, route }) => {
       const token = await AsyncStorage.getItem("token");
       const res = await fetch(
         `${API_URL}/medilocker/users/${userId}/insurance/autofill-stored`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
       );
 
       if (!res.ok) {
