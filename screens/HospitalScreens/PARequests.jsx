@@ -4008,6 +4008,7 @@ const buildPreAuthAnalysisData = ({
   diagnosisCodes,
   procedureCodes,
   serviceFormData,
+  storedAutofillData,
 }) => {
   const selectedRaw = rawPatientFrom(patient);
   const selected = patient || {};
@@ -4087,6 +4088,7 @@ const buildPreAuthAnalysisData = ({
   );
 
   return {
+    ...storedAutofillData,
     flow: "preauth_patient",
     patient_data: user,
     preauth_context: {
@@ -5669,6 +5671,7 @@ const PARequests = ({ navigation, route }) => {
   const [serviceFormData, setServiceFormData] = useState({});
   const [preAuthAnalysisData, setPreAuthAnalysisData] = useState(null);
   const [livePreAuthAnalysisData, setLivePreAuthAnalysisData] = useState(null);
+  const [storedAutofillData, setStoredAutofillData] = useState(null);
   const [livePreAuthDocs, setLivePreAuthDocs] = useState({
     prescription: null,
     insurance: null,
@@ -5711,6 +5714,7 @@ const PARequests = ({ navigation, route }) => {
     setSelectedPatient(patient);
     setPreAuthAnalysisData(null);
     setLivePreAuthAnalysisData(null);
+    setStoredAutofillData(null);
     setLivePreAuthError(null);
     fetchDoctorsForPatient(patient.memberId);
 
@@ -6240,6 +6244,11 @@ const PARequests = ({ navigation, route }) => {
         JSON.stringify(data, null, 2),
       );
 
+      // Persist the full response so form-filling (part_c_cashless_request,
+      // etc.) can read it later — this fetch's own return value below only
+      // carries ICD/procedure codes, not the full response.
+      setStoredAutofillData(data);
+
       // Handle multiple possible shapes defensively
       let codes = [];
 
@@ -6356,6 +6365,7 @@ const PARequests = ({ navigation, route }) => {
     setLivePreAuthError(null);
     setPreAuthAnalysisData(null);
     setLivePreAuthAnalysisData(null);
+    setStoredAutofillData(null);
 
     try {
       const formData = new FormData();
@@ -6753,6 +6763,7 @@ const PARequests = ({ navigation, route }) => {
                 diagnosisCodes,
                 procedureCodes,
                 serviceFormData,
+                storedAutofillData,
               }),
             );
             handleNext(animRef); // advance to Step 5 directly
@@ -6789,6 +6800,7 @@ const PARequests = ({ navigation, route }) => {
                 diagnosisCodes,
                 procedureCodes,
                 serviceFormData,
+                storedAutofillData,
               }),
             );
             handleNext(animRef);
@@ -6831,6 +6843,7 @@ const PARequests = ({ navigation, route }) => {
         diagnosisCodes,
         procedureCodes,
         serviceFormData,
+        storedAutofillData,
       });
 
     const insurerRaw = String(
