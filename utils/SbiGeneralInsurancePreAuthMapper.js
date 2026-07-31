@@ -158,6 +158,23 @@ const CHRONIC_KEYS = [
     backendKeys: ["hiv", "std", "hiv_std", "sexually_transmitted"],
   },
 ];
+const KNOWN_HOSPITAL_LOCATIONS = [
+  {
+    match: "bhandari",
+    location: "53-54, Scheme No. 54, Vijay Nagar, Indore, M.P.",
+  },
+];
+
+export function getKnownHospitalLocation(hospitalName) {
+  const name = String(hospitalName ?? "")
+    .trim()
+    .toLowerCase();
+  if (!name) return "";
+  const found = KNOWN_HOSPITAL_LOCATIONS.find((entry) =>
+    name.includes(entry.match),
+  );
+  return found ? found.location : "";
+}
 
 function extractChronicIllnesses(data) {
   const diag = data.diagnosis_and_procedures ?? {};
@@ -262,7 +279,10 @@ function resolveData(analysisData) {
 
 /* ═══════════════ MAIN EXPORT ═══════════════ */
 
-export function mapToSbiGeneralInsurancePreauth(analysisData) {
+export function mapToSbiGeneralInsurancePreauth(
+  analysisData,
+  loggedInHospitalName = "",
+) {
   const data = resolveData(analysisData);
 
   const patient = data.patient_details ?? {};
@@ -271,6 +291,23 @@ export function mapToSbiGeneralInsurancePreauth(analysisData) {
   const diag = data.diagnosis_and_procedures ?? {};
   const claim = data.claim_details ?? {};
   const mat = data.maternity_details ?? {};
+
+  const resolvedHospitalName = upper(
+    firstFilled(hosp.hospital_name, hosp.name, loggedInHospitalName) ?? "",
+    40,
+  );
+
+  // ── Resolve hospital location: extracted data first, then a
+  //    known-hospital lookup (e.g. Bhandari) based on the resolved name ──
+  const resolvedHospitalLocation = upper(
+    firstFilled(
+      hosp.hospital_location,
+      hosp.city,
+      hosp.location,
+      getKnownHospitalLocation(resolvedHospitalName),
+    ) ?? "",
+    24,
+  );
 
   /* ── Gender ── */
   const genderRaw = String(patient.gender ?? "").toLowerCase();
@@ -327,7 +364,8 @@ export function mapToSbiGeneralInsurancePreauth(analysisData) {
     ) ?? "",
   ).toLowerCase();
 
-  const isRTAInferred = injuryCauseLower.includes("road") || injuryCauseLower.includes("rta");
+  const isRTAInferred =
+    injuryCauseLower.includes("road") || injuryCauseLower.includes("rta");
   const substanceAbuseInferred =
     injuryCauseLower.includes("alcohol") || injuryCauseLower.includes("drug");
 
@@ -368,11 +406,9 @@ export function mapToSbiGeneralInsurancePreauth(analysisData) {
 
   return {
     /* ═══════════ SECTION A: Hospital ID ═══════════ */
-    hospitalName: upper(hosp.hospital_name ?? hosp.name ?? "", 40),
-    hospitalLocation: upper(
-      firstFilled(hosp.hospital_location, hosp.city, hosp.location) ?? "",
-      24,
-    ),
+    /* ═══════════ SECTION A: Hospital ID ═══════════ */
+    hospitalName: resolvedHospitalName,
+    hospitalLocation: resolvedHospitalLocation,
     hospitalIdCode: truncate(
       upper(firstFilled(hosp.hospital_id, hosp.hospital_id_code) ?? "").replace(
         /\s/g,
@@ -384,10 +420,9 @@ export function mapToSbiGeneralInsurancePreauth(analysisData) {
       firstFilled(hosp.hospital_email, hosp.email) ?? "",
     ).trim(),
     rohiniId: truncate(
-      upper(firstFilled(hosp.rohini_id, hosp.rohini_registration_id) ?? "").replace(
-        /\s/g,
-        "",
-      ),
+      upper(
+        firstFilled(hosp.rohini_id, hosp.rohini_registration_id) ?? "",
+      ).replace(/\s/g, ""),
       12,
     ),
 
@@ -396,7 +431,11 @@ export function mapToSbiGeneralInsurancePreauth(analysisData) {
       firstFilled(ins.insurer_name, "SBI General Insurance Company Limited"),
     ),
     tollFreeNo: String(
-      firstFilled(ins.toll_free_number, ins.helpline, "1800 210 3366 / 1800 210 6366"),
+      firstFilled(
+        ins.toll_free_number,
+        ins.helpline,
+        "1800 210 3366 / 1800 210 6366",
+      ),
     ),
 
     patientName: upper(patient.name ?? "", 30),
@@ -561,9 +600,7 @@ export function mapToSbiGeneralInsurancePreauth(analysisData) {
     hospitalizationType,
 
     admissionDateDays: truncate(
-      String(
-        firstFilled(hosp.expected_days_stay, hosp.length_of_stay) ?? "",
-      ),
+      String(firstFilled(hosp.expected_days_stay, hosp.length_of_stay) ?? ""),
       4,
     ),
     icuDays: truncate(String(icuDaysNum || ""), 4),

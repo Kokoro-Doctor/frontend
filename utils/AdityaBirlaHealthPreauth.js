@@ -649,6 +649,11 @@ export function generateInsuranceFormHTML(
     line-height: 7px;
   }
   .cb-checked { background: #1565C0; color: #fff; }
+  .insured-check-box, .treating-check-box, .opq-check-box,
+.pd-check-box, .chronic-checkbox {
+  cursor: pointer;
+  user-select: none;
+}
   .text-field {
     display: inline-block;
     min-width: 60px;
@@ -1056,7 +1061,15 @@ export function generateInsuranceFormHTML(
 .chronic-label{ font-size:8.5px; color:#222; white-space:nowrap; }
 .chronic-my-box-row{ display:flex; align-items:center; flex-wrap:nowrap; margin-left:4px; }
 .chronic-my-box-row .char-box{ width:14px; height:16px; border:1px solid #999; margin-right:0; font-size:7.5px; }
-.chronic-other-line{ flex:1; border-bottom:1px solid #999; height:1px; min-height:1px; margin-left:4px; }
+.chronic-other-line{
+  flex:1;
+  border-bottom:1px solid #999;
+  margin-left:4px;
+  padding-bottom:1px;
+  line-height:1.2;
+  min-height:8px;
+  font-size:8.5px;
+}
 .decl-section{ margin-top:10px; margin-bottom:10px; font-family:Arial, Helvetica, sans-serif; }
 .decl-header-row{ display:flex; justify-content:space-between; align-items:baseline; padding:5px 0 2px; }
 .decl-title{ font-size:9.5px; font-weight:700; color:#111; }
@@ -1827,7 +1840,7 @@ export function generateInsuranceFormHTML(
   <div class="chronic-row">
     <span class="chronic-checkbox">${chronicChecked("other") ? "&#10003;" : ""}</span>
     <span class="chronic-label">Any other Ailment give details:</span>
-    <div class="chronic-other-line">${escHtml(f.chronicOtherDetails ?? "")}</div>
+    <div class="chronic-other-line" contenteditable="true">${escHtml(f.chronicOtherDetails ?? "")}</div>
   </div>
 </div>
 
@@ -1996,6 +2009,38 @@ export function generateInsuranceFormHTML(
     <div class="docs-footer-line">Telephone: +91 22 6225 7600, Fax: +91 22 6225 7700. For more details on risk factors, terms and conditions please read sales brochure carefully before concluding a sale. Aditya Birla Health Logo is owned by Aditya Birla Management Corporation Private Limited and used under license by us.</div>
   </div>
 </div>
+<script>
+(function(){
+  function closestGroup(el){
+    return el.closest('.insured-inline-group, .opq-row, .pd-row');
+  }
+  function attachToggle(selector){
+    document.querySelectorAll(selector).forEach(function(box){
+      box.addEventListener('click', function(e){
+        e.stopPropagation();
+        var isChecked = box.textContent.trim().length > 0;
+        if (!isChecked) {
+          var group = closestGroup(box);
+          if (group) {
+            group.querySelectorAll(selector).forEach(function(sib){
+              sib.innerHTML = '';
+            });
+          }
+          box.innerHTML = '&#10003;';
+        } else {
+          box.innerHTML = '';
+        }
+      });
+    });
+  }
+  attachToggle('.insured-check-box');
+  attachToggle('.treating-check-box');
+  attachToggle('.opq-check-box');
+  attachToggle('.pd-check-box');
+  attachToggle('.chronic-checkbox');
+})();
+</script>
+
 
 
 </div>
