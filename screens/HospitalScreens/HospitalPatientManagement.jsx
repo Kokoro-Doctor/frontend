@@ -728,7 +728,7 @@ const AddPatientForm = ({
           />
         </View>
 
-        <View style={mobileFormStyles.fieldGroup}>
+        {/* <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Patient ID</Text>
           <TextInput
             style={[mobileFormStyles.input, mobileFormStyles.inputDisabled]}
@@ -736,7 +736,7 @@ const AddPatientForm = ({
             editable={false}
             placeholderTextColor="#9CA3AF"
           />
-        </View>
+        </View> */}
 
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Gender</Text>
@@ -762,7 +762,7 @@ const AddPatientForm = ({
           />
         </View>
 
-        <View style={mobileFormStyles.fieldGroup}>
+        {/* <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Insurance policy number</Text>
           <TextInput
             style={mobileFormStyles.input}
@@ -771,7 +771,7 @@ const AddPatientForm = ({
             value={form.policy}
             onChangeText={(v) => set("policy", v)}
           />
-        </View>
+        </View> */}
 
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Insurer</Text>
@@ -794,7 +794,7 @@ const AddPatientForm = ({
           />
         </View>
 
-        <View style={mobileFormStyles.fieldGroup}>
+        {/* <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Diagnosis/Procedure</Text>
           <TextInput
             style={mobileFormStyles.input}
@@ -803,7 +803,7 @@ const AddPatientForm = ({
             value={form.procedure}
             onChangeText={(v) => set("procedure", v)}
           />
-        </View>
+        </View> */}
 
         <View style={mobileFormStyles.fieldGroup}>
           <Text style={mobileFormStyles.label}>Assign Doctor</Text>
@@ -921,7 +921,7 @@ const AddPatientForm = ({
       </View>
 
       <View style={[styles.formRow, { zIndex: 20 }]}>
-        <View style={styles.formGroup}>
+        {/* <View style={styles.formGroup}>
           <Text style={styles.formLabel}>Patient ID</Text>
           <TextInput
             style={[styles.formInput, { color: "#9CA3AF" }]}
@@ -930,7 +930,7 @@ const AddPatientForm = ({
             placeholder="Auto-generated"
             placeholderTextColor="#9CA3AF"
           />
-        </View>
+        </View> */}
         <SelectRow
           label="Gender"
           value={form.gender}
@@ -954,7 +954,7 @@ const AddPatientForm = ({
             onChangeText={(v) => set("phone", v)}
           />
         </View>
-        <View style={styles.formGroup}>
+        {/* <View style={styles.formGroup}>
           <Text style={styles.formLabel}>Insurance policy number</Text>
           <TextInput
             style={styles.formInput}
@@ -963,7 +963,7 @@ const AddPatientForm = ({
             value={form.policy}
             onChangeText={(v) => set("policy", v)}
           />
-        </View>
+        </View> */}
       </View>
 
       <View style={[styles.formRow, { zIndex: 15 }]}>
@@ -987,7 +987,7 @@ const AddPatientForm = ({
       </View>
 
       <View style={styles.formRow}>
-        <View style={styles.formGroup}>
+        {/* <View style={styles.formGroup}>
           <Text style={styles.formLabel}>Diagnosis/Procedure</Text>
           <TextInput
             style={styles.formInput}
@@ -996,7 +996,7 @@ const AddPatientForm = ({
             value={form.procedure}
             onChangeText={(v) => set("procedure", v)}
           />
-        </View>
+        </View> */}
         <SelectRow
           label="Assign Doctor"
           value={form.doctor}

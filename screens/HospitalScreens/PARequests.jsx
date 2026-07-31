@@ -6220,18 +6220,40 @@ const PARequests = ({ navigation, route }) => {
   }, []);
 
   const fetchInsuranceAutofillCodes = useCallback(async (userId) => {
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const MAX_ATTEMPTS = 4;
+    const RETRY_DELAY_MS = 3000; // OCR usually finishes within 5-15s
+
     try {
       const token = await AsyncStorage.getItem("token");
-      const res = await fetch(
-        `${API_URL}/medilocker/users/${userId}/insurance/autofill-stored`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+
+      let res;
+      let attempt = 0;
+
+      while (attempt < MAX_ATTEMPTS) {
+        attempt += 1;
+
+        res = await fetch(
+          `${API_URL}/medilocker/users/${userId}/insurance/autofill-stored`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           },
-        },
-      );
+        );
+
+        if (res.status === 409 && attempt < MAX_ATTEMPTS) {
+          console.log(
+            `[AutofillCodes] OCR not ready yet (attempt ${attempt}/${MAX_ATTEMPTS}), retrying in ${RETRY_DELAY_MS}ms...`,
+          );
+          await sleep(RETRY_DELAY_MS);
+          continue;
+        }
+
+        break;
+      }
 
       if (!res.ok) {
         console.log("[AutofillCodes] Non-OK response:", res.status);
