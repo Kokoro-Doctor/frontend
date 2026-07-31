@@ -3,6 +3,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import { Asset } from "expo-asset";
+import { getKnownHospitalLocation } from "./SbiGeneralInsurancePreAuthMapper";
 
 /**
  * Loads the Aditya Birla pre-auth header images (banner + logo) from local
@@ -685,6 +686,7 @@ line-height: 1.35;
   width:150px;
   height:16px;
   border:1px solid #333;
+  font-size:10.5px;
 }
 .hid-block-note{
   font-size:8px;
@@ -702,7 +704,7 @@ line-height: 1.35;
   font-size:8.5px;
   color:#111;
   white-space:nowrap;
-  min-width:118px;
+  min-width:80px;
 }
 .hid-box-row{
   display:flex;
@@ -724,6 +726,7 @@ line-height: 1.35;
   white-space:nowrap;
   margin:0 4px;
   flex-shrink:0;
+  margin-left:35px;
 }
 .hid-inline-box{
   width:15px;
@@ -827,6 +830,7 @@ line-height: 1.35;
   min-height:34px;
   border:1px solid #333;
   margin-left:4px;
+  font-size:10.5px;
 }
 /* SECTION C (new layout) */
 .sc-section{
@@ -882,6 +886,7 @@ line-height: 1.35;
   min-height:30px;
   border:1px solid #333;
   margin-left:4px;
+  font-size:10.5px;
 }
 .sc-textarea.tall{ min-height:44px; }
 .sc-check-item{
@@ -1271,6 +1276,7 @@ line-height: 1.35;
 .jk-box{
     border:1px solid #333;
     height:42px;
+    font-size:10px;
 }
     .sc-single-box{
     display:inline-flex;
@@ -1451,6 +1457,14 @@ line-height: 1.35;
   break-inside: avoid;
   page-break-inside: avoid;
 }
+[contenteditable="true"]:hover {
+  outline: 1px dashed #999;
+  cursor: text;
+}
+[contenteditable="true"]:focus {
+  outline: 1px solid #2a6fdb;
+  background: #fbfdff;
+}
 </style>
 </head>
 <body>
@@ -1479,7 +1493,7 @@ line-height: 1.35;
   <div class="hid-top-row">
     <div style="display:flex;align-items:center;">
       <span class="hid-top-label">Hospital ID :</span>
-      <div class="hid-top-box"></div>
+      <div class="hid-top-box" contenteditable="true"></div>
     </div>
     <div class="hid-block-note">TO BE FILLED IN BLOCK LETTERS ONLY</div>
   </div>
@@ -1494,12 +1508,15 @@ line-height: 1.35;
   <div class="hid-row">
     <div class="hid-label">Hospital Location:</div>
     <div class="hid-box-row" style="flex:0 0 auto;width:60%;">
-      ${charBoxHtml(f.hospitalLocation ?? "", 24)}
+      ${charBoxHtml(
+        f.hospitalLocation || getKnownHospitalLocation(f.hospitalName),
+        33,
+      )}
     </div>
     <span class="hid-inline-label">Hospital ID:</span>
     <div class="hid-inline-box"></div>
     <div class="hid-box-row">
-      ${charBoxHtml(f.hospitalIdCode ?? "", 6)}
+      ${charBoxHtml(f.hospitalIdCode ?? "", 7)}
     </div>
   </div>
 
@@ -1575,7 +1592,7 @@ line-height: 1.35;
 
   <div class="insured2-row">
     <span class="insured2-label">j2) Give details:</span>
-    <div class="insured2-textarea"></div>
+    <div class="insured2-textarea" contenteditable="true"></div>
   </div>
 
   <div class="insured2-row">
@@ -1592,7 +1609,7 @@ line-height: 1.35;
 
   <div class="insured2-row">
     <span class="insured2-label">m) Address of insured patient :</span>
-    <div class="insured2-textarea"></div>
+    <div class="insured2-textarea" contenteditable="true"></div>
   </div>
 </div>
 <!-- SECTION C -->
@@ -1615,8 +1632,8 @@ line-height: 1.35;
     <span class="sc-label" style="flex:1;">d) Relevant clinical findings:</span>
   </div>
   <div class="sc-row" style="align-items:stretch;">
-    <div class="sc-textarea" style="margin-left:0;">${escHtml(f.natureOfIllness ?? "")}</div>
-    <div class="sc-textarea">${escHtml(f.clinicalFindings ?? "")}</div>
+    <div class="sc-textarea" style="margin-left:0;" contenteditable="true">${escHtml(f.natureOfIllness ?? "")}</div>
+    <div class="sc-textarea" contenteditable="true">${escHtml(f.clinicalFindings ?? "")}</div>
   </div>
 
   <div class="sc-row">
@@ -1629,7 +1646,7 @@ line-height: 1.35;
 
   <div class="sc-row">
     <span class="sc-label">e.2) Duration of the present ailment:</span>
-    <div class="sc-textarea" style="min-height:16px;">${escHtml(f.pastHistoryDetails ?? "")}</div>
+    <div class="sc-textarea" style="min-height:16px;" contenteditable="true">${escHtml(f.pastHistoryDetails ?? "")}</div>
   </div>
 
   <div class="sc-row" style="align-items:flex-start;justify-content:space-between;">
@@ -1637,7 +1654,7 @@ line-height: 1.35;
     <span class="sc-label">f.1) ICD 10 Code:</span>
   </div>
   <div class="sc-row" style="align-items:stretch;">
-    <div class="sc-textarea tall" style="margin-left:0;">${escHtml(f.provisionalDiagnosis ?? "")}</div>
+    <div class="sc-textarea tall" style="margin-left:0;" contenteditable="true">${escHtml(f.provisionalDiagnosis ?? "")}</div>
     <div class="sc-box-row">${charBoxHtml(f.icd10Code ?? "", 10)}</div>
   </div>
 
@@ -1655,13 +1672,13 @@ line-height: 1.35;
     <span class="sc-label">h.1) Route of drug administration</span>
   </div>
   <div class="sc-row" style="align-items:stretch;">
-    <div class="sc-textarea" style="margin-left:0;">${escHtml(f.investigationDetails ?? "")}</div>
+    <div class="sc-textarea" style="margin-left:0;" contenteditable="true">${escHtml(f.investigationDetails ?? "")}</div>
     <div style="display:flex;flex-direction:column;gap:4px;">
       <span class="sc-check-item"><span class="sc-check-box">${f.drugRoute === "iv" ? "&#10003;" : ""}</span><span class="sc-label">IV</span></span>
       <span class="sc-check-item"><span class="sc-check-box">${f.drugRoute === "oral" ? "&#10003;" : ""}</span><span class="sc-label">Oral</span></span>
       <span class="sc-check-item"><span class="sc-check-box">${f.drugRoute === "other" ? "&#10003;" : ""}</span><span class="sc-label">Other</span></span>
     </div>
-    <div class="sc-textarea">${escHtml(f.drugRouteOther ?? "")}</div>
+    <div class="sc-textarea" contenteditable="true">${escHtml(f.drugRouteOther ?? "")}</div>
   </div>
 
   <div class="sc-row" style="align-items:flex-start;justify-content:space-between;">
@@ -1669,7 +1686,7 @@ line-height: 1.35;
     <span class="sc-label">i.1) ICD 10 PCS Code:</span>
   </div>
   <div class="sc-row" style="align-items:stretch;">
-    <div class="sc-textarea tall" style="margin-left:0;">${escHtml(f.surgeryName ?? "")}</div>
+    <div class="sc-textarea tall" style="margin-left:0;" contenteditable="true">${escHtml(f.surgeryName ?? "")}</div>
     <div class="sc-box-row">${charBoxHtml(f.icd10PcsCode ?? "", 10)}</div>
   </div>
 
@@ -1680,7 +1697,7 @@ line-height: 1.35;
             j) If other treatments, provide details:
         </div>
 
-        <div class="jk-box"></div>
+        <div class="jk-box" contenteditable="true"></div>
     </div>
 
     <div class="jk-col">
@@ -1688,7 +1705,7 @@ line-height: 1.35;
             k) How did injury occur:
         </div>
 
-        <div class="jk-box"></div>
+        <div class="jk-box" contenteditable="true"></div>
     </div>
 
 </div>
@@ -1722,16 +1739,16 @@ line-height: 1.35;
   <div class="sc-row" style="align-items:center;flex-wrap:wrap;">
     <span class="sc-label">m) In case of Maternity:</span>
     <span class="sc-label">G</span>
-<div class="sc-single-box">${escHtml(f.maternityG ?? "")}</div>
+<div class="sc-single-box" contenteditable="true">${escHtml(f.maternityG ?? "")}</div>
 
 <span class="sc-label">P</span>
-<div class="sc-single-box">${escHtml(f.maternityP ?? "")}</div>
+<div class="sc-single-box" contenteditable="true">${escHtml(f.maternityP ?? "")}</div>
 
 <span class="sc-label">L</span>
-<div class="sc-single-box">${escHtml(f.maternityL ?? "")}</div>
+<div class="sc-single-box" contenteditable="true">${escHtml(f.maternityL ?? "")}</div>
 
 <span class="sc-label">A</span>
-<div class="sc-single-box">${escHtml(f.maternityA ?? "")}</div>
+<div class="sc-single-box" contenteditable="true">${escHtml(f.maternityA ?? "")}</div>
     <span class="sc-label" style="margin-left:20px;">n) Expected date of delivery:</span>
     <div class="sc-box-row">${placeholderBoxRowHtml(f.expectedDeliveryDate ?? "", ["D", "D", "M", "M", "Y", "Y", "Y", "Y"])}</div>
   </div>
@@ -2144,6 +2161,36 @@ line-height: 1.35;
 
 
 </div>
+<script>
+(function(){
+  function closestGroup(el){
+    return el.closest('.insured2-row, .sc-row, .pd-row, .pd-chronic-row');
+  }
+  function attachToggle(selector){
+    document.querySelectorAll(selector).forEach(function(box){
+      box.addEventListener('click', function(e){
+        e.stopPropagation();
+        var isChecked = box.textContent.trim().length > 0;
+        if (!isChecked) {
+          var group = closestGroup(box);
+          if (group) {
+            group.querySelectorAll(selector).forEach(function(sib){
+              sib.innerHTML = '';
+            });
+          }
+          box.innerHTML = '&#10003;';
+        } else {
+          box.innerHTML = '';
+        }
+      });
+    });
+  }
+  attachToggle('.insured2-check-box');
+  attachToggle('.sc-check-box');
+  attachToggle('.pd-check-box');
+  attachToggle('.pd-chronic-checkbox');
+})();
+</script>
 </body>
 </html>`;
 }
