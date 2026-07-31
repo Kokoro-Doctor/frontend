@@ -1302,12 +1302,76 @@ export function mapToFormA(analysisData) {
     chronicHivDate:             "",
   };
 
-  return base;
+  return applyCostAndClinicalOverlay(base, analysisData);
 }
 
 /* ═══════════════════════════════════════════════════════════════
      FORM B DIAGNOSIS/PROCEDURE HELPERS
   ═══════════════════════════════════════════════════════════════ */
+
+// ═══════════════════════════════════════════════════════════════
+//   COST ESTIMATE + CHRONIC ILLNESS OVERLAY (Form A)
+//
+//   The base object above always ships costRoomRent/costInvestigation/
+//   costIcu/costOt/costProfessionalFees/costMedicines/costOtherExpenses/
+//   costPackageCharges as "" and all chronicXxx flags as false — these
+//   were never wired up to any backend field. This overlay fills them
+//   in, additively (only if still empty/false), from:
+//     - autofill_result.part_c_cashless_request (cost fields)
+//     - autofill_extracted.chronic_illness_history (chronic flags)
+//   It also corrects expectedDaysStay/icuDays, which were reading from
+//   hospital_details (wrong) instead of admission_details (where the
+//   backend actually puts them).
+// ═══════════════════════════════════════════════════════════════
+function applyCostAndClinicalOverlay(base, analysisData) {
+  const out = { ...base };
+  const ext = analysisData?.autofill_extracted ?? {};
+  const ar = analysisData?.autofill_result ?? {};
+  const admission = ext.admission_details ?? {};
+  const chronic = ext.chronic_illness_history ?? {};
+  const partC = ar.part_c_cashless_request ?? {};
+
+  const fillIfEmpty = (key, value) => {
+    const isEmpty = out[key] === "" || out[key] === null || out[key] === undefined;
+    if (isEmpty && value !== null && value !== undefined && value !== "") {
+      out[key] = String(value).trim();
+    }
+  };
+  const checkIfFalse = (key, value) => {
+    if (out[key] === false && (value === true || value === "yes")) {
+      out[key] = true;
+    }
+  };
+
+  // Fix expectedDaysStay/icuDays — correct backend section is
+  // admission_details, not hospital_details.
+  fillIfEmpty("expectedDaysStay", admission.expected_days_stay);
+  fillIfEmpty("icuDays", admission.days_in_icu);
+
+  // Cost-estimate fields — from part_c_cashless_request.
+  fillIfEmpty("costRoomRent", partC.room_rent_per_day);
+  fillIfEmpty("costInvestigation", partC.investigation_cost);
+  fillIfEmpty("costIcu", partC.icu_charges);
+  fillIfEmpty("costOt", partC.ot_charges);
+  fillIfEmpty("costProfessionalFees", partC.surgeon_anesthesia_fees);
+  fillIfEmpty("costMedicines", partC.medicines_consumables);
+  fillIfEmpty("costOtherExpenses", partC.other_expenses);
+  fillIfEmpty("costPackageCharges", partC.package_charges);
+  fillIfEmpty("costTotal", partC.total_expected_cost);
+
+  // Chronic illness checkboxes — from chronic_illness_history.
+  checkIfFalse("chronicDiabetes", chronic.diabetes);
+  checkIfFalse("chronicHeartDisease", chronic.heart_disease);
+  checkIfFalse("chronicHypertension", chronic.hypertension);
+  checkIfFalse("chronicHyperlipidemia", chronic.hyperlipidemias);
+  checkIfFalse("chronicOsteoarthritis", chronic.osteoarthritis);
+  checkIfFalse("chronicAsthma", chronic.asthma_copd);
+  checkIfFalse("chronicCancer", chronic.cancer);
+  checkIfFalse("chronicAlcohol", chronic.alcohol_drug_abuse);
+  checkIfFalse("chronicHiv", chronic.hiv_std);
+
+  return out;
+}
 
 function mapDiagnoses(diag) {
   // Backend may give individual fields or arrays
