@@ -22,7 +22,10 @@ import {
   generateInsuranceFormHTML,
 } from "../../utils/SbiGeneralInsurancePreauth";
 //import { mapToFormB } from "../../utils/CareHealthMapper";
-import { mapToSbiGeneralInsurancePreauth } from "../../utils/SbiGeneralInsurancePreAuthMapper";
+import {
+  getKnownHospitalLocation,
+  mapToSbiGeneralInsurancePreauth,
+} from "../../utils/SbiGeneralInsurancePreAuthMapper";
 import { Ionicons } from "@expo/vector-icons";
 import { listPatientDocuments } from "../../utils/HospitalStaffDocsService";
 
@@ -38,11 +41,18 @@ export default function StarHealthPreAuth({ navigation, route }) {
   const isMobile = width < 1000;
 
   console.log("analysisData", analysisData);
+  const loggedInHospitalName =
+    route?.params?.hospital?.name ||
+    route?.params?.patient?.hospital_name ||
+    "";
+
   const formSeed = useMemo(() => {
-    const data = mapToSbiGeneralInsurancePreauth(analysisData);
-    console.log("Mapped Data", data);
+    const data = mapToSbiGeneralInsurancePreauth(
+      analysisData,
+      loggedInHospitalName,
+    );
     return data;
-  }, [analysisData]);
+  }, [analysisData, loggedInHospitalName]);
 
   const [form, setForm] = useState(() => formSeed);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -79,6 +89,27 @@ export default function StarHealthPreAuth({ navigation, route }) {
     return generateInsuranceFormHTML(form, signatureImage);
   }, [form, signatureImage]);
   const previewSrcDoc = editedHtml || htmlPreview;
+
+  useEffect(() => {
+    let nextForm = formSeed;
+    if (Platform.OS === "web") {
+      const storedHospitalName = localStorage.getItem("hospital_name");
+      if (storedHospitalName && !String(nextForm.hospitalName ?? "").trim()) {
+        nextForm = {
+          ...nextForm,
+          hospitalName: storedHospitalName,
+          hospitalLocation:
+            nextForm.hospitalLocation ||
+            getKnownHospitalLocation(storedHospitalName),
+        };
+      }
+    }
+    setForm(nextForm);
+  }, [formSeed]);
+
+  useEffect(() => {
+    setEditedHtml(null);
+  }, [formSeed]);
 
   const editableHtml = useMemo(() => {
     const base = editedHtml || htmlPreview;
@@ -755,13 +786,6 @@ export default function StarHealthPreAuth({ navigation, route }) {
     }
     style.textContent = `html { zoom: ${zoomValue}; }`;
   }, []);
-
-  useEffect(() => {
-    setForm(formSeed);
-  }, [formSeed]);
-  useEffect(() => {
-    setEditedHtml(null);
-  }, [formSeed]);
 
   // const syncPreviewFrameHeight = useCallback(() => {
   //   if (Platform.OS !== "web") return;
