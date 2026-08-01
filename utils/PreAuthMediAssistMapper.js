@@ -265,20 +265,61 @@ function normalizeAutofill(ext) {
  * Resolve analysisData into a single normalized data object,
  * regardless of which API path was used.
  */
+function _isEmptyVal(v) {
+  return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
+}
+
+// Merges two "section" objects (e.g. two hospital_details objects) field by
+// field: the primary (document-extracted) value wins wherever it's present;
+// the fallback (DB-derived) value is used only for fields the primary left
+// empty. Never drops a real primary value, never leaves a fillable field
+// blank just because the other source didn't have every field either.
+function _mergeSectionFieldLevel(primary, fallback) {
+  const p = primary && typeof primary === "object" ? primary : {};
+  const f = fallback && typeof fallback === "object" ? fallback : {};
+  const merged = { ...f, ...p };
+  for (const key of Object.keys(merged)) {
+    if (_isEmptyVal(p[key]) && !_isEmptyVal(f[key])) {
+      merged[key] = f[key];
+    }
+  }
+  return merged;
+}
+
 function resolveData(analysisData) {
   if (!analysisData) return {};
-  // autofill_extracted (real document extraction) takes priority over
-  // structured_data — the caller (PARequests.jsx's buildPreAuthAnalysisData)
-  // always builds a synthetic structured_data from DB/local-state fields,
-  // which would otherwise permanently shadow the actual extracted document
-  // data (policy number, diagnosis, procedure, etc. would never be used).
-  if (
-    analysisData.autofill_extracted &&
-    Object.keys(analysisData.autofill_extracted).length > 0
-  )
-    return normalizeAutofill(analysisData.autofill_extracted);
-  if (analysisData.structured_data) return analysisData.structured_data;
-  return {};
+
+  const primary = analysisData.autofill_extracted
+    ? normalizeAutofill(analysisData.autofill_extracted)
+    : {};
+  const fallback = analysisData.structured_data || {};
+
+  const primaryHasData = Object.keys(primary).length > 0;
+  const fallbackHasData = Object.keys(fallback).length > 0;
+
+  if (!primaryHasData) return fallback;
+  if (!fallbackHasData) return primary;
+
+  // Both sources have data — merge field-by-field within each section
+  // (patient_details, hospital_details, insurance_details, etc.) so a
+  // field missing from the document extraction (e.g. hospital_name) can
+  // still be filled from the DB-derived structured_data, without losing
+  // any real document-extracted value present for other fields.
+  const sectionNames = new Set([
+    ...Object.keys(primary),
+    ...Object.keys(fallback),
+  ]);
+  const merged = {};
+  for (const section of sectionNames) {
+    const p = primary[section];
+    const f = fallback[section];
+    if (p && typeof p === "object" && !Array.isArray(p)) {
+      merged[section] = _mergeSectionFieldLevel(p, f);
+    } else {
+      merged[section] = _isEmptyVal(p) ? f : p;
+    }
+  }
+  return merged;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1196,7 +1237,7 @@ export function mapToFormA(analysisData) {
     dob: sh.dob,
     insurerIdCardNo: padChars(
       truncate(
-        upper(ins.certificate_number ?? ins.insurer_id_card ?? "").replace(
+        upper(ins.insurer_id_card ?? ins.certificate_number ?? "").replace(
           /\s/g,
           "",
         ),
@@ -1205,7 +1246,13 @@ export function mapToFormA(analysisData) {
       18,
     ),
     policyNumberCorporate: padChars(
-      truncate(upper(ins.policy_number ?? "").replace(/\s/g, ""), 24),
+      truncate(
+        upper(ins.policy_number ?? ins.certificate_number ?? "").replace(
+          /\s/g,
+          "",
+        ),
+        24,
+      ),
       24,
     ),
     employeeId: String(patient.employee_id ?? "").trim(),
@@ -1377,6 +1424,20 @@ function applyCostAndClinicalOverlay(base, analysisData) {
   checkIfFalse("chronicCancer", chronic.cancer);
   checkIfFalse("chronicAlcohol", chronic.alcohol_drug_abuse);
   checkIfFalse("chronicHiv", chronic.hiv_std);
+
+  // ── TEMPORARY: Bhandari Hospital address hardcode ────────────────
+  // The Hospitals DynamoDB table currently has no "address" field at all
+  // (only name/email/id etc.), so hospital_location can never be filled
+  // from the DB the way hospital_name already is. Until a real address
+  // field is added to that table, this fills it in for this one specific
+  // hospital only, as a stopgap. Remove this block once the DB has a real
+  // address field wired through resolveData's merge.
+  if (
+    /bhandari/i.test(String(out.hospitalName || "")) &&
+    !out.hospitalLocation
+  ) {
+    out.hospitalLocation = "53-54, Scheme No. 54, Vijay Nagar, Indore, M.P.";
+  }
 
   return out;
 }

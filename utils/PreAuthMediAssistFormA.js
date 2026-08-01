@@ -177,6 +177,14 @@ export function generateMediAssistFormAHTML(form, signatureDataUrl = null) {
   const firstConsultationDate = f.firstConsultationDate || "";
   const icd10Code = f.icd10Code || "";
   const icd10PcsCode = f.icd10PcsCode || "";
+  const illnessComplaints = f.illnessComplaints || "";
+  const clinicalFindings = f.clinicalFindings || "";
+  const pastHistory = f.pastHistory || "";
+  const provisionalDiagnosis = f.provisionalDiagnosis || "";
+  const investigationDetails = f.investigationDetails || "";
+  const surgeryName = f.surgeryName || "";
+  const otherTreatmentDetails = f.otherTreatmentDetails || "";
+  const patientAddress = f.patientAddress || "";
   const dateOfInjury = f.dateOfInjury || f.injuryDate || "";
   const firNumber = f.firNo || f.firNumber || "";
   const expectedDeliveryDate = f.expectedDeliveryDate || "";
@@ -961,8 +969,12 @@ body {
           height:40px;
           border:1px solid #666;
           margin-left:6px;
+          font-size:8px;
+          padding:2px;
+          box-sizing:border-box;
+          overflow:hidden;
         "
-      ></div>
+      >${esc(patientAddress)}</div>
 
     </div>
 
@@ -1053,8 +1065,12 @@ body {
             width:100%;
             height:40px;
             border:1px solid #666;
+            font-size:8px;
+            padding:2px;
+            box-sizing:border-box;
+            overflow:hidden;
           "
-        ></div>
+        >${esc(illnessComplaints)}</div>
       </div>
 
       <!-- d -->
@@ -1074,8 +1090,12 @@ body {
             width:100%;
             height:40px;
             border:1px solid #666;
+            font-size:8px;
+            padding:2px;
+            box-sizing:border-box;
+            overflow:hidden;
           "
-        ></div>
+        >${esc(clinicalFindings)}</div>
       </div>
 
     </div>
@@ -1139,8 +1159,12 @@ body {
           height:32px;
           border:1px solid #666;
           margin-left:6px;
+          font-size:8px;
+          padding:2px;
+          box-sizing:border-box;
+          overflow:hidden;
         "
-      ></div>
+      >${esc(pastHistory)}</div>
 
     </div>
 
@@ -1170,8 +1194,12 @@ body {
             width:100%;
             height:40px;
             border:1px solid #666;
+            font-size:8px;
+            padding:2px;
+            box-sizing:border-box;
+            overflow:hidden;
           "
-        ></div>
+        >${esc(provisionalDiagnosis)}</div>
       </div>
 
       <!-- f1 -->
@@ -1262,8 +1290,12 @@ body {
         width:100%;
         height:40px;
         border:1px solid #666;
+        font-size:8px;
+        padding:2px;
+        box-sizing:border-box;
+        overflow:hidden;
       "
-    ></div>
+    >${esc(investigationDetails)}</div>
   </div>
 
   <!-- h1 -->
@@ -1357,8 +1389,12 @@ body {
             width:100%;
             height:40px;
             border:1px solid #666;
+            font-size:8px;
+            padding:2px;
+            box-sizing:border-box;
+            overflow:hidden;
           "
-        ></div>
+        >${esc(surgeryName)}</div>
       </div>
 
       <!-- right -->
@@ -1407,8 +1443,12 @@ body {
             width:100%;
             height:40px;
             border:1px solid #666;
+            font-size:8px;
+            padding:2px;
+            box-sizing:border-box;
+            overflow:hidden;
           "
-        ></div>
+        >${esc(otherTreatmentDetails)}</div>
       </div>
 
       <!-- k -->
