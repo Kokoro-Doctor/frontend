@@ -1572,7 +1572,7 @@ line-height: 1.35;
     <span class="insured2-label">f) Date of Birth:</span>
     <div class="insured2-box-row">${placeholderBoxRowHtml(f.dob ?? "", ["D", "D", "M", "M", "Y", "Y", "Y", "Y"])}</div>
     <span class="insured2-label">g) Insurer ID Card No.:</span>
-    <div class="insured2-box-row">${charBoxHtml(f.insuredCardId ?? "", 10)}</div>
+    <div class="insured2-box-row">${charBoxHtml(f.insuredCardId ?? "", 20)}</div>
   </div>
 
   <div class="insured2-row">
