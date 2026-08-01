@@ -267,9 +267,17 @@ function normalizeAutofill(ext) {
  */
 function resolveData(analysisData) {
   if (!analysisData) return {};
-  if (analysisData.structured_data) return analysisData.structured_data;
-  if (analysisData.autofill_extracted)
+  // autofill_extracted (real document extraction) takes priority over
+  // structured_data — the caller (PARequests.jsx's buildPreAuthAnalysisData)
+  // always builds a synthetic structured_data from DB/local-state fields,
+  // which would otherwise permanently shadow the actual extracted document
+  // data (policy number, diagnosis, procedure, etc. would never be used).
+  if (
+    analysisData.autofill_extracted &&
+    Object.keys(analysisData.autofill_extracted).length > 0
+  )
     return normalizeAutofill(analysisData.autofill_extracted);
+  if (analysisData.structured_data) return analysisData.structured_data;
   return {};
 }
 
