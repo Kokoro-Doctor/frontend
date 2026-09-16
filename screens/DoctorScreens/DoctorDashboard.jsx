@@ -194,7 +194,7 @@ const DoctorDashboard = ({ navigation }) => {
       if (!Array.isArray(subscriptions)) return null;
 
       const active = subscriptions.find(
-        (sub) => sub.doctor_id === doctorId && sub.status === "active"
+        (sub) => sub.doctor_id === doctorId && sub.status === "active",
       );
 
       return active || null;
@@ -294,7 +294,7 @@ const DoctorDashboard = ({ navigation }) => {
             patientName: userDetails?.name || "Unknown",
             consultationType: consultationType,
           };
-        })
+        }),
       );
 
       setBookings(enrichedBookings);
@@ -328,7 +328,7 @@ const DoctorDashboard = ({ navigation }) => {
 
       const subscription = await fetchActiveSubscription(
         userId,
-        booking.doctor_id
+        booking.doctor_id,
       );
       setActiveSubscription(subscription);
 
@@ -391,7 +391,7 @@ const DoctorDashboard = ({ navigation }) => {
 
     return Array.from(
       { length: daysInMonth },
-      (_, i) => new Date(year, month, i + 1)
+      (_, i) => new Date(year, month, i + 1),
     );
   };
 
@@ -438,7 +438,7 @@ const DoctorDashboard = ({ navigation }) => {
       filtered = filtered.filter((doc) =>
         String(doc.name || "")
           .toLowerCase()
-          .includes(searchQuery.toLowerCase())
+          .includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -860,7 +860,7 @@ const DoctorDashboard = ({ navigation }) => {
 
                         {[
                           ...Array(
-                            Math.ceil(filteredDocuments.length / itemsPerPage)
+                            Math.ceil(filteredDocuments.length / itemsPerPage),
                           ),
                         ].map((_, i) => (
                           <TouchableOpacity
@@ -888,7 +888,7 @@ const DoctorDashboard = ({ navigation }) => {
                           onPress={() =>
                             currentPage <
                               Math.ceil(
-                                filteredDocuments.length / itemsPerPage
+                                filteredDocuments.length / itemsPerPage,
                               ) && setCurrentPage(currentPage + 1)
                           }
                         >
@@ -991,7 +991,7 @@ const DoctorDashboard = ({ navigation }) => {
                         Showing{" "}
                         {Math.min(
                           itemsPerPage,
-                          filteredDocuments.length - indexOfFirst
+                          filteredDocuments.length - indexOfFirst,
                         )}{" "}
                         of {filteredDocuments.length} result
                       </Text>
@@ -1008,7 +1008,7 @@ const DoctorDashboard = ({ navigation }) => {
 
                         {[
                           ...Array(
-                            Math.ceil(filteredDocuments.length / itemsPerPage)
+                            Math.ceil(filteredDocuments.length / itemsPerPage),
                           ),
                         ].map((_, i) => (
                           <TouchableOpacity
@@ -1036,7 +1036,7 @@ const DoctorDashboard = ({ navigation }) => {
                           onPress={() =>
                             currentPage <
                               Math.ceil(
-                                filteredDocuments.length / itemsPerPage
+                                filteredDocuments.length / itemsPerPage,
                               ) && setCurrentPage(currentPage + 1)
                           }
                         >
@@ -1061,62 +1061,16 @@ const DoctorDashboard = ({ navigation }) => {
                   </View>
 
                   <View style={styles.notificationList}>
-                    <TouchableOpacity style={styles.notifItem}>
-                      <View style={styles.notifIcon}>
+                    <View style={styles.comingSoonWrap}>
+                      <View style={styles.comingSoonIconCircle}>
                         <Image
                           source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
-                          style={styles.statIcon}
+                          style={styles.comingSoonIcon}
                           resizeMode="contain"
                         />
                       </View>
-
-                      <View style={styles.notifBody}>
-                        <Text style={styles.notifTitle}>
-                          New Patient Subscribed Preeti Sabrawal
-                        </Text>
-                        <Text style={styles.notifTime}>
-                          Mon, May 01, 10:00 AM
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.notifItem}>
-                      <View style={styles.notifIcon}>
-                        <Image
-                          source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
-                          style={styles.statIcon}
-                          resizeMode="contain"
-                        />
-                      </View>
-
-                      <View style={styles.notifBody}>
-                        <Text style={styles.notifTitle}>
-                          New Patient Subscribed Preeti Sabrawal
-                        </Text>
-                        <Text style={styles.notifTime}>
-                          Mon, May 01, 10:00 AM
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.notifItem}>
-                      <View style={styles.notifIcon}>
-                        <Image
-                          source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
-                          style={styles.statIcon}
-                          resizeMode="contain"
-                        />
-                      </View>
-
-                      <View style={styles.notifBody}>
-                        <Text style={styles.notifTitle}>
-                          New Patient Subscribed Preeti Sabrawal
-                        </Text>
-                        <Text style={styles.notifTime}>
-                          Mon, May 01, 10:00 AM
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
+                      <Text style={styles.comingSoonTitle}>Coming Soon</Text>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -1442,8 +1396,7 @@ const DoctorDashboard = ({ navigation }) => {
                 </View>
               ))
             ) : ( */}
-              <Text style={stylesMobile.noData}>No History Found</Text>
-            
+            <Text style={stylesMobile.noData}>No History Found</Text>
           </View>
 
           {/* Notifications */}
@@ -1457,86 +1410,16 @@ const DoctorDashboard = ({ navigation }) => {
               <Text style={stylesMobile.sectionTitle}>Notification</Text>
             </View>
 
-            <TouchableOpacity style={styles.notifItem}>
-              <View style={styles.notifIcon}>
+            <View style={stylesMobile.comingSoonWrap}>
+              <View style={stylesMobile.comingSoonIconCircle}>
                 <Image
                   source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
-                  style={styles.statIcon}
+                  style={stylesMobile.comingSoonIcon}
                   resizeMode="contain"
                 />
               </View>
-
-              <View style={styles.notifBody}>
-                <Text style={styles.notifTitle}>
-                  New Patient Subscribed Preeti Sabrawal
-                </Text>
-                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.notifItem}>
-              <View style={styles.notifIcon}>
-                <Image
-                  source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
-                  style={styles.statIcon}
-                  resizeMode="contain"
-                />
-              </View>
-
-              <View style={styles.notifBody}>
-                <Text style={styles.notifTitle}>
-                  New Patient Subscribed Preeti Sabrawal
-                </Text>
-                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.notifItem}>
-              <View style={styles.notifIcon}>
-                <Image
-                  source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
-                  style={styles.statIcon}
-                  resizeMode="contain"
-                />
-              </View>
-
-              <View style={styles.notifBody}>
-                <Text style={styles.notifTitle}>
-                  New Patient Subscribed Preeti Sabrawal
-                </Text>
-                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.notifItem}>
-              <View style={styles.notifIcon}>
-                <Image
-                  source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
-                  style={styles.statIcon}
-                  resizeMode="contain"
-                />
-              </View>
-
-              <View style={styles.notifBody}>
-                <Text style={styles.notifTitle}>
-                  New Patient Subscribed Preeti Sabrawal
-                </Text>
-                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.notifItem}>
-              <View style={styles.notifIcon}>
-                <Image
-                  source={require("../../assets/DoctorsPortal/Icons/Notificationss.png")}
-                  style={styles.statIcon}
-                  resizeMode="contain"
-                />
-              </View>
-
-              <View style={styles.notifBody}>
-                <Text style={styles.notifTitle}>
-                  New Patient Subscribed Preeti Sabrawal
-                </Text>
-                <Text style={styles.notifTime}>Mon, May 01, 10:00 AM</Text>
-              </View>
-            </TouchableOpacity>
+              <Text style={stylesMobile.comingSoonTitle}>Coming Soon</Text>
+            </View>
           </View>
         </ScrollView>
       )}
@@ -2003,6 +1886,39 @@ const styles = StyleSheet.create({
     color: "#999",
     marginTop: "2%",
   },
+  comingSoonWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: "12%",
+    paddingHorizontal: "8%",
+  },
+  comingSoonIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FFE8E8",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  comingSoonIcon: {
+    width: 26,
+    height: 26,
+    opacity: 0.6,
+  },
+  comingSoonTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 6,
+  },
+  comingSoonSubtitle: {
+    fontSize: 12,
+    color: "#999",
+    textAlign: "center",
+    lineHeight: 18,
+  },
 
   // ✅ web date input styles
   webDateWrap: {
@@ -2229,6 +2145,39 @@ const stylesMobile = StyleSheet.create({
     color: "#999",
     fontSize: 13,
     paddingVertical: 10,
+  },
+
+  comingSoonWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+  },
+  comingSoonIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#FFE8E8",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  comingSoonIcon: {
+    width: 24,
+    height: 24,
+    opacity: 0.6,
+  },
+  comingSoonTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 6,
+  },
+  comingSoonSubtitle: {
+    fontSize: 12,
+    color: "#999",
+    textAlign: "center",
+    lineHeight: 18,
   },
 });
 
