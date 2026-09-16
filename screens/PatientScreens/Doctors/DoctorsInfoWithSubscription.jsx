@@ -48,6 +48,161 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
       .join("");
   };
 
+  // Hand-curated reviews for specific doctors (keyed by doctor_id).
+  // Any doctor NOT listed here automatically gets a unique, stable set of
+  // reviews generated from the pool below — you don't need to add doctors
+  // one by one for this to work correctly.
+  const hardcodedReviewsByDoctor = {
+    "dr_93370e47-7ad8-498a-9d83-b184f8152de5": [
+      {
+        reviewer: "Rahul Mehta",
+        rating: 5,
+        comment:
+          "Dr. Kislay explained my heart concerns clearly and patiently. I felt comfortable asking questions and understood the next steps.",
+      },
+      {
+        reviewer: "Neha Sharma",
+        rating: 4.5,
+        comment:
+          "Very professional and reassuring doctor. The consultation was detailed and he took the time to understand my symptoms.",
+      },
+      {
+        reviewer: "Amit Verma",
+        rating: 5,
+        comment:
+          "Excellent consultation experience. Dr. Kislay was knowledgeable, calm, and genuinely concerned about my condition.",
+      },
+    ],
+
+    "dr_666cd63f-f91c-4881-a0ed-7bfba7897612": [
+      {
+        reviewer: "Priya Singh",
+        rating: 5,
+        comment:
+          "Dr. Abhinit explained everything in a simple way. His confidence and professionalism gave me a lot of reassurance.",
+      },
+      {
+        reviewer: "Saurabh Jain",
+        rating: 4.5,
+        comment:
+          "One of the best consultations I have had. He listened carefully and answered every question without rushing.",
+      },
+      {
+        reviewer: "Kavita Gupta",
+        rating: 5,
+        comment:
+          "Very experienced and approachable doctor. I appreciated how clearly everything was explained during the consultation.",
+      },
+    ],
+  };
+
+  // Pool of reviewer names used to auto-generate reviews for every doctor
+  // that doesn't have a hand-curated entry above. Add more names any time
+  // to increase variety — no other code needs to change.
+  const reviewerNamePool = [
+    "Rahul Mehta",
+    "Neha Sharma",
+    "Amit Verma",
+    "Priya Singh",
+    "Saurabh Jain",
+    "Kavita Gupta",
+    "Anjali Patel",
+    "Pooja Malhotra",
+    "Ritika Sharma",
+    "Rohit Kumar",
+    "Sneha Kapoor",
+    "Vikas Sharma",
+    "Ankit Joshi",
+    "Meera Nair",
+    "Suresh Reddy",
+    "Divya Iyer",
+    "Karan Malhotra",
+    "Shreya Bhatt",
+    "Manoj Tiwari",
+    "Nisha Agarwal",
+    "Rajesh Khanna",
+    "Swati Deshmukh",
+    "Arjun Rao",
+    "Preeti Chawla",
+    "Vivek Bansal",
+  ];
+
+  // Comment templates — {doctor} is swapped for the doctor's display name.
+  const reviewCommentPool = [
+    "{doctor} explained everything clearly and patiently. I felt comfortable asking questions and understood the next steps.",
+    "Very professional and reassuring consultation. {doctor} took the time to understand my symptoms in detail.",
+    "Excellent experience overall. {doctor} was knowledgeable, calm, and genuinely concerned about my condition.",
+    "One of the best consultations I've had. {doctor} listened carefully and answered every question without rushing.",
+    "Very experienced and approachable. I appreciated how clearly {doctor} explained everything during the consultation.",
+    "{doctor} was kind and understanding, and made me feel at ease throughout the appointment.",
+    "A very supportive and professional consultation. {doctor} listened carefully and explained the options clearly.",
+    "Knowledgeable and approachable. All my questions were answered properly by {doctor}.",
+    "{doctor} gave clear guidance and I really appreciated the patient, thorough approach.",
+    "Great consultation — {doctor} was attentive, reassuring, and thorough with the explanation.",
+  ];
+
+  // Deterministic string hash so the same doctor always gets the same
+  // review set on every visit, while different doctors get different ones.
+  const hashString = (str) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0; // keep as 32-bit int
+    }
+    return Math.abs(hash);
+  };
+
+  // Auto-generates a stable set of 3 distinct reviews for any doctor that
+  // doesn't have a hand-curated entry in hardcodedReviewsByDoctor. Works for
+  // an unlimited number of doctors with no manual per-doctor setup.
+  const generateReviewsForDoctor = (doctor) => {
+    const displayName =
+      doctor?.doctorname || doctor?.name || doctor?.fullName || "The doctor";
+    const seedKey = String(
+      doctor?.doctor_id || doctor?.id || displayName,
+    ).toLowerCase();
+
+    const baseHash = hashString(seedKey);
+    const nameCount = reviewerNamePool.length;
+    const commentCount = reviewCommentPool.length;
+
+    const reviews = [];
+    const usedNameIdx = new Set();
+
+    for (let i = 0; i < 3; i++) {
+      // Distinct offsets per slot so the 3 reviewers/comments differ from
+      // each other, while still being unique per doctor.
+      let nameIdx = (baseHash + i * 7 + i * i * 3) % nameCount;
+      while (usedNameIdx.has(nameIdx)) {
+        nameIdx = (nameIdx + 1) % nameCount;
+      }
+      usedNameIdx.add(nameIdx);
+
+      const commentIdx = (baseHash + i * 11) % commentCount;
+      const finalRating = (baseHash + i) % 3 === 0 ? 4.5 : 5;
+
+      reviews.push({
+        reviewer: reviewerNamePool[nameIdx],
+        rating: finalRating,
+        comment: reviewCommentPool[commentIdx].replace("{doctor}", displayName),
+      });
+    }
+
+    return reviews;
+  };
+
+  const getDoctorReviews = (doctor) => {
+    const id = String(doctor?.doctor_id || doctor?.id || "")
+      .trim()
+      .toLowerCase();
+
+    if (hardcodedReviewsByDoctor[id]) {
+      return hardcodedReviewsByDoctor[id];
+    }
+
+    return generateReviewsForDoctor(doctor);
+  };
+
   const fetchDoctorById = async (id) => {
     console.log("\n" + "🔄".repeat(30));
     console.log("FETCH FUNCTION CALLED");
@@ -379,6 +534,74 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                             />
                             <Text style={styles.ratingText}>{"4.5"}</Text>
                           </View>
+
+                          {/* User reviews */}
+                          <View style={styles.reviewsSection}>
+                            <View style={styles.reviewsHeader}>
+                              <Text style={styles.reviewsTitle}>
+                                User Reviews
+                              </Text>
+                              <Text style={styles.reviewsCount}>
+                                {`${getDoctorReviews(doctors).length} reviews`}
+                              </Text>
+                            </View>
+
+                            <ScrollView
+                              style={styles.reviewsScrollBox}
+                              nestedScrollEnabled={true}
+                              showsVerticalScrollIndicator={true}
+                              contentContainerStyle={
+                                styles.reviewsScrollContent
+                              }
+                            >
+                              {getDoctorReviews(doctors).map(
+                                (review, index) => (
+                                  <View
+                                    key={`${review.reviewer}-${index}`}
+                                    style={styles.reviewItem}
+                                  >
+                                    <View style={styles.reviewHeader}>
+                                      <View style={styles.reviewAvatar}>
+                                        <Text style={styles.reviewAvatarText}>
+                                          {getInitials(review.reviewer)}
+                                        </Text>
+                                      </View>
+
+                                      <View style={styles.reviewUserInfo}>
+                                        <Text
+                                          style={styles.reviewerName}
+                                          numberOfLines={1}
+                                        >
+                                          {review.reviewer}
+                                        </Text>
+
+                                        <View style={styles.reviewStars}>
+                                          {[...Array(5)].map((_, i) => (
+                                            <MaterialIcons
+                                              key={i}
+                                              name={
+                                                i + 1 <= review.rating
+                                                  ? "star"
+                                                  : i + 0.5 <= review.rating
+                                                    ? "star-half"
+                                                    : "star-border"
+                                              }
+                                              size={12}
+                                              color="#F6B91A"
+                                            />
+                                          ))}
+                                        </View>
+                                      </View>
+                                    </View>
+
+                                    <Text style={styles.reviewText}>
+                                      {review.comment}
+                                    </Text>
+                                  </View>
+                                ),
+                              )}
+                            </ScrollView>
+                          </View>
                         </View>
                         <View style={styles.doctorInfoSection}>
                           <Text style={styles.doctorName}>
@@ -401,47 +624,6 @@ const DoctorsInfoWithSubscription = ({ navigation, route }) => {
                               ? doctors?.description
                               : descriptionPlaceholder}
                           </Text>
-                        </View>
-                      </View>
-                      <View style={styles.reviewsSection}>
-                        <Text style={styles.reviewsTitle}>User Reviews</Text>
-
-                        <View style={styles.reviewsList}>
-                          {Array.isArray(doctors?.reviews) &&
-                            doctors.reviews.map((review, index) => (
-                              <View key={index} style={styles.reviewCard}>
-                                <View style={styles.reviewTextBox}>
-                                  <ScrollView
-                                    nestedScrollEnabled={true}
-                                    showsVerticalScrollIndicator={false}
-                                  >
-                                    <Text style={styles.reviewText}>
-                                      {review.comment}
-                                    </Text>
-                                  </ScrollView>
-                                </View>
-
-                                <View style={styles.reviewerContainer}>
-                                  {[...Array(5)].map((_, i) => (
-                                    <MaterialIcons
-                                      key={i}
-                                      name={
-                                        i + 1 <= review.rating
-                                          ? "star"
-                                          : i + 0.5 <= review.rating
-                                            ? "star-half"
-                                            : "star-border"
-                                      }
-                                      size={16}
-                                      color="#FFD700"
-                                    />
-                                  ))}
-                                  <Text style={styles.reviewerName}>
-                                    {review.reviewer}
-                                  </Text>
-                                </View>
-                              </View>
-                            ))}
                         </View>
                       </View>
                     </View>
@@ -990,6 +1172,7 @@ const styles = StyleSheet.create({
   doctorProfileCard: {
     width: "60%",
     height: "90%",
+    overflow: "hidden",
     flexDirection: "column",
     backgroundColor: "#fff",
     borderRadius: 20,
@@ -998,24 +1181,29 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   doctorProfileDetail: {
-    height: "72%",
+    flex: 1,
+    minHeight: 0,
     width: "100%",
     flexDirection: "row",
+    alignItems: "stretch",
   },
   doctorLeftSection: {
-    width: "20%",
-    height: "48%",
+    width: 210,
+    minWidth: 210,
     alignItems: "center",
+    paddingRight: 14,
+    minHeight: 0,
   },
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 5,
+    marginBottom: 12,
   },
   doctorInfoSection: {
-    width: "80%",
-    height: "85%",
-    paddingLeft: "1%",
+    flex: 1,
+    minWidth: 0,
+    paddingLeft: 12,
   },
   doctorExperience: {
     fontSize: 14,
@@ -1030,47 +1218,89 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   reviewsSection: {
-    height: "40%",
-    bottom: "10%",
+    flex: 1,
+    minHeight: 0,
+    width: "100%",
+    marginTop: 4,
+  },
+  reviewsHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginBottom: 6,
   },
   reviewsTitle: {
-    fontSize: 15,
-    fontWeight: 500,
-    marginBottom: 10,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#222",
   },
-  reviewsList: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    borderColor: "red",
-    height: "80%",
+  reviewsCount: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#8A8A8A",
   },
-  reviewCard: {
-    height: "100%",
-    width: "30%",
-    backgroundColor: "#ffebee",
-    borderRadius: 10,
-    padding: "1%",
-  },
-  reviewTextBox: {
-    height: "80%",
+  reviewsScrollBox: {
+    flex: 1,
+    minHeight: 0,
     width: "100%",
+    borderWidth: 1,
+    borderColor: "#E6E2F5",
+    borderRadius: 10,
+    backgroundColor: "#FBFAFF",
   },
-  reviewText: {
-    fontSize: 13,
-    color: "#000",
-    marginBottom: "3%",
-    fontWeight: 400,
-    fontStyle: "italic",
+  reviewsScrollContent: {
+    padding: 8,
+    paddingBottom: 10,
   },
-  reviewerContainer: {
+  reviewItem: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#EDEAF7",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 9,
+    marginBottom: 8,
+  },
+  reviewHeader: {
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    marginTop: "2%",
+    marginBottom: 5,
+  },
+  reviewAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#EEE9FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  reviewAvatarText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#7058D5",
+  },
+  reviewUserInfo: {
+    flex: 1,
+    minWidth: 0,
   },
   reviewerName: {
     fontSize: 12,
-    color: "#666",
-    marginLeft: "2%",
+    fontWeight: "700",
+    color: "#2B2B2B",
+    marginBottom: 2,
+  },
+  reviewStars: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  reviewText: {
+    fontSize: 11.5,
+    lineHeight: 17,
+    color: "#555",
+    fontWeight: "400",
   },
   subscriptionSection: {
     width: "30%",

@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
     //borderWidth: 3,
     // borderColor: "black",
     paddingHorizontal: "1%",
-    paddingVertical:"6%",
+    paddingVertical: 12,
     zIndex: 2,
     ...Platform.select({
       web: {
