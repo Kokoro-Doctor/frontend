@@ -1,13 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { useAuth } from "../contexts/AuthContext";
-import PatientAuthModal from "../components/Auth/PatientAuthModal";
-import DoctorAuthModal from "../components/Auth/DoctorAuthModal";
+import React, { createContext, useContext, useState } from "react";
 
 const AuthPopupContext = createContext(null);
 
@@ -105,71 +96,20 @@ const AuthPopupContext = createContext(null);
 //   );
 // };
 
-export const AuthPopupProvider = ({ children, appType, currentRoute }) => {
-  const { user, isLoading } = useAuth();
-  const isAuthenticated = !!user;
-
+export const AuthPopupProvider = ({ children }) => {
   const [showPatientAuth, setShowPatientAuth] = useState(false);
   const [showDoctorAuth, setShowDoctorAuth] = useState(false);
 
-  const timerRef = useRef(null);
-  const shownOnceRef = useRef(false);
-  const manuallyDismissedRef = useRef(false);
+  // Auth modals open only on an explicit user action (header Login / Signup).
+  // There is deliberately no timer-based auto-popup here: it used to fire 20s
+  // after page load and re-arm on every route change, interrupting navigation
+  // for users who never asked to sign up.
+  const openPatientAuth = () => setShowPatientAuth(true);
+  const openDoctorAuth = () => setShowDoctorAuth(true);
 
-  // Reset effect — but respect manual dismissal
-  useEffect(() => {
-    if (
-      (currentRoute === "PatientAppNavigation" && appType === "patient") ||
-      (currentRoute === "DoctorAppNavigation" && appType === "doctor")
-    ) {
-      if (!manuallyDismissedRef.current) {
-        // ✅ Only reset if user didn't manually interact
-        shownOnceRef.current = false;
-      }
-    }
-  }, [currentRoute, appType]);
-
-  const clearAutoPopupTimer = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    shownOnceRef.current = true;
-    manuallyDismissedRef.current = true; // ✅ Mark as manually handled
-  };
-  const openPatientAuth = () => {
-    clearAutoPopupTimer();
-    setShowPatientAuth(true);
-  };
-
-  const openDoctorAuth = () => {
-    clearAutoPopupTimer();
-    setShowDoctorAuth(true);
-  };
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (isAuthenticated || shownOnceRef.current) return;
-
-    timerRef.current = setTimeout(() => {
-      if (appType === "doctor") {
-        setShowDoctorAuth(true);
-      } else {
-        setShowPatientAuth(true);
-      }
-      shownOnceRef.current = true;
-    }, 20000); // 20s auto-popup
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [isAuthenticated, isLoading, appType, currentRoute]);
-
-  useEffect(() => {
-    if (showPatientAuth || showDoctorAuth) {
-      clearAutoPopupTimer();
-    }
-  }, [showPatientAuth, showDoctorAuth]);
+  // Kept for backward compatibility - callers still invoke this before opening
+  // a modal. There is no auto-popup timer left to cancel.
+  const clearAutoPopupTimer = () => {};
 
   return (
     <AuthPopupContext.Provider
@@ -180,7 +120,7 @@ export const AuthPopupProvider = ({ children, appType, currentRoute }) => {
         setShowDoctorAuth,
         openPatientAuth,
         openDoctorAuth,
-        clearAutoPopupTimer
+        clearAutoPopupTimer,
       }}
     >
       {children}

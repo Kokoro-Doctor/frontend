@@ -12,7 +12,10 @@ import {
   Animated,
   StatusBar,
   ActivityIndicator,
+  Modal,
+  Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderLoginSignUp from "../../components/PatientScreenComponents/HeaderLoginSignUp";
 import HospitalSidebarNavigation from "../../components/HospitalPortalComponent/HospitalSideBarNavigation";
@@ -36,6 +39,120 @@ const PostOpCare = ({ navigation }) => {
   const [aiAnalysisModalOpen, setAiAnalysisModalOpen] = useState(false);
   const [generatedPrescription, setGeneratedPrescription] = useState(null);
   const aiAnalysisSideAnim = useState(new Animated.Value(height))[0];
+
+  // Patient selection
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patientDropdownOpen, setPatientDropdownOpen] = useState(false);
+  const [patientList, setPatientList] = useState([]);
+  const [patientLoading, setPatientLoading] = useState(false);
+
+  // ─────────────────────────────────────────────
+  // Patient selection
+  // ─────────────────────────────────────────────
+  const showMessage = (title, message) => {
+    if (Platform.OS === "web") {
+      alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  const getAuthToken = async () => {
+    if (Platform.OS === "web") return localStorage.getItem("token");
+    return AsyncStorage.getItem("hospital_token").catch(() => null);
+  };
+
+  // Hospital id lives in the JWT payload; decoded inline to avoid a jwt dep.
+  const getHospitalIdFromToken = (token) => {
+    try {
+      const payloadBase64 = token.split(".")[1];
+      const paddedPayload = payloadBase64
+        .replace(/-/g, "+")
+        .replace(/_/g, "/")
+        .padEnd(
+          payloadBase64.length + ((4 - (payloadBase64.length % 4)) % 4),
+          "=",
+        );
+      const decoded = JSON.parse(atob(paddedPayload));
+      return decoded.sub || decoded.hospital_id || null;
+    } catch (err) {
+      console.error("[PostOpCare] Failed to decode token:", err);
+      return null;
+    }
+  };
+
+  const fetchPatients = async () => {
+    // Second tap closes the dropdown.
+    if (patientDropdownOpen) {
+      setPatientDropdownOpen(false);
+      return;
+    }
+
+    setPatientDropdownOpen(true);
+    setPatientLoading(true);
+
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        setPatientDropdownOpen(false);
+        showMessage(
+          "Not signed in",
+          "Please sign in to the hospital portal to select a patient.",
+        );
+        return;
+      }
+
+      const hospitalId = getHospitalIdFromToken(token);
+      if (!hospitalId) {
+        setPatientDropdownOpen(false);
+        showMessage(
+          "Session problem",
+          "Could not identify your hospital from the current session. Please sign in again.",
+        );
+        return;
+      }
+
+      const res = await fetch(
+        `${API_URL}/hospitals/${hospitalId}/patients?limit=50`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!res.ok) {
+        setPatientDropdownOpen(false);
+        showMessage(
+          "Could not load patients",
+          `The patient list could not be loaded (error ${res.status}). Please try again.`,
+        );
+        return;
+      }
+
+      const data = await res.json();
+      setPatientList(data.patients || []);
+    } catch (err) {
+      console.error("[PostOpCare] fetchPatients error:", err);
+      setPatientDropdownOpen(false);
+      showMessage(
+        "Could not load patients",
+        "Please check your connection and try again.",
+      );
+    } finally {
+      setPatientLoading(false);
+    }
+  };
+
+  const handlePatientSelect = (patient) => {
+    setSelectedPatient({
+      ...patient,
+      id: patient.id || patient.user_id,
+    });
+    setPatientDropdownOpen(false);
+  };
 
   // ─────────────────────────────────────────────
   // Shared: call insurance analyze API
@@ -294,7 +411,7 @@ const PostOpCare = ({ navigation }) => {
           month: "short",
           year: "numeric",
         }),
-        patientName: patientDetails?.name || "",
+        patientName: patientDetails?.name || selectedPatient?.name || "",
         age:
           patientDetails?.age !== null && patientDetails?.age !== undefined
             ? String(patientDetails.age)
@@ -305,8 +422,11 @@ const PostOpCare = ({ navigation }) => {
         prescriptionReport: prescriptionText,
       };
       setGeneratedPrescription(prescription);
+      // userId is what PostOpCarePrescription needs to save the approved
+      // prescription back to the patient's Medilocker.
       navigation.navigate("PostOpCarePrescription", {
         generatedPrescription: prescription,
+        userId: selectedPatient?.user_id || selectedPatient?.id || null,
       });
     } catch (error) {
       console.error("[extractFromFiles] Error:", error);
@@ -455,14 +575,84 @@ const PostOpCare = ({ navigation }) => {
                   {/* TITLE ROW */}
                   <View style={styles.titleTopSection}>
                     <Text style={styles.title}>Post OP Care</Text>
-                    <TouchableOpacity
-                      style={styles.patientButton}
-                      onPress={currentStep === 1 ? goBackToUpload : undefined}
-                    >
-                      <Text style={styles.btnText}>
-                        {currentStep === 1 ? "← Back" : "Select Patient"}
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={styles.patientButtonWrapper}>
+                      <TouchableOpacity
+                        style={styles.patientButton}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        onPress={
+                          currentStep === 1 ? goBackToUpload : fetchPatients
+                        }
+                      >
+                        <Text style={styles.btnText}>
+                          {currentStep === 1
+                            ? "\u2190 Back"
+                            : selectedPatient
+                              ? `${selectedPatient.name || "Patient"} \u25be`
+                              : "Select Patient \u25be"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {patientDropdownOpen && (
+                        <View style={styles.patientDropdown}>
+                          <View style={styles.patientDropdownHeader}>
+                            <Text style={styles.patientDropdownHeaderText}>
+                              SELECT PATIENT
+                            </Text>
+                            <TouchableOpacity
+                              onPress={() => setPatientDropdownOpen(false)}
+                            >
+                              <Feather name="x" size={14} color="#94A3B8" />
+                            </TouchableOpacity>
+                          </View>
+
+                          {patientLoading ? (
+                            <View style={styles.patientDropdownEmpty}>
+                              <ActivityIndicator size="small" color="#2563EB" />
+                              <Text style={styles.patientDropdownEmptyText}>
+                                Loading patients...
+                              </Text>
+                            </View>
+                          ) : patientList.length === 0 ? (
+                            <View style={styles.patientDropdownEmpty}>
+                              <Feather name="users" size={28} color="#CBD5E1" />
+                              <Text style={styles.patientDropdownEmptyText}>
+                                No patients found
+                              </Text>
+                            </View>
+                          ) : (
+                            <ScrollView showsVerticalScrollIndicator>
+                              {patientList.map((p, i) => (
+                                <TouchableOpacity
+                                  key={p.user_id || i}
+                                  onPress={() => handlePatientSelect(p)}
+                                  style={[
+                                    styles.patientRow,
+                                    i < patientList.length - 1 &&
+                                      styles.patientRowDivider,
+                                    selectedPatient?.user_id === p.user_id &&
+                                      styles.patientRowSelected,
+                                  ]}
+                                >
+                                  <Text
+                                    style={styles.patientRowName}
+                                    numberOfLines={1}
+                                  >
+                                    {p.name || "Unknown"}
+                                  </Text>
+                                  {selectedPatient?.user_id === p.user_id && (
+                                    <Feather
+                                      name="check"
+                                      size={16}
+                                      color="#2563EB"
+                                    />
+                                  )}
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          )}
+                        </View>
+                      )}
+                    </View>
                   </View>
 
                   {/* STEP BAR */}
@@ -823,9 +1013,84 @@ const PostOpCare = ({ navigation }) => {
             </View>
             <Text style={stylesMobile.title}>Post OP Care</Text>
 
-            <TouchableOpacity style={stylesMobile.selectBtn}>
-              <Text style={stylesMobile.selectText}>Select Patient</Text>
+            <TouchableOpacity
+              style={stylesMobile.selectBtn}
+              onPress={fetchPatients}
+            >
+              <Text style={stylesMobile.selectText}>
+                {selectedPatient
+                  ? `${selectedPatient.name || "Patient"} \u25be`
+                  : "Select Patient \u25be"}
+              </Text>
             </TouchableOpacity>
+
+            <Modal
+              visible={patientDropdownOpen}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setPatientDropdownOpen(false)}
+            >
+              <TouchableOpacity
+                style={stylesMobile.patientModalBackdrop}
+                activeOpacity={1}
+                onPress={() => setPatientDropdownOpen(false)}
+              >
+                <View style={stylesMobile.patientModalSheet}>
+                  <View style={stylesMobile.patientModalHeader}>
+                    <Text style={stylesMobile.patientModalTitle}>
+                      SELECT PATIENT
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setPatientDropdownOpen(false)}
+                    >
+                      <Feather name="x" size={18} color="#94A3B8" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {patientLoading ? (
+                    <View style={stylesMobile.patientModalEmpty}>
+                      <ActivityIndicator size="small" color="#2563EB" />
+                      <Text style={stylesMobile.patientModalEmptyText}>
+                        Loading patients...
+                      </Text>
+                    </View>
+                  ) : patientList.length === 0 ? (
+                    <View style={stylesMobile.patientModalEmpty}>
+                      <Feather name="users" size={28} color="#CBD5E1" />
+                      <Text style={stylesMobile.patientModalEmptyText}>
+                        No patients found
+                      </Text>
+                    </View>
+                  ) : (
+                    <ScrollView showsVerticalScrollIndicator>
+                      {patientList.map((p, i) => (
+                        <TouchableOpacity
+                          key={p.user_id || i}
+                          onPress={() => handlePatientSelect(p)}
+                          style={[
+                            stylesMobile.patientModalRow,
+                            i < patientList.length - 1 &&
+                              stylesMobile.patientModalRowDivider,
+                            selectedPatient?.user_id === p.user_id &&
+                              stylesMobile.patientModalRowSelected,
+                          ]}
+                        >
+                          <Text
+                            style={stylesMobile.patientModalRowName}
+                            numberOfLines={1}
+                          >
+                            {p.name || "Unknown"}
+                          </Text>
+                          {selectedPatient?.user_id === p.user_id && (
+                            <Feather name="check" size={16} color="#2563EB" />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </Modal>
 
             <View style={stylesMobile.stepContainer}>
               <View style={stylesMobile.line} />
@@ -1158,6 +1423,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
     flexShrink: 0,
+    // Lifts the whole row (and the patient dropdown inside it) above the step
+    // bar and panels below, which are later siblings in paint order.
+    zIndex: 1000,
+    overflow: "visible",
   },
   title: { fontSize: 19, fontWeight: "600" },
   patientButton: {
@@ -1168,6 +1437,76 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   btnText: { fontSize: 15, fontWeight: "500", color: "#555555" },
+  patientButtonWrapper: {
+    position: "relative",
+    zIndex: 1000,
+    overflow: "visible",
+  },
+  patientDropdown: {
+    position: "absolute",
+    top: 44,
+    right: 0,
+    width: 320,
+    maxHeight: 320,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    overflow: "hidden",
+  },
+  patientDropdownHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#F8FAFC",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  patientDropdownHeaderText: {
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
+  patientDropdownEmpty: {
+    padding: 28,
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  patientDropdownEmptyText: {
+    color: "#94A3B8",
+    fontSize: 13,
+    marginTop: 10,
+  },
+  patientRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  patientRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  patientRowSelected: {
+    backgroundColor: "#EFF6FF",
+  },
+  patientRowName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#0F172A",
+    flex: 1,
+    marginRight: 10,
+  },
   stepBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -1491,6 +1830,64 @@ const stylesMobile = StyleSheet.create({
     marginBottom: 16,
   },
   selectText: { fontSize: 14, color: "#333" },
+  patientModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  patientModalSheet: {
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    maxHeight: "70%",
+    overflow: "hidden",
+  },
+  patientModalHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#F8FAFC",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  patientModalTitle: {
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
+  patientModalEmpty: {
+    padding: 32,
+    alignItems: "center",
+  },
+  patientModalEmptyText: {
+    color: "#94A3B8",
+    fontSize: 13,
+    marginTop: 10,
+  },
+  patientModalRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  patientModalRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  patientModalRowSelected: {
+    backgroundColor: "#EFF6FF",
+  },
+  patientModalRowName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#0F172A",
+    flex: 1,
+    marginRight: 10,
+  },
   stepContainer: {
     flexDirection: "row",
     justifyContent: "space-between",

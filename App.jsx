@@ -19,14 +19,12 @@ const App = () => {
 
   const routeNameRef = useRef(null); // 👈 IMPORTANT
   const [appType, setAppType] = useState("patient");
-  const [currentRoute, setCurrentRoute] = useState(null);
 
   const onStateChange = () => {
     const routeName = navigationRef.current?.getCurrentRoute()?.name;
 
     if (routeName && routeNameRef.current !== routeName) {
       routeNameRef.current = routeName;
-      setCurrentRoute(routeName);
 
       const isDoctorRoute = routeName.startsWith("Doctor");
       setAppType(isDoctorRoute ? "doctor" : "patient");
@@ -71,10 +69,7 @@ const App = () => {
                 ref={navigationRef}
                 onStateChange={onStateChange}
               >
-                <AuthPopupProvider
-                  appType={appType}
-                  currentRoute={currentRoute}
-                >
+                <AuthPopupProvider>
                   <RootNavigation />
                   <AuthPopupOverlay navigationRef={navigationRef} appType={appType} />
                   <ChatBotOverlay navigationRef={navigationRef} />
